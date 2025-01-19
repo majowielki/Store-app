@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "1lr3UWi/EPWtOP8pECyT92nCarJY8Hec7jCjgIVqy/E=",
+  "Source": "store-app.API",
+  "BasePath": "_content/store-app.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
