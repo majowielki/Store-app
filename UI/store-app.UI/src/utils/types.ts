@@ -1,40 +1,35 @@
-export type ProductsResponse = {
+export interface ProductsResponse {
   data: Product[];
   meta: ProductsMeta;
-};
+}
 
-export type Product = {
+export interface Product {
   id: number;
-  attributes: {
-    category: string;
-    company: string;
-    createdAt: string;
-    description: string;
-    featured: boolean;
-    image: string;
-    price: string;
-    publishedAt: string;
-    shipping: boolean;
-    title: string;
-    updatedAt: string;
-    colors: string[];
-  };
-};
+  category: string;
+  company: string;
+  description: string;
+  featured: boolean;
+  image: string;
+  price: string;
+  shipping: boolean;
+  title: string;
+  colors: string[];
+}
 
-export type ProductsMeta = {
+export interface ProductsMeta {
   categories: string[];
   companies: string[];
   pagination: Pagination;
-};
+}
 
-export type Pagination = {
+export interface Pagination {
   page: number;
   pageCount: number;
   pageSize: number;
   total: number;
-};
+}
 
-export type Params = {
+export interface Params {
   search?: string;
   category?: string;
   company?: string;
@@ -42,15 +37,16 @@ export type Params = {
   price?: string;
   shipping?: string;
   page?: number;
-};
+}
 
+// This must remain a type because it uses intersection (&)
 export type ProductsResponseWithParams = ProductsResponse & { params: Params };
 
-export type SingleProductResponse = {
+export interface SingleProductResponse {
   data: Product;
-};
+}
 
-export type CartItem = {
+export interface CartItem {
   cartID: string;
   productID: number;
   image: string;
@@ -59,45 +55,43 @@ export type CartItem = {
   amount: number;
   productColor: string;
   company: string;
-};
+}
 
-export type CartState = {
+export interface CartState {
   cartItems: CartItem[];
   numItemsInCart: number;
   cartTotal: number;
   shipping: number;
   tax: number;
   orderTotal: number;
-};
+}
 
-export type Checkout = {
+export interface Checkout {
   name: string;
   address: string;
   chargeTotal: number;
   orderTotal: string;
   cartItems: CartItem[];
   numItemsInCart: number;
-};
+}
 
-export type Order = {
+export interface Order {
   id: number;
-  attributes: {
-    address: string;
-    cartItems: CartItem[];
-    createdAt: string;
-    name: string;
-    numItemsInCart: number;
-    orderTotal: string;
-    publishedAt: string;
-    updatedAt: string;
-  };
-};
+  address: string;
+  cartItems: CartItem[];
+  createdAt: string;
+  name: string;
+  numItemsInCart: number;
+  orderTotal: string;
+  publishedAt: string;
+  updatedAt: string;
+}
 
-export type OrdersMeta = {
-  pagination: Pagination;
-};
+// export interface OrdersMeta {
+//   pagination: Pagination;
+// }
 
-export type OrdersResponse = {
+export interface OrdersResponse {
   data: Order[];
-  meta: OrdersMeta;
-};
+  meta: Pagination;
+}

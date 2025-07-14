@@ -1,6 +1,6 @@
 import { ProductsGrid, SectionTitle } from ".";
 
-function FeaturedProducts() {
+const FeaturedProducts = () => {
   return (
     <section className="pt-24">
       <SectionTitle text="featured products" />

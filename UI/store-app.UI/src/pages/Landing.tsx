@@ -9,7 +9,7 @@ export const loader: LoaderFunction = async (): Promise<ProductsResponse> => {
   return { ...response.data };
 };
 
-function Landing() {
+const Landing = () => {
   return (
     <>
       <Hero />

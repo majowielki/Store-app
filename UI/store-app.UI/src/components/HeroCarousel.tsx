@@ -14,7 +14,7 @@ import hero4 from "../assets/hero4.webp";
 
 const carouselImages = [hero1, hero2, hero3, hero4];
 
-function HeroCarousel() {
+const HeroCarousel = () => {
   return (
     <div className="hidden lg:block">
       <Carousel>

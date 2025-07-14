@@ -23,7 +23,7 @@ export const loader: LoaderFunction = async ({
   return { ...response.data };
 };
 
-function SingleProduct() {
+const SingleProduct = () => {
   const { data: product } = useLoaderData() as SingleProductResponse;
   const { image, title, price, description, colors, company } =
     product.attributes;

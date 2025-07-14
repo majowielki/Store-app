@@ -5,13 +5,29 @@ import { editItem, removeItem } from "@/features/cart/cartSlice";
 import SelectProductAmount from "./SelectProductAmount";
 import { Mode } from "./SelectProductAmount";
 
-export const FirstColumn = ({
-  title,
-  image,
-}: {
+interface FirstColumnProps {
   image: string;
   title: string;
-}) => {
+}
+
+interface SecondColumnProps {
+  title: string;
+  company: string;
+  productColor: string;
+  price: string;
+}
+
+interface ThirdColumnProps {
+  amount: number;
+  cartID: string;
+}
+
+interface FourthColumnProps {
+  price: string;
+  amount: number;
+}
+
+export const FirstColumn = ({ title, image }: FirstColumnProps) => {
   return (
     <img
       src={image}
@@ -20,17 +36,13 @@ export const FirstColumn = ({
     />
   );
 };
+
 export const SecondColumn = ({
   title,
   company,
   productColor,
   price,
-}: {
-  title: string;
-  company: string;
-  productColor: string;
-  price: string;
-}) => {
+}: SecondColumnProps) => {
   return (
     <div className="sm:ml-4 md:ml-12 sm:w-48">
       <h3 className="capitalize font-medium">{title}</h3>
@@ -46,18 +58,12 @@ export const SecondColumn = ({
           }}
         ></span>
       </p>
-      <p className="mt-4 text-sm font-medium">{formatAsDollars(price)}</p>
+      <p className="mt-4 text-sm">Price: {formatAsDollars(price)}</p>
     </div>
   );
 };
 
-export const ThirdColumn = ({
-  amount,
-  cartID,
-}: {
-  amount: number;
-  cartID: string;
-}) => {
+export const ThirdColumn = ({ amount, cartID }: ThirdColumnProps) => {
   const dispatch = useAppDispatch();
 
   const removeItemFromCart = () => {
@@ -81,15 +87,12 @@ export const ThirdColumn = ({
   );
 };
 
-export const FourthColumn = ({
-  price,
-  amount,
-}: {
-  price: string;
-  amount: number;
-}) => {
+export const FourthColumn = ({ price, amount }: FourthColumnProps) => {
   const totalPrice = (parseFloat(price) * amount).toFixed(2);
   return (
-    <p className="font-medium sm:ml-auto">{formatAsDollars(totalPrice)}</p>
+    <div className="sm:ml-auto">
+      <p className="font-medium">Total price:</p>
+      <p>{formatAsDollars(totalPrice)}</p>
+    </div>
   );
 };

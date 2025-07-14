@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { setTheme } from "@/features/theme/themeSlice";
-function ModeToggle() {
+const ModeToggle = () => {
   const dispatch = useAppDispatch();
 
   return (

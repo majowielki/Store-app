@@ -22,7 +22,7 @@ export const loader: LoaderFunction = async ({
   return { ...response.data, params };
 };
 
-function Products() {
+const Products = () => {
   return (
     <>
       <Filters />

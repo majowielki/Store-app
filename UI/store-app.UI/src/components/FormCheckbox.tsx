@@ -1,13 +1,13 @@
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
-type FormCheckboxProps = {
+interface FormCheckboxProps {
   name: string;
   label?: string;
   defaultValue?: string;
-};
+}
 
-function FormCheckbox({ name, label, defaultValue }: FormCheckboxProps) {
+const FormCheckbox = ({ name, label, defaultValue }: FormCheckboxProps) => {
   const defaultChecked = defaultValue === "on" ? true : false;
 
   return (

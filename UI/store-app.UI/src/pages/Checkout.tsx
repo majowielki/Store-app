@@ -17,7 +17,7 @@ export const loader =
     return null;
   };
 
-function Checkout() {
+const Checkout = () => {
   const cartTotal = useAppSelector((state) => state.cartState.cartTotal);
 
   if (cartTotal === 0) {

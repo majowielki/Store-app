@@ -7,7 +7,7 @@ import {
   FourthColumn,
 } from "./CartItemColumns";
 
-function CartItemsList() {
+const CartItemsList = () => {
   const cartItems = useAppSelector((state) => state.cartState.cartItems);
 
   return (

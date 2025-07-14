@@ -8,14 +8,14 @@ import {
 
 import { Label } from "./ui/label";
 
-type SelectInputProps = {
+interface SelectInputProps {
   name: string;
   label?: string;
   defaultValue?: string;
   options: string[];
 };
 
-function FormSelect({ label, name, options, defaultValue }: SelectInputProps) {
+const FormSelect = ({ label, name, options, defaultValue }: SelectInputProps) => {
   return (
     <div className="mb-2">
       <Label htmlFor={name} className="capitalize">

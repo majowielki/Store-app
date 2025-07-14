@@ -3,7 +3,25 @@ import { formatAsDollars } from "@/utils";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Separator } from "./ui/separator";
 
-function CartTotals() {
+interface CartTotalRowProps {
+  label: string;
+  amount: number;
+  lastRow?: boolean;
+}
+
+const CartTotalRow = ({ label, amount, lastRow }: CartTotalRowProps) => {
+  return (
+    <>
+      <p className="flex justify-between text-sm">
+        <span>{label}</span>
+        <span>{formatAsDollars(amount)}</span>
+      </p>
+      {lastRow ? null : <Separator className="my-2" />}
+    </>
+  );
+};
+
+const CartTotals = () => {
   const { cartTotal, shipping, tax, orderTotal } = useAppSelector(
     (state) => state.cartState
   );
@@ -17,25 +35,5 @@ function CartTotals() {
       </CardTitle>
     </Card>
   );
-}
+};
 export default CartTotals;
-
-function CartTotalRow({
-  label,
-  amount,
-  lastRow,
-}: {
-  label: string;
-  amount: number;
-  lastRow?: boolean;
-}) {
-  return (
-    <>
-      <p className="flex justify-between text-sm">
-        <span>{label}</span>
-        <span>{formatAsDollars(amount)}</span>
-      </p>
-      {lastRow ? null : <Separator className="my-2" />}
-    </>
-  );
-}

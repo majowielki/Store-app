@@ -6,7 +6,7 @@ import { logoutUser } from '../features/user/userSlice';
 import { clearCart } from '../features/cart/cartSlice';
 import { useToast } from '../hooks/use-toast';
 
-function Header() {
+const Header = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { toast } = useToast();

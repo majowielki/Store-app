@@ -2,7 +2,12 @@ import { useNavigation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ReloadIcon } from '@radix-ui/react-icons';
 
-function SubmitBtn({ text, className }: { text: string; className?: string }) {
+interface SubmitBtnProps {
+  text: string;
+  className?: string;
+}
+
+const SubmitBtn = ({ text, className }: SubmitBtnProps) => {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
   return (

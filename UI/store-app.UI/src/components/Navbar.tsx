@@ -4,7 +4,7 @@ import ModeToggle from "./ModeToggle";
 import NavLinks from "./NavLinks";
 import CartButton from "./CartButton";
 
-function Navbar() {
+const Navbar = () => {
   return (
     <nav className="bg-muted py-4">
       <div className="flex align-element justify-between items-center">

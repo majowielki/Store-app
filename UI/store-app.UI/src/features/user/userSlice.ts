@@ -1,14 +1,14 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { toast } from "@/hooks/use-toast";
 
-export type User = {
+export interface User {
   username: string;
   jwt: string;
-};
+}
 
-type UserState = {
+interface UserState {
   user: User | null;
-};
+}
 
 const getUserFromLocalStorage = (): User | null => {
   const user = localStorage.getItem("user");

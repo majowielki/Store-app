@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { House } from "lucide-react";
 
-function Logo() {
+const Logo = () => {
   return (
     <Link
       to="/"

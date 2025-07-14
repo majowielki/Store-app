@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { type CartItem, type CartState } from "@/utils";
 import { toast } from "@/hooks/use-toast";
 

@@ -26,7 +26,7 @@ export const action: ActionFunction = async ({
   }
 };
 
-function Register() {
+const Register = () => {
   return (
     <section className='h-screen grid place-items-center'>
       <Card className='w-96 bg-muted'>

@@ -2,7 +2,7 @@ import { formatAsDollars, type ProductsResponse } from "@/utils";
 import { Link, useLoaderData } from "react-router-dom";
 import { Card, CardContent } from "./ui/card";
 
-function ProductsList() {
+const ProductsList = () => {
   const { data: products } = useLoaderData() as ProductsResponse;
 
   return (

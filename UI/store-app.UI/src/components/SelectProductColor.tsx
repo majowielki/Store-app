@@ -1,14 +1,14 @@
-type SelectProductColorProps = {
+interface SelectProductColorProps {
   colors: string[];
   productColor: string;
   setProductColor: React.Dispatch<React.SetStateAction<string>>;
 };
 
-function SelectProductColor({
+const SelectProductColor = ({
   colors,
   productColor,
   setProductColor,
-}: SelectProductColorProps) {
+}: SelectProductColorProps) => {
   return (
     <div className="mt-6">
       <h4 className="text-md font-medium tracking-wider capitalize">colors</h4>

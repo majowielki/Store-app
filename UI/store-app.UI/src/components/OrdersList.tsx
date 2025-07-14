@@ -1,7 +1,5 @@
 import { useLoaderData } from 'react-router-dom';
-
 import { type OrdersResponse } from '@/utils';
-
 import {
   Table,
   TableBody,
@@ -12,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-function OrdersList() {
+const OrdersList = () => {
   const { data: orders, meta } = useLoaderData() as OrdersResponse;
 
   return (

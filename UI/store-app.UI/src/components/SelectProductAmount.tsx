@@ -11,23 +11,23 @@ export enum Mode {
   CartItem = "cartItem",
 }
 
-type SelectProductAmountProps = {
+interface SelectProductAmountProps {
   mode: Mode.SingleProduct;
   amount: number;
   setAmount: React.Dispatch<React.SetStateAction<number>>;
 };
 
-type SelectCartItemAmountProps = {
+interface SelectCartItemAmountProps {
   mode: Mode.CartItem;
   amount: number;
   setAmount: (value: number) => void;
 };
 
-function SelectProductAmount({
+const SelectProductAmount = ({
   mode,
   amount,
   setAmount,
-}: SelectProductAmountProps | SelectCartItemAmountProps) {
+}: SelectProductAmountProps | SelectCartItemAmountProps) => {
   const cartItem = mode === Mode.CartItem;
 
   return (

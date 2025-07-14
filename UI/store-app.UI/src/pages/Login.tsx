@@ -36,7 +36,7 @@ export const action =
     }
   };
 
-function Login() {
+const Login = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 

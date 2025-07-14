@@ -11,10 +11,9 @@ import {
   constructUrl,
   constructPrevOrNextUrl,
 } from "@/utils";
-
 import { useLoaderData, useLocation } from "react-router-dom";
 
-function PaginationContainer() {
+const PaginationContainer = () => {
   const { meta } = useLoaderData() as ProductsResponseWithParams;
   const { pageCount, page } = meta.pagination;
 

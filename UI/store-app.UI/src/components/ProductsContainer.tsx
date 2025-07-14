@@ -1,17 +1,26 @@
-import { useLoaderData } from "react-router-dom";
+import { useLoaderData, useLocation, useNavigate } from "react-router-dom";
 import ProductsGrid from "./ProductsGrid";
 import ProductsList from "./ProductsList";
-import { useState } from "react";
+//import { useState } from "react";
 import { LayoutGrid, List } from "lucide-react";
 import { type ProductsResponse } from "@/utils";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 
-function ProductsContainer() {
+const ProductsContainer = () => {
   const { meta } = useLoaderData() as ProductsResponse;
   const totalProducts = meta.pagination.total;
 
-  const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const queryParams = new URLSearchParams(location.search);
+  const currentLayout = queryParams.get("layout") || "grid";
+
+  const setLayout = (layout: "grid" | "list") => {
+    queryParams.set("layout", layout);
+    navigate({ search: queryParams.toString() });
+  };
   return (
     <>
       {/* HEADER */}
@@ -23,14 +32,14 @@ function ProductsContainer() {
           <div className="flex gap-x-4">
             <Button
               onClick={() => setLayout("grid")}
-              variant={layout === "grid" ? "default" : "ghost"}
+              variant={currentLayout === "grid" ? "default" : "ghost"}
               size="icon"
             >
               <LayoutGrid />
             </Button>
             <Button
               onClick={() => setLayout("list")}
-              variant={layout === "list" ? "default" : "ghost"}
+              variant={currentLayout === "list" ? "default" : "ghost"}
               size="icon"
             >
               <List />
@@ -45,7 +54,7 @@ function ProductsContainer() {
           <h5 className="text-2xl mt-16">
             Sorry, no products matched your search...
           </h5>
-        ) : layout === "grid" ? (
+        ) : currentLayout === "grid" ? (
           <ProductsGrid />
         ) : (
           <ProductsList />
