@@ -1,0 +1,76 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Store.Shared.DTOs;
+
+public class ProcessPaymentRequest
+{
+    [Required]
+    public int OrderId { get; set; }
+    
+    [Required]
+    [Range(0.01, double.MaxValue)]
+    public decimal Amount { get; set; }
+    
+    [Required]
+    public string PaymentMethod { get; set; } = string.Empty;
+    
+    public string Currency { get; set; } = "USD";
+    
+    public PaymentDetailsDto? PaymentDetails { get; set; }
+}
+
+public class PaymentDetailsDto
+{
+    public string? CardNumber { get; set; }
+    public string? ExpiryMonth { get; set; }
+    public string? ExpiryYear { get; set; }
+    public string? Cvv { get; set; }
+    public string? CardHolderName { get; set; }
+    
+    // PayPal details
+    public string? PayPalEmail { get; set; }
+    
+    // Bank transfer details
+    public string? BankAccount { get; set; }
+    public string? RoutingNumber { get; set; }
+}
+
+public class PaymentResponse
+{
+    public int PaymentId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? TransactionId { get; set; }
+    public string? ClientSecret { get; set; }
+    public string? RedirectUrl { get; set; }
+    public DateTime ProcessedAt { get; set; }
+}
+
+public class CreatePaymentIntentRequest
+{
+    [Required]
+    public int OrderId { get; set; }
+    
+    [Required]
+    [Range(0.01, double.MaxValue)]
+    public decimal Amount { get; set; }
+    
+    public string Currency { get; set; } = "USD";
+}
+
+public class PaymentIntentResponse
+{
+    public int Id { get; set; }
+    public string ClientSecret { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+}
+
+public class RefundRequest
+{
+    [Required]
+    public int PaymentId { get; set; }
+    
+    [Range(0.01, double.MaxValue)]
+    public decimal? Amount { get; set; } // Null for full refund
+    
+    public string? Reason { get; set; }
+}

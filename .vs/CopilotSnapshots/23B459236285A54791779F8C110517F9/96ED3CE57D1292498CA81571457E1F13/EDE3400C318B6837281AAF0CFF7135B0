@@ -1,0 +1,116 @@
+﻿using Store.Shared.Models;
+using System.Text.Json;
+
+namespace Store.Shared.Services;
+
+public interface IAuditService
+{
+    Task LogAsync(string action, string entityName, string? entityId = null, string? userId = null, 
+                  string? userEmail = null, object? oldValues = null, object? newValues = null, 
+                  string? ipAddress = null, string? userAgent = null, string? additionalInfo = null);
+    
+    Task LogCreateAsync<T>(T entity, string userId, string userEmail, string? ipAddress = null, string? userAgent = null);
+    Task LogUpdateAsync<T>(T oldEntity, T newEntity, string userId, string userEmail, string? ipAddress = null, string? userAgent = null);
+    Task LogDeleteAsync<T>(T entity, string userId, string userEmail, string? ipAddress = null, string? userAgent = null);
+}
+
+public class AuditService : IAuditService
+{
+    private readonly IServiceProvider _serviceProvider;
+    
+    public AuditService(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
+    public async Task LogAsync(string action, string entityName, string? entityId = null, string? userId = null, 
+                              string? userEmail = null, object? oldValues = null, object? newValues = null, 
+                              string? ipAddress = null, string? userAgent = null, string? additionalInfo = null)
+    {
+        var auditLog = new AuditLog
+        {
+            Action = action,
+            EntityName = entityName,
+            EntityId = entityId,
+            UserId = userId,
+            UserEmail = userEmail,
+            OldValues = oldValues != null ? JsonSerializer.Serialize(oldValues) : null,
+            NewValues = newValues != null ? JsonSerializer.Serialize(newValues) : null,
+            IpAddress = ipAddress,
+            UserAgent = userAgent,
+            AdditionalInfo = additionalInfo,
+            Timestamp = DateTime.UtcNow
+        };
+
+        if (oldValues != null && newValues != null)
+        {
+            auditLog.Changes = GenerateChanges(oldValues, newValues);
+        }
+
+        // Store audit log (implementation depends on your audit storage strategy)
+        await StoreAuditLogAsync(auditLog);
+    }
+
+    public async Task LogCreateAsync<T>(T entity, string userId, string userEmail, string? ipAddress = null, string? userAgent = null)
+    {
+        var entityId = GetEntityId(entity);
+        await LogAsync("CREATE", typeof(T).Name, entityId, userId, userEmail, null, entity, ipAddress, userAgent);
+    }
+
+    public async Task LogUpdateAsync<T>(T oldEntity, T newEntity, string userId, string userEmail, string? ipAddress = null, string? userAgent = null)
+    {
+        var entityId = GetEntityId(newEntity);
+        await LogAsync("UPDATE", typeof(T).Name, entityId, userId, userEmail, oldEntity, newEntity, ipAddress, userAgent);
+    }
+
+    public async Task LogDeleteAsync<T>(T entity, string userId, string userEmail, string? ipAddress = null, string? userAgent = null)
+    {
+        var entityId = GetEntityId(entity);
+        await LogAsync("DELETE", typeof(T).Name, entityId, userId, userEmail, entity, null, ipAddress, userAgent);
+    }
+
+    private string? GetEntityId<T>(T entity)
+    {
+        var idProperty = typeof(T).GetProperty("Id");
+        return idProperty?.GetValue(entity)?.ToString();
+    }
+
+    private string GenerateChanges(object oldValues, object newValues)
+    {
+        // Simple implementation - you can enhance this with more sophisticated comparison
+        var changes = new List<string>();
+        
+        var oldProps = oldValues.GetType().GetProperties();
+        var newProps = newValues.GetType().GetProperties();
+
+        foreach (var oldProp in oldProps)
+        {
+            var newProp = newProps.FirstOrDefault(p => p.Name == oldProp.Name);
+            if (newProp != null)
+            {
+                var oldValue = oldProp.GetValue(oldValues);
+                var newValue = newProp.GetValue(newValues);
+
+                if (!Equals(oldValue, newValue))
+                {
+                    changes.Add($"{oldProp.Name}: '{oldValue}' -> '{newValue}'");
+                }
+            }
+        }
+
+        return string.Join(", ", changes);
+    }
+
+    private async Task StoreAuditLogAsync(AuditLog auditLog)
+    {
+        // You can implement this to store in database, file, or external service
+        // For now, we'll just log it
+        using var scope = _serviceProvider.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<AuditService>>();
+        
+        logger.LogInformation("Audit Log: {@AuditLog}", auditLog);
+        
+        // TODO: Implement actual storage (database, external service, etc.)
+        await Task.CompletedTask;
+    }
+}

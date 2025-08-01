@@ -1,0 +1,59 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Store.Shared.Models;
+
+public class Order
+{
+    public int Id { get; set; }
+    
+    [Required]
+    public string UserId { get; set; } = string.Empty;
+    
+    [Required]
+    public decimal Tax { get; set; }
+    
+    [Required]
+    public decimal ShippingFee { get; set; }
+    
+    [Required]
+    public decimal Subtotal { get; set; }
+    
+    [Required]
+    public decimal Total { get; set; }
+    
+    [Required]
+    [StringLength(50)]
+    public string Status { get; set; } = "pending";
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public virtual List<OrderItem> OrderItems { get; set; } = new();
+}
+
+public class OrderItem
+{
+    public int Id { get; set; }
+    
+    [Required]
+    public int OrderId { get; set; }
+    
+    [Required]
+    public int ProductId { get; set; }
+    
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; } = string.Empty;
+    
+    [Required]
+    public string? Image { get; set; }
+    
+    [Required]
+    public decimal Price { get; set; }
+    
+    [Required]
+    [Range(1, int.MaxValue)]
+    public int Amount { get; set; }
+    
+    // Navigation properties
+    public virtual Order? Order { get; set; }
+}

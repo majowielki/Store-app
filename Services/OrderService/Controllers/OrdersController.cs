@@ -1,0 +1,14 @@
+using Microsoft.AspNetCore.Mvc;
+using Store.OrderService.Services;
+using Store.Shared.Models;
+using System.Security.Claims;
+
+namespace Store.OrderService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+
+}
+

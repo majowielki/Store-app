@@ -1,0 +1,78 @@
+# API Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service
+  namespace: store-microservices
+  labels:
+    app: gateway-service
+    tier: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway-service
+  template:
+    metadata:
+      labels:
+        app: gateway-service
+        tier: gateway
+    spec:
+      containers:
+      - name: gateway-service
+        image: store/gateway-service:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+        - name: Services__IdentityService
+          value: "http://identity-service"
+        - name: Services__ProductService
+          value: "http://product-service"
+        - name: Services__CartService
+          value: "http://cart-service"
+        - name: Services__OrderService
+          value: "http://order-service"
+        - name: Jwt__Key
+          valueFrom:
+            secretKeyRef:
+              name: store-secrets
+              key: jwt-key
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+# Gateway Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+  namespace: store-microservices
+  labels:
+    app: gateway-service
+spec:
+  selector:
+    app: gateway-service
+  ports:
+  - port: 80
+    targetPort: 80
+  type: LoadBalancer

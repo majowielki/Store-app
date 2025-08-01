@@ -1,0 +1,9 @@
+
+using Store.Shared.Models;
+
+namespace Store.OrderService.Services;
+
+public interface IOrderService
+{
+}
+

@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "j1x7kNeUwGs=",
+  "success": true,
+  "projectFilePath": "D:\\Projekty\\store-app\\Services\\PaymentService\\Store.PaymentService.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.7\\microsoft.aspnetcore.openapi.9.0.7.nupkg.sha512",
+    "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}

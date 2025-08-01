@@ -1,0 +1,38 @@
+﻿namespace Store.Shared.DTOs;
+
+public class ApiResponse<T>
+{
+}
+
+public class PaginationResponse<T>
+{
+}
+
+public class PaginationParams
+{
+}
+
+// Payment DTOs
+public class ProcessPaymentRequest
+{
+}
+
+public class PaymentDetailsDto
+{
+}
+
+public class PaymentResponse
+{
+}
+
+public class CreatePaymentIntentRequest
+{
+}
+
+public class PaymentIntentResponse
+{
+}
+
+public class RefundRequest
+{
+}

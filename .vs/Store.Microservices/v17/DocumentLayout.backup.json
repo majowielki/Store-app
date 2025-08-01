@@ -1,0 +1,153 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projekty\\store-app\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{2D91E04D-AAB2-4443-A94A-B2764A1B0C0B}|Services\\ProductService\\Store.ProductService.csproj|d:\\projekty\\store-app\\services\\productservice\\controllers\\productscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2D91E04D-AAB2-4443-A94A-B2764A1B0C0B}|Services\\ProductService\\Store.ProductService.csproj|solutionrelative:services\\productservice\\controllers\\productscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECB3024F-6C0B-47C8-BE50-A6877A081C6A}|Services\\OrderService\\Store.OrderService.csproj|d:\\projekty\\store-app\\services\\orderservice\\data\\orderdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECB3024F-6C0B-47C8-BE50-A6877A081C6A}|Services\\OrderService\\Store.OrderService.csproj|solutionrelative:services\\orderservice\\data\\orderdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DE29D55C-D393-4331-A47C-06D16627EC41}|Services\\CartService\\Store.CartService.csproj|d:\\projekty\\store-app\\services\\cartservice\\services\\icartservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DE29D55C-D393-4331-A47C-06D16627EC41}|Services\\CartService\\Store.CartService.csproj|solutionrelative:services\\cartservice\\services\\icartservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2D91E04D-AAB2-4443-A94A-B2764A1B0C0B}|Services\\ProductService\\Store.ProductService.csproj|d:\\projekty\\store-app\\services\\productservice\\services\\iproductservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2D91E04D-AAB2-4443-A94A-B2764A1B0C0B}|Services\\ProductService\\Store.ProductService.csproj|solutionrelative:services\\productservice\\services\\iproductservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECB3024F-6C0B-47C8-BE50-A6877A081C6A}|Services\\OrderService\\Store.OrderService.csproj|d:\\projekty\\store-app\\services\\orderservice\\services\\iorderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECB3024F-6C0B-47C8-BE50-A6877A081C6A}|Services\\OrderService\\Store.OrderService.csproj|solutionrelative:services\\orderservice\\services\\iorderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{ECB3024F-6C0B-47C8-BE50-A6877A081C6A}|Services\\OrderService\\Store.OrderService.csproj|d:\\projekty\\store-app\\services\\orderservice\\controllers\\orderscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{ECB3024F-6C0B-47C8-BE50-A6877A081C6A}|Services\\OrderService\\Store.OrderService.csproj|solutionrelative:services\\orderservice\\controllers\\orderscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DE29D55C-D393-4331-A47C-06D16627EC41}|Services\\CartService\\Store.CartService.csproj|d:\\projekty\\store-app\\services\\cartservice\\data\\cartdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DE29D55C-D393-4331-A47C-06D16627EC41}|Services\\CartService\\Store.CartService.csproj|solutionrelative:services\\cartservice\\data\\cartdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DE29D55C-D393-4331-A47C-06D16627EC41}|Services\\CartService\\Store.CartService.csproj|d:\\projekty\\store-app\\services\\cartservice\\controllers\\cartcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DE29D55C-D393-4331-A47C-06D16627EC41}|Services\\CartService\\Store.CartService.csproj|solutionrelative:services\\cartservice\\controllers\\cartcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ProductsController.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\ProductService\\Controllers\\ProductsController.cs",
+              "RelativeDocumentMoniker": "Services\\ProductService\\Controllers\\ProductsController.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\ProductService\\Controllers\\ProductsController.cs",
+              "RelativeToolTip": "Services\\ProductService\\Controllers\\ProductsController.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAmwA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:21:22.205Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "OrderDbContext.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\OrderService\\Data\\OrderDbContext.cs",
+              "RelativeDocumentMoniker": "Services\\OrderService\\Data\\OrderDbContext.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\OrderService\\Data\\OrderDbContext.cs",
+              "RelativeToolTip": "Services\\OrderService\\Data\\OrderDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAsAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:21:16.599Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ICartService.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\CartService\\Services\\ICartService.cs",
+              "RelativeDocumentMoniker": "Services\\CartService\\Services\\ICartService.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\CartService\\Services\\ICartService.cs",
+              "RelativeToolTip": "Services\\CartService\\Services\\ICartService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:21:13.667Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IProductService.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\ProductService\\Services\\IProductService.cs",
+              "RelativeDocumentMoniker": "Services\\ProductService\\Services\\IProductService.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\ProductService\\Services\\IProductService.cs",
+              "RelativeToolTip": "Services\\ProductService\\Services\\IProductService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:21:10.105Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "IOrderService.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\OrderService\\Services\\IOrderService.cs",
+              "RelativeDocumentMoniker": "Services\\OrderService\\Services\\IOrderService.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\OrderService\\Services\\IOrderService.cs",
+              "RelativeToolTip": "Services\\OrderService\\Services\\IOrderService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:21:06.72Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "OrdersController.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\OrderService\\Controllers\\OrdersController.cs",
+              "RelativeDocumentMoniker": "Services\\OrderService\\Controllers\\OrdersController.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\OrderService\\Controllers\\OrdersController.cs",
+              "RelativeToolTip": "Services\\OrderService\\Controllers\\OrdersController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:21:03.467Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "CartDbContext.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\CartService\\Data\\CartDbContext.cs",
+              "RelativeDocumentMoniker": "Services\\CartService\\Data\\CartDbContext.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\CartService\\Data\\CartDbContext.cs",
+              "RelativeToolTip": "Services\\CartService\\Data\\CartDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:20:56.927Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "CartController.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\CartService\\Controllers\\CartController.cs",
+              "RelativeDocumentMoniker": "Services\\CartService\\Controllers\\CartController.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\CartService\\Controllers\\CartController.cs",
+              "RelativeToolTip": "Services\\CartService\\Controllers\\CartController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-31T21:20:51.552Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

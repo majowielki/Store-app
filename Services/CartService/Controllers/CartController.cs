@@ -1,0 +1,14 @@
+using Microsoft.AspNetCore.Mvc;
+using Store.CartService.Services;
+using Store.Shared.Models;
+using System.Security.Claims;
+
+namespace Store.CartService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class CartController : ControllerBase
+{
+
+}
+

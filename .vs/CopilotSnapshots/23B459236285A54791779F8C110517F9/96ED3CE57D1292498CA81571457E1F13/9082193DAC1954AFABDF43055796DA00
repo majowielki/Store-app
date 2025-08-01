@@ -1,0 +1,30 @@
+﻿namespace Store.Shared.Events;
+
+public record ProductCreatedEvent(int ProductId, string Name, decimal Price, string Category, DateTime CreatedAt);
+
+public record ProductUpdatedEvent(int ProductId, string Name, decimal Price, string Category, DateTime UpdatedAt);
+
+public record ProductDeletedEvent(int ProductId, string Name, DateTime DeletedAt);
+
+public record OrderCreatedEvent(int OrderId, string UserId, decimal Total, List<OrderItemEvent> Items, DateTime CreatedAt);
+
+public record OrderStatusChangedEvent(int OrderId, string OldStatus, string NewStatus, DateTime ChangedAt);
+
+public record PaymentProcessedEvent(int OrderId, string PaymentId, decimal Amount, string Status, DateTime ProcessedAt);
+
+public record PaymentFailedEvent(int OrderId, string PaymentId, string Reason, DateTime FailedAt);
+
+public record InventoryUpdatedEvent(int ProductId, int OldQuantity, int NewQuantity, DateTime UpdatedAt);
+
+public record UserRegisteredEvent(string UserId, string Email, DateTime RegisteredAt);
+
+public record CartItemAddedEvent(string UserId, int ProductId, int Quantity, DateTime AddedAt);
+
+public record CartClearedEvent(string UserId, DateTime ClearedAt);
+
+public record OrderItemEvent(int ProductId, string Name, decimal Price, int Quantity);
+
+// Command events for CQRS pattern
+public record UpdateInventoryCommand(int ProductId, int Quantity, string Reason);
+
+public record ProcessPaymentCommand(int OrderId, decimal Amount, string PaymentMethod, string PaymentDetails);

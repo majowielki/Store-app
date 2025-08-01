@@ -1,0 +1,237 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Store.ProductService.Services;
+using Store.Shared.DTOs;
+using Store.Shared.Models;
+
+namespace Store.ProductService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly IProductService _productService;
+
+    public ProductsController(IProductService productService)
+    {
+        _productService = productService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<PaginationResponse<Product>>>> GetProducts([FromQuery] PaginationParams parameters)
+    {
+        try
+        {
+            var result = await _productService.GetProductsAsync(parameters);
+            return Ok(new ApiResponse<PaginationResponse<Product>>
+            {
+                Success = true,
+                Data = result,
+                Message = "Products retrieved successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<PaginationResponse<Product>>
+            {
+                Success = false,
+                Message = "Error retrieving products",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiResponse<Product>>> GetProduct(int id)
+    {
+        try
+        {
+            var product = await _productService.GetProductByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound(new ApiResponse<Product>
+                {
+                    Success = false,
+                    Message = "Product not found"
+                });
+            }
+
+            return Ok(new ApiResponse<Product>
+            {
+                Success = true,
+                Data = product,
+                Message = "Product retrieved successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<Product>
+            {
+                Success = false,
+                Message = "Error retrieving product",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("featured")]
+    public async Task<ActionResult<ApiResponse<List<Product>>>> GetFeaturedProducts()
+    {
+        try
+        {
+            var products = await _productService.GetFeaturedProductsAsync();
+            return Ok(new ApiResponse<List<Product>>
+            {
+                Success = true,
+                Data = products,
+                Message = "Featured products retrieved successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<List<Product>>
+            {
+                Success = false,
+                Message = "Error retrieving featured products",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("categories")]
+    public async Task<ActionResult<ApiResponse<List<string>>>> GetCategories()
+    {
+        try
+        {
+            var categories = await _productService.GetCategoriesAsync();
+            return Ok(new ApiResponse<List<string>>
+            {
+                Success = true,
+                Data = categories,
+                Message = "Categories retrieved successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<List<string>>
+            {
+                Success = false,
+                Message = "Error retrieving categories",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpGet("companies")]
+    public async Task<ActionResult<ApiResponse<List<string>>>> GetCompanies()
+    {
+        try
+        {
+            var companies = await _productService.GetCompaniesAsync();
+            return Ok(new ApiResponse<List<string>>
+            {
+                Success = true,
+                Data = companies,
+                Message = "Companies retrieved successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<List<string>>
+            {
+                Success = false,
+                Message = "Error retrieving companies",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<Product>>> CreateProduct([FromBody] Product product)
+    {
+        try
+        {
+            var createdProduct = await _productService.CreateProductAsync(product);
+            return CreatedAtAction(nameof(GetProduct), new { id = createdProduct.Id },
+                new ApiResponse<Product>
+                {
+                    Success = true,
+                    Data = createdProduct,
+                    Message = "Product created successfully"
+                });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<Product>
+            {
+                Success = false,
+                Message = "Error creating product",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<ApiResponse<Product>>> UpdateProduct(int id, [FromBody] Product product)
+    {
+        try
+        {
+            var updatedProduct = await _productService.UpdateProductAsync(id, product);
+            if (updatedProduct == null)
+            {
+                return NotFound(new ApiResponse<Product>
+                {
+                    Success = false,
+                    Message = "Product not found"
+                });
+            }
+
+            return Ok(new ApiResponse<Product>
+            {
+                Success = true,
+                Data = updatedProduct,
+                Message = "Product updated successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<Product>
+            {
+                Success = false,
+                Message = "Error updating product",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteProduct(int id)
+    {
+        try
+        {
+            var result = await _productService.DeleteProductAsync(id);
+            if (!result)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Product not found"
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Product deleted successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Error deleting product",
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+}

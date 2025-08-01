@@ -1,0 +1,272 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Store.CartService.Data;
+using Store.Shared.DTOs;
+using Store.Shared.Models;
+using System.Text.Json;
+using StackExchange.Redis;
+
+namespace Store.CartService.Services;
+
+public class CartServiceImpl : ICartService
+{
+    private readonly CartDbContext _context;
+    private readonly IDatabase _redis;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
+
+    public CartServiceImpl(
+        CartDbContext context, 
+        IConnectionMultiplexer redis, 
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration)
+    {
+        _context = context;
+        _redis = redis.GetDatabase();
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
+    }
+
+    public async Task<ApiResponse<Cart>> GetCartAsync(string userId)
+    {
+        try
+        {
+            var cacheKey = $"cart:{userId}";
+            var cachedCart = await _redis.StringGetAsync(cacheKey);
+
+            if (cachedCart.HasValue)
+            {
+                var cachedCartData = JsonSerializer.Deserialize<Cart>(cachedCart!);
+                return new ApiResponse<Cart>
+                {
+                    Success = true,
+                    Data = cachedCartData,
+                    Message = "Cart retrieved from cache"
+                };
+            }
+
+            var cartItems = await _context.CartItems
+                .Where(ci => ci.UserId == userId)
+                .ToListAsync();
+
+            var cart = new Cart
+            {
+                UserId = userId,
+                Items = cartItems
+            };
+
+            // Get product details for each item
+            foreach (var item in cart.Items)
+            {
+                item.Product = await GetProductAsync(item.ProductId);
+            }
+
+            // Calculate totals
+            cart.TotalAmount = cart.Items.Sum(item => item.Product?.Price * item.Amount ?? 0);
+            cart.TotalItems = cart.Items.Sum(item => item.Amount);
+
+            // Cache the result
+            await _redis.StringSetAsync(cacheKey, JsonSerializer.Serialize(cart), TimeSpan.FromMinutes(30));
+
+            return new ApiResponse<Cart>
+            {
+                Success = true,
+                Data = cart,
+                Message = "Cart retrieved successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<Cart>
+            {
+                Success = false,
+                Message = "Error retrieving cart",
+                Errors = new List<string> { ex.Message }
+            };
+        }
+    }
+
+    public async Task<ApiResponse<Cart>> AddToCartAsync(string userId, int productId, int amount)
+    {
+        try
+        {
+            // Verify product exists
+            var product = await GetProductAsync(productId);
+            if (product == null)
+            {
+                return new ApiResponse<Cart>
+                {
+                    Success = false,
+                    Message = "Product not found"
+                };
+            }
+
+            var existingItem = await _context.CartItems
+                .FirstOrDefaultAsync(ci => ci.UserId == userId && ci.ProductId == productId);
+
+            if (existingItem != null)
+            {
+                existingItem.Amount += amount;
+                _context.CartItems.Update(existingItem);
+            }
+            else
+            {
+                var cartItem = new CartItem
+                {
+                    UserId = userId,
+                    ProductId = productId,
+                    Amount = amount,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.CartItems.Add(cartItem);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Clear cache
+            await _redis.KeyDeleteAsync($"cart:{userId}");
+
+            return await GetCartAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<Cart>
+            {
+                Success = false,
+                Message = "Error adding item to cart",
+                Errors = new List<string> { ex.Message }
+            };
+        }
+    }
+
+    public async Task<ApiResponse<Cart>> UpdateCartItemAsync(string userId, int productId, int amount)
+    {
+        try
+        {
+            var cartItem = await _context.CartItems
+                .FirstOrDefaultAsync(ci => ci.UserId == userId && ci.ProductId == productId);
+
+            if (cartItem == null)
+            {
+                return new ApiResponse<Cart>
+                {
+                    Success = false,
+                    Message = "Cart item not found"
+                };
+            }
+
+            if (amount <= 0)
+            {
+                _context.CartItems.Remove(cartItem);
+            }
+            else
+            {
+                cartItem.Amount = amount;
+                _context.CartItems.Update(cartItem);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Clear cache
+            await _redis.KeyDeleteAsync($"cart:{userId}");
+
+            return await GetCartAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<Cart>
+            {
+                Success = false,
+                Message = "Error updating cart item",
+                Errors = new List<string> { ex.Message }
+            };
+        }
+    }
+
+    public async Task<ApiResponse<Cart>> RemoveFromCartAsync(string userId, int productId)
+    {
+        try
+        {
+            var cartItem = await _context.CartItems
+                .FirstOrDefaultAsync(ci => ci.UserId == userId && ci.ProductId == productId);
+
+            if (cartItem == null)
+            {
+                return new ApiResponse<Cart>
+                {
+                    Success = false,
+                    Message = "Cart item not found"
+                };
+            }
+
+            _context.CartItems.Remove(cartItem);
+            await _context.SaveChangesAsync();
+
+            // Clear cache
+            await _redis.KeyDeleteAsync($"cart:{userId}");
+
+            return await GetCartAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<Cart>
+            {
+                Success = false,
+                Message = "Error removing item from cart",
+                Errors = new List<string> { ex.Message }
+            };
+        }
+    }
+
+    public async Task<ApiResponse<object>> ClearCartAsync(string userId)
+    {
+        try
+        {
+            var cartItems = await _context.CartItems
+                .Where(ci => ci.UserId == userId)
+                .ToListAsync();
+
+            _context.CartItems.RemoveRange(cartItems);
+            await _context.SaveChangesAsync();
+
+            // Clear cache
+            await _redis.KeyDeleteAsync($"cart:{userId}");
+
+            return new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Cart cleared successfully"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Error clearing cart",
+                Errors = new List<string> { ex.Message }
+            };
+        }
+    }
+
+    private async Task<Product?> GetProductAsync(int productId)
+    {
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            var productServiceUrl = _configuration["ProductService:BaseUrl"];
+            var response = await httpClient.GetStringAsync($"{productServiceUrl}/api/products/{productId}");
+            
+            var apiResponse = JsonSerializer.Deserialize<ApiResponse<Product>>(response, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return apiResponse?.Data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+}

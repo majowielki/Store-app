@@ -1,0 +1,12 @@
+using Microsoft.AspNetCore.Mvc;
+
+using Store.IdentityService.Services;
+
+namespace Store.IdentityService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
+{
+
+}

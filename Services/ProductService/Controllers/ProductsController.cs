@@ -1,0 +1,13 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Store.ProductService.Services;
+using Store.Shared.Models;
+using System.Security.Claims;
+
+namespace Store.ProductService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+}

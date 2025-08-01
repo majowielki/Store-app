@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+MICROSERVICES-README.md
+*.md
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# IDE
+.vs
+.vscode
+*.user
+*.suo
+
+# Build output
+**/bin/
+**/obj/
+**/out/
+**/TestResults/
+
+# Dependencies
+**/node_modules/
+**/packages/
+
+# Logs
+**/logs/
+**/*.log
+
+# Environment
+.env
+.env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+**/*.tmp
+**/*.temp

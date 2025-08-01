@@ -1,0 +1,62 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Store.Shared.Models;
+
+public class Payment
+{
+    public int Id { get; set; }
+    
+    [Required]
+    public int OrderId { get; set; }
+    
+    [Required]
+    public string PaymentId { get; set; } = string.Empty;
+    
+    [Required]
+    [Range(0.01, double.MaxValue)]
+    public decimal Amount { get; set; }
+    
+    [Required]
+    public string PaymentMethod { get; set; } = string.Empty; // Card, PayPal, etc.
+    
+    [Required]
+    public string Status { get; set; } = string.Empty; // Pending, Processing, Completed, Failed, Refunded
+    
+    public string? TransactionId { get; set; }
+    
+    public string? PaymentGateway { get; set; } // Stripe, PayPal, etc.
+    
+    public string? FailureReason { get; set; }
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public DateTime? ProcessedAt { get; set; }
+    
+    public string? Metadata { get; set; } // JSON string for additional payment data
+}
+
+public class PaymentIntent
+{
+    public int Id { get; set; }
+    
+    [Required]
+    public int OrderId { get; set; }
+    
+    [Required]
+    [Range(0.01, double.MaxValue)]
+    public decimal Amount { get; set; }
+    
+    [Required]
+    public string Currency { get; set; } = "USD";
+    
+    [Required]
+    public string Status { get; set; } = "requires_payment_method";
+    
+    public string? ClientSecret { get; set; }
+    
+    public string? PaymentMethodId { get; set; }
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public DateTime? ExpiresAt { get; set; }
+}

@@ -1,0 +1,7 @@
+using Microsoft.AspNetCore.Identity;
+
+namespace Store.IdentityService.Models;
+
+public class ApplicationUser : IdentityUser
+{
+}

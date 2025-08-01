@@ -22,7 +22,7 @@ export const action =
     const data = Object.fromEntries(formData);
     try {
       const response: AxiosResponse = await customFetch.post(
-        '/auth/local',
+        '/auth/login',
         data
       );
       const username = response.data.user.username;

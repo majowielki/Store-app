@@ -1,0 +1,107 @@
+﻿using MassTransit;
+
+namespace Store.Shared.Configuration;
+
+public static class MassTransitConfiguration
+{
+    public static void AddMassTransitWithRabbitMq(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddMassTransit(x =>
+        {
+            // Add consumers from all assemblies
+            x.SetKebabCaseEndpointNameFormatter();
+
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                var connectionString = configuration.GetConnectionString("RabbitMQ") ?? "amqp://guest:guest@localhost:5672/";
+                cfg.Host(connectionString);
+                cfg.ConfigureEndpoints(context);
+                
+                // Configure retry policy
+                cfg.UseMessageRetry(r => r.Intervals(
+                    TimeSpan.FromSeconds(1),
+                    TimeSpan.FromSeconds(5),
+                    TimeSpan.FromSeconds(15),
+                    TimeSpan.FromSeconds(30)
+                ));
+                
+                // Configure dead letter exchanges
+                cfg.UseInMemoryOutbox();
+            });
+        });
+    }
+}
+
+public static class JwtConfiguration
+{
+    public static void AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+        
+        services.AddAuthentication("Bearer")
+            .AddJwtBearer("Bearer", options =>
+            {
+                options.Authority = jwtSettings["Authority"];
+                options.RequireHttpsMetadata = false;
+                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                {
+                    ValidateAudience = false,
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                        System.Text.Encoding.UTF8.GetBytes(secretKey))
+                };
+            });
+    }
+}
+
+public static class AuthorizationConfiguration
+{
+    public static void AddCustomAuthorization(this IServiceCollection services)
+    {
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("AdminOnly", policy =>
+                policy.RequireClaim("role", "admin"));
+            
+            options.AddPolicy("UserOrAdmin", policy =>
+                policy.RequireClaim("role", "user", "admin"));
+        });
+    }
+}
+
+public static class HealthCheckConfiguration
+{
+    public static void AddCustomHealthChecks(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddHealthChecks()
+            .AddSqlServer(configuration.GetConnectionString("DefaultConnection")!)
+            .AddRedis(configuration.GetConnectionString("Redis")!)
+            .AddRabbitMQ(configuration.GetConnectionString("RabbitMQ")!);
+    }
+}
+
+public static class ValidationConfiguration
+{
+    public static void AddCustomValidation(this IServiceCollection services)
+    {
+        services.AddFluentValidation(fv =>
+        {
+            fv.RegisterValidatorsFromAssemblyContaining<ProcessPaymentRequestValidator>();
+            fv.ImplicitlyValidateChildProperties = true;
+        });
+    }
+}
+
+// Validators
+public class ProcessPaymentRequestValidator : AbstractValidator<ProcessPaymentRequest>
+{
+    public ProcessPaymentRequestValidator()
+    {
+        RuleFor(x => x.OrderId).GreaterThan(0);
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.PaymentMethod).NotEmpty();
+    }
+}

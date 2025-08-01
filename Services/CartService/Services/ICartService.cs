@@ -1,0 +1,8 @@
+
+using Store.Shared.Models;
+
+namespace Store.CartService.Services;
+
+public interface ICartService
+{
+}
