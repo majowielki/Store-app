@@ -1,0 +1,24 @@
+﻿using Store.IdentityService.DTOs.Requests;
+using Store.IdentityService.DTOs.Responses;
+
+namespace Store.IdentityService.Services;
+
+public interface IAuthService
+{
+    Task<AuthResponse> RegisterAsync(RegisterRequest request);
+    Task<AuthResponse> LoginAsync(LoginRequest request);
+    Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request);
+    Task<ApiResponse<string>> ForgotPasswordAsync(ForgotPasswordRequest request);
+    Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequest request);
+    Task<ApiResponse<string>> ChangePasswordAsync(string userId, ChangePasswordRequest request);
+    Task<ApiResponse<UserResponse>> GetUserProfileAsync(string userId);
+    Task<ApiResponse<UserResponse>> UpdateUserProfileAsync(string userId, UpdateProfileRequest request);
+    Task<ApiResponse<string>> ConfirmEmailAsync(string userId, string token);
+    Task<ApiResponse<string>> ResendConfirmationEmailAsync(string email);
+    Task<bool> ValidateTokenAsync(string token);
+    Task<ApiResponse<string>> LogoutAsync(string userId);
+    Task<ApiResponse<UserResponse>> GetUserByIdAsync(string userId);
+    Task<ApiResponse<IEnumerable<UserResponse>>> GetAllUsersAsync(int page = 1, int pageSize = 20);
+    Task<ApiResponse<string>> AssignRoleAsync(string userId, string role);
+    Task<ApiResponse<string>> RemoveRoleAsync(string userId, string role);
+}

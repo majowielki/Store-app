@@ -1,0 +1,30 @@
+﻿using Store.Shared.Utility;
+using System.ComponentModel.DataAnnotations;
+
+namespace Store.ProductService.DTOs.Requests;
+
+public class UpdateProductRequest
+{
+    public Category? Category { get; set; }
+    
+    public Company? Company { get; set; }
+    
+    [StringLength(1000, MinimumLength = 10)]
+    public string? Description { get; set; }
+    
+    public bool? Featured { get; set; }
+    
+    [Url]
+    public string? Image { get; set; }
+    
+    [Range(0.01, 999999.99)]
+    public decimal? Price { get; set; }
+    
+    public bool? Shipping { get; set; }
+    
+    [StringLength(200, MinimumLength = 3)]
+    public string? Title { get; set; }
+    
+    [MinLength(1)]
+    public List<string>? Colors { get; set; }
+}

@@ -1,0 +1,31 @@
+﻿{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=StoreAuditLogDb;Trusted_Connection=true;MultipleActiveResultSets=true"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-very-long-secret-key-here-at-least-32-characters-long",
+    "Issuer": "Store.API",
+    "Audience": "Store.Client",
+    "Authority": "https://localhost:5001",
+    "ExpirationInMinutes": 60
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "HealthChecks": {
+    "UI": {
+      "Path": "/healthchecks-ui",
+      "ApiPath": "/health-ui-api"
+    }
+  },
+  "Swagger": {
+    "Title": "Store AuditLog Service API",
+    "Version": "v1",
+    "Description": "Comprehensive audit logging microservice API"
+  }
+}

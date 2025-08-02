@@ -1,0 +1,41 @@
+﻿using Store.Shared.Utility;
+
+namespace Store.OrderService.DTOs.Responses;
+
+public class OrderResponse
+{
+    public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public string UserEmail { get; set; } = string.Empty;
+    public string ShippingAddress { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public List<OrderItemResponse> OrderItems { get; set; } = new();
+    public int TotalItems { get; set; }
+    public decimal SubTotal { get; set; }
+    public decimal ShippingCost { get; set; }
+    public decimal Tax { get; set; }
+    public decimal OrderTotal { get; set; }
+    public OrderStatus Status { get; set; }
+    public PaymentStatus PaymentStatus { get; set; }
+    public string? PaymentIntentId { get; set; }
+    public string? TrackingNumber { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime? ShippedAt { get; set; }
+    public DateTime? DeliveredAt { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class OrderItemResponse
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductTitle { get; set; } = string.Empty;
+    public string ProductImage { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public string Color { get; set; } = string.Empty;
+    public string Company { get; set; } = string.Empty;
+    public decimal LineTotal { get; set; }
+}

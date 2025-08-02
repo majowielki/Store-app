@@ -26,8 +26,6 @@ D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\testhost.exe
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\MvcTestingAppManifest.json
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.Tests.Integration.staticwebassets.endpoints.json
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\xunit.runner.visualstudio.testadapter.dll
-D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\xunit.runner.reporters.netcoreapp10.dll
-D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\xunit.runner.utility.netcoreapp10.dll
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.Tests.Integration.exe
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.Tests.Integration.deps.json
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.Tests.Integration.runtimeconfig.json
@@ -402,7 +400,6 @@ D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Npgsql.EntityFrameworkC
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Pipelines.Sockets.Unofficial.dll
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\ICSharpCode.SharpZipLib.dll
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Renci.SshNet.dll
-D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\SshNet.Security.Cryptography.dll
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\StackExchange.Redis.dll
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
@@ -507,7 +504,6 @@ D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.AssemblyInfoInputs.cache
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.AssemblyInfo.cs
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.csproj.CoreCompileInputs.cache
-D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.MvcApplicationPartsAssemblyInfo.cache
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.sourcelink.json
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\rjimswa.dswa.cache.json
@@ -524,3 +520,11 @@ D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\refint\Store.Tests.Inte
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.pdb
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.genruntimeconfig.cache
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\ref\Store.Tests.Integration.dll
+D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\HealthChecks.NpgSql.dll
+D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\HealthChecks.Redis.dll
+D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\BouncyCastle.Cryptography.dll
+D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.HealthChecks.dll
+D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll
+D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\RabbitMQ.Client.dll
+D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.MvcApplicationPartsAssemblyInfo.cs

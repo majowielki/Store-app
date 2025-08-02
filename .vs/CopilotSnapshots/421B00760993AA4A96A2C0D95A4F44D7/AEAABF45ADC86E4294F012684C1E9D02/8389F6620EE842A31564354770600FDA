@@ -1,0 +1,23 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Store.Shared.MessageBus": "Debug"
+    }
+  },
+  "RabbitMQ": {
+    "HostName": "localhost",
+    "Port": 5672,
+    "UserName": "guest",
+    "Password": "guest",
+    "VirtualHost": "/",
+    "ExchangeName": "store_events_dev"
+  },
+  "Services": {
+    "IdentityService": "http://localhost:5001",
+    "ProductService": "http://localhost:5002",
+    "CartService": "http://localhost:5003",
+    "OrderService": "http://localhost:5004"
+  }
+}

@@ -1,0 +1,22 @@
+﻿using Store.OrderService.DTOs.Requests;
+using Store.OrderService.DTOs.Responses;
+using Store.Shared.Utility;
+
+namespace Store.OrderService.Services;
+
+public interface IOrderService
+{
+    Task<OrderResponse> CreateOrderAsync(CreateOrderRequest request);
+    Task<OrderResponse?> GetOrderByIdAsync(int orderId);
+    Task<OrderResponse?> GetOrderByIdAndUserAsync(int orderId, string userId);
+    Task<OrderListResponse> GetOrdersByUserAsync(string userId, int page = 1, int pageSize = 20);
+    Task<OrderListResponse> GetAllOrdersAsync(int page = 1, int pageSize = 20);
+    Task<OrderResponse?> UpdateOrderStatusAsync(int orderId, OrderStatus status);
+    Task<OrderResponse?> UpdatePaymentStatusAsync(int orderId, PaymentStatus paymentStatus);
+    Task<OrderResponse?> AddTrackingNumberAsync(int orderId, string trackingNumber);
+    Task<bool> CancelOrderAsync(int orderId, string userId);
+    Task<OrderListResponse> GetOrdersByStatusAsync(OrderStatus status, int page = 1, int pageSize = 20);
+    Task<decimal> GetOrdersTotalRevenueAsync(DateTime? fromDate = null, DateTime? toDate = null);
+    Task<int> GetOrdersCountAsync(DateTime? fromDate = null, DateTime? toDate = null);
+}
+

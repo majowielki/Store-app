@@ -1,0 +1,38 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Store.AuditLogService.DTOs.Requests;
+
+public class CreateAuditLogRequest
+{
+    [Required]
+    [StringLength(50)]
+    public string Action { get; set; } = string.Empty;
+    
+    [Required]
+    [StringLength(100)]
+    public string EntityName { get; set; } = string.Empty;
+    
+    [StringLength(50)]
+    public string? EntityId { get; set; }
+    
+    [StringLength(50)]
+    public string? UserId { get; set; }
+    
+    [StringLength(256)]
+    [EmailAddress]
+    public string? UserEmail { get; set; }
+    
+    public string? OldValues { get; set; }
+    
+    public string? NewValues { get; set; }
+    
+    public string? Changes { get; set; }
+    
+    [StringLength(45)]
+    public string? IpAddress { get; set; }
+    
+    [StringLength(500)]
+    public string? UserAgent { get; set; }
+    
+    public string? AdditionalInfo { get; set; }
+}

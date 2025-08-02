@@ -1,0 +1,713 @@
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Store.IdentityService.Data;
+using Store.IdentityService.DTOs.Requests;
+using Store.IdentityService.DTOs.Responses;
+using Store.IdentityService.Models;
+using Store.Shared.Utility;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace Store.IdentityService.Services;
+
+public class AuthService : IAuthService
+{
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IdentityDbContext _context;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthService> _logger;
+
+    public AuthService(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        RoleManager<IdentityRole> roleManager,
+        IdentityDbContext context,
+        IConfiguration configuration,
+        ILogger<AuthService> logger)
+    {
+        _userManager = userManager;
+        _signInManager = signInManager;
+        _roleManager = roleManager;
+        _context = context;
+        _configuration = configuration;
+        _logger = logger;
+    }
+
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    {
+        try
+        {
+            // Check if user already exists
+            var existingUser = await _userManager.FindByEmailAsync(request.Email);
+            if (existingUser != null)
+            {
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "User with this email already exists"
+                };
+            }
+
+            // Create new user
+            var user = new ApplicationUser
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                PhoneNumber = request.PhoneNumber,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Failed to create user",
+                };
+            }
+
+            // Assign default user role
+            await EnsureRoleExistsAsync(Constants.Role_User);
+            await _userManager.AddToRoleAsync(user, Constants.Role_User);
+
+            // Generate email confirmation token
+            var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            
+            _logger.LogInformation("User registered successfully: {Email}", request.Email);
+
+            // Generate JWT tokens
+            var (accessToken, refreshToken, expiresAt) = await GenerateTokensAsync(user);
+
+            return new AuthResponse
+            {
+                Success = true,
+                Message = "Registration successful. Please confirm your email.",
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresAt = expiresAt,
+                User = await MapToUserResponseAsync(user)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during user registration");
+            return new AuthResponse
+            {
+                Success = false,
+                Message = "An error occurred during registration"
+            };
+        }
+    }
+
+    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    {
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid email or password"
+                };
+            }
+
+            if (!user.IsActive)
+            {
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Account is deactivated"
+                };
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+            if (!result.Succeeded)
+            {
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid email or password"
+                };
+            }
+
+            // Update last login
+            user.LastLoginAt = DateTime.UtcNow;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+
+            // Generate JWT tokens
+            var (accessToken, refreshToken, expiresAt) = await GenerateTokensAsync(user);
+
+            _logger.LogInformation("User logged in successfully: {Email}", request.Email);
+
+            return new AuthResponse
+            {
+                Success = true,
+                Message = "Login successful",
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresAt = expiresAt,
+                User = await MapToUserResponseAsync(user)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during login");
+            return new AuthResponse
+            {
+                Success = false,
+                Message = "An error occurred during login"
+            };
+        }
+    }
+
+    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    {
+        try
+        {
+            var refreshToken = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
+
+            if (refreshToken == null || !refreshToken.IsActive)
+            {
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid or expired refresh token"
+                };
+            }
+
+            // Revoke old refresh token
+            refreshToken.RevokedAt = DateTime.UtcNow;
+            
+            // Generate new tokens
+            var (newAccessToken, newRefreshToken, expiresAt) = await GenerateTokensAsync(refreshToken.User);
+
+            await _context.SaveChangesAsync();
+
+            return new AuthResponse
+            {
+                Success = true,
+                Message = "Token refreshed successfully",
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken,
+                ExpiresAt = expiresAt,
+                User = await MapToUserResponseAsync(refreshToken.User)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during token refresh");
+            return new AuthResponse
+            {
+                Success = false,
+                Message = "An error occurred during token refresh"
+            };
+        }
+    }
+
+    public async Task<ApiResponse<string>> ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                // Don't reveal that user doesn't exist
+                return ApiResponse<string>.Success("", "If an account with that email exists, a password reset link has been sent.");
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            
+            // Here you would typically send an email with the reset link
+            // For now, we'll just log it
+            _logger.LogInformation("Password reset token generated for user: {Email}, Token: {Token}", request.Email, token);
+
+            return ApiResponse<string>.Success("", "If an account with that email exists, a password reset link has been sent.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during forgot password");
+            return ApiResponse<string>.Error("An error occurred while processing your request");
+        }
+    }
+
+    public async Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return ApiResponse<string>.Error("Invalid request");
+            }
+
+            var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<string>.ValidationError(errors);
+            }
+
+            return ApiResponse<string>.Success("", "Password reset successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during password reset");
+            return ApiResponse<string>.Error("An error occurred while resetting password");
+        }
+    }
+
+    public async Task<ApiResponse<string>> ChangePasswordAsync(string userId, ChangePasswordRequest request)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<string>.Error("User not found");
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<string>.ValidationError(errors);
+            }
+
+            // Revoke all refresh tokens for security
+            var refreshTokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && rt.RevokedAt == null)
+                .ToListAsync();
+
+            foreach (var token in refreshTokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<string>.Success("", "Password changed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during password change");
+            return ApiResponse<string>.Error("An error occurred while changing password");
+        }
+    }
+
+    public async Task<ApiResponse<UserResponse>> GetUserProfileAsync(string userId)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<UserResponse>.Error("User not found");
+            }
+
+            var userResponse = await MapToUserResponseAsync(user);
+            return ApiResponse<UserResponse>.Success(userResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user profile");
+            return ApiResponse<UserResponse>.Error("An error occurred while retrieving profile");
+        }
+    }
+
+    public async Task<ApiResponse<UserResponse>> UpdateUserProfileAsync(string userId, UpdateProfileRequest request)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<UserResponse>.Error("User not found");
+            }
+
+            // Update user properties
+            if (!string.IsNullOrEmpty(request.FirstName))
+                user.FirstName = request.FirstName;
+            
+            if (!string.IsNullOrEmpty(request.LastName))
+                user.LastName = request.LastName;
+            
+            if (!string.IsNullOrEmpty(request.PhoneNumber))
+                user.PhoneNumber = request.PhoneNumber;
+            
+            if (!string.IsNullOrEmpty(request.Address))
+                user.Address = request.Address;
+            
+            if (!string.IsNullOrEmpty(request.City))
+                user.City = request.City;
+            
+            if (!string.IsNullOrEmpty(request.State))
+                user.State = request.State;
+            
+            if (!string.IsNullOrEmpty(request.ZipCode))
+                user.ZipCode = request.ZipCode;
+            
+            if (!string.IsNullOrEmpty(request.Country))
+                user.Country = request.Country;
+            
+            if (request.DateOfBirth.HasValue)
+                user.DateOfBirth = request.DateOfBirth;
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<UserResponse>.ValidationError(errors);
+            }
+
+            var userResponse = await MapToUserResponseAsync(user);
+            return ApiResponse<UserResponse>.Success(userResponse, "Profile updated successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user profile");
+            return ApiResponse<UserResponse>.Error("An error occurred while updating profile");
+        }
+    }
+
+    public async Task<ApiResponse<string>> ConfirmEmailAsync(string userId, string token)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<string>.Error("Invalid confirmation link");
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (!result.Succeeded)
+            {
+                return ApiResponse<string>.Error("Email confirmation failed");
+            }
+
+            return ApiResponse<string>.Success("", "Email confirmed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during email confirmation");
+            return ApiResponse<string>.Error("An error occurred during email confirmation");
+        }
+    }
+
+    public async Task<ApiResponse<string>> ResendConfirmationEmailAsync(string email)
+    {
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                // Don't reveal that user doesn't exist
+                return ApiResponse<string>.Success("", "If an account with that email exists, a confirmation email has been sent.");
+            }
+
+            if (user.EmailConfirmed)
+            {
+                return ApiResponse<string>.Success("", "Email is already confirmed");
+            }
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            
+            // Here you would typically send an email
+            _logger.LogInformation("Email confirmation token generated for user: {Email}, Token: {Token}", email, token);
+
+            return ApiResponse<string>.Success("", "If an account with that email exists, a confirmation email has been sent.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resending confirmation email");
+            return ApiResponse<string>.Error("An error occurred while sending confirmation email");
+        }
+    }
+
+    public async Task<bool> ValidateTokenAsync(string token)
+    {
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
+            
+            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidIssuer = _configuration["JwtSettings:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = _configuration["JwtSettings:Audience"],
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<ApiResponse<string>> LogoutAsync(string userId)
+    {
+        try
+        {
+            // Revoke all refresh tokens
+            var refreshTokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && rt.RevokedAt == null)
+                .ToListAsync();
+
+            foreach (var token in refreshTokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<string>.Success("", "Logged out successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            return ApiResponse<string>.Error("An error occurred during logout");
+        }
+    }
+
+    public async Task<ApiResponse<UserResponse>> GetUserByIdAsync(string userId)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<UserResponse>.Error("User not found");
+            }
+
+            var userResponse = await MapToUserResponseAsync(user);
+            return ApiResponse<UserResponse>.Success(userResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user by ID");
+            return ApiResponse<UserResponse>.Error("An error occurred while retrieving user");
+        }
+    }
+
+    public async Task<ApiResponse<IEnumerable<UserResponse>>> GetAllUsersAsync(int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var skip = (page - 1) * pageSize;
+            var users = await _userManager.Users
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var userResponses = new List<UserResponse>();
+            foreach (var user in users)
+            {
+                userResponses.Add(await MapToUserResponseAsync(user));
+            }
+
+            return ApiResponse<IEnumerable<UserResponse>>.Success(userResponses);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all users");
+            return ApiResponse<IEnumerable<UserResponse>>.Error("An error occurred while retrieving users");
+        }
+    }
+
+    public async Task<ApiResponse<string>> AssignRoleAsync(string userId, string role)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<string>.Error("User not found");
+            }
+
+            await EnsureRoleExistsAsync(role);
+
+            if (await _userManager.IsInRoleAsync(user, role))
+            {
+                return ApiResponse<string>.Success("", $"User already has {role} role");
+            }
+
+            var result = await _userManager.AddToRoleAsync(user, role);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<string>.ValidationError(errors);
+            }
+
+            return ApiResponse<string>.Success("", $"Role {role} assigned successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning role");
+            return ApiResponse<string>.Error("An error occurred while assigning role");
+        }
+    }
+
+    public async Task<ApiResponse<string>> RemoveRoleAsync(string userId, string role)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<string>.Error("User not found");
+            }
+
+            if (!await _userManager.IsInRoleAsync(user, role))
+            {
+                return ApiResponse<string>.Success("", $"User doesn't have {role} role");
+            }
+
+            var result = await _userManager.RemoveFromRoleAsync(user, role);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<string>.ValidationError(errors);
+            }
+
+            return ApiResponse<string>.Success("", $"Role {role} removed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing role");
+            return ApiResponse<string>.Error("An error occurred while removing role");
+        }
+    }
+
+    #region Private Methods
+
+    private async Task<(string accessToken, string refreshToken, DateTime expiresAt)> GenerateTokensAsync(ApplicationUser user)
+    {
+        var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
+        var refreshToken = await GenerateRefreshTokenAsync(user);
+
+        return (accessToken, refreshToken, expiresAt);
+    }
+
+    private async Task<(string token, DateTime expiresAt)> GenerateAccessTokenAsync(ApplicationUser user)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
+        var expiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["JwtSettings:ExpirationInMinutes"]!));
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Name, user.UserName!),
+            new(ClaimTypes.Email, user.Email!),
+            new("firstName", user.FirstName ?? ""),
+            new("lastName", user.LastName ?? ""),
+            new("displayName", user.DisplayName)
+        };
+
+        // Add role claims
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim("role", role)); // For policy-based authorization
+        }
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = expiresAt,
+            Issuer = _configuration["JwtSettings:Issuer"],
+            Audience = _configuration["JwtSettings:Audience"],
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return (tokenHandler.WriteToken(token), expiresAt);
+    }
+
+    private async Task<string> GenerateRefreshTokenAsync(ApplicationUser user)
+    {
+        var randomBytes = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
+        var refreshToken = Convert.ToBase64String(randomBytes);
+
+        // Save refresh token to database
+        var refreshTokenEntity = new RefreshToken
+        {
+            Token = refreshToken,
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(7), // 7 days
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.RefreshTokens.Add(refreshTokenEntity);
+        await _context.SaveChangesAsync();
+
+        return refreshToken;
+    }
+
+    private async Task<UserResponse> MapToUserResponseAsync(ApplicationUser user)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new UserResponse
+        {
+            Id = user.Id,
+            Email = user.Email!,
+            UserName = user.UserName!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            FullName = user.FullName,
+            DisplayName = user.DisplayName,
+            PhoneNumber = user.PhoneNumber,
+            PhoneNumberConfirmed = user.PhoneNumberConfirmed,
+            EmailConfirmed = user.EmailConfirmed,
+            Roles = roles.ToList(),
+            Address = user.Address,
+            City = user.City,
+            State = user.State,
+            ZipCode = user.ZipCode,
+            Country = user.Country,
+            FullAddress = user.FullAddress,
+            DateOfBirth = user.DateOfBirth,
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt
+        };
+    }
+
+    private async Task EnsureRoleExistsAsync(string roleName)
+    {
+        if (!await _roleManager.RoleExistsAsync(roleName))
+        {
+            await _roleManager.CreateAsync(new IdentityRole(roleName));
+        }
+    }
+
+    #endregion
+}

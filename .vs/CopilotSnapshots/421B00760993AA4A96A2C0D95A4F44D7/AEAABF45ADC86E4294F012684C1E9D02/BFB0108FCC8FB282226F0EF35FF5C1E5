@@ -1,0 +1,14 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Services": {
+    "IdentityService": "http://identity-service",
+    "ProductService": "http://product-service",
+    "CartService": "http://cart-service",
+    "OrderService": "http://order-service"
+  }
+}

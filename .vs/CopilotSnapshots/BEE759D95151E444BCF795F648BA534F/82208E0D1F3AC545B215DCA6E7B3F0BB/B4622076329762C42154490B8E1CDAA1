@@ -1,0 +1,48 @@
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Store.IdentityService.Models;
+
+namespace Store.IdentityService.Data;
+
+public class IdentityDbContext : IdentityDbContext<ApplicationUser>
+{
+    public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        // Configure ApplicationUser
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.Address).HasMaxLength(500);
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.State).HasMaxLength(100);
+            entity.Property(e => e.ZipCode).HasMaxLength(20);
+            entity.Property(e => e.Country).HasMaxLength(100);
+        });
+
+        // Configure RefreshToken
+        builder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(rt => rt.Id);
+            entity.Property(rt => rt.Token).IsRequired().HasMaxLength(500);
+            entity.Property(rt => rt.UserId).IsRequired();
+            
+            entity.HasOne(rt => rt.User)
+                  .WithMany()
+                  .HasForeignKey(rt => rt.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(rt => rt.Token).IsUnique();
+            entity.HasIndex(rt => rt.UserId);
+            entity.HasIndex(rt => rt.ExpiresAt);
+        });
+    }
+}

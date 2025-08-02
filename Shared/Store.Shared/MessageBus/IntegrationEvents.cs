@@ -1,0 +1,47 @@
+using System.Text.Json;
+
+namespace Store.Shared.MessageBus;
+
+public abstract class IntegrationEvent
+{
+    public Guid Id { get; } = Guid.NewGuid();
+    public DateTime OccurredOn { get; } = DateTime.UtcNow;
+}
+
+public class OrderCreatedEvent : IntegrationEvent
+{
+    public Guid OrderId { get; set; }
+    public Guid UserId { get; set; }
+    public decimal TotalAmount { get; set; }
+    public List<OrderItemEvent> Items { get; set; } = new();
+}
+
+public class OrderItemEvent
+{
+    public Guid ProductId { get; set; }
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class ProductInventoryUpdatedEvent : IntegrationEvent
+{
+    public Guid ProductId { get; set; }
+    public int NewStock { get; set; }
+    public int PreviousStock { get; set; }
+}
+
+public class UserRegisteredEvent : IntegrationEvent
+{
+    public Guid UserId { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public DateTime RegisteredAt { get; set; }
+}
+
+public class CartItemAddedEvent : IntegrationEvent
+{
+    public Guid UserId { get; set; }
+    public Guid ProductId { get; set; }
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}

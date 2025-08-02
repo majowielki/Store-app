@@ -1,0 +1,78 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Jwt": {
+    "Key": "default-secret-key-that-is-long-enough-for-hmac-sha256"
+  },
+  "Services": {
+    "IdentityService": "http://identity-service",
+    "ProductService": "http://product-service",
+    "CartService": "http://cart-service",
+    "OrderService": "http://order-service"
+  },
+  "ReverseProxy": {
+    "Routes": {
+      "identity-route": {
+        "ClusterId": "identity-cluster",
+        "Match": {
+          "Path": "/api/auth/{**catch-all}"
+        }
+      },
+      "products-route": {
+        "ClusterId": "products-cluster",
+        "Match": {
+          "Path": "/api/products/{**catch-all}"
+        }
+      },
+      "cart-route": {
+        "ClusterId": "cart-cluster",
+        "Match": {
+          "Path": "/api/cart/{**catch-all}"
+        },
+        "AuthorizationPolicy": "default"
+      },
+      "orders-route": {
+        "ClusterId": "orders-cluster",
+        "Match": {
+          "Path": "/api/orders/{**catch-all}"
+        },
+        "AuthorizationPolicy": "default"
+      }
+    },
+    "Clusters": {
+      "identity-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://identity-service/"
+          }
+        }
+      },
+      "products-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://product-service/"
+          }
+        }
+      },
+      "cart-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://cart-service/"
+          }
+        }
+      },
+      "orders-cluster": {
+        "Destinations": {
+          "destination1": {
+            "Address": "http://order-service/"
+          }
+        }
+      }
+    }
+  }
+}

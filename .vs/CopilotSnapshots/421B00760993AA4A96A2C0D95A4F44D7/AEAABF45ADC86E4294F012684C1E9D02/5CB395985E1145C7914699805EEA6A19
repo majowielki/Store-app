@@ -1,0 +1,106 @@
+﻿using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using System.Text;
+using System.Text.Json;
+
+namespace Store.Shared.MessageBus;
+
+public class RabbitMQConnection : IMessageBusConnection
+{
+    private readonly ConnectionFactory _connectionFactory;
+    private readonly ILogger<RabbitMQConnection> _logger;
+    private IConnection? _connection;
+    private bool _disposed;
+
+    public RabbitMQConnection(ConnectionFactory connectionFactory, ILogger<RabbitMQConnection> logger)
+    {
+        _connectionFactory = connectionFactory;
+        _logger = logger;
+    }
+
+    public bool IsConnected => _connection?.IsOpen == true && !_disposed;
+
+    public bool TryConnect()
+    {
+        _logger.LogInformation("RabbitMQ Client is trying to connect");
+
+        try
+        {
+            _connection = _connectionFactory.CreateConnection();
+            
+            if (IsConnected)
+            {
+                _connection.ConnectionShutdown += OnConnectionShutdown;
+                _connection.CallbackException += OnCallbackException;
+                _connection.ConnectionBlocked += OnConnectionBlocked;
+
+                _logger.LogInformation("RabbitMQ Client acquired a persistent connection to '{HostName}' and is subscribed to failure events", _connection.Endpoint.HostName);
+                return true;
+            }
+            else
+            {
+                _logger.LogCritical("FATAL ERROR: RabbitMQ connections could not be created and opened");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "FATAL ERROR: RabbitMQ connections could not be created and opened");
+            return false;
+        }
+    }
+
+    public IDisposable CreateModel()
+    {
+        if (!IsConnected)
+        {
+            throw new InvalidOperationException("No RabbitMQ connections are available to perform this action");
+        }
+
+        return _connection!.CreateModel();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+
+        try
+        {
+            _connection?.Dispose();
+        }
+        catch (IOException ex)
+        {
+            _logger.LogCritical(ex, "Error disposing RabbitMQ connection");
+        }
+    }
+
+    private void OnConnectionBlocked(object? sender, ConnectionBlockedEventArgs e)
+    {
+        if (_disposed) return;
+
+        _logger.LogWarning("A RabbitMQ connection is shutdown. Trying to re-connect...");
+
+        TryConnect();
+    }
+
+    private void OnCallbackException(object? sender, CallbackExceptionEventArgs e)
+    {
+        if (_disposed) return;
+
+        _logger.LogWarning("A RabbitMQ connection throw exception. Trying to re-connect...");
+
+        TryConnect();
+    }
+
+    private void OnConnectionShutdown(object? sender, ShutdownEventArgs reason)
+    {
+        if (_disposed) return;
+
+        _logger.LogWarning("A RabbitMQ connection is on shutdown. Trying to re-connect...");
+
+        TryConnect();
+    }
+}

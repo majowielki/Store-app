@@ -1,0 +1,69 @@
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace Store.Shared.MessageBus;
+
+public class MessageBusSubscriptionService : BackgroundService
+{
+    private readonly IMessageBus _messageBus;
+    private readonly ILogger<MessageBusSubscriptionService> _logger;
+
+    public MessageBusSubscriptionService(IMessageBus messageBus, ILogger<MessageBusSubscriptionService> logger)
+    {
+        _messageBus = messageBus;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Message Bus Subscription Service started");
+
+        // Subscribe to events that the gateway should handle
+        await _messageBus.SubscribeAsync<OrderCreatedEvent>(HandleOrderCreatedEvent, "gateway_order_created_queue", stoppingToken);
+        await _messageBus.SubscribeAsync<UserRegisteredEvent>(HandleUserRegisteredEvent, "gateway_user_registered_queue", stoppingToken);
+        await _messageBus.SubscribeAsync<ProductInventoryUpdatedEvent>(HandleProductInventoryUpdatedEvent, "gateway_product_inventory_queue", stoppingToken);
+
+        // Keep the service running
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        }
+    }
+
+    private async Task HandleOrderCreatedEvent(OrderCreatedEvent orderEvent)
+    {
+        _logger.LogInformation("Gateway received OrderCreatedEvent for Order: {OrderId}", orderEvent.OrderId);
+        
+        // Gateway can log, audit, or forward this event to other services
+        // For example, you might want to notify audit service or send notifications
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleUserRegisteredEvent(UserRegisteredEvent userEvent)
+    {
+        _logger.LogInformation("Gateway received UserRegisteredEvent for User: {UserId}", userEvent.UserId);
+        
+        // Gateway can handle user registration events
+        // For example, initialize user profile, send welcome notifications, etc.
+        
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleProductInventoryUpdatedEvent(ProductInventoryUpdatedEvent inventoryEvent)
+    {
+        _logger.LogInformation("Gateway received ProductInventoryUpdatedEvent for Product: {ProductId}, New Stock: {NewStock}", 
+            inventoryEvent.ProductId, inventoryEvent.NewStock);
+        
+        // Gateway can handle inventory updates
+        // For example, cache invalidation, notifications to subscribed clients, etc.
+        
+        await Task.CompletedTask;
+    }
+
+    public override void Dispose()
+    {
+        _messageBus?.Dispose();
+        base.Dispose();
+    }
+}

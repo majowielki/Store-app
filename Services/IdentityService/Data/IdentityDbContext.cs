@@ -14,5 +14,12 @@ public class IdentityDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        // Configure ApplicationUser
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.SimpleAddress).HasMaxLength(300);
+        });
     }
 }

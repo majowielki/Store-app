@@ -11,7 +11,7 @@
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.AspNetCore.OpenApi": "9.0.7",
           "Microsoft.EntityFrameworkCore.Tools": "9.0.7",
-          "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.0",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.4",
           "StackExchange.Redis": "2.8.58",
           "Store.Shared": "1.0.0",
           "Swashbuckle.AspNetCore": "9.0.3"
@@ -476,6 +476,44 @@
           }
         }
       },
+      "Microsoft.Extensions.Diagnostics.Abstractions/9.0.7": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7",
+          "Microsoft.Extensions.Options": "9.0.7"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Diagnostics.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.725.31616"
+          }
+        }
+      },
+      "Microsoft.Extensions.FileProviders.Abstractions/9.0.7": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "9.0.7"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.FileProviders.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.725.31616"
+          }
+        }
+      },
+      "Microsoft.Extensions.Hosting.Abstractions/9.0.7": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.7",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.7",
+          "Microsoft.Extensions.Diagnostics.Abstractions": "9.0.7",
+          "Microsoft.Extensions.FileProviders.Abstractions": "9.0.7",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.7"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Hosting.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.725.31616"
+          }
+        }
+      },
       "Microsoft.Extensions.Logging/9.0.7": {
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "9.0.7",
@@ -603,28 +641,27 @@
           }
         }
       },
-      "Npgsql/9.0.0": {
+      "Npgsql/9.0.3": {
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
-          "System.Text.Json": "9.0.7"
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.7"
         },
         "runtime": {
           "lib/net8.0/Npgsql.dll": {
-            "assemblyVersion": "9.0.0.0",
-            "fileVersion": "9.0.0.0"
+            "assemblyVersion": "9.0.3.0",
+            "fileVersion": "9.0.3.0"
           }
         }
       },
-      "Npgsql.EntityFrameworkCore.PostgreSQL/9.0.0": {
+      "Npgsql.EntityFrameworkCore.PostgreSQL/9.0.4": {
         "dependencies": {
           "Microsoft.EntityFrameworkCore": "9.0.7",
           "Microsoft.EntityFrameworkCore.Relational": "9.0.7",
-          "Npgsql": "9.0.0"
+          "Npgsql": "9.0.3"
         },
         "runtime": {
           "lib/net8.0/Npgsql.EntityFrameworkCore.PostgreSQL.dll": {
-            "assemblyVersion": "9.0.0.0",
-            "fileVersion": "9.0.0.0"
+            "assemblyVersion": "9.0.4.0",
+            "fileVersion": "9.0.4.0"
           }
         }
       },
@@ -636,6 +673,18 @@
           "lib/net5.0/Pipelines.Sockets.Unofficial.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "2.2.8.1080"
+          }
+        }
+      },
+      "RabbitMQ.Client/6.8.1": {
+        "dependencies": {
+          "System.Memory": "4.5.5",
+          "System.Threading.Channels": "7.0.0"
+        },
+        "runtime": {
+          "lib/netstandard2.0/RabbitMQ.Client.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.8.1.0"
           }
         }
       },
@@ -771,6 +820,7 @@
         }
       },
       "System.IO.Pipelines/7.0.0": {},
+      "System.Memory/4.5.5": {},
       "System.Reflection.Metadata/7.0.0": {
         "dependencies": {
           "System.Collections.Immutable": "7.0.0"
@@ -782,6 +832,10 @@
       "Store.Shared/1.0.0": {
         "dependencies": {
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
+          "Microsoft.EntityFrameworkCore": "9.0.7",
+          "Microsoft.Extensions.Hosting.Abstractions": "9.0.7",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
+          "RabbitMQ.Client": "6.8.1",
           "Store.Shared.Contracts": "1.0.0",
           "Store.Shared.DTOs": "1.0.0"
         },
@@ -991,6 +1045,27 @@
       "path": "microsoft.extensions.dependencymodel/9.0.7",
       "hashPath": "microsoft.extensions.dependencymodel.9.0.7.nupkg.sha512"
     },
+    "Microsoft.Extensions.Diagnostics.Abstractions/9.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-d39Ov1JpeWCGLCOTinlaDkujhrSAQ0HFxb7Su1BjhCKBfmDcQ6Ia1i3JI6kd3NFgwi1dexTunu82daDNwt7E6w==",
+      "path": "microsoft.extensions.diagnostics.abstractions/9.0.7",
+      "hashPath": "microsoft.extensions.diagnostics.abstractions.9.0.7.nupkg.sha512"
+    },
+    "Microsoft.Extensions.FileProviders.Abstractions/9.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-y9djCca1cz/oz/J8jTxtoecNiNvaiGBJeWd7XOPxonH+FnfHqcfslJMcSr5JMinmWFyS7eh3C9L6m6oURZ5lSA==",
+      "path": "microsoft.extensions.fileproviders.abstractions/9.0.7",
+      "hashPath": "microsoft.extensions.fileproviders.abstractions.9.0.7.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Hosting.Abstractions/9.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-yG2JCXAR+VqI1mKqynLPNJlNlrUJeEISEpX4UznOp2uM4IEFz3pDDauzyMvTjICutEJtOigJ1yWBvxbaIlibBw==",
+      "path": "microsoft.extensions.hosting.abstractions/9.0.7",
+      "hashPath": "microsoft.extensions.hosting.abstractions.9.0.7.nupkg.sha512"
+    },
     "Microsoft.Extensions.Logging/9.0.7": {
       "type": "package",
       "serviceable": true,
@@ -1075,19 +1150,19 @@
       "path": "mono.texttemplating/3.0.0",
       "hashPath": "mono.texttemplating.3.0.0.nupkg.sha512"
     },
-    "Npgsql/9.0.0": {
+    "Npgsql/9.0.3": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-zu1nCRt0gWP/GR0reYgg0Bl5o8qyNV7mVAgzAbVLRiAd1CYXcf/9nrubPH0mt93u8iGTKmYqWaLVECEAcE6IfQ==",
-      "path": "npgsql/9.0.0",
-      "hashPath": "npgsql.9.0.0.nupkg.sha512"
+      "sha512": "sha512-tPvY61CxOAWxNsKLEBg+oR646X4Bc8UmyQ/tJszL/7mEmIXQnnBhVJZrZEEUv0Bstu0mEsHZD5At3EO8zQRAYw==",
+      "path": "npgsql/9.0.3",
+      "hashPath": "npgsql.9.0.3.nupkg.sha512"
     },
-    "Npgsql.EntityFrameworkCore.PostgreSQL/9.0.0": {
+    "Npgsql.EntityFrameworkCore.PostgreSQL/9.0.4": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ObngKFRLMBAeMqQzK7SC0Q6WZtWw0imPmEkVPo12yLVF3fioz2TN+w0mhNMJ5cVd/sLB2u+jei0bmA9sDMtkMw==",
-      "path": "npgsql.entityframeworkcore.postgresql/9.0.0",
-      "hashPath": "npgsql.entityframeworkcore.postgresql.9.0.0.nupkg.sha512"
+      "sha512": "sha512-mw5vcY2IEc7L+IeGrxpp/J5OSnCcjkjAgJYCm/eD52wpZze8zsSifdqV7zXslSMmfJG2iIUGZyo3KuDtEFKwMQ==",
+      "path": "npgsql.entityframeworkcore.postgresql/9.0.4",
+      "hashPath": "npgsql.entityframeworkcore.postgresql.9.0.4.nupkg.sha512"
     },
     "Pipelines.Sockets.Unofficial/2.2.8": {
       "type": "package",
@@ -1095,6 +1170,13 @@
       "sha512": "sha512-zG2FApP5zxSx6OcdJQLbZDk2AVlN2BNQD6MorwIfV6gVj0RRxWPEp2LXAxqDGZqeNV1Zp0BNPcNaey/GXmTdvQ==",
       "path": "pipelines.sockets.unofficial/2.2.8",
       "hashPath": "pipelines.sockets.unofficial.2.2.8.nupkg.sha512"
+    },
+    "RabbitMQ.Client/6.8.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-jNsmGgmCNw2S/NzskeN2ijtGywtH4Sk/G6jWUTD5sY9SrC27Xz6BsLIiB8hdsfjeyWCa4j4GvCIGkpE8wrjU1Q==",
+      "path": "rabbitmq.client/6.8.1",
+      "hashPath": "rabbitmq.client.6.8.1.nupkg.sha512"
     },
     "StackExchange.Redis/2.8.58": {
       "type": "package",
@@ -1200,6 +1282,13 @@
       "sha512": "sha512-jRn6JYnNPW6xgQazROBLSfpdoczRw694vO5kKvMcNnpXuolEixUyw6IBuBs2Y2mlSX/LdLvyyWmfXhaI3ND1Yg==",
       "path": "system.io.pipelines/7.0.0",
       "hashPath": "system.io.pipelines.7.0.0.nupkg.sha512"
+    },
+    "System.Memory/4.5.5": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XIWiDvKPXaTveaB7HVganDlOCRoj03l+jrwNvcge/t8vhGYKvqV+dMv6G4SAX2NoNmN0wZfVPTAlFwZcZvVOUw==",
+      "path": "system.memory/4.5.5",
+      "hashPath": "system.memory.4.5.5.nupkg.sha512"
     },
     "System.Reflection.Metadata/7.0.0": {
       "type": "package",

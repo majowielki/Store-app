@@ -1,0 +1,342 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Store.OrderService.DTOs.Requests;
+using Store.OrderService.DTOs.Responses;
+using Store.OrderService.Services;
+using Store.Shared.Utility;
+using System.Security.Claims;
+
+namespace Store.OrderService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class OrdersController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+    private readonly ILogger<OrdersController> _logger;
+
+    public OrdersController(IOrderService orderService, ILogger<OrdersController> logger)
+    {
+        _orderService = orderService;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Create a new order
+    /// </summary>
+    /// <param name="request">Order creation data</param>
+    /// <returns>Created order</returns>
+    [HttpPost]
+    public async Task<ActionResult<OrderResponse>> CreateOrder([FromBody] CreateOrderRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not found");
+            }
+
+            // Ensure the order belongs to the authenticated user
+            request.UserId = userId;
+
+            var order = await _orderService.CreateOrderAsync(request);
+            return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating order for user: {UserId}", request.UserId);
+            return StatusCode(500, "An error occurred while creating the order");
+        }
+    }
+
+    /// <summary>
+    /// Get order by ID
+    /// </summary>
+    /// <param name="id">Order ID</param>
+    /// <returns>Order details</returns>
+    [HttpGet("{id}")]
+    public async Task<ActionResult<OrderResponse>> GetOrder(int id)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            OrderResponse? order;
+
+            // Admin can see any order, users can only see their own orders
+            if (userRole == "admin")
+            {
+                order = await _orderService.GetOrderByIdAsync(id);
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("User not found");
+                }
+                order = await _orderService.GetOrderByIdAndUserAsync(id, userId);
+            }
+
+            if (order == null)
+            {
+                return NotFound($"Order with ID {id} not found");
+            }
+
+            return Ok(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving order: {OrderId}", id);
+            return StatusCode(500, "An error occurred while retrieving the order");
+        }
+    }
+
+    /// <summary>
+    /// Get user's orders
+    /// </summary>
+    /// <param name="page">Page number</param>
+    /// <param name="pageSize">Page size</param>
+    /// <returns>Paginated list of user's orders</returns>
+    [HttpGet("my-orders")]
+    public async Task<ActionResult<OrderListResponse>> GetMyOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not found");
+            }
+
+            var orders = await _orderService.GetOrdersByUserAsync(userId, page, pageSize);
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user orders");
+            return StatusCode(500, "An error occurred while retrieving orders");
+        }
+    }
+
+    /// <summary>
+    /// Get all orders (Admin only)
+    /// </summary>
+    /// <param name="page">Page number</param>
+    /// <param name="pageSize">Page size</param>
+    /// <returns>Paginated list of all orders</returns>
+    [HttpGet]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<OrderListResponse>> GetAllOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var orders = await _orderService.GetAllOrdersAsync(page, pageSize);
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all orders");
+            return StatusCode(500, "An error occurred while retrieving orders");
+        }
+    }
+
+    /// <summary>
+    /// Get orders by status (Admin only)
+    /// </summary>
+    /// <param name="status">Order status</param>
+    /// <param name="page">Page number</param>
+    /// <param name="pageSize">Page size</param>
+    /// <returns>Paginated list of orders with specified status</returns>
+    [HttpGet("status/{status}")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<OrderListResponse>> GetOrdersByStatus(
+        OrderStatus status, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var orders = await _orderService.GetOrdersByStatusAsync(status, page, pageSize);
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving orders by status: {Status}", status);
+            return StatusCode(500, "An error occurred while retrieving orders");
+        }
+    }
+
+    /// <summary>
+    /// Update order status (Admin only)
+    /// </summary>
+    /// <param name="id">Order ID</param>
+    /// <param name="status">New order status</param>
+    /// <returns>Updated order</returns>
+    [HttpPatch("{id}/status")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<OrderResponse>> UpdateOrderStatus(int id, [FromBody] OrderStatus status)
+    {
+        try
+        {
+            var order = await _orderService.UpdateOrderStatusAsync(id, status);
+            
+            if (order == null)
+            {
+                return NotFound($"Order with ID {id} not found");
+            }
+
+            return Ok(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating order status for order: {OrderId}", id);
+            return StatusCode(500, "An error occurred while updating order status");
+        }
+    }
+
+    /// <summary>
+    /// Update payment status (Admin only)
+    /// </summary>
+    /// <param name="id">Order ID</param>
+    /// <param name="paymentStatus">New payment status</param>
+    /// <returns>Updated order</returns>
+    [HttpPatch("{id}/payment-status")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<OrderResponse>> UpdatePaymentStatus(int id, [FromBody] PaymentStatus paymentStatus)
+    {
+        try
+        {
+            var order = await _orderService.UpdatePaymentStatusAsync(id, paymentStatus);
+            
+            if (order == null)
+            {
+                return NotFound($"Order with ID {id} not found");
+            }
+
+            return Ok(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating payment status for order: {OrderId}", id);
+            return StatusCode(500, "An error occurred while updating payment status");
+        }
+    }
+
+    /// <summary>
+    /// Add tracking number to order (Admin only)
+    /// </summary>
+    /// <param name="id">Order ID</param>
+    /// <param name="trackingNumber">Tracking number</param>
+    /// <returns>Updated order</returns>
+    [HttpPatch("{id}/tracking")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<OrderResponse>> AddTrackingNumber(int id, [FromBody] string trackingNumber)
+    {
+        if (string.IsNullOrEmpty(trackingNumber))
+        {
+            return BadRequest("Tracking number is required");
+        }
+
+        try
+        {
+            var order = await _orderService.AddTrackingNumberAsync(id, trackingNumber);
+            
+            if (order == null)
+            {
+                return NotFound($"Order with ID {id} not found");
+            }
+
+            return Ok(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding tracking number for order: {OrderId}", id);
+            return StatusCode(500, "An error occurred while adding tracking number");
+        }
+    }
+
+    /// <summary>
+    /// Cancel order
+    /// </summary>
+    /// <param name="id">Order ID</param>
+    /// <returns>Success status</returns>
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult> CancelOrder(int id)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not found");
+            }
+
+            var success = await _orderService.CancelOrderAsync(id, userId);
+            
+            if (!success)
+            {
+                return NotFound($"Order with ID {id} not found or cannot be cancelled");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling order: {OrderId}", id);
+            return StatusCode(500, "An error occurred while cancelling the order");
+        }
+    }
+
+    /// <summary>
+    /// Get revenue statistics (Admin only)
+    /// </summary>
+    /// <param name="fromDate">Start date (optional)</param>
+    /// <param name="toDate">End date (optional)</param>
+    /// <returns>Total revenue</returns>
+    [HttpGet("revenue")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<decimal>> GetRevenue([FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
+    {
+        try
+        {
+            var revenue = await _orderService.GetOrdersTotalRevenueAsync(fromDate, toDate);
+            return Ok(revenue);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving revenue statistics");
+            return StatusCode(500, "An error occurred while retrieving revenue");
+        }
+    }
+
+    /// <summary>
+    /// Get order count statistics (Admin only)
+    /// </summary>
+    /// <param name="fromDate">Start date (optional)</param>
+    /// <param name="toDate">End date (optional)</param>
+    /// <returns>Total order count</returns>
+    [HttpGet("count")]
+    [Authorize(Roles = "admin")]
+    public async Task<ActionResult<int>> GetOrderCount([FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
+    {
+        try
+        {
+            var count = await _orderService.GetOrdersCountAsync(fromDate, toDate);
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving order count statistics");
+            return StatusCode(500, "An error occurred while retrieving order count");
+        }
+    }
+}
+

@@ -1,0 +1,307 @@
+using Microsoft.EntityFrameworkCore;
+using Store.ProductService.Data;
+using Store.ProductService.DTOs.Requests;
+using Store.ProductService.DTOs.Responses;
+using Store.Shared.Models;
+using Store.Shared.Utility;
+
+namespace Store.ProductService.Services;
+
+public class ProductService : IProductService
+{
+    private readonly ProductDbContext _context;
+    private readonly ILogger<ProductService> _logger;
+
+    public ProductService(ProductDbContext context, ILogger<ProductService> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task<ProductResponse?> GetProductByIdAsync(int id)
+    {
+        try
+        {
+            var product = await _context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            return product == null ? null : MapToProductResponse(product);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product with ID: {ProductId}", id);
+            throw;
+        }
+    }
+
+    public async Task<ProductListResponse> GetProductsAsync(ProductQueryRequest request)
+    {
+        try
+        {
+            var query = _context.Products.AsNoTracking().AsQueryable();
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                query = query.Where(p => p.Title.Contains(request.Search) || 
+                                       p.Description.Contains(request.Search));
+            }
+
+            if (request.Category.HasValue && request.Category != Category.All)
+            {
+                query = query.Where(p => p.Category == request.Category);
+            }
+
+            if (request.Company.HasValue && request.Company != Company.All)
+            {
+                query = query.Where(p => p.Company == request.Company);
+            }
+
+            if (request.MinPrice.HasValue)
+            {
+                query = query.Where(p => p.Price >= request.MinPrice);
+            }
+
+            if (request.MaxPrice.HasValue)
+            {
+                query = query.Where(p => p.Price <= request.MaxPrice);
+            }
+
+            if (!string.IsNullOrEmpty(request.Color))
+            {
+                query = query.Where(p => p.Colors.Contains(request.Color));
+            }
+
+            // Apply sorting
+            query = request.SortBy?.ToLower() switch
+            {
+                "price" => request.SortOrder?.ToLower() == "desc" 
+                    ? query.OrderByDescending(p => p.Price)
+                    : query.OrderBy(p => p.Price),
+                "title" => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.Title)
+                    : query.OrderBy(p => p.Title),
+                "category" => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.Category)
+                    : query.OrderBy(p => p.Category),
+                "company" => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.Company)
+                    : query.OrderBy(p => p.Company),
+                _ => query.OrderBy(p => p.Title)
+            };
+
+            var totalCount = await query.CountAsync();
+            var skip = (request.Page - 1) * request.PageSize;
+
+            var products = await query
+                .Skip(skip)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new ProductListResponse
+            {
+                Products = products.Select(MapToProductResponse),
+                TotalCount = totalCount,
+                Page = request.Page,
+                PageSize = request.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving products");
+            throw;
+        }
+    }
+
+    public async Task<ProductResponse> CreateProductAsync(CreateProductRequest request)
+    {
+        try
+        {
+            var product = new Product
+            {
+                Title = request.Title,
+                Description = request.Description,
+                Price = request.Price,
+                Category = request.Category,
+                Company = request.Company,
+                Image = request.Image,
+                Colors = request.Colors,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Product created successfully with ID: {ProductId}", product.Id);
+            return MapToProductResponse(product);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating product: {ProductTitle}", request.Title);
+            throw;
+        }
+    }
+
+    public async Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request)
+    {
+        try
+        {
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
+            if (product == null)
+            {
+                return null;
+            }
+
+            // Update only provided fields
+            if (!string.IsNullOrEmpty(request.Title))
+                product.Title = request.Title;
+            
+            if (!string.IsNullOrEmpty(request.Description))
+                product.Description = request.Description;
+            
+            if (request.Price.HasValue)
+                product.Price = request.Price.Value;
+            
+            if (request.Category.HasValue)
+                product.Category = request.Category.Value;
+            
+            if (request.Company.HasValue)
+                product.Company = request.Company.Value;
+            
+            if (!string.IsNullOrEmpty(request.Image))
+                product.Image = request.Image;
+            
+            if (request.Colors != null && request.Colors.Any())
+                product.Colors = request.Colors;
+
+            product.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
+            return MapToProductResponse(product);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating product with ID: {ProductId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteProductAsync(int id)
+    {
+        try
+        {
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
+            if (product == null)
+            {
+                return false;
+            }
+
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Product deleted successfully with ID: {ProductId}", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting product with ID: {ProductId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> ProductExistsAsync(int id)
+    {
+        try
+        {
+            return await _context.Products.AnyAsync(p => p.Id == id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if product exists with ID: {ProductId}", id);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<ProductResponse>> GetProductsByCategoryAsync(Category category, int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var skip = (page - 1) * pageSize;
+            var products = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Category == category)
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return products.Select(MapToProductResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving products by category: {Category}", category);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<ProductResponse>> GetProductsByCompanyAsync(Company company, int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var skip = (page - 1) * pageSize;
+            var products = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Company == company)
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return products.Select(MapToProductResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving products by company: {Company}", company);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<ProductResponse>> SearchProductsAsync(string searchTerm, int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var skip = (page - 1) * pageSize;
+            var products = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Title.Contains(searchTerm) || p.Description.Contains(searchTerm))
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return products.Select(MapToProductResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
+            throw;
+        }
+    }
+
+    private static ProductResponse MapToProductResponse(Product product)
+    {
+        return new ProductResponse
+        {
+            Id = product.Id,
+            Title = product.Title,
+            Description = product.Description,
+            Price = product.Price,
+            Category = product.Category,
+            Company = product.Company,
+            Image = product.Image,
+            Colors = product.Colors,
+            CreatedAt = product.CreatedAt,
+            UpdatedAt = product.UpdatedAt
+        };
+    }
+}

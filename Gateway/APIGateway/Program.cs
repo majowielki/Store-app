@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Store.Shared.MessageBus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero
         };
     });
+
+// RabbitMQ Message Bus
+builder.Services.AddRabbitMQ(builder.Configuration);
+builder.Services.AddMessageBusSubscriptions();
 
 // YARP Reverse Proxy
 builder.Services.AddReverseProxy()

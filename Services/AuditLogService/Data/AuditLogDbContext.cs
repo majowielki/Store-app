@@ -1,0 +1,39 @@
+using Microsoft.EntityFrameworkCore;
+using Store.Shared.Models;
+
+namespace Store.AuditLogService.Data;
+
+public class AuditLogDbContext : DbContext
+{
+    public AuditLogDbContext(DbContextOptions<AuditLogDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<AuditLog> AuditLogs { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            
+            entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.EntityName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.EntityId).HasMaxLength(50);
+            entity.Property(e => e.UserId).HasMaxLength(50);
+            entity.Property(e => e.UserEmail).HasMaxLength(256);
+            entity.Property(e => e.IpAddress).HasMaxLength(45); // IPv6 max length
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            
+            // Indexes for better query performance
+            entity.HasIndex(e => e.EntityName);
+            entity.HasIndex(e => e.EntityId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => new { e.EntityName, e.EntityId });
+        });
+    }
+}

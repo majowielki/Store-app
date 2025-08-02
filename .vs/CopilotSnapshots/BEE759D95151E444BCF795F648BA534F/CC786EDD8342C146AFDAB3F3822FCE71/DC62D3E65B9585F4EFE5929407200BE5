@@ -1,0 +1,14 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Store.Shared.Models;
+
+public class Cart
+{
+    public int Id { get; set; }
+    public List<CartItem> CartItems { get; set; } = new();
+    public int NumItemsInCart { get; set; }
+    public decimal CartTotal { get; set; }
+    public decimal Shipping { get; set; }
+    public decimal Tax { get; set; }
+    public decimal OrderTotal { get; set; }
+}

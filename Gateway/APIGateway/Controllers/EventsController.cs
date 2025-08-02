@@ -1,0 +1,105 @@
+using Microsoft.AspNetCore.Mvc;
+using Store.Shared.MessageBus;
+
+namespace Store.GatewayService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class EventsController : ControllerBase
+{
+    private readonly IMessageBus _messageBus;
+    private readonly ILogger<EventsController> _logger;
+
+    public EventsController(IMessageBus messageBus, ILogger<EventsController> logger)
+    {
+        _messageBus = messageBus;
+        _logger = logger;
+    }
+
+    [HttpPost("test-user-registered")]
+    public async Task<IActionResult> TestUserRegisteredEvent([FromBody] TestUserRegisteredRequest request)
+    {
+        var userRegisteredEvent = new UserRegisteredEvent
+        {
+            UserId = request.UserId,
+            Email = request.Email,
+            UserName = request.UserName,
+            RegisteredAt = DateTime.UtcNow
+        };
+
+        await _messageBus.PublishAsync(userRegisteredEvent);
+        
+        _logger.LogInformation("Published UserRegisteredEvent for user: {UserId}", request.UserId);
+        
+        return Ok(new { Message = "Event published successfully", EventId = userRegisteredEvent.Id });
+    }
+
+    [HttpPost("test-order-created")]
+    public async Task<IActionResult> TestOrderCreatedEvent([FromBody] TestOrderCreatedRequest request)
+    {
+        var orderCreatedEvent = new OrderCreatedEvent
+        {
+            OrderId = request.OrderId,
+            UserId = request.UserId,
+            TotalAmount = request.TotalAmount,
+            Items = request.Items.Select(i => new OrderItemEvent
+            {
+                ProductId = i.ProductId,
+                Quantity = i.Quantity,
+                Price = i.Price
+            }).ToList()
+        };
+
+        await _messageBus.PublishAsync(orderCreatedEvent);
+        
+        _logger.LogInformation("Published OrderCreatedEvent for order: {OrderId}", request.OrderId);
+        
+        return Ok(new { Message = "Event published successfully", EventId = orderCreatedEvent.Id });
+    }
+
+    [HttpPost("test-product-inventory")]
+    public async Task<IActionResult> TestProductInventoryEvent([FromBody] TestProductInventoryRequest request)
+    {
+        var inventoryEvent = new ProductInventoryUpdatedEvent
+        {
+            ProductId = request.ProductId,
+            NewStock = request.NewStock,
+            PreviousStock = request.PreviousStock
+        };
+
+        await _messageBus.PublishAsync(inventoryEvent);
+        
+        _logger.LogInformation("Published ProductInventoryUpdatedEvent for product: {ProductId}", request.ProductId);
+        
+        return Ok(new { Message = "Event published successfully", EventId = inventoryEvent.Id });
+    }
+}
+
+public class TestUserRegisteredRequest
+{
+    public Guid UserId { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+}
+
+public class TestOrderCreatedRequest
+{
+    public Guid OrderId { get; set; }
+    public Guid UserId { get; set; }
+    public decimal TotalAmount { get; set; }
+    public List<TestOrderItem> Items { get; set; } = new();
+}
+
+public class TestOrderItem
+{
+    public Guid ProductId { get; set; }
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class TestProductInventoryRequest
+{
+    public Guid ProductId { get; set; }
+    public int NewStock { get; set; }
+    public int PreviousStock { get; set; }
+}

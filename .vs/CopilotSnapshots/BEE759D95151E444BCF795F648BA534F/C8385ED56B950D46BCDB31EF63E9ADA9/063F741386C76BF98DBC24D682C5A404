@@ -1,0 +1,16 @@
+﻿namespace Store.CartService.DTOs.Responses;
+
+public class CartItemResponse
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Image { get; set; } = string.Empty; // Keep images
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public string Color { get; set; } = string.Empty;
+    public string Company { get; set; } = string.Empty;
+    public decimal LineTotal { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

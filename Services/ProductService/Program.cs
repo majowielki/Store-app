@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,7 @@ builder.Services.AddDbContext<ProductDbContext>(options =>
 // Redis
 builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("Redis") 
+    var connectionString = builder.Configuration.GetConnectionString("Redis")
         ?? builder.Configuration["Redis:ConnectionString"];
     return ConnectionMultiplexer.Connect(connectionString!);
 });
@@ -54,43 +55,41 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireClaim("role", "admin"));
-    
+
     options.AddPolicy("UserOrAdmin", policy =>
         policy.RequireClaim("role", "user", "admin"));
 });
 
 // Services
+builder.Services.AddScoped<IProductService, ProductService>();
 
-//// Health Checks
-//builder.Services.AddHealthChecks()
-//    .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!)
-//    .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
+// Health Checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!)
+    .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
 
 // Swagger with JWT support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Product Service API", Version = "v1" });
+    c.SwaggerDoc("v1", new() { Title = "Store Product Service", Version = "v1" });
     
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    // JWT Bearer token support
+    c.AddSecurityDefinition("Bearer", new()
     {
-        Description = "JWT Authorization header using the Bearer scheme",
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
     
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new()
     {
         {
-            new OpenApiSecurityScheme
+            new()
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new() { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }

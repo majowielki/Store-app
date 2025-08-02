@@ -1,0 +1,46 @@
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
+
+namespace Store.IdentityService.Models;
+
+public class ApplicationUser : IdentityUser
+{
+    [StringLength(100)]
+    public string? FirstName { get; set; }
+    
+    [StringLength(100)]
+    public string? LastName { get; set; }
+    
+    [StringLength(500)]
+    public string? Address { get; set; }
+    
+    [StringLength(100)]
+    public string? City { get; set; }
+    
+    [StringLength(100)]
+    public string? State { get; set; }
+    
+    [StringLength(20)]
+    public string? ZipCode { get; set; }
+    
+    [StringLength(100)]
+    public string? Country { get; set; }
+    
+    public DateTime? DateOfBirth { get; set; }
+    
+    public bool IsActive { get; set; } = true;
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    
+    public DateTime? LastLoginAt { get; set; }
+    
+    // Computed properties
+    public string FullName => $"{FirstName} {LastName}".Trim();
+    
+    public string DisplayName => !string.IsNullOrEmpty(FullName) ? FullName : UserName ?? Email ?? "Unknown User";
+    
+    public string FullAddress => string.Join(", ", new[] { Address, City, State, ZipCode, Country }
+        .Where(x => !string.IsNullOrEmpty(x)));
+}

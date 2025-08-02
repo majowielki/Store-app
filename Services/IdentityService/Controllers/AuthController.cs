@@ -1,6 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using Store.IdentityService.DTOs.Requests;
+using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Services;
+using Store.Shared.Models;
+using System.Security.Claims;
 
 namespace Store.IdentityService.Controllers;
 
@@ -8,5 +12,317 @@ namespace Store.IdentityService.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    private readonly IAuthService _authService;
+    private readonly ILogger<AuthController> _logger;
 
+    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    {
+        _authService = authService;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Register a new user
+    /// </summary>
+    /// <param name="request">Registration data</param>
+    /// <returns>Authentication response with token</returns>
+    [HttpPost("register")]
+    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _authService.RegisterAsync(request);
+            
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during user registration for email: {Email}", request.Email);
+            return StatusCode(500, new AuthResponse 
+            { 
+                Success = false, 
+                Message = "An error occurred during registration" 
+            });
+        }
+    }
+
+    /// <summary>
+    /// Login user
+    /// </summary>
+    /// <param name="request">Login credentials</param>
+    /// <returns>Authentication response with token</returns>
+    [HttpPost("login")]
+    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _authService.LoginAsync(request);
+            
+            if (!result.Success)
+            {
+                return Unauthorized(result);
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during user login for email: {Email}", request.Email);
+            return StatusCode(500, new AuthResponse 
+            { 
+                Success = false, 
+                Message = "An error occurred during login" 
+            });
+        }
+    }
+
+    /// <summary>
+    /// Validate JWT token
+    /// </summary>
+    /// <param name="token">JWT token to validate</param>
+    /// <returns>Token validation result</returns>
+    [HttpPost("validate-token")]
+    public async Task<ActionResult<bool>> ValidateToken([FromBody] string token)
+    {
+        if (string.IsNullOrEmpty(token))
+        {
+            return BadRequest("Token is required");
+        }
+
+        try
+        {
+            var isValid = await _authService.ValidateTokenAsync(token);
+            return Ok(isValid);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating token");
+            return StatusCode(500, "An error occurred while validating token");
+        }
+    }
+
+    /// <summary>
+    /// Get current user profile
+    /// </summary>
+    /// <returns>User profile data</returns>
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> GetProfile()
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse<UserResponse> 
+                { 
+                    IsSuccess = false, 
+                    Message = "User not found" 
+                });
+            }
+
+            var result = await _authService.GetUserProfileAsync(userId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user profile");
+            return StatusCode(500, new ApiResponse<UserResponse> 
+            { 
+                IsSuccess = false, 
+                Message = "An error occurred while retrieving profile" 
+            });
+        }
+    }
+
+    /// <summary>
+    /// Update user profile
+    /// </summary>
+    /// <param name="request">Profile update data</param>
+    /// <returns>Updated user profile</returns>
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse<UserResponse> 
+                { 
+                    IsSuccess = false, 
+                    Message = "User not found" 
+                });
+            }
+
+            var result = await _authService.UpdateUserProfileAsync(userId, request);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user profile");
+            return StatusCode(500, new ApiResponse<UserResponse> 
+            { 
+                IsSuccess = false, 
+                Message = "An error occurred while updating profile" 
+            });
+        }
+    }
+
+    /// <summary>
+    /// Change user password
+    /// </summary>
+    /// <param name="request">Password change data</param>
+    /// <returns>Success message</returns>
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<string>>> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse<string> 
+                { 
+                    IsSuccess = false, 
+                    Message = "User not found" 
+                });
+            }
+
+            var result = await _authService.ChangePasswordAsync(userId, request);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing user password");
+            return StatusCode(500, new ApiResponse<string> 
+            { 
+                IsSuccess = false, 
+                Message = "An error occurred while changing password" 
+            });
+        }
+    }
+
+    /// <summary>
+    /// Get all users (Admin only)
+    /// </summary>
+    /// <param name="page">Page number</param>
+    /// <param name="pageSize">Page size</param>
+    /// <returns>List of users</returns>
+    [HttpGet("users")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<UserResponse>>>> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var result = await _authService.GetAllUsersAsync(page, pageSize);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all users");
+            return StatusCode(500, new ApiResponse<IEnumerable<UserResponse>> 
+            { 
+                IsSuccess = false, 
+                Message = "An error occurred while retrieving users" 
+            });
+        }
+    }
+
+    /// <summary>
+    /// Assign role to user (Admin only)
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="role">Role to assign</param>
+    /// <returns>Success message</returns>
+    [HttpPost("users/{userId}/roles/{role}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ApiResponse<string>>> AssignRole(string userId, string role)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(role))
+        {
+            return BadRequest(new ApiResponse<string>
+            {
+                IsSuccess = false,
+                Message = "User ID and role are required"
+            });
+        }
+
+        try
+        {
+            var result = await _authService.AssignRoleAsync(userId, role);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning role {Role} to user {UserId}", role, userId);
+            return StatusCode(500, new ApiResponse<string> 
+            { 
+                IsSuccess = false, 
+                Message = "An error occurred while assigning role" 
+            });
+        }
+    }
+
+    /// <summary>
+    /// Remove role from user (Admin only)
+    /// </summary>
+    /// <param name="userId">User ID</param>
+    /// <param name="role">Role to remove</param>
+    /// <returns>Success message</returns>
+    [HttpDelete("users/{userId}/roles/{role}")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ApiResponse<string>>> RemoveRole(string userId, string role)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(role))
+        {
+            return BadRequest(new ApiResponse<string>
+            {
+                IsSuccess = false,
+                Message = "User ID and role are required"
+            });
+        }
+
+        try
+        {
+            var result = await _authService.RemoveRoleAsync(userId, role);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing role {Role} from user {UserId}", role, userId);
+            return StatusCode(500, new ApiResponse<string> 
+            { 
+                IsSuccess = false, 
+                Message = "An error occurred while removing role" 
+            });
+        }
+    }
 }

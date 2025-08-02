@@ -1,0 +1,40 @@
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace Store.Shared.Models
+{
+    public class CartItem
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public int ProductId { get; set; }
+
+        [Required]
+        public string Image { get; set; } = string.Empty; // Keep images as requested
+
+        [Required]
+        [StringLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Range(0.01, 999999.99)]
+        public decimal Price { get; set; }
+
+        [Range(1, 999)]
+        public int Amount { get; set; } = 1;
+
+        [Required]
+        [StringLength(50)]
+        public string ProductColor { get; set; } = string.Empty; // Keep product variants as requested
+
+        public decimal LineTotal => Price * Amount;
+
+        // Navigation properties
+        public required Product Product { get; set; }
+
+        public int CartId { get; set; }
+        public Cart Cart { get; set; } = null!;
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
+}

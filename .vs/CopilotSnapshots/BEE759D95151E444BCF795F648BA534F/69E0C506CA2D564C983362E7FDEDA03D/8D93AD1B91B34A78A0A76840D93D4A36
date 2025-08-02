@@ -1,0 +1,19 @@
+﻿using Store.CartService.DTOs.Requests;
+using Store.CartService.DTOs.Responses;
+using Store.Shared.Models;
+
+namespace Store.CartService.Services;
+
+public interface ICartService
+{
+    Task<CartResponse?> GetCartByUserIdAsync(string userId);
+    Task<CartResponse> CreateCartAsync(string userId);
+    Task<CartItemResponse> AddItemToCartAsync(string userId, AddCartItemRequest request);
+    Task<CartItemResponse?> UpdateCartItemAsync(string userId, int cartItemId, UpdateCartItemRequest request);
+    Task<bool> RemoveItemFromCartAsync(string userId, int cartItemId);
+    Task<bool> ClearCartAsync(string userId);
+    Task<CartResponse?> GetCartByIdAsync(int cartId);
+    Task<int> GetCartItemCountAsync(string userId);
+    Task<decimal> GetCartTotalAsync(string userId);
+    Task<bool> MergeCartsAsync(string fromUserId, string toUserId);
+}

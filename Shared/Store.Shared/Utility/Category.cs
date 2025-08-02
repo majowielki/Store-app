@@ -13,6 +13,14 @@ namespace Store.Shared.Utility
         Chairs,
         Kids,
         Sofas,
-        Beds
+        Beds,
+        Electronics,
+        Clothing,
+        Books,
+        Home,
+        Sports,
+        Beauty,
+        Toys,
+        Other
     }
 }
