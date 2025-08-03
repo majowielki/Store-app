@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "osRtmqlfnSg=",
+  "dgSpecHash": "cijCuV9eLjo=",
   "success": true,
   "projectFilePath": "D:\\Projekty\\store-app\\Services\\IdentityService\\Store.IdentityService.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mmaje\\.nuget\\packages\\aspnetcore.healthchecks.npgsql\\9.0.0\\aspnetcore.healthchecks.npgsql.9.0.0.nupkg.sha512",
+    "C:\\Users\\mmaje\\.nuget\\packages\\aspnetcore.healthchecks.redis\\9.0.0\\aspnetcore.healthchecks.redis.9.0.0.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\9.0.7\\microsoft.aspnetcore.authentication.jwtbearer.9.0.7.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.aspnetcore.cryptography.internal\\9.0.7\\microsoft.aspnetcore.cryptography.internal.9.0.7.nupkg.sha512",

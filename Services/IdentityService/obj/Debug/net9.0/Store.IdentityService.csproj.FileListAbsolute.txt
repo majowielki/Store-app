@@ -158,3 +158,5 @@ D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\Microsoft.Extens
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Abstractions.dll
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\Microsoft.Extensions.Hosting.Abstractions.dll
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\RabbitMQ.Client.dll
+D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\HealthChecks.Redis.dll

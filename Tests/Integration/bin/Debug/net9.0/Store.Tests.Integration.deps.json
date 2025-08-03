@@ -251,7 +251,7 @@
           "System.Linq.Expressions": "9.0.0.0",
           "System.Linq.Parallel": "9.0.0.0",
           "System.Linq.Queryable": "9.0.0.0",
-          "System.Memory": "9.0.0.0",
+          "System.Memory.Reference": "9.0.0.0",
           "System.Net": "4.0.0.0",
           "System.Net.Http": "9.0.0.0",
           "System.Net.Http.Json": "9.0.0.0",
@@ -325,10 +325,10 @@
           "System.Text.Encodings.Web": "9.0.0.0",
           "System.Text.Json": "9.0.0.0",
           "System.Text.RegularExpressions": "9.0.0.0",
-          "System.Threading.Channels": "9.0.0.0",
+          "System.Threading.Channels.Reference": "9.0.0.0",
           "System.Threading": "9.0.0.0",
           "System.Threading.Overlapped": "9.0.0.0",
-          "System.Threading.RateLimiting.Reference": "9.0.0.0",
+          "System.Threading.RateLimiting": "9.0.0.0",
           "System.Threading.Tasks.Dataflow": "9.0.0.0",
           "System.Threading.Tasks": "9.0.0.0",
           "System.Threading.Tasks.Extensions": "9.0.0.0",
@@ -1456,7 +1456,7 @@
       },
       "Pipelines.Sockets.Unofficial/2.2.8": {
         "dependencies": {
-          "System.IO.Pipelines": "8.0.0"
+          "System.IO.Pipelines": "5.0.1"
         },
         "runtime": {
           "lib/net5.0/Pipelines.Sockets.Unofficial.dll": {
@@ -1468,19 +1468,19 @@
           "lib/net5.0/Pipelines.Sockets.Unofficial.dll": {}
         }
       },
-      "RabbitMQ.Client/7.1.2": {
+      "RabbitMQ.Client/6.8.1": {
         "dependencies": {
-          "System.IO.Pipelines": "8.0.0",
-          "System.Threading.RateLimiting": "8.0.0"
+          "System.Memory": "4.5.5",
+          "System.Threading.Channels": "7.0.0"
         },
         "runtime": {
-          "lib/net8.0/RabbitMQ.Client.dll": {
-            "assemblyVersion": "7.0.0.0",
-            "fileVersion": "7.1.2.0"
+          "lib/netstandard2.0/RabbitMQ.Client.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.8.1.0"
           }
         },
         "compile": {
-          "lib/net8.0/RabbitMQ.Client.dll": {}
+          "lib/netstandard2.0/RabbitMQ.Client.dll": {}
         }
       },
       "SharpZipLib/1.4.2": {
@@ -1613,13 +1613,14 @@
           "lib/net8.0/System.IO.Hashing.dll": {}
         }
       },
-      "System.IO.Pipelines/8.0.0": {},
+      "System.IO.Pipelines/5.0.1": {},
+      "System.Memory/4.5.5": {},
       "System.Reflection.Metadata/8.0.0": {
         "dependencies": {
           "System.Collections.Immutable": "8.0.0"
         }
       },
-      "System.Threading.RateLimiting/8.0.0": {},
+      "System.Threading.Channels/7.0.0": {},
       "Testcontainers/4.6.0": {
         "dependencies": {
           "Docker.DotNet.Enhanced": "3.128.3",
@@ -1747,6 +1748,8 @@
       },
       "Store.CartService/1.0.0": {
         "dependencies": {
+          "AspNetCore.HealthChecks.NpgSql": "9.0.0",
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.AspNetCore.OpenApi": "9.0.7",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.4",
@@ -1766,8 +1769,10 @@
       },
       "Store.GatewayService/1.0.0": {
         "dependencies": {
+          "AspNetCore.HealthChecks.NpgSql": "9.0.0",
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
-          "RabbitMQ.Client": "7.1.2",
+          "RabbitMQ.Client": "6.8.1",
           "Store.Shared": "1.0.0",
           "Swashbuckle.AspNetCore": "9.0.3",
           "Yarp.ReverseProxy": "2.3.0"
@@ -1785,6 +1790,7 @@
       "Store.IdentityService/1.0.0": {
         "dependencies": {
           "AspNetCore.HealthChecks.NpgSql": "9.0.0",
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "9.0.7",
           "Microsoft.Extensions.Diagnostics.HealthChecks": "9.0.7",
@@ -1806,8 +1812,10 @@
       },
       "Store.OrderService/1.0.0": {
         "dependencies": {
+          "AspNetCore.HealthChecks.NpgSql": "9.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.AspNetCore.OpenApi": "9.0.7",
+          "Microsoft.Extensions.Diagnostics.HealthChecks": "9.0.7",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.4",
           "StackExchange.Redis": "2.8.58",
           "Store.Shared": "1.0.0",
@@ -1851,7 +1859,7 @@
           "Microsoft.EntityFrameworkCore": "9.0.7",
           "Microsoft.Extensions.Hosting.Abstractions": "9.0.7",
           "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
-          "RabbitMQ.Client": "7.1.2",
+          "RabbitMQ.Client": "6.8.1",
           "Store.Shared.Contracts": "1.0.0",
           "Store.Shared.DTOs": "1.0.0"
         },
@@ -3093,7 +3101,7 @@
         },
         "compileOnly": true
       },
-      "System.Memory/9.0.0.0": {
+      "System.Memory.Reference/9.0.0.0": {
         "compile": {
           "System.Memory.dll": {}
         },
@@ -3537,7 +3545,7 @@
         },
         "compileOnly": true
       },
-      "System.Threading.Channels/9.0.0.0": {
+      "System.Threading.Channels.Reference/9.0.0.0": {
         "compile": {
           "System.Threading.Channels.dll": {}
         },
@@ -3555,7 +3563,7 @@
         },
         "compileOnly": true
       },
-      "System.Threading.RateLimiting.Reference/9.0.0.0": {
+      "System.Threading.RateLimiting/9.0.0.0": {
         "compile": {
           "System.Threading.RateLimiting.dll": {}
         },
@@ -4183,12 +4191,12 @@
       "path": "pipelines.sockets.unofficial/2.2.8",
       "hashPath": "pipelines.sockets.unofficial.2.2.8.nupkg.sha512"
     },
-    "RabbitMQ.Client/7.1.2": {
+    "RabbitMQ.Client/6.8.1": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-y3c6ulgULScWthHw5PLM1ShHRLhxg0vCtzX/hh61gRgNecL3ZC3WoBW2HYHoXOVRqTl99Br9E7CZEytGZEsCyQ==",
-      "path": "rabbitmq.client/7.1.2",
-      "hashPath": "rabbitmq.client.7.1.2.nupkg.sha512"
+      "sha512": "sha512-jNsmGgmCNw2S/NzskeN2ijtGywtH4Sk/G6jWUTD5sY9SrC27Xz6BsLIiB8hdsfjeyWCa4j4GvCIGkpE8wrjU1Q==",
+      "path": "rabbitmq.client/6.8.1",
+      "hashPath": "rabbitmq.client.6.8.1.nupkg.sha512"
     },
     "SharpZipLib/1.4.2": {
       "type": "package",
@@ -4267,12 +4275,19 @@
       "path": "system.io.hashing/8.0.0",
       "hashPath": "system.io.hashing.8.0.0.nupkg.sha512"
     },
-    "System.IO.Pipelines/8.0.0": {
+    "System.IO.Pipelines/5.0.1": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-FHNOatmUq0sqJOkTx+UF/9YK1f180cnW5FVqnQMvYUN0elp6wFzbtPSiqbo1/ru8ICp43JM1i7kKkk6GsNGHlA==",
-      "path": "system.io.pipelines/8.0.0",
-      "hashPath": "system.io.pipelines.8.0.0.nupkg.sha512"
+      "sha512": "sha512-qEePWsaq9LoEEIqhbGe6D5J8c9IqQOUuTzzV6wn1POlfdLkJliZY3OlB0j0f17uMWlqZYjH7txj+2YbyrIA8Yg==",
+      "path": "system.io.pipelines/5.0.1",
+      "hashPath": "system.io.pipelines.5.0.1.nupkg.sha512"
+    },
+    "System.Memory/4.5.5": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XIWiDvKPXaTveaB7HVganDlOCRoj03l+jrwNvcge/t8vhGYKvqV+dMv6G4SAX2NoNmN0wZfVPTAlFwZcZvVOUw==",
+      "path": "system.memory/4.5.5",
+      "hashPath": "system.memory.4.5.5.nupkg.sha512"
     },
     "System.Reflection.Metadata/8.0.0": {
       "type": "package",
@@ -4281,12 +4296,12 @@
       "path": "system.reflection.metadata/8.0.0",
       "hashPath": "system.reflection.metadata.8.0.0.nupkg.sha512"
     },
-    "System.Threading.RateLimiting/8.0.0": {
+    "System.Threading.Channels/7.0.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-7mu9v0QDv66ar3DpGSZHg9NuNcxDaaAcnMULuZlaTpP9+hwXhrxNGsF5GmLkSHxFdb5bBc1TzeujsRgTrPWi+Q==",
-      "path": "system.threading.ratelimiting/8.0.0",
-      "hashPath": "system.threading.ratelimiting.8.0.0.nupkg.sha512"
+      "sha512": "sha512-qmeeYNROMsONF6ndEZcIQ+VxR4Q/TX/7uIVLJqtwIWL7dDWeh0l1UIqgo4wYyjG//5lUNhwkLDSFl+pAWO6oiA==",
+      "path": "system.threading.channels/7.0.0",
+      "hashPath": "system.threading.channels.7.0.0.nupkg.sha512"
     },
     "Testcontainers/4.6.0": {
       "type": "package",
@@ -5417,7 +5432,7 @@
       "serviceable": false,
       "sha512": ""
     },
-    "System.Memory/9.0.0.0": {
+    "System.Memory.Reference/9.0.0.0": {
       "type": "referenceassembly",
       "serviceable": false,
       "sha512": ""
@@ -5787,7 +5802,7 @@
       "serviceable": false,
       "sha512": ""
     },
-    "System.Threading.Channels/9.0.0.0": {
+    "System.Threading.Channels.Reference/9.0.0.0": {
       "type": "referenceassembly",
       "serviceable": false,
       "sha512": ""
@@ -5802,7 +5817,7 @@
       "serviceable": false,
       "sha512": ""
     },
-    "System.Threading.RateLimiting.Reference/9.0.0.0": {
+    "System.Threading.RateLimiting/9.0.0.0": {
       "type": "referenceassembly",
       "serviceable": false,
       "sha512": ""

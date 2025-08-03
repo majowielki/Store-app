@@ -154,3 +154,4 @@ D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\Microsoft.Extensi
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\Microsoft.Extensions.Hosting.Abstractions.dll
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\RabbitMQ.Client.dll
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\appsettings.json
+D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

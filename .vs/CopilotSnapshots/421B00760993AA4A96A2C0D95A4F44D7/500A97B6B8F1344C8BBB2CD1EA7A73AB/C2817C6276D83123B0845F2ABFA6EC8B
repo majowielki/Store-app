@@ -1,0 +1,75 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Store.Shared.Utility
+{
+    public enum Colors
+    {
+        // Basic Colors
+        White,
+        Black,
+        Gray,
+        Red,
+        Blue,
+        Green,
+        Yellow,
+        Orange,
+        Purple,
+        Pink,
+        Brown,
+        
+        // Extended Colors
+        Navy,
+        Beige,
+        Cream,
+        Silver,
+        Gold,
+        Maroon,
+        Teal,
+        Olive,
+        Lime,
+        Aqua,
+        Fuchsia,
+        
+        // Furniture/Wood Colors
+        NaturalOak,
+        DarkWalnut,
+        Espresso,
+        Cherry,
+        Mahogany,
+        Pine,
+        
+        // Metal Colors
+        Chrome,
+        Bronze,
+        Copper,
+        BlackMetal,
+        
+        // Fabric/Material Colors
+        Charcoal,
+        LightGray,
+        DarkGray,
+        OffWhite,
+        Ivory,
+        Tan,
+        Khaki,
+        
+        // Glass Colors
+        ClearGlass,
+        SmokedGlass,
+        
+        // Leather Colors
+        BlackLeather,
+        BrownLeather,
+        Cognac,
+        
+        // Specialty Colors
+        RoseGold,
+        MustardYellow,
+        MultiColor,
+        Primary // For toys/kids items
+    }
+}

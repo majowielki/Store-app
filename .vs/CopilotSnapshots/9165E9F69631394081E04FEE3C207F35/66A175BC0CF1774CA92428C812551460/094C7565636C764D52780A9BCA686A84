@@ -1,0 +1,37 @@
+﻿{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=store_order_db;Username=postgres;Password=postgres;Port=5432",
+    "Redis": "localhost:6379"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-very-long-secret-key-here-at-least-32-characters-long",
+    "Issuer": "Store.API",
+    "Audience": "Store.Client",
+    "Authority": "https://localhost:5001",
+    "ExpirationInMinutes": 60
+  },
+  "Services": {
+    "IdentityService": "https://localhost:5001",
+    "ProductService": "https://localhost:5003",
+    "CartService": "https://localhost:5007"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "HealthChecks": {
+    "UI": {
+      "Path": "/healthchecks-ui",
+      "ApiPath": "/health-ui-api"
+    }
+  },
+  "Swagger": {
+    "Title": "Store Order Service API",
+    "Version": "v1",
+    "Description": "Order processing and management microservice API"
+  }
+}

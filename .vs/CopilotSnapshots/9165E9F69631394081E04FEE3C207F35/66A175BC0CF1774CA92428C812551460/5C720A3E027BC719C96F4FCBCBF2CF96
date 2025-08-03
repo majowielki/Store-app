@@ -1,0 +1,35 @@
+﻿{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=StoreIdentityDb;Username=postgres;Password=postgres;Port=5432"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-very-long-secret-key-here-at-least-32-characters-long",
+    "Issuer": "Store.API",
+    "Audience": "Store.Client",
+    "Authority": "https://localhost:5001",
+    "ExpirationInMinutes": 60
+  },
+  "AdminUser": {
+    "Email": "admin@store.com",
+    "Password": "Admin123!"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "HealthChecks": {
+    "UI": {
+      "Path": "/healthchecks-ui",
+      "ApiPath": "/health-ui-api"
+    }
+  },
+  "Swagger": {
+    "Title": "Store Identity Service API",
+    "Version": "v1",
+    "Description": "Comprehensive identity and authentication microservice API"
+  }
+}

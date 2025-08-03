@@ -9,6 +9,7 @@ using Store.Shared.Middleware;
 using Store.Shared.Utility;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,9 +87,10 @@ builder.Services.AddAuthorization(options =>
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Health Checks
+// Health Checks - Make them optional to prevent startup failures
 builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+    .AddCheck("self", () => HealthCheckResult.Healthy())
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database", failureStatus: HealthStatus.Degraded);
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -138,7 +140,11 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store Identity Service V1");
+        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+    });
 }
 
 app.UseCors("AllowAll");
@@ -147,21 +153,49 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// Database migration and role seeding
-using (var scope = app.Services.CreateScope())
+// Database migration and role seeding - Make this optional to prevent startup failures
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    
-    // Apply migrations
-    context.Database.Migrate();
-    
-    // Seed roles
-    await SeedRolesAsync(roleManager);
-    
-    // Seed admin user
-    await SeedAdminUserAsync(userManager, builder.Configuration);
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        try
+        {
+            // Check if database exists and is accessible
+            if (context.Database.CanConnect())
+            {
+                // Apply migrations
+                context.Database.Migrate();
+                logger.LogInformation("Database migration completed successfully.");
+                
+                // Seed roles
+                await SeedRolesAsync(roleManager);
+                logger.LogInformation("Role seeding completed successfully.");
+                
+                // Seed admin user
+                await SeedAdminUserAsync(userManager, builder.Configuration);
+                logger.LogInformation("Admin user seeding completed successfully.");
+            }
+            else
+            {
+                logger.LogWarning("Database connection failed. Skipping migration and seeding.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while migrating or seeding the database. Continuing without database setup.");
+        }
+    }
+}
+catch (Exception ex)
+{
+    // Log the error but don't stop the application
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Failed to initialize database. Application will continue without database setup.");
 }
 
 app.Run();

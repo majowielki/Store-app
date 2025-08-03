@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +18,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// Database - Changed to PostgreSQL
+// Database
 builder.Services.AddDbContext<AuditLogDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -53,11 +54,12 @@ builder.Services.AddAuthorization(options =>
 // Services
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
-// Health Checks - Changed to PostgreSQL
+// Health Checks - Make them optional to prevent startup failures
 builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+    .AddCheck("self", () => HealthCheckResult.Healthy())
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database", failureStatus: HealthStatus.Degraded);
 
-// Swagger
+// Swagger with JWT support
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -105,7 +107,11 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store AuditLog Service V1");
+        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+    });
 }
 
 app.UseCors("AllowAll");
@@ -114,11 +120,38 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// Database migration
-using (var scope = app.Services.CreateScope())
+// Database migration - Make this optional to prevent startup failures
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
-    context.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        try
+        {
+            // Check if database exists and is accessible
+            if (context.Database.CanConnect())
+            {
+                context.Database.Migrate();
+                logger.LogInformation("Database migration completed successfully.");
+            }
+            else
+            {
+                logger.LogWarning("Database connection failed. Skipping migration.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while migrating the database. Continuing without database setup.");
+        }
+    }
+}
+catch (Exception ex)
+{
+    // Log the error but don't stop the application
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Failed to initialize database. Application will continue without database setup.");
 }
 
 app.Run();

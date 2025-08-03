@@ -5,11 +5,11 @@ echo "🚀 Initializing Store App databases..."
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     -- Create databases for each microservice
-    CREATE DATABASE IF NOT EXISTS store_identity_db;
-    CREATE DATABASE IF NOT EXISTS store_product_db;
-    CREATE DATABASE IF NOT EXISTS store_cart_db;
-    CREATE DATABASE IF NOT EXISTS store_order_db;
-    CREATE DATABASE IF NOT EXISTS store_audit_db;
+    SELECT 'CREATE DATABASE store_identity_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'store_identity_db')\gexec
+    SELECT 'CREATE DATABASE store_product_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'store_product_db')\gexec
+    SELECT 'CREATE DATABASE store_cart_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'store_cart_db')\gexec
+    SELECT 'CREATE DATABASE store_order_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'store_order_db')\gexec
+    SELECT 'CREATE DATABASE store_audit_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'store_audit_db')\gexec
     
     -- Grant privileges to the user for all databases
     GRANT ALL PRIVILEGES ON DATABASE store_identity_db TO $POSTGRES_USER;

@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "vQQ8mwK6fW8=",
+  "dgSpecHash": "gg207j7Sm6w=",
   "success": true,
   "projectFilePath": "D:\\Projekty\\store-app\\Services\\OrderService\\Store.OrderService.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\mmaje\\.nuget\\packages\\aspnetcore.healthchecks.npgsql\\9.0.0\\aspnetcore.healthchecks.npgsql.9.0.0.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\9.0.7\\microsoft.aspnetcore.authentication.jwtbearer.9.0.7.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.7\\microsoft.aspnetcore.openapi.9.0.7.nupkg.sha512",
@@ -30,6 +31,8 @@
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.7\\microsoft.extensions.dependencyinjection.abstractions.9.0.7.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.dependencymodel\\9.0.7\\microsoft.extensions.dependencymodel.9.0.7.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.diagnostics.abstractions\\9.0.7\\microsoft.extensions.diagnostics.abstractions.9.0.7.nupkg.sha512",
+    "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.diagnostics.healthchecks\\9.0.7\\microsoft.extensions.diagnostics.healthchecks.9.0.7.nupkg.sha512",
+    "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.diagnostics.healthchecks.abstractions\\9.0.7\\microsoft.extensions.diagnostics.healthchecks.abstractions.9.0.7.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.fileproviders.abstractions\\9.0.7\\microsoft.extensions.fileproviders.abstractions.9.0.7.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.hosting.abstractions\\9.0.7\\microsoft.extensions.hosting.abstractions.9.0.7.nupkg.sha512",
     "C:\\Users\\mmaje\\.nuget\\packages\\microsoft.extensions.logging\\9.0.7\\microsoft.extensions.logging.9.0.7.nupkg.sha512",

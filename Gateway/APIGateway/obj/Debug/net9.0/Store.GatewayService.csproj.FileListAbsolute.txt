@@ -117,3 +117,8 @@ D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\Microsoft.Extensions.L
 D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\Microsoft.Extensions.Options.dll
 D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\Microsoft.Extensions.Primitives.dll
 D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\RabbitMQ.Client.dll
+D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\HealthChecks.NpgSql.dll
+D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\HealthChecks.Redis.dll
+D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\Npgsql.dll
+D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\Pipelines.Sockets.Unofficial.dll
+D:\Projekty\store-app\Gateway\APIGateway\bin\Debug\net9.0\StackExchange.Redis.dll

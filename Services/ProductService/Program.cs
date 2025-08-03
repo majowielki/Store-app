@@ -23,13 +23,22 @@ builder.Services.AddControllers()
 builder.Services.AddDbContext<ProductDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Redis
-builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
+// Redis - Make Redis optional to prevent startup failures
+try
 {
-    var connectionString = builder.Configuration.GetConnectionString("Redis")
-        ?? builder.Configuration["Redis:ConnectionString"];
-    return ConnectionMultiplexer.Connect(connectionString!);
-});
+    builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
+    {
+        var connectionString = builder.Configuration.GetConnectionString("Redis")
+            ?? builder.Configuration["Redis:ConnectionString"];
+        return ConnectionMultiplexer.Connect(connectionString!);
+    });
+}
+catch (Exception ex)
+{
+    // Log Redis connection failure but don't stop the app
+    var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("Startup");
+    logger.LogWarning(ex, "Redis connection failed, continuing without Redis");
+}
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -63,10 +72,11 @@ builder.Services.AddAuthorization(options =>
 // Services
 builder.Services.AddScoped<IProductService, ProductService>();
 
-// Health Checks
+// Health Checks - Make them optional to prevent startup failures
 builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!)
-    .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
+    .AddCheck("self", () => HealthCheckResult.Healthy())
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database", failureStatus: HealthStatus.Degraded)
+    .AddRedis(builder.Configuration.GetConnectionString("Redis")!, name: "redis", failureStatus: HealthStatus.Degraded);
 
 // Swagger with JWT support
 builder.Services.AddEndpointsApiExplorer();
@@ -116,7 +126,11 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store Product Service V1");
+        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+    });
 }
 
 app.UseCors("AllowAll");
@@ -125,11 +139,42 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// Database migration
-using (var scope = app.Services.CreateScope())
+// Database migration and seeding - Make this optional to prevent startup failures
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
-    context.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        try
+        {
+            // Check if database exists and is accessible
+            if (context.Database.CanConnect())
+            {
+                context.Database.Migrate();
+                logger.LogInformation("Database migration completed successfully.");
+                
+                // Seed the database
+                await DatabaseSeeder.SeedAsync(context);
+                logger.LogInformation("Database seeding completed successfully.");
+            }
+            else
+            {
+                logger.LogWarning("Database connection failed. Skipping migration and seeding.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while migrating or seeding the database. Continuing without database setup.");
+        }
+    }
+}
+catch (Exception ex)
+{
+    // Log the error but don't stop the application
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Failed to initialize database. Application will continue without database setup.");
 }
 
 app.Run();

@@ -150,3 +150,8 @@ D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Microsoft.Extension
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Microsoft.Extensions.Hosting.Abstractions.dll
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\RabbitMQ.Client.dll
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\appsettings.json
+D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\HealthChecks.NpgSql.dll
+D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.HealthChecks.dll
+D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll
+D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\appsettings.Development.json

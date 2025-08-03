@@ -1,0 +1,40 @@
+﻿{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost:5432;User Id=postgres;Password=postgres123;Database=store_product_db",
+    "Redis": "localhost:6379",
+    "RabbitMQ": "amqp://guest:guest@localhost:5672/"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-very-long-secret-key-here-at-least-32-characters-long",
+    "Issuer": "Store.API",
+    "Audience": "Store.Client",
+    "Authority": "https://localhost:5001",
+    "ExpirationInMinutes": 60
+  },
+  "RabbitMQ": {
+    "Host": "localhost",
+    "Port": 5672,
+    "Username": "guest",
+    "Password": "guest",
+    "VirtualHost": "/"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "HealthChecks": {
+    "UI": {
+      "Path": "/healthchecks-ui",
+      "ApiPath": "/health-ui-api"
+    }
+  },
+  "Swagger": {
+    "Title": "Store Microservices API",
+    "Version": "v1",
+    "Description": "Comprehensive e-commerce microservices API"
+  }
+}

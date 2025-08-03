@@ -151,3 +151,7 @@ D:\Projekty\store-app\Services\AuditLogService\bin\Debug\net9.0\Microsoft.Extens
 D:\Projekty\store-app\Services\AuditLogService\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Abstractions.dll
 D:\Projekty\store-app\Services\AuditLogService\bin\Debug\net9.0\Microsoft.Extensions.Hosting.Abstractions.dll
 D:\Projekty\store-app\Services\AuditLogService\bin\Debug\net9.0\RabbitMQ.Client.dll
+D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Services\AuditLogService\bin\Debug\net9.0\HealthChecks.Redis.dll
+D:\Projekty\store-app\Services\AuditLogService\bin\Debug\net9.0\Pipelines.Sockets.Unofficial.dll
+D:\Projekty\store-app\Services\AuditLogService\bin\Debug\net9.0\StackExchange.Redis.dll

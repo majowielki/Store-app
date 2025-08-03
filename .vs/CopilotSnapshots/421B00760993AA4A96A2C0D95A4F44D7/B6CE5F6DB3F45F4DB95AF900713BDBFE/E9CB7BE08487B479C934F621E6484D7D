@@ -1,0 +1,432 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Store.Shared.Models;
+using Store.Shared.Utility;
+
+namespace Store.ProductService.Data;
+
+public static class ProductSeedData
+{
+    public static List<Product> GetSeedProducts()
+    {
+        return new List<Product>
+        {
+            // Tables
+            new Product
+            {
+                Id = 1,
+                Title = "Modern Oak Dining Table",
+                Description = "Beautiful solid oak dining table with sleek contemporary design. Perfect for family gatherings and entertaining guests. Seats up to 6 people comfortably with its spacious rectangular top.",
+                Price = 899.99m,
+                Category = Category.Tables,
+                Company = Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Natural Oak", "Dark Walnut", "White" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-30),
+                UpdatedAt = DateTime.UtcNow.AddDays(-30)
+            },
+            new Product
+            {
+                Id = 2,
+                Title = "Glass Top Coffee Table",
+                Description = "Elegant tempered glass coffee table with chrome legs. Features a spacious lower shelf for storage and adds a modern touch to any living room or office space.",
+                Price = 399.99m,
+                Category = Category.Tables,
+                Company = Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Clear Glass", "Smoked Glass" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-28),
+                UpdatedAt = DateTime.UtcNow.AddDays(-28)
+            },
+            new Product
+            {
+                Id = 3,
+                Title = "Industrial Console Table",
+                Description = "Rustic industrial-style console table with reclaimed wood top and black metal frame. Perfect for entryways, hallways, or behind sofas. Features two lower shelves for storage.",
+                Price = 549.99m,
+                Category = Category.Tables,
+                Company = Company.Artifex,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Reclaimed Wood", "Black Metal" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-25),
+                UpdatedAt = DateTime.UtcNow.AddDays(-25)
+            },
+
+            // Chairs
+            new Product
+            {
+                Id = 4,
+                Title = "Executive Leather Office Chair",
+                Description = "Premium ergonomic office chair with genuine leather upholstery and advanced lumbar support. Adjustable height, tilt mechanism, and 5-star base with smooth-rolling casters.",
+                Price = 679.99m,
+                Category = Category.Chairs,
+                Company = Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black Leather", "Brown Leather", "Cognac" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-22),
+                UpdatedAt = DateTime.UtcNow.AddDays(-22)
+            },
+            new Product
+            {
+                Id = 5,
+                Title = "Mid-Century Accent Chair",
+                Description = "Stylish mid-century modern accent chair with solid wood legs and comfortable cushioned seat. Perfect addition to living rooms, bedrooms, or reading nooks.",
+                Price = 299.99m,
+                Category = Category.Chairs,
+                Company = Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Teal", "Mustard Yellow", "Charcoal Gray" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-20),
+                UpdatedAt = DateTime.UtcNow.AddDays(-20)
+            },
+            new Product
+            {
+                Id = 6,
+                Title = "Dining Chair Set (4 pieces)",
+                Description = "Set of 4 contemporary dining chairs with padded seats and solid wood construction. Comfortable and durable, perfect for dining rooms and kitchens.",
+                Price = 199.99m,
+                Category = Category.Chairs,
+                Company = Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Black", "Natural Wood" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-18),
+                UpdatedAt = DateTime.UtcNow.AddDays(-18)
+            },
+
+            // Sofas
+            new Product
+            {
+                Id = 7,
+                Title = "3-Seater Sectional Sofa",
+                Description = "Spacious and comfortable 3-seater sectional sofa with premium fabric upholstery. Features reversible chaise lounge and plush cushions for ultimate relaxation.",
+                Price = 1299.99m,
+                Category = Category.Sofas,
+                Company = Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Light Gray", "Navy Blue", "Beige" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-15),
+                UpdatedAt = DateTime.UtcNow.AddDays(-15)
+            },
+            new Product
+            {
+                Id = 8,
+                Title = "Leather Reclining Sofa",
+                Description = "Luxurious leather reclining sofa with dual power recliners and built-in USB charging ports. Perfect for movie nights and relaxation with family.",
+                Price = 1899.99m,
+                Category = Category.Sofas,
+                Company = Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black Leather", "Brown Leather" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-12),
+                UpdatedAt = DateTime.UtcNow.AddDays(-12)
+            },
+
+            // Beds
+            new Product
+            {
+                Id = 9,
+                Title = "King Size Platform Bed",
+                Description = "Modern king size platform bed with upholstered headboard and built-in nightstands. Low-profile design with clean lines and premium materials.",
+                Price = 799.99m,
+                Category = Category.Beds,
+                Company = Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Charcoal", "Light Gray", "White" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-10),
+                UpdatedAt = DateTime.UtcNow.AddDays(-10)
+            },
+            new Product
+            {
+                Id = 10,
+                Title = "Storage Bed Frame",
+                Description = "Queen size bed frame with built-in storage drawers underneath. Perfect for maximizing bedroom space while maintaining style and comfort.",
+                Price = 649.99m,
+                Category = Category.Beds,
+                Company = Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Oak", "White", "Espresso" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-8),
+                UpdatedAt = DateTime.UtcNow.AddDays(-8)
+            },
+
+            // Kids Furniture
+            new Product
+            {
+                Id = 11,
+                Title = "Kids Study Desk and Chair Set",
+                Description = "Colorful and functional study desk and chair set designed for children. Includes storage compartments and adjustable height chair for growing kids.",
+                Price = 229.99m,
+                Category = Category.Kids,
+                Company = Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Pink", "Blue", "Green", "White" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-6),
+                UpdatedAt = DateTime.UtcNow.AddDays(-6)
+            },
+            new Product
+            {
+                Id = 12,
+                Title = "Kids Bunk Bed",
+                Description = "Safe and sturdy twin-over-twin bunk bed with built-in ladder and safety rails. Perfect for siblings sharing a room or for sleepovers.",
+                Price = 459.99m,
+                Category = Category.Kids,
+                Company = Company.Artifex,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Natural Wood", "Gray" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-4),
+                UpdatedAt = DateTime.UtcNow.AddDays(-4)
+            },
+
+            // Electronics
+            new Product
+            {
+                Id = 13,
+                Title = "4K Smart TV 55 inch",
+                Description = "Ultra HD 4K Smart TV with HDR support, built-in streaming apps, and voice control. Crystal clear picture quality with vibrant colors and deep contrasts.",
+                Price = 599.99m,
+                Category = Category.Electronics,
+                Company = Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-2),
+                UpdatedAt = DateTime.UtcNow.AddDays(-2)
+            },
+            new Product
+            {
+                Id = 14,
+                Title = "Wireless Bluetooth Speaker",
+                Description = "Portable high-quality Bluetooth speaker with 360-degree sound, waterproof design, and 12-hour battery life. Perfect for indoor and outdoor use.",
+                Price = 89.99m,
+                Category = Category.Electronics,
+                Company = Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black", "Blue", "Red", "White" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-1),
+                UpdatedAt = DateTime.UtcNow.AddDays(-1)
+            },
+
+            // Clothing
+            new Product
+            {
+                Id = 15,
+                Title = "Premium Cotton T-Shirt",
+                Description = "Comfortable and breathable 100% organic cotton t-shirt with modern fit. Perfect for casual wear and everyday comfort.",
+                Price = 29.99m,
+                Category = Category.Clothing,
+                Company = Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Black", "Navy", "Gray", "Red" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 16,
+                Title = "Denim Jeans Classic Fit",
+                Description = "Classic fit denim jeans made from premium cotton blend. Durable construction with comfortable stretch and timeless styling.",
+                Price = 79.99m,
+                Category = Category.Clothing,
+                Company = Company.Artifex,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Dark Blue", "Light Blue", "Black" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+
+            // Books
+            new Product
+            {
+                Id = 17,
+                Title = "Programming Best Practices Guide",
+                Description = "Comprehensive guide to modern programming practices, design patterns, and software architecture. Essential reading for developers of all levels.",
+                Price = 49.99m,
+                Category = Category.Books,
+                Company = Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Paperback", "Hardcover" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 18,
+                Title = "Modern Web Development",
+                Description = "Learn the latest web development technologies including React, Node.js, and cloud deployment. Practical examples and real-world projects included.",
+                Price = 39.99m,
+                Category = Category.Books,
+                Company = Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Paperback", "E-book" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+
+            // Home Decor
+            new Product
+            {
+                Id = 19,
+                Title = "Ceramic Table Lamp Set",
+                Description = "Set of 2 elegant ceramic table lamps with fabric lampshades. Perfect for bedside tables, living room, or office spaces. Energy-efficient LED compatible.",
+                Price = 149.99m,
+                Category = Category.Home,
+                Company = Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Blue", "Gray" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 20,
+                Title = "Wall Art Canvas Print Set",
+                Description = "Set of 3 modern abstract canvas prints. High-quality printing on premium canvas with wooden frames. Ready to hang wall art for contemporary spaces.",
+                Price = 89.99m,
+                Category = Category.Home,
+                Company = Company.Artifex,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Multi-color", "Black & White", "Blue Tones" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+
+            // Sports
+            new Product
+            {
+                Id = 21,
+                Title = "Yoga Mat Premium",
+                Description = "Non-slip premium yoga mat with excellent cushioning and durability. Made from eco-friendly materials with alignment guides for perfect poses.",
+                Price = 59.99m,
+                Category = Category.Sports,
+                Company = Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Purple", "Blue", "Green", "Pink" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 22,
+                Title = "Adjustable Dumbbell Set",
+                Description = "Space-saving adjustable dumbbell set with quick-change weight system. Ranges from 5 to 50 pounds per dumbbell. Perfect for home workouts.",
+                Price = 299.99m,
+                Category = Category.Sports,
+                Company = Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black", "Chrome" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+
+            // Beauty
+            new Product
+            {
+                Id = 23,
+                Title = "LED Makeup Mirror",
+                Description = "Professional LED makeup mirror with adjustable brightness and magnification options. Touch-sensitive controls and 360-degree rotation for perfect lighting.",
+                Price = 79.99m,
+                Category = Category.Beauty,
+                Company = Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Rose Gold", "Silver" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 24,
+                Title = "Skincare Essential Set",
+                Description = "Complete skincare routine set including cleanser, toner, serum, and moisturizer. Suitable for all skin types with natural ingredients.",
+                Price = 129.99m,
+                Category = Category.Beauty,
+                Company = Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Natural", "Sensitive Skin Formula" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+
+            // Toys
+            new Product
+            {
+                Id = 25,
+                Title = "Educational Building Blocks Set",
+                Description = "Creative building blocks set with 500+ pieces including vehicles, buildings, and figures. Develops creativity, problem-solving, and fine motor skills.",
+                Price = 69.99m,
+                Category = Category.Toys,
+                Company = Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Multi-color", "Primary Colors" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 26,
+                Title = "RC Drone with Camera",
+                Description = "Remote control drone with HD camera and GPS positioning. Easy to fly with one-button takeoff and landing. Perfect for beginners and photography enthusiasts.",
+                Price = 199.99m,
+                Category = Category.Toys,
+                Company = Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black", "White", "Red" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+
+            // Other
+            new Product
+            {
+                Id = 27,
+                Title = "Smart Home Security Camera",
+                Description = "WiFi-enabled security camera with night vision, motion detection, and smartphone app control. Easy installation and cloud storage included.",
+                Price = 129.99m,
+                Category = Category.Other,
+                Company = Company.Artifex,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Black" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 28,
+                Title = "Portable Phone Charger",
+                Description = "High-capacity portable battery pack with fast charging technology. Multiple USB ports and wireless charging pad. Perfect for travel and emergencies.",
+                Price = 49.99m,
+                Category = Category.Other,
+                Company = Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black", "White", "Blue" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        };
+    }
+}

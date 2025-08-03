@@ -1,0 +1,266 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Store.Shared.Models;
+
+namespace Store.ProductService.Data;
+
+public class ProductDbContext : DbContext
+{
+    public ProductDbContext(DbContextOptions<ProductDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<Product> Products { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure Product entity
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Image).IsRequired();
+            entity.Property(e => e.Colors)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                .HasMaxLength(500);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+        });
+
+        // Seed data
+        SeedData(modelBuilder);
+    }
+
+    private static void SeedData(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Product>().HasData(
+            // Tables
+            new Product
+            {
+                Id = 1,
+                Title = "Modern Oak Dining Table",
+                Description = "Beautiful solid oak dining table with sleek contemporary design. Perfect for family gatherings and entertaining guests. Seats up to 6 people comfortably with its spacious rectangular top.",
+                Price = 899.99m,
+                Category = Store.Shared.Utility.Category.Tables,
+                Company = Store.Shared.Utility.Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Natural Oak", "Dark Walnut", "White" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-30),
+                UpdatedAt = DateTime.UtcNow.AddDays(-30)
+            },
+            new Product
+            {
+                Id = 2,
+                Title = "Glass Top Coffee Table",
+                Description = "Elegant tempered glass coffee table with chrome legs. Features a spacious lower shelf for storage and adds a modern touch to any living room or office space.",
+                Price = 399.99m,
+                Category = Store.Shared.Utility.Category.Tables,
+                Company = Store.Shared.Utility.Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Clear Glass", "Smoked Glass" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-28),
+                UpdatedAt = DateTime.UtcNow.AddDays(-28)
+            },
+            new Product
+            {
+                Id = 3,
+                Title = "Industrial Console Table",
+                Description = "Rustic industrial-style console table with reclaimed wood top and black metal frame. Perfect for entryways, hallways, or behind sofas. Features two lower shelves for storage.",
+                Price = 549.99m,
+                Category = Store.Shared.Utility.Category.Tables,
+                Company = Store.Shared.Utility.Company.Artifex,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Reclaimed Wood", "Black Metal" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-25),
+                UpdatedAt = DateTime.UtcNow.AddDays(-25)
+            },
+
+            // Chairs
+            new Product
+            {
+                Id = 4,
+                Title = "Executive Leather Office Chair",
+                Description = "Premium ergonomic office chair with genuine leather upholstery and advanced lumbar support. Adjustable height, tilt mechanism, and 5-star base with smooth-rolling casters.",
+                Price = 679.99m,
+                Category = Store.Shared.Utility.Category.Chairs,
+                Company = Store.Shared.Utility.Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black Leather", "Brown Leather", "Cognac" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-22),
+                UpdatedAt = DateTime.UtcNow.AddDays(-22)
+            },
+            new Product
+            {
+                Id = 5,
+                Title = "Mid-Century Accent Chair",
+                Description = "Stylish mid-century modern accent chair with solid wood legs and comfortable cushioned seat. Perfect addition to living rooms, bedrooms, or reading nooks.",
+                Price = 299.99m,
+                Category = Store.Shared.Utility.Category.Chairs,
+                Company = Store.Shared.Utility.Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Teal", "Mustard Yellow", "Charcoal Gray" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-20),
+                UpdatedAt = DateTime.UtcNow.AddDays(-20)
+            },
+            new Product
+            {
+                Id = 6,
+                Title = "Dining Chair Set (4 pieces)",
+                Description = "Set of 4 contemporary dining chairs with padded seats and solid wood construction. Comfortable and durable, perfect for dining rooms and kitchens.",
+                Price = 199.99m,
+                Category = Store.Shared.Utility.Category.Chairs,
+                Company = Store.Shared.Utility.Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Black", "Natural Wood" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-18),
+                UpdatedAt = DateTime.UtcNow.AddDays(-18)
+            },
+
+            // Sofas
+            new Product
+            {
+                Id = 7,
+                Title = "3-Seater Sectional Sofa",
+                Description = "Spacious and comfortable 3-seater sectional sofa with premium fabric upholstery. Features reversible chaise lounge and plush cushions for ultimate relaxation.",
+                Price = 1299.99m,
+                Category = Store.Shared.Utility.Category.Sofas,
+                Company = Store.Shared.Utility.Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Light Gray", "Navy Blue", "Beige" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-15),
+                UpdatedAt = DateTime.UtcNow.AddDays(-15)
+            },
+            new Product
+            {
+                Id = 8,
+                Title = "Leather Reclining Sofa",
+                Description = "Luxurious leather reclining sofa with dual power recliners and built-in USB charging ports. Perfect for movie nights and relaxation with family.",
+                Price = 1899.99m,
+                Category = Store.Shared.Utility.Category.Sofas,
+                Company = Store.Shared.Utility.Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black Leather", "Brown Leather" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-12),
+                UpdatedAt = DateTime.UtcNow.AddDays(-12)
+            },
+
+            // Beds
+            new Product
+            {
+                Id = 9,
+                Title = "King Size Platform Bed",
+                Description = "Modern king size platform bed with upholstered headboard and built-in nightstands. Low-profile design with clean lines and premium materials.",
+                Price = 799.99m,
+                Category = Store.Shared.Utility.Category.Beds,
+                Company = Store.Shared.Utility.Company.Modenza,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Charcoal", "Light Gray", "White" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-10),
+                UpdatedAt = DateTime.UtcNow.AddDays(-10)
+            },
+            new Product
+            {
+                Id = 10,
+                Title = "Storage Bed Frame",
+                Description = "Queen size bed frame with built-in storage drawers underneath. Perfect for maximizing bedroom space while maintaining style and comfort.",
+                Price = 649.99m,
+                Category = Store.Shared.Utility.Category.Beds,
+                Company = Store.Shared.Utility.Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Oak", "White", "Espresso" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-8),
+                UpdatedAt = DateTime.UtcNow.AddDays(-8)
+            },
+
+            // Kids Furniture
+            new Product
+            {
+                Id = 11,
+                Title = "Kids Study Desk and Chair Set",
+                Description = "Colorful and functional study desk and chair set designed for children. Includes storage compartments and adjustable height chair for growing kids.",
+                Price = 229.99m,
+                Category = Store.Shared.Utility.Category.Kids,
+                Company = Store.Shared.Utility.Company.Homestead,
+                Image = "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Pink", "Blue", "Green", "White" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-6),
+                UpdatedAt = DateTime.UtcNow.AddDays(-6)
+            },
+            new Product
+            {
+                Id = 12,
+                Title = "Kids Bunk Bed",
+                Description = "Safe and sturdy twin-over-twin bunk bed with built-in ladder and safety rails. Perfect for siblings sharing a room or for sleepovers.",
+                Price = 459.99m,
+                Category = Store.Shared.Utility.Category.Kids,
+                Company = Store.Shared.Utility.Company.Artifex,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Natural Wood", "Gray" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-4),
+                UpdatedAt = DateTime.UtcNow.AddDays(-4)
+            },
+
+            // Additional products for other categories
+            new Product
+            {
+                Id = 13,
+                Title = "4K Smart TV 55 inch",
+                Description = "Ultra HD 4K Smart TV with HDR support, built-in streaming apps, and voice control. Crystal clear picture quality with vibrant colors and deep contrasts.",
+                Price = 599.99m,
+                Category = Store.Shared.Utility.Category.Electronics,
+                Company = Store.Shared.Utility.Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Black" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow.AddDays(-2),
+                UpdatedAt = DateTime.UtcNow.AddDays(-2)
+            },
+            new Product
+            {
+                Id = 14,
+                Title = "Premium Cotton T-Shirt",
+                Description = "Comfortable and breathable 100% organic cotton t-shirt with modern fit. Perfect for casual wear and everyday comfort.",
+                Price = 29.99m,
+                Category = Store.Shared.Utility.Category.Clothing,
+                Company = Store.Shared.Utility.Company.Comfora,
+                Image = "https://images.unsplash.com/photo-1549497538-303791108f95?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "White", "Black", "Navy", "Gray", "Red" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Product
+            {
+                Id = 15,
+                Title = "Programming Best Practices Guide",
+                Description = "Comprehensive guide to modern programming practices, design patterns, and software architecture. Essential reading for developers of all levels.",
+                Price = 49.99m,
+                Category = Store.Shared.Utility.Category.Books,
+                Company = Store.Shared.Utility.Company.Luxora,
+                Image = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                Colors = new List<string> { "Paperback", "Hardcover" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        );
+    }
+}
