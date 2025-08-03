@@ -127,7 +127,6 @@ D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.build.json.cache
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.development.json
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.build.endpoints.json
-D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.Au.FEB0CA32.Up2Date
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.dll
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\refint\Store.AuditLogService.dll

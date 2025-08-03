@@ -149,7 +149,6 @@ D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\Store.Shared.Con
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\Store.Shared.DTOs.dll
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\Store.Shared.Contracts.pdb
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\Store.Shared.DTOs.pdb
-D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\appsettings.Development.json
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\appsettings.json
 D:\Projekty\store-app\Services\IdentityService\bin\Debug\net9.0\HealthChecks.NpgSql.dll

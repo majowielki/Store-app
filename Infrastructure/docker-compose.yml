@@ -9,14 +9,20 @@ services:
       - POSTGRES_DB=store_db
       - POSTGRES_USER=store_user
       - POSTGRES_PASSWORD=StrongPassword123!
-      - POSTGRES_MULTIPLE_DATABASES=store_identity_db,store_product_db,store_cart_db,store_order_db
+      - POSTGRES_MULTIPLE_DATABASES=store_identity_db,store_product_db,store_cart_db,store_order_db,store_audit_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U store_user -d store_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # Redis for caching and session management
   redis:
@@ -28,117 +34,219 @@ services:
       - redis_data:/data
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Identity Service
   identity-service:
     build:
-      context: ../Services/IdentityService
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: Services/IdentityService/Dockerfile
     container_name: store-identity-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_identity_db;Username=store_user;Password=StrongPassword123!;
-      - Redis__ConnectionString=redis:6379
+      - ASPNETCORE_URLS=http://+:5001
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_identity_db;Username=store_user;Password=StrongPassword123!;Port=5432;
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=your-very-long-secret-key-here-at-least-32-characters-long-for-store-app
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
     ports:
-      - "5001:80"
+      - "5001:5001"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Product Service
   product-service:
     build:
-      context: ../Services/ProductService
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: Services/ProductService/Dockerfile
     container_name: store-product-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_product_db;Username=store_user;Password=StrongPassword123!;
-      - Redis__ConnectionString=redis:6379
-      - IdentityService__BaseUrl=http://identity-service
+      - ASPNETCORE_URLS=http://+:5002
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_product_db;Username=store_user;Password=StrongPassword123!;Port=5432;
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=your-very-long-secret-key-here-at-least-32-characters-long-for-store-app
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+      - Services__IdentityService=http://identity-service:5001
     ports:
-      - "5002:80"
+      - "5002:5002"
     depends_on:
-      - postgres
-      - redis
-      - identity-service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5002/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Cart Service
   cart-service:
     build:
-      context: ../Services/CartService
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: Services/CartService/Dockerfile
     container_name: store-cart-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_cart_db;Username=store_user;Password=StrongPassword123!;
-      - Redis__ConnectionString=redis:6379
-      - IdentityService__BaseUrl=http://identity-service
-      - ProductService__BaseUrl=http://product-service
+      - ASPNETCORE_URLS=http://+:5003
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_cart_db;Username=store_user;Password=StrongPassword123!;Port=5432;
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=your-very-long-secret-key-here-at-least-32-characters-long-for-store-app
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+      - Services__IdentityService=http://identity-service:5001
+      - Services__ProductService=http://product-service:5002
     ports:
-      - "5003:80"
+      - "5003:5003"
     depends_on:
-      - postgres
-      - redis
-      - identity-service
-      - product-service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5003/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Order Service
   order-service:
     build:
-      context: ../Services/OrderService
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: Services/OrderService/Dockerfile
     container_name: store-order-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_order_db;Username=store_user;Password=StrongPassword123!;
-      - Redis__ConnectionString=redis:6379
-      - IdentityService__BaseUrl=http://identity-service
-      - ProductService__BaseUrl=http://product-service
-      - CartService__BaseUrl=http://cart-service
+      - ASPNETCORE_URLS=http://+:5004
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_order_db;Username=store_user;Password=StrongPassword123!;Port=5432;
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=your-very-long-secret-key-here-at-least-32-characters-long-for-store-app
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+      - Services__IdentityService=http://identity-service:5001
+      - Services__ProductService=http://product-service:5002
+      - Services__CartService=http://cart-service:5003
     ports:
-      - "5004:80"
+      - "5004:5004"
     depends_on:
-      - postgres
-      - redis
-      - identity-service
-      - product-service
-      - cart-service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5004/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Audit Log Service
+  audit-service:
+    build:
+      context: ..
+      dockerfile: Services/AuditLogService/Dockerfile
+    container_name: store-audit-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5005
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_audit_db;Username=store_user;Password=StrongPassword123!;Port=5432;
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=your-very-long-secret-key-here-at-least-32-characters-long-for-store-app
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+      - Services__IdentityService=http://identity-service:5001
+    ports:
+      - "5005:5005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+    networks:
+      - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5005/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # API Gateway Service
   gateway-service:
     build:
-      context: ../Gateway/APIGateway
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: Gateway/APIGateway/Dockerfile
     container_name: store-gateway-service
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - Services__IdentityService=http://identity-service
-      - Services__ProductService=http://product-service
-      - Services__CartService=http://cart-service
-      - Services__OrderService=http://order-service
+      - ASPNETCORE_URLS=http://+:5000
+      - Services__IdentityService=http://identity-service:5001
+      - Services__ProductService=http://product-service:5002
+      - Services__CartService=http://cart-service:5003
+      - Services__OrderService=http://order-service:5004
+      - Services__AuditService=http://audit-service:5005
     ports:
-      - "5000:80"
+      - "5000:5000"
     depends_on:
-      - identity-service
-      - product-service
-      - cart-service
-      - order-service
+      identity-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Frontend UI
   frontend:
@@ -148,12 +256,20 @@ services:
     container_name: store-frontend
     environment:
       - VITE_API_BASE_URL=http://localhost:5000
+      - VITE_API_GATEWAY_URL=http://gateway-service:5000
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
-      - gateway-service
+      gateway-service:
+        condition: service_healthy
     networks:
       - store-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   postgres_data:

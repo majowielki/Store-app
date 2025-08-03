@@ -149,8 +149,8 @@ D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\Store.Shared.Cont
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\Store.Shared.DTOs.pdb
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\HealthChecks.NpgSql.dll
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\HealthChecks.Redis.dll
-D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Abstractions.dll
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\Microsoft.Extensions.Hosting.Abstractions.dll
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\RabbitMQ.Client.dll
+D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\appsettings.json
