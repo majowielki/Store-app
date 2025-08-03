@@ -1412,39 +1412,21 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
+          "AspNetCore.HealthChecks.NpgSql": "9.0.0",
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.EntityFrameworkCore": "9.0.7",
+          "Microsoft.Extensions.Diagnostics.HealthChecks": "9.0.7",
           "Microsoft.Extensions.Hosting.Abstractions": "9.0.7",
           "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
           "RabbitMQ.Client": "6.8.1",
-          "Store.Shared.Contracts": "1.0.0",
-          "Store.Shared.DTOs": "1.0.0"
+          "Swashbuckle.AspNetCore": "9.0.3"
         },
         "compile": {
           "bin/placeholder/Store.Shared.dll": {}
         },
         "runtime": {
           "bin/placeholder/Store.Shared.dll": {}
-        }
-      },
-      "Store.Shared.Contracts/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/Store.Shared.Contracts.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Store.Shared.Contracts.dll": {}
-        }
-      },
-      "Store.Shared.DTOs/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/Store.Shared.DTOs.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Store.Shared.DTOs.dll": {}
         }
       }
     }
@@ -4194,16 +4176,6 @@
       "type": "project",
       "path": "../../Shared/Store.Shared/Store.Shared.csproj",
       "msbuildProject": "../../Shared/Store.Shared/Store.Shared.csproj"
-    },
-    "Store.Shared.Contracts/1.0.0": {
-      "type": "project",
-      "path": "../../Shared/Store.Shared.Contracts/Store.Shared.Contracts.csproj",
-      "msbuildProject": "../../Shared/Store.Shared.Contracts/Store.Shared.Contracts.csproj"
-    },
-    "Store.Shared.DTOs/1.0.0": {
-      "type": "project",
-      "path": "../../Shared/Store.Shared.DTOs/Store.Shared.DTOs.csproj",
-      "msbuildProject": "../../Shared/Store.Shared.DTOs/Store.Shared.DTOs.csproj"
     }
   },
   "projectFileDependencyGroups": {

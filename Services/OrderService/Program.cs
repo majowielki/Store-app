@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Store.Shared.MessageBus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,7 +55,20 @@ builder.Services.AddAuthorization(options =>
 // HTTP Client
 builder.Services.AddHttpClient();
 
+// Message Bus - Make it optional to prevent startup failures
+try
+{
+    builder.Services.AddRabbitMQ(builder.Configuration);
+    builder.Services.AddMessageBusSubscriptions();
+}
+catch (Exception ex)
+{
+    var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("Startup");
+    logger.LogWarning(ex, "Message bus setup failed, continuing without message bus");
+}
+
 // Services
+builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
 
 // Health Checks - Make them optional to prevent startup failures
 builder.Services.AddHealthChecks()

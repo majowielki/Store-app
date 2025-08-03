@@ -220,34 +220,34 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
-      "Microsoft.Extensions.Diagnostics.HealthChecks/8.0.11": {
+      "Microsoft.Extensions.Diagnostics.HealthChecks/9.0.7": {
         "type": "package",
         "dependencies": {
-          "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions": "8.0.11",
-          "Microsoft.Extensions.Hosting.Abstractions": "8.0.1",
-          "Microsoft.Extensions.Logging.Abstractions": "8.0.2",
-          "Microsoft.Extensions.Options": "8.0.2"
+          "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions": "9.0.7",
+          "Microsoft.Extensions.Hosting.Abstractions": "9.0.7",
+          "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
+          "Microsoft.Extensions.Options": "9.0.7"
         },
         "compile": {
-          "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll": {
+          "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll": {
+          "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll": {
             "related": ".xml"
           }
         }
       },
-      "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions/8.0.11": {
+      "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions/9.0.7": {
         "type": "package",
         "compile": {
-          "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll": {
+          "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll": {
+          "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll": {
             "related": ".xml"
           }
         }
@@ -706,39 +706,21 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
+          "AspNetCore.HealthChecks.NpgSql": "9.0.0",
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.EntityFrameworkCore": "9.0.7",
+          "Microsoft.Extensions.Diagnostics.HealthChecks": "9.0.7",
           "Microsoft.Extensions.Hosting.Abstractions": "9.0.7",
           "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
           "RabbitMQ.Client": "6.8.1",
-          "Store.Shared.Contracts": "1.0.0",
-          "Store.Shared.DTOs": "1.0.0"
+          "Swashbuckle.AspNetCore": "9.0.3"
         },
         "compile": {
           "bin/placeholder/Store.Shared.dll": {}
         },
         "runtime": {
           "bin/placeholder/Store.Shared.dll": {}
-        }
-      },
-      "Store.Shared.Contracts/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/Store.Shared.Contracts.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Store.Shared.Contracts.dll": {}
-        }
-      },
-      "Store.Shared.DTOs/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/Store.Shared.DTOs.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Store.Shared.DTOs.dll": {}
         }
       }
     }
@@ -1266,10 +1248,10 @@
         "useSharedDesignerContext.txt"
       ]
     },
-    "Microsoft.Extensions.Diagnostics.HealthChecks/8.0.11": {
-      "sha512": "zLgN22Zp9pk8RHlwssRTexw4+a6wqOnKWN+VejdPn5Yhjql4XiBhkFo35Nu8mmqHIk/UEmmCnMGLWq75aFfkOw==",
+    "Microsoft.Extensions.Diagnostics.HealthChecks/9.0.7": {
+      "sha512": "nWutKqF6Eo0x8JE7Zo6eWtjjGynqjHvEQgpRTzavkU9VKwFECcZFBghpkEUCoDjeMCVafzGQTlQw7DsWHNnlsQ==",
       "type": "package",
-      "path": "microsoft.extensions.diagnostics.healthchecks/8.0.11",
+      "path": "microsoft.extensions.diagnostics.healthchecks/9.0.7",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -1277,18 +1259,18 @@
         "THIRD-PARTY-NOTICES.TXT",
         "lib/net462/Microsoft.Extensions.Diagnostics.HealthChecks.dll",
         "lib/net462/Microsoft.Extensions.Diagnostics.HealthChecks.xml",
-        "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll",
-        "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.xml",
+        "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll",
+        "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.xml",
         "lib/netstandard2.0/Microsoft.Extensions.Diagnostics.HealthChecks.dll",
         "lib/netstandard2.0/Microsoft.Extensions.Diagnostics.HealthChecks.xml",
-        "microsoft.extensions.diagnostics.healthchecks.8.0.11.nupkg.sha512",
+        "microsoft.extensions.diagnostics.healthchecks.9.0.7.nupkg.sha512",
         "microsoft.extensions.diagnostics.healthchecks.nuspec"
       ]
     },
-    "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions/8.0.11": {
-      "sha512": "So3JUdRxozRjvQ3cxU6F3nI/i4emDnjane6yMYcJhvTTTu29ltlIdoXjkFGRceIWz8yKvuEpzXItZ0x5GvN2nQ==",
+    "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions/9.0.7": {
+      "sha512": "kDvMq6n3hzQw2mvFwmj/z4OGlTPCg0fGjbM8C+4qS+SxYv4+QTFOY7nZNGfY0CGb40oPKlZQZD9TVQjMSj2atw==",
       "type": "package",
-      "path": "microsoft.extensions.diagnostics.healthchecks.abstractions/8.0.11",
+      "path": "microsoft.extensions.diagnostics.healthchecks.abstractions/9.0.7",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -1296,11 +1278,11 @@
         "THIRD-PARTY-NOTICES.TXT",
         "lib/net462/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll",
         "lib/net462/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.xml",
-        "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll",
-        "lib/net8.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.xml",
+        "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll",
+        "lib/net9.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.xml",
         "lib/netstandard2.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll",
         "lib/netstandard2.0/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.xml",
-        "microsoft.extensions.diagnostics.healthchecks.abstractions.8.0.11.nupkg.sha512",
+        "microsoft.extensions.diagnostics.healthchecks.abstractions.9.0.7.nupkg.sha512",
         "microsoft.extensions.diagnostics.healthchecks.abstractions.nuspec"
       ]
     },
@@ -1999,16 +1981,6 @@
       "type": "project",
       "path": "../../Shared/Store.Shared/Store.Shared.csproj",
       "msbuildProject": "../../Shared/Store.Shared/Store.Shared.csproj"
-    },
-    "Store.Shared.Contracts/1.0.0": {
-      "type": "project",
-      "path": "../../Shared/Store.Shared.Contracts/Store.Shared.Contracts.csproj",
-      "msbuildProject": "../../Shared/Store.Shared.Contracts/Store.Shared.Contracts.csproj"
-    },
-    "Store.Shared.DTOs/1.0.0": {
-      "type": "project",
-      "path": "../../Shared/Store.Shared.DTOs/Store.Shared.DTOs.csproj",
-      "msbuildProject": "../../Shared/Store.Shared.DTOs/Store.Shared.DTOs.csproj"
     }
   },
   "projectFileDependencyGroups": {

@@ -59,16 +59,18 @@ public class AuthService : IAuthService
                 LastName = request.LastName,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                EmailConfirmed = true // Simplified - auto-confirm email
+                EmailConfirmed = true,
+                IsActive = true
             };
 
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
+                var errors = result.Errors.Select(e => e.Description).ToList();
                 return new AuthResponse
                 {
                     Success = false,
-                    Message = "Failed to create user"
+                    Message = string.Join(", ", errors)
                 };
             }
 
@@ -164,29 +166,129 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<ApiResponse<string>> ChangePasswordAsync(string userId, ChangePasswordRequest request)
+    public async Task<AuthResponse> DemoLoginAsync(DemoLoginRequest request)
     {
         try
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
+            // Find demo user
+            var demoUser = await _userManager.FindByEmailAsync(Constants.DemoUserEmail);
+            if (demoUser == null)
             {
-                return ApiResponse<string>.Error("User not found");
+                _logger.LogError("Demo user not found. Should be created during database initialization.");
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Demo user not available"
+                };
             }
 
-            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<string>.ValidationError(errors);
-            }
+            // Update last login
+            demoUser.LastLoginAt = DateTime.UtcNow;
+            demoUser.UpdatedAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(demoUser);
 
-            return ApiResponse<string>.Success("", "Password changed successfully");
+            // Generate JWT token
+            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(demoUser);
+
+            _logger.LogInformation("Demo user logged in successfully");
+
+            return new AuthResponse
+            {
+                Success = true,
+                Message = "Demo login successful",
+                AccessToken = accessToken,
+                ExpiresAt = expiresAt,
+                User = await MapToUserResponseAsync(demoUser)
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during password change");
-            return ApiResponse<string>.Error("An error occurred while changing password");
+            _logger.LogError(ex, "Error during demo login");
+            return new AuthResponse
+            {
+                Success = false,
+                Message = "An error occurred during demo login"
+            };
+        }
+    }
+
+    public async Task<AuthResponse> CreateTrueAdminAsync(CreateTrueAdminRequest request)
+    {
+        try
+        {
+            // Verify admin creation token
+            var validToken = _configuration[Constants.AdminCreationTokenKey];
+            if (string.IsNullOrEmpty(validToken) || request.AdminCreationToken != validToken)
+            {
+                _logger.LogWarning("Invalid admin creation token attempted");
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid admin creation token"
+                };
+            }
+
+            // Check if user already exists
+            var existingUser = await _userManager.FindByEmailAsync(request.Email);
+            if (existingUser != null)
+            {
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "User with this email already exists"
+                };
+            }
+
+            // Create new true admin user
+            var user = new ApplicationUser
+            {
+                UserName = request.Email,
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                EmailConfirmed = true,
+                IsActive = true
+            };
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = string.Join(", ", errors)
+                };
+            }
+
+            // Assign true admin role
+            await EnsureRoleExistsAsync(Constants.Role_TrueAdmin);
+            await _userManager.AddToRoleAsync(user, Constants.Role_TrueAdmin);
+
+            _logger.LogInformation("True admin created successfully: {Email}", request.Email);
+
+            // Generate JWT token
+            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
+
+            return new AuthResponse
+            {
+                Success = true,
+                Message = "True admin created successfully",
+                AccessToken = accessToken,
+                ExpiresAt = expiresAt,
+                User = await MapToUserResponseAsync(user)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during true admin creation");
+            return new AuthResponse
+            {
+                Success = false,
+                Message = "An error occurred during admin creation"
+            };
         }
     }
 
@@ -246,6 +348,32 @@ public class AuthService : IAuthService
         {
             _logger.LogError(ex, "Error updating user profile");
             return ApiResponse<UserResponse>.Error("An error occurred while updating profile");
+        }
+    }
+
+    public async Task<ApiResponse<string>> ChangePasswordAsync(string userId, ChangePasswordRequest request)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<string>.Error("User not found");
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<string>.ValidationError(errors);
+            }
+
+            return ApiResponse<string>.Success("", "Password changed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during password change");
+            return ApiResponse<string>.Error("An error occurred while changing password");
         }
     }
 
@@ -363,6 +491,54 @@ public class AuthService : IAuthService
             _logger.LogError(ex, "Error removing role");
             return ApiResponse<string>.Error("An error occurred while removing role");
         }
+    }
+
+    public async Task<ApiResponse<string>> DeleteUserAsync(string userId)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ApiResponse<string>.Error("User not found");
+            }
+
+            // Prevent deletion of demo user
+            if (user.Email == Constants.DemoUserEmail)
+            {
+                return ApiResponse<string>.Error("Cannot delete demo user");
+            }
+
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<string>.ValidationError(errors);
+            }
+
+            _logger.LogInformation("User deleted successfully: {UserId}", userId);
+            return ApiResponse<string>.Success("", "User deleted successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting user");
+            return ApiResponse<string>.Error("An error occurred while deleting user");
+        }
+    }
+
+    public async Task<ApiResponse<string>> DemoAdminAttemptCreateAsync()
+    {
+        return ApiResponse<string>.Error("Demo admin cannot create users. Contact a true administrator for user creation.");
+    }
+
+    public async Task<ApiResponse<string>> DemoAdminAttemptUpdateAsync()
+    {
+        return ApiResponse<string>.Error("Demo admin cannot update users. Contact a true administrator for user updates.");
+    }
+
+    public async Task<ApiResponse<string>> DemoAdminAttemptDeleteAsync()
+    {
+        return ApiResponse<string>.Error("Demo admin cannot delete users. Contact a true administrator for user deletion.");
     }
 
     #region Private Methods

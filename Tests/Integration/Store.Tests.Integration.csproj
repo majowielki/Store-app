@@ -23,7 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Services\ProductService\Store.ProductService.csproj" />
     <ProjectReference Include="..\..\Services\IdentityService\Store.IdentityService.csproj" />
     <ProjectReference Include="..\..\Services\CartService\Store.CartService.csproj" />
     <ProjectReference Include="..\..\Services\OrderService\Store.OrderService.csproj" />

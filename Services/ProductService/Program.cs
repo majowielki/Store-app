@@ -2,22 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Store.ProductService.Data;
 using Store.ProductService.Services;
 using StackExchange.Redis;
-using System.Text.Json.Serialization;
 using Store.Shared.Middleware;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Store.Shared.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
+// Add standard API controllers
+builder.Services.AddStandardApiControllers();
 
 // Database
 builder.Services.AddDbContext<ProductDbContext>(options =>
@@ -41,140 +32,72 @@ catch (Exception ex)
 }
 
 // JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "your-very-long-secret-key-here-at-least-32-characters";
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
-            ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
-        };
-    });
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Authorization
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireClaim("role", "admin"));
-
-    options.AddPolicy("UserOrAdmin", policy =>
-        policy.RequireClaim("role", "user", "admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("UserOnly", policy => policy.RequireRole("User", "Admin"));
 });
 
-// Services
-builder.Services.AddScoped<IProductService, ProductService>();
+// Business Services
+builder.Services.AddScoped<IProductService, Store.ProductService.Services.ProductService>();
 
-// Health Checks - Make them optional to prevent startup failures
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy())
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database", failureStatus: HealthStatus.Degraded)
-    .AddRedis(builder.Configuration.GetConnectionString("Redis")!, name: "redis", failureStatus: HealthStatus.Degraded);
+// Health Checks
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+builder.Services.AddStandardHealthChecks(connectionString, redisConnectionString);
 
-// Swagger with JWT support
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "Store Product Service", Version = "v1" });
-    
-    // JWT Bearer token support
-    c.AddSecurityDefinition("Bearer", new()
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-    
-    c.AddSecurityRequirement(new()
-    {
-        {
-            new()
-            {
-                Reference = new() { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
+// Swagger
+builder.Services.AddSwaggerWithJwt("Product Service API");
 
 // CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-});
+builder.Services.AddStandardCors();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.UseMiddleware<GlobalExceptionMiddleware>();
-
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store Product Service V1");
-        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Product Service API v1");
     });
 }
 
-app.UseCors("AllowAll");
+// Global exception handling
+app.UseGlobalExceptionHandling();
+
+// Health checks
+app.UseStandardHealthChecks();
+
+// CORS
+app.UseCors("DefaultCorsPolicy");
+
+// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
-app.MapHealthChecks("/health");
 
-// Database migration and seeding - Make this optional to prevent startup failures
-try
+// Controllers
+app.MapControllers();
+
+// Database migration and seeding
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    try
     {
         var context = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        await context.Database.MigrateAsync();
         
-        try
-        {
-            // Check if database exists and is accessible
-            if (context.Database.CanConnect())
-            {
-                context.Database.Migrate();
-                logger.LogInformation("Database migration completed successfully.");
-                
-                // Seed the database
-                await DatabaseSeeder.SeedAsync(context);
-                logger.LogInformation("Database seeding completed successfully.");
-            }
-            else
-            {
-                logger.LogWarning("Database connection failed. Skipping migration and seeding.");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred while migrating or seeding the database. Continuing without database setup.");
-        }
+        await DatabaseSeeder.SeedAsync(context);
     }
-}
-catch (Exception ex)
-{
-    // Log the error but don't stop the application
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Failed to initialize database. Application will continue without database setup.");
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error during database migration or seeding");
+    }
 }
 
 app.Run();

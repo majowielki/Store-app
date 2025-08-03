@@ -1,24 +1,23 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Services;
+using Store.Shared.Controllers;
 using Store.Shared.Utility;
 using System.Security.Claims;
 
 namespace Store.ProductService.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class ProductsController : ControllerBase
+public class ProductsController : BaseApiController
 {
     private readonly IProductService _productService;
-    private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(IProductService productService, ILogger<ProductsController> logger)
+    public ProductsController(IProductService productService, ILogger<ProductsController> logger) 
+        : base(logger)
     {
         _productService = productService;
-        _logger = logger;
     }
 
     /// <summary>

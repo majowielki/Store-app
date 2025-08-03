@@ -1,7 +1,16 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "D:\\Projekty\\store-app\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\messagebus\\rabbitmqconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\messagebus\\rabbitmqconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\messagebus\\messagebusextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\messagebus\\messagebusextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,11 +18,36 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MessageBusExtensions.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
+              "RelativeDocumentMoniker": "Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
+              "RelativeToolTip": "Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAQwCwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-03T18:43:28.11Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "RabbitMQConnection.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
+              "RelativeDocumentMoniker": "Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
+              "RelativeToolTip": "Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
+              "ViewState": "AgIAAG0AAAAAAAAAAAAcwIsAAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-03T18:42:52.962Z",
+              "EditorCaption": ""
             }
           ]
         }

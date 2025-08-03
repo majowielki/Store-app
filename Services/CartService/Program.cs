@@ -73,6 +73,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpClient();
 
 // Services
+builder.Services.AddScoped<ICartService, CartService>();
 
 // Health Checks - Make them optional to prevent startup failures
 builder.Services.AddHealthChecks()

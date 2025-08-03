@@ -868,32 +868,18 @@
       "System.Threading.Channels/7.0.0": {},
       "Store.Shared/1.0.0": {
         "dependencies": {
+          "AspNetCore.HealthChecks.NpgSql": "9.0.0",
+          "AspNetCore.HealthChecks.Redis": "9.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.EntityFrameworkCore": "9.0.7",
+          "Microsoft.Extensions.Diagnostics.HealthChecks": "9.0.7",
           "Microsoft.Extensions.Hosting.Abstractions": "9.0.7",
           "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
           "RabbitMQ.Client": "6.8.1",
-          "Store.Shared.Contracts": "1.0.0",
-          "Store.Shared.DTOs": "1.0.0"
+          "Swashbuckle.AspNetCore": "9.0.3"
         },
         "runtime": {
           "Store.Shared.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "Store.Shared.Contracts/1.0.0": {
-        "runtime": {
-          "Store.Shared.Contracts.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "Store.Shared.DTOs/1.0.0": {
-        "runtime": {
-          "Store.Shared.DTOs.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
           }
@@ -1377,16 +1363,6 @@
       "hashPath": "system.threading.channels.7.0.0.nupkg.sha512"
     },
     "Store.Shared/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Store.Shared.Contracts/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Store.Shared.DTOs/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

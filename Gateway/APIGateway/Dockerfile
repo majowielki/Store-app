@@ -12,8 +12,6 @@ WORKDIR /src
 
 # Copy shared projects first for better layer caching
 COPY ["Shared/Store.Shared/Store.Shared.csproj", "Shared/Store.Shared/"]
-COPY ["Shared/Store.Shared.DTOs/Store.Shared.DTOs.csproj", "Shared/Store.Shared.DTOs/"]
-COPY ["Shared/Store.Shared.Contracts/Store.Shared.Contracts.csproj", "Shared/Store.Shared.Contracts/"]
 
 # Copy service project
 COPY ["Gateway/APIGateway/Store.GatewayService.csproj", "Gateway/APIGateway/"]

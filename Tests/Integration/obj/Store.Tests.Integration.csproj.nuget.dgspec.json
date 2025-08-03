@@ -438,251 +438,6 @@
         }
       }
     },
-    "D:\\Projekty\\store-app\\Services\\ProductService\\Store.ProductService.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "D:\\Projekty\\store-app\\Services\\ProductService\\Store.ProductService.csproj",
-        "projectName": "Store.ProductService",
-        "projectPath": "D:\\Projekty\\store-app\\Services\\ProductService\\Store.ProductService.csproj",
-        "packagesPath": "C:\\Users\\mmaje\\.nuget\\packages\\",
-        "outputPath": "D:\\Projekty\\store-app\\Services\\ProductService\\obj\\",
-        "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
-        "configFilePaths": [
-          "C:\\Users\\mmaje\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
-        ],
-        "originalTargetFrameworks": [
-          "net9.0"
-        ],
-        "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {}
-        },
-        "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
-            "projectReferences": {
-              "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Store.Shared.csproj": {
-                "projectPath": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Store.Shared.csproj"
-              }
-            }
-          }
-        },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
-      },
-      "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
-          "dependencies": {
-            "AspNetCore.HealthChecks.NpgSql": {
-              "target": "Package",
-              "version": "[9.0.0, )"
-            },
-            "AspNetCore.HealthChecks.Redis": {
-              "target": "Package",
-              "version": "[9.0.0, )"
-            },
-            "AutoMapper": {
-              "target": "Package",
-              "version": "[15.0.1, )"
-            },
-            "Microsoft.AspNetCore.Authentication.JwtBearer": {
-              "target": "Package",
-              "version": "[9.0.7, )"
-            },
-            "Microsoft.AspNetCore.OpenApi": {
-              "target": "Package",
-              "version": "[9.0.7, )"
-            },
-            "Microsoft.EntityFrameworkCore.Tools": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[9.0.7, )"
-            },
-            "Npgsql.EntityFrameworkCore.PostgreSQL": {
-              "target": "Package",
-              "version": "[9.0.4, )"
-            },
-            "StackExchange.Redis": {
-              "target": "Package",
-              "version": "[2.8.58, )"
-            },
-            "Swashbuckle.AspNetCore": {
-              "target": "Package",
-              "version": "[9.0.3, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "frameworkReferences": {
-            "Microsoft.AspNetCore.App": {
-              "privateAssets": "none"
-            },
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
-        }
-      }
-    },
-    "D:\\Projekty\\store-app\\Shared\\Store.Shared.Contracts\\Store.Shared.Contracts.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "D:\\Projekty\\store-app\\Shared\\Store.Shared.Contracts\\Store.Shared.Contracts.csproj",
-        "projectName": "Store.Shared.Contracts",
-        "projectPath": "D:\\Projekty\\store-app\\Shared\\Store.Shared.Contracts\\Store.Shared.Contracts.csproj",
-        "packagesPath": "C:\\Users\\mmaje\\.nuget\\packages\\",
-        "outputPath": "D:\\Projekty\\store-app\\Shared\\Store.Shared.Contracts\\obj\\",
-        "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
-        "configFilePaths": [
-          "C:\\Users\\mmaje\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
-        ],
-        "originalTargetFrameworks": [
-          "net9.0"
-        ],
-        "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {}
-        },
-        "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
-            "projectReferences": {}
-          }
-        },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
-      },
-      "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
-        }
-      }
-    },
-    "D:\\Projekty\\store-app\\Shared\\Store.Shared.DTOs\\Store.Shared.DTOs.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "D:\\Projekty\\store-app\\Shared\\Store.Shared.DTOs\\Store.Shared.DTOs.csproj",
-        "projectName": "Store.Shared.DTOs",
-        "projectPath": "D:\\Projekty\\store-app\\Shared\\Store.Shared.DTOs\\Store.Shared.DTOs.csproj",
-        "packagesPath": "C:\\Users\\mmaje\\.nuget\\packages\\",
-        "outputPath": "D:\\Projekty\\store-app\\Shared\\Store.Shared.DTOs\\obj\\",
-        "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
-        "configFilePaths": [
-          "C:\\Users\\mmaje\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
-        ],
-        "originalTargetFrameworks": [
-          "net9.0"
-        ],
-        "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
-          "https://api.nuget.org/v3/index.json": {}
-        },
-        "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
-            "projectReferences": {}
-          }
-        },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
-      },
-      "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
-        }
-      }
-    },
     "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Store.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
@@ -711,14 +466,7 @@
         "frameworks": {
           "net9.0": {
             "targetAlias": "net9.0",
-            "projectReferences": {
-              "D:\\Projekty\\store-app\\Shared\\Store.Shared.Contracts\\Store.Shared.Contracts.csproj": {
-                "projectPath": "D:\\Projekty\\store-app\\Shared\\Store.Shared.Contracts\\Store.Shared.Contracts.csproj"
-              },
-              "D:\\Projekty\\store-app\\Shared\\Store.Shared.DTOs\\Store.Shared.DTOs.csproj": {
-                "projectPath": "D:\\Projekty\\store-app\\Shared\\Store.Shared.DTOs\\Store.Shared.DTOs.csproj"
-              }
-            }
+            "projectReferences": {}
           }
         },
         "warningProperties": {
@@ -737,11 +485,23 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "AspNetCore.HealthChecks.NpgSql": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
+            "AspNetCore.HealthChecks.Redis": {
+              "target": "Package",
+              "version": "[9.0.0, )"
+            },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[9.0.7, )"
             },
             "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[9.0.7, )"
+            },
+            "Microsoft.Extensions.Diagnostics.HealthChecks": {
               "target": "Package",
               "version": "[9.0.7, )"
             },
@@ -756,6 +516,10 @@
             "RabbitMQ.Client": {
               "target": "Package",
               "version": "[6.8.1, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[9.0.3, )"
             }
           },
           "imports": [
@@ -818,9 +582,6 @@
               },
               "D:\\Projekty\\store-app\\Services\\OrderService\\Store.OrderService.csproj": {
                 "projectPath": "D:\\Projekty\\store-app\\Services\\OrderService\\Store.OrderService.csproj"
-              },
-              "D:\\Projekty\\store-app\\Services\\ProductService\\Store.ProductService.csproj": {
-                "projectPath": "D:\\Projekty\\store-app\\Services\\ProductService\\Store.ProductService.csproj"
               }
             }
           }

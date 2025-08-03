@@ -36,24 +36,6 @@
           }
         }
       },
-      "AutoMapper/15.0.1": {
-        "type": "package",
-        "dependencies": {
-          "Microsoft.Extensions.Logging": "8.0.0",
-          "Microsoft.Extensions.Options": "8.0.0",
-          "Microsoft.IdentityModel.JsonWebTokens": "8.0.1"
-        },
-        "compile": {
-          "lib/net9.0/AutoMapper.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net9.0/AutoMapper.dll": {
-            "related": ".xml"
-          }
-        }
-      },
       "BouncyCastle.Cryptography/2.4.0": {
         "type": "package",
         "compile": {
@@ -1976,67 +1958,25 @@
           "Microsoft.AspNetCore.App"
         ]
       },
-      "Store.ProductService/1.0.0": {
+      "Store.Shared/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v9.0",
         "dependencies": {
           "AspNetCore.HealthChecks.NpgSql": "9.0.0",
           "AspNetCore.HealthChecks.Redis": "9.0.0",
-          "AutoMapper": "15.0.1",
-          "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
-          "Microsoft.AspNetCore.OpenApi": "9.0.7",
-          "Npgsql.EntityFrameworkCore.PostgreSQL": "9.0.4",
-          "StackExchange.Redis": "2.8.58",
-          "Store.Shared": "1.0.0",
-          "Swashbuckle.AspNetCore": "9.0.3"
-        },
-        "compile": {
-          "bin/placeholder/Store.ProductService.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Store.ProductService.dll": {}
-        },
-        "frameworkReferences": [
-          "Microsoft.AspNetCore.App"
-        ]
-      },
-      "Store.Shared/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "dependencies": {
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.7",
           "Microsoft.EntityFrameworkCore": "9.0.7",
+          "Microsoft.Extensions.Diagnostics.HealthChecks": "9.0.7",
           "Microsoft.Extensions.Hosting.Abstractions": "9.0.7",
           "Microsoft.Extensions.Logging.Abstractions": "9.0.7",
           "RabbitMQ.Client": "6.8.1",
-          "Store.Shared.Contracts": "1.0.0",
-          "Store.Shared.DTOs": "1.0.0"
+          "Swashbuckle.AspNetCore": "9.0.3"
         },
         "compile": {
           "bin/placeholder/Store.Shared.dll": {}
         },
         "runtime": {
           "bin/placeholder/Store.Shared.dll": {}
-        }
-      },
-      "Store.Shared.Contracts/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/Store.Shared.Contracts.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Store.Shared.Contracts.dll": {}
-        }
-      },
-      "Store.Shared.DTOs/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/Store.Shared.DTOs.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Store.Shared.DTOs.dll": {}
         }
       }
     }
@@ -2073,26 +2013,6 @@
         "lib/net8.0/HealthChecks.Redis.xml",
         "lib/netstandard2.0/HealthChecks.Redis.dll",
         "lib/netstandard2.0/HealthChecks.Redis.xml"
-      ]
-    },
-    "AutoMapper/15.0.1": {
-      "sha512": "kNo7iIAi4p4XxoEbfif2WUQtc6RTx+UteiRYPqCOKj+4q4+YaWono06qTxoHBy+0N1HdganA//k5p/VmWw2AMA==",
-      "type": "package",
-      "path": "automapper/15.0.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "LICENSE.md",
-        "README.md",
-        "automapper.15.0.1.nupkg.sha512",
-        "automapper.nuspec",
-        "icon.png",
-        "lib/net8.0/AutoMapper.dll",
-        "lib/net8.0/AutoMapper.xml",
-        "lib/net9.0/AutoMapper.dll",
-        "lib/net9.0/AutoMapper.xml",
-        "lib/netstandard2.0/AutoMapper.dll",
-        "lib/netstandard2.0/AutoMapper.xml"
       ]
     },
     "BouncyCastle.Cryptography/2.4.0": {
@@ -4739,25 +4659,10 @@
       "path": "../../Services/OrderService/Store.OrderService.csproj",
       "msbuildProject": "../../Services/OrderService/Store.OrderService.csproj"
     },
-    "Store.ProductService/1.0.0": {
-      "type": "project",
-      "path": "../../Services/ProductService/Store.ProductService.csproj",
-      "msbuildProject": "../../Services/ProductService/Store.ProductService.csproj"
-    },
     "Store.Shared/1.0.0": {
       "type": "project",
       "path": "../../Shared/Store.Shared/Store.Shared.csproj",
       "msbuildProject": "../../Shared/Store.Shared/Store.Shared.csproj"
-    },
-    "Store.Shared.Contracts/1.0.0": {
-      "type": "project",
-      "path": "../../Shared/Store.Shared.Contracts/Store.Shared.Contracts.csproj",
-      "msbuildProject": "../../Shared/Store.Shared.Contracts/Store.Shared.Contracts.csproj"
-    },
-    "Store.Shared.DTOs/1.0.0": {
-      "type": "project",
-      "path": "../../Shared/Store.Shared.DTOs/Store.Shared.DTOs.csproj",
-      "msbuildProject": "../../Shared/Store.Shared.DTOs/Store.Shared.DTOs.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -4769,7 +4674,6 @@
       "Store.GatewayService >= 1.0.0",
       "Store.IdentityService >= 1.0.0",
       "Store.OrderService >= 1.0.0",
-      "Store.ProductService >= 1.0.0",
       "Testcontainers >= 4.6.0",
       "Testcontainers.PostgreSql >= 4.6.0",
       "Testcontainers.Redis >= 4.6.0",
@@ -4821,9 +4725,6 @@
             },
             "D:\\Projekty\\store-app\\Services\\OrderService\\Store.OrderService.csproj": {
               "projectPath": "D:\\Projekty\\store-app\\Services\\OrderService\\Store.OrderService.csproj"
-            },
-            "D:\\Projekty\\store-app\\Services\\ProductService\\Store.ProductService.csproj": {
-              "projectPath": "D:\\Projekty\\store-app\\Services\\ProductService\\Store.ProductService.csproj"
             }
           }
         }
