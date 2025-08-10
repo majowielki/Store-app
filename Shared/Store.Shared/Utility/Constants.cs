@@ -11,6 +11,10 @@ namespace Store.Shared.Utility
         public const string DemoUserEmail = "demo@store.com";
         public const string DemoUserPassword = "Demo123!";
 
+        // Demo Admin Credentials
+        public const string DemoAdminEmail = "demo-admin@store.com";
+        public const string DemoAdminPassword = "DemoAdmin123!";
+
         // Admin Creation Token (should be set in appsettings.json)
         public const string AdminCreationTokenKey = "AdminCreationToken";
     }

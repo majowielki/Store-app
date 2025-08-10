@@ -6,6 +6,8 @@ using Store.Shared.Models;
 
 namespace Store.CartService.Services;
 
+#nullable enable
+
 public class CartService : ICartService
 {
     private readonly CartDbContext _context;
@@ -261,43 +263,136 @@ public class CartService : ICartService
         }
     }
 
+    public async Task<CartResponse> SyncCartAsync(string userId, SyncCartRequest request)
+    {
+        if (request == null || request.Items == null || request.Items.Count == 0)
+        {
+            throw new ArgumentException("Sync request must contain at least one item");
+        }
+
+        try
+        {
+            // Get or create cart with items and products
+            var cart = await _context.Carts
+                .Include(c => c.CartItems)
+                .ThenInclude(ci => ci.Product)
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
+            if (cart == null)
+            {
+                cart = new Cart
+                {
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.Carts.Add(cart);
+                await _context.SaveChangesAsync();
+            }
+
+            // Merge incoming items
+            foreach (var item in request.Items)
+            {
+                // Validate/resolve product
+                var product = await GetOrCreateProductAsync(item.ProductId);
+                if (product == null)
+                {
+                    _logger.LogWarning("Skipping sync item - product not found: {ProductId}", item.ProductId);
+                    continue;
+                }
+
+                var existingItem = cart.CartItems.FirstOrDefault(ci =>
+                    ci.ProductId == item.ProductId &&
+                    ci.ProductColor == item.Color);
+
+                if (existingItem != null)
+                {
+                    existingItem.Amount += item.Quantity;
+                    existingItem.UpdatedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    var newItem = new CartItem
+                    {
+                        CartId = cart.Id,
+                        ProductId = item.ProductId,
+                        Title = product.Title,
+                        Image = product.Image,
+                        Price = product.Price,
+                        Amount = item.Quantity,
+                        ProductColor = item.Color,
+                        Company = product.Company.ToString(),
+                        Product = product,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.CartItems.Add(newItem);
+                    cart.CartItems.Add(newItem);
+                }
+            }
+
+            cart.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // Reload with product info for a consistent response
+            cart = await _context.Carts
+                .Include(c => c.CartItems)
+                .ThenInclude(ci => ci.Product)
+                .FirstAsync(c => c.Id == cart.Id);
+
+            return MapToCartResponse(cart);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing cart for user: {UserId}", userId);
+            throw;
+        }
+    }
+
     private async Task<Product?> GetOrCreateProductAsync(int productId)
     {
         // First, check if product exists in local database
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
         
-        if (product != null) return product;
+        // If we have a product but it's incomplete (from older buggy inserts), try to refresh it
+        if (product != null)
+        {
+            if (string.IsNullOrWhiteSpace(product.Title) || string.IsNullOrWhiteSpace(product.Image) || product.Price <= 0)
+            {
+                try
+                {
+                    var refreshed = await FetchProductFromProductServiceAsync(productId);
+                    if (refreshed != null)
+                    {
+                        product.Title = refreshed.Title;
+                        product.Description = refreshed.Description;
+                        product.Image = refreshed.Image;
+                        product.Price = refreshed.Price;
+                        product.Category = refreshed.Category;
+                        product.Company = refreshed.Company;
+                        product.Colors = refreshed.Colors ?? new List<string>();
+                        product.UpdatedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to refresh incomplete product {ProductId}", productId);
+                }
+            }
+            return product;
+        }
 
         // If not found locally, try to fetch from Product Service
         try
         {
-            var productServiceUrl = _configuration["Services:ProductService:BaseUrl"] ?? "http://localhost:5001";
-            var response = await _httpClient.GetAsync($"{productServiceUrl}/api/products/{productId}");
-            
-            if (response.IsSuccessStatusCode)
+            var fetched = await FetchProductFromProductServiceAsync(productId);
+            if (fetched != null)
             {
-                var productData = await response.Content.ReadFromJsonAsync<ProductDto>();
-                if (productData != null)
-                {
-                    // Create local copy of product for cart operations
-                    product = new Product
-                    {
-                        Id = productData.Id,
-                        Title = productData.Title,
-                        Description = productData.Description ?? "",
-                        Image = productData.Image,
-                        Price = productData.Price,
-                        Category = productData.Category,
-                        Company = productData.Company,
-                        Colors = productData.Colors ?? new List<string>(),
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
-                    _context.Products.Add(product);
-                    await _context.SaveChangesAsync();
-                    return product;
-                }
+                product = fetched;
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+                return product;
             }
         }
         catch (Exception ex)
@@ -306,6 +401,56 @@ public class CartService : ICartService
         }
 
         return null;
+    }
+
+    private async Task<Product?> FetchProductFromProductServiceAsync(int productId)
+    {
+        // Read base URL from config supporting both nested and flat keys. Defaults to Docker service DNS name.
+        var productServiceUrl =
+            _configuration["Services:ProductService:BaseUrl"] // e.g., Services:ProductService:BaseUrl=http://productservice:5003
+            ?? _configuration["Services:ProductService"]      // e.g., Services:ProductService=http://productservice:5003
+            ?? "http://productservice:5003";                  // sensible default for container network
+
+        _logger.LogDebug("Fetching product {ProductId} from ProductService at {BaseUrl}", productId, productServiceUrl);
+        var response = await _httpClient.GetAsync($"{productServiceUrl.TrimEnd('/')}/api/products/{productId}");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var single = await response.Content.ReadFromJsonAsync<SingleProductResponseDto>();
+        var attr = single?.Data?.Attributes;
+        if (single?.Data == null || attr == null)
+        {
+            return null;
+        }
+
+        // Parse and map fields
+        decimal price = 0m;
+        if (!string.IsNullOrWhiteSpace(attr.Price))
+            decimal.TryParse(attr.Price, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out price);
+
+        var category = Store.Shared.Utility.Category.All;
+        if (!string.IsNullOrWhiteSpace(attr.Category))
+            Enum.TryParse(attr.Category, true, out category);
+
+        var company = Store.Shared.Utility.Company.All;
+        if (!string.IsNullOrWhiteSpace(attr.Company))
+            Enum.TryParse(attr.Company, true, out company);
+
+        return new Product
+        {
+            Id = single.Data.Id,
+            Title = attr.Title,
+            Description = attr.Description ?? string.Empty,
+            Image = attr.Image,
+            Price = price,
+            Category = category,
+            Company = company,
+            Colors = attr.Colors ?? new List<string>(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
     }
 
     private static CartResponse MapToCartResponse(Cart cart)
@@ -324,16 +469,21 @@ public class CartService : ICartService
 
     private static CartItemResponse MapToCartItemResponse(CartItem cartItem)
     {
+        // Fallback to Product fields if stored snapshot is incomplete
+        var title = string.IsNullOrWhiteSpace(cartItem.Title) ? cartItem.Product?.Title ?? string.Empty : cartItem.Title;
+        var image = string.IsNullOrWhiteSpace(cartItem.Image) ? cartItem.Product?.Image ?? string.Empty : cartItem.Image;
+        var price = cartItem.Price <= 0 && cartItem.Product != null ? cartItem.Product.Price : cartItem.Price;
+        var company = string.IsNullOrWhiteSpace(cartItem.Company) && cartItem.Product != null ? cartItem.Product.Company.ToString() : cartItem.Company;
         return new CartItemResponse
         {
             Id = cartItem.Id,
             ProductId = cartItem.ProductId,
-            Title = cartItem.Title,
-            Image = cartItem.Image,
-            Price = cartItem.Price,
+            Title = title,
+            Image = image,
+            Price = price,
             Quantity = cartItem.Amount,
             Color = cartItem.ProductColor,
-            Company = cartItem.Company,
+            Company = company,
             LineTotal = cartItem.LineTotal,
             CreatedAt = cartItem.CreatedAt,
             UpdatedAt = cartItem.UpdatedAt
@@ -351,5 +501,33 @@ public class ProductDto
     public decimal Price { get; set; }
     public Store.Shared.Utility.Category Category { get; set; }
     public Store.Shared.Utility.Company Company { get; set; }
+    public List<string>? Colors { get; set; }
+}
+
+// DTOs matching ProductService's frontend response (SingleProductResponse)
+public class SingleProductResponseDto
+{
+    public ProductDataDto? Data { get; set; }
+    public object? Meta { get; set; }
+}
+
+public class ProductDataDto
+{
+    public int Id { get; set; }
+    public ProductAttributesDto? Attributes { get; set; }
+}
+
+public class ProductAttributesDto
+{
+    public string Category { get; set; } = string.Empty;
+    public string Company { get; set; } = string.Empty;
+    public string CreatedAt { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool Featured { get; set; }
+    public string Image { get; set; } = string.Empty;
+    public string Price { get; set; } = string.Empty;
+    public string PublishedAt { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string UpdatedAt { get; set; } = string.Empty;
     public List<string>? Colors { get; set; }
 }

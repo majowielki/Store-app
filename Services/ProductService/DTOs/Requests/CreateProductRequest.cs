@@ -23,6 +23,8 @@ public class CreateProductRequest
     [Required]
     public Company Company { get; set; }
     
+    public bool Featured { get; set; } = false;
+    
     [Required]
     [Url]
     public string Image { get; set; } = string.Empty;

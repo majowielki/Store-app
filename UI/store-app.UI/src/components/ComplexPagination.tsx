@@ -15,8 +15,9 @@ import {
 import { useLoaderData, useLocation } from 'react-router-dom';
 
 const ComplexPaginationContainer = () => {
-  const { meta } = useLoaderData() as OrdersResponse;
-  const { pageCount, page } = meta.pagination;
+  const ordersResponse = useLoaderData() as OrdersResponse;
+  const pageCount = ordersResponse.totalPages;
+  const page = ordersResponse.page;
   const { search, pathname } = useLocation();
 
   if (pageCount < 2) return null;

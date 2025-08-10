@@ -133,7 +133,6 @@ D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogSe
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.AssemblyInfoInputs.cache
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.AssemblyInfo.cs
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.csproj.CoreCompileInputs.cache
-D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.MvcApplicationPartsAssemblyInfo.cache
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.sourcelink.json
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\rjimswa.dswa.cache.json
@@ -150,4 +149,4 @@ D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\refint\Store.Aud
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.pdb
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\ref\Store.AuditLogService.dll
-D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.MvcApplicationPartsAssemblyInfo.cs

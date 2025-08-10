@@ -24,6 +24,7 @@ public class Product
     
     [Required]
     public Company Company { get; set; }
+    
     public bool Featured { get; set; } = false;
 
     [Required]

@@ -502,7 +502,6 @@ D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.CartService.pdb
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.OrderService.pdb
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.GatewayService.pdb
 D:\Projekty\store-app\Tests\Integration\bin\Debug\net9.0\Store.Shared.pdb
-D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\rjimswa.dswa.cache.json
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
@@ -517,4 +516,4 @@ D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\refint\Store.Tests.Inte
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.pdb
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.genruntimeconfig.cache
 D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\ref\Store.Tests.Integration.dll
-D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Tests\Integration\obj\Debug\net9.0\Store.Tests.Integration.MvcApplicationPartsAssemblyInfo.cs

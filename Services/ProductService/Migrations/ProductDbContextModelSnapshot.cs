@@ -51,6 +51,9 @@ namespace Store.ProductService.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<bool>("Featured")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Image")
                         .IsRequired()
                         .HasColumnType("text");

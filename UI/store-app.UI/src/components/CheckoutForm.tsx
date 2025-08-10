@@ -1,7 +1,8 @@
+/* eslint-disable react-refresh/only-export-components */
 import { ActionFunction, Form, redirect } from 'react-router-dom';
 import FormInput from './FormInput';
 import SubmitBtn from './SubmitBtn';
-import { customFetch, formatAsDollars, type Checkout } from '@/utils';
+import { customFetch } from '@/utils';
 import { toast } from '@/hooks/use-toast';
 import { clearCart } from '../features/cart/cartSlice';
 import { ReduxStore } from '@/store';
@@ -23,33 +24,24 @@ export const action =
       return redirect('/login');
     }
 
-    const { cartItems, orderTotal, numItemsInCart } =
-      store.getState().cartState;
-
-    const info: Checkout = {
-      name,
-      address,
-      chargeTotal: orderTotal,
-      orderTotal: formatAsDollars(orderTotal),
-      cartItems,
-      numItemsInCart,
-    };
+  const customerName = name;
+  const deliveryAddress = address;
+  const userEmail = user.email;
 
     try {
-      await customFetch.post(
-        '/orders',
-        { data: info },
-        {
-          headers: {
-            Authorization: `Bearer ${user.jwt}`,
-          },
-        }
-      );
+      await customFetch.post('/orders/from-cart', {
+        // userId is set on the server from JWT; still include for DTO validation
+        userId: user.id,
+        userEmail,
+        deliveryAddress,
+        customerName,
+        notes: undefined,
+      });
 
       store.dispatch(clearCart());
       toast({ description: 'order placed' });
       return redirect('/orders');
-    } catch (error) {
+  } catch {
       toast({ description: 'order failed' });
       return null;
     }

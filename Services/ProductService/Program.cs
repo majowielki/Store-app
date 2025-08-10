@@ -37,8 +37,18 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 // Authorization
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("UserOnly", policy => policy.RequireRole("User", "Admin"));
+    options.AddPolicy("AdminOnly", policy => 
+        policy.RequireRole("Admin", "true-admin", "demo-admin"));
+    options.AddPolicy("UserOnly", policy => 
+        policy.RequireRole("User", "Admin", "true-admin", "demo-admin"));
+});
+
+// Configure HttpClient for AuditLogClient with proper base address
+var auditLogServiceUrl = builder.Configuration.GetValue<string>("Services:AuditLogService:BaseUrl") ?? "http://localhost:5004";
+builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
+{
+    client.BaseAddress = new Uri(auditLogServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
 });
 
 // Business Services
@@ -67,11 +77,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Global exception handling
+// Add audit logging and global exception handling
+app.UseAuditLogging();
 app.UseGlobalExceptionHandling();
-
-// Health checks
-app.UseStandardHealthChecks();
 
 // CORS
 app.UseCors("DefaultCorsPolicy");
@@ -82,6 +90,7 @@ app.UseAuthorization();
 
 // Controllers
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 // Database migration and seeding
 using (var scope = app.Services.CreateScope())

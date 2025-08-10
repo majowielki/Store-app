@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Store.IdentityService.Data;
 using Store.IdentityService.Models;
 using Store.IdentityService.Services;
 using Store.Shared.Middleware;
+using Store.Shared.Extensions;
 using Store.Shared.Utility;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,68 +31,109 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     // Password settings
     options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
-    
-    // User settings
-    options.User.RequireUniqueEmail = true;
-    
-    // Email confirmation settings
-    options.SignIn.RequireConfirmedEmail = false; // Set to true in production
-    
+    options.Password.RequireLowercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequiredUniqueChars = 1;
+
     // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
+
+    // User settings
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<IdentityDbContext>()
 .AddDefaultTokenProviders();
+
+// Ensure API returns 401/403 instead of redirecting to /Account/Login
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"] ?? "your-very-long-secret-key-here-at-least-32-characters";
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
-        ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-        ClockSkew = TimeSpan.Zero
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
+            ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
 
-// Authorization - Clean role-based policies
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                if (context.Exception is SecurityTokenExpiredException)
+                {
+                    context.Response.Headers["Token-Expired"] = "true";
+                }
+                // Helpful diagnostics for clients (dev only headers)
+                var rawMsg = context.Exception.Message ?? "invalid token";
+                var safeMsg = rawMsg.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
+                context.Response.Headers["WWW-Authenticate"] =
+                    $"Bearer error=\"invalid_token\", error_description=\"{safeMsg}\"";
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("IdentityAuth");
+                logger.LogWarning(context.Exception, "JWT authentication failed at identity service");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("IdentityAuth");
+                var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var roles = string.Join(',', context.Principal?.Claims.Where(c => c.Type == "role" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(c => c.Value) ?? Array.Empty<string>());
+                logger.LogInformation("JWT validated at identity service for {UserId} with roles [{Roles}]", userId, roles);
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+// Authorization
 builder.Services.AddAuthorization(options =>
 {
-    // True Admin only - for create, update, delete operations
-    options.AddPolicy("TrueAdminOnly", policy =>
-        policy.RequireClaim("role", Constants.Role_TrueAdmin));
-
-    // Demo Admin or True Admin - for viewing admin interfaces
+    // Policies used by controllers
     options.AddPolicy("AdminAccess", policy =>
-        policy.RequireClaim("role", Constants.Role_TrueAdmin, Constants.Role_DemoAdmin));
+        policy.RequireRole(Store.Shared.Utility.Constants.Role_TrueAdmin, Store.Shared.Utility.Constants.Role_DemoAdmin));
 
-    // Any authenticated user
     options.AddPolicy("UserAccess", policy =>
-        policy.RequireClaim("role", Constants.Role_User, Constants.Role_DemoAdmin, Constants.Role_TrueAdmin));
+        policy.RequireRole(Store.Shared.Utility.Constants.Role_User, Store.Shared.Utility.Constants.Role_DemoAdmin, Store.Shared.Utility.Constants.Role_TrueAdmin));
 });
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Configure HttpClient for AuditLogClient with proper base address
+var auditLogServiceUrl = builder.Configuration.GetValue<string>("Services:AuditLogService:BaseUrl") ?? "http://localhost:5004";
+builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
+{
+    client.BaseAddress = new Uri(auditLogServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // Health Checks - Make them optional to prevent startup failures
 builder.Services.AddHealthChecks()
@@ -141,7 +183,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseAuditLogging();
+app.UseGlobalExceptionHandling();
 
 if (app.Environment.IsDevelopment())
 {

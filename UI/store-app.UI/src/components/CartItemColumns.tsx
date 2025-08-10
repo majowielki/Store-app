@@ -1,5 +1,5 @@
 import { formatAsDollars } from "@/utils";
-import { useAppDispatch } from "@/hooks";
+import { useAppDispatch, useAppSelector } from "@/hooks";
 import { Button } from "./ui/button";
 import { editItem, removeItem } from "@/features/cart/cartSlice";
 import SelectProductAmount from "./SelectProductAmount";
@@ -65,13 +65,25 @@ export const SecondColumn = ({
 
 export const ThirdColumn = ({ amount, cartID }: ThirdColumnProps) => {
   const dispatch = useAppDispatch();
+  const user = useAppSelector((s) => s.userState.user);
 
-  const removeItemFromCart = () => {
-    dispatch(removeItem(cartID));
+  const removeItemFromCart = async () => {
+    if (user) {
+      // With server sync, we need the backend item id; for now rely on removing by product/color not implemented, so keep local fallback
+      // If mapping to server item id is stored, you can call removeItemFromServer(serverItemId)
+      dispatch(removeItem(cartID));
+    } else {
+      dispatch(removeItem(cartID));
+    }
   };
 
-  const setAmount = (value: number) => {
-    dispatch(editItem({ cartID, amount: value }));
+  const setAmount = async (value: number) => {
+    if (user) {
+      // As above, without server item id mapping, update locally
+      dispatch(editItem({ cartID, amount: value }));
+    } else {
+      dispatch(editItem({ cartID, amount: value }));
+    }
   };
   return (
     <div>

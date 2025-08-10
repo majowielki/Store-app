@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SelectProductAmount, SelectProductColor } from "@/components";
 import { Mode } from "@/components/SelectProductAmount";
-import { useAppDispatch } from "@/hooks";
-import { addItem } from "@/features/cart/cartSlice";
+import { useAppDispatch, useAppSelector } from "@/hooks";
+import { addItem, addItemToServer } from "@/features/cart/cartSlice";
 
 export const loader: LoaderFunction = async ({
   params,
@@ -31,6 +31,7 @@ const SingleProduct = () => {
   const [productColor, setProductColor] = useState(colors[0]);
   const [amount, setAmount] = useState(1);
   const dispatch = useAppDispatch();
+  const user = useAppSelector((s) => s.userState.user);
   const cartProduct: CartItem = {
     cartID: product.id + productColor,
     productID: product.id,
@@ -42,8 +43,18 @@ const SingleProduct = () => {
     company,
   };
 
-  const addToCart = () => {
-    dispatch(addItem(cartProduct));
+  const addToCart = async () => {
+    if (user) {
+      await dispatch(
+        addItemToServer({
+          productId: product.id,
+          quantity: amount,
+          color: productColor,
+        })
+      );
+    } else {
+      dispatch(addItem(cartProduct));
+    }
   };
 
   return (

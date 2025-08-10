@@ -4,7 +4,6 @@ D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductServ
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.AssemblyInfoInputs.cache
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.AssemblyInfo.cs
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.csproj.CoreCompileInputs.cache
-D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.MvcApplicationPartsAssemblyInfo.cache
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.sourcelink.json
 D:\Projekty\store-app\Services\ProductService\bin\Debug\net9.0\appsettings.Development.json
@@ -152,4 +151,4 @@ D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\refint\Store.Prod
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.pdb
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\ref\Store.ProductService.dll
-D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.MvcApplicationPartsAssemblyInfo.cs

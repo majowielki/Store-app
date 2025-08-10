@@ -44,9 +44,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
-            ValidIssuer = jwtSettings["Issuer"] ?? "Store.Gateway",
-            ValidAudience = jwtSettings["Audience"] ?? "Store.Services",
-            ClockSkew = TimeSpan.FromMinutes(5),
+            // Default to IdentityService values if not provided via configuration
+            ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
+            ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
+            ClockSkew = TimeSpan.FromMinutes(2),
             RequireExpirationTime = true
         };
 
@@ -58,6 +59,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 {
                     context.Response.Headers["Token-Expired"] = "true";
                 }
+                // Surface details to help client-side recovery and logging (dev-friendly)
+                // Sanitize header value to avoid CR/LF or invalid characters that Kestrel rejects
+                var rawMsg = context.Exception.Message ?? "invalid token";
+                var safeMsg = rawMsg.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
+                context.Response.Headers["WWW-Authenticate"] =
+                    $"Bearer error=\"invalid_token\", error_description=\"{safeMsg}\"";
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("GatewayAuth");
+                logger.LogWarning(context.Exception, "JWT authentication failed at gateway");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("GatewayAuth");
+                var name = context.Principal?.Identity?.Name;
+                var roles = string.Join(',', context.Principal?.Claims.Where(c => c.Type == "role" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(c => c.Value) ?? Array.Empty<string>());
+                logger.LogInformation("JWT validated at gateway for {Name} with roles [{Roles}]", name, roles);
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                // Add hint header without suppressing default behavior
+                if (!string.IsNullOrEmpty(context.ErrorDescription))
+                {
+                    var safe = context.ErrorDescription.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
+                    context.Response.Headers["WWW-Authenticate-Error"] = safe;
+                }
                 return Task.CompletedTask;
             }
         };
@@ -66,11 +95,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Authorization policies
 builder.Services.AddAuthorization(options =>
 {
+    // Match roles emitted by IdentityService (user, demo-admin, true-admin)
     options.AddPolicy("AdminOnly", policy =>
-        policy.RequireClaim("role", "admin"));
+        policy.RequireRole("true-admin", "demo-admin"));
     
     options.AddPolicy("UserOrAdmin", policy =>
-        policy.RequireClaim("role", "user", "admin"));
+        policy.RequireRole("user", "true-admin", "demo-admin"));
 });
 
 // RabbitMQ Message Bus with error handling

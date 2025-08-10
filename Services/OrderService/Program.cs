@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Store.OrderService.Data;
 using Store.OrderService.Services;
 using System.Text.Json.Serialization;
 using Store.Shared.Middleware;
+using Store.Shared.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -21,7 +23,11 @@ builder.Services.AddControllers()
 
 // Database
 builder.Services.AddDbContext<OrderDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    // Allow applying existing migrations even if there are pending model changes (e.g., new properties not yet migrated)
+    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+});
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -38,7 +44,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
             ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                if (context.Exception is SecurityTokenExpiredException)
+                {
+                    context.Response.Headers["Token-Expired"] = "true";
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -46,14 +65,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
-        policy.RequireClaim("role", "admin"));
+        policy.RequireRole(Store.Shared.Utility.Constants.Role_TrueAdmin, Store.Shared.Utility.Constants.Role_DemoAdmin));
 
     options.AddPolicy("UserOrAdmin", policy =>
-        policy.RequireClaim("role", "user", "admin"));
+        policy.RequireRole(Store.Shared.Utility.Constants.Role_User, Store.Shared.Utility.Constants.Role_DemoAdmin, Store.Shared.Utility.Constants.Role_TrueAdmin));
+});
+
+// Configure HttpClient for AuditLogClient with proper base address
+var auditLogServiceUrl = builder.Configuration.GetValue<string>("Services:AuditLogService:BaseUrl") ?? "http://localhost:5004";
+builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
+{
+    client.BaseAddress = new Uri(auditLogServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
 });
 
 // HTTP Client
 builder.Services.AddHttpClient();
+builder.Services.AddHttpContextAccessor();
 
 // Message Bus - Make it optional to prevent startup failures
 try
@@ -118,7 +146,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseAuditLogging();
+app.UseGlobalExceptionHandling();
 
 if (app.Environment.IsDevelopment())
 {
@@ -151,6 +180,39 @@ try
             {
                 context.Database.Migrate();
                 logger.LogInformation("Database migration completed successfully.");
+
+                // Cleanup cross-service FK if it exists: OrderItem -> Product and Product table
+                try
+                {
+                    var cleanupSql = """
+DO $$
+BEGIN
+    -- Drop FK constraint if present
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.table_constraints tc
+        WHERE tc.constraint_name = 'FK_OrderItem_Product_ProductId'
+          AND tc.table_name = 'OrderItem'
+    ) THEN
+        ALTER TABLE "OrderItem" DROP CONSTRAINT "FK_OrderItem_Product_ProductId";
+    END IF;
+
+    -- Drop Product table if present (OrderService should not own it)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables t
+        WHERE t.table_name = 'Product'
+    ) THEN
+        DROP TABLE "Product";
+    END IF;
+END $$;
+""";
+                    context.Database.ExecuteSqlRaw(cleanupSql);
+                    logger.LogInformation("OrderService DB cleanup completed (removed Product FK/table if existed).");
+                }
+                catch (Exception exCleanup)
+                {
+                    logger.LogWarning(exCleanup, "OrderService DB cleanup step failed (safe to ignore if already clean).");
+                }
             }
             else
             {

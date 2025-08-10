@@ -1,0 +1,1200 @@
+{
+  "info": {
+    "name": "Store App - Microservices API Collection",
+    "description": "Complete Postman collection for testing all endpoints in the Store App microservices architecture",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "description": "API Gateway base URL"
+    },
+    {
+      "key": "identity_service_url",
+      "value": "http://localhost:5001",
+      "description": "Identity Service direct URL"
+    },
+    {
+      "key": "product_service_url",
+      "value": "http://localhost:5002",
+      "description": "Product Service direct URL"
+    },
+    {
+      "key": "cart_service_url",
+      "value": "http://localhost:5003",
+      "description": "Cart Service direct URL"
+    },
+    {
+      "key": "order_service_url",
+      "value": "http://localhost:5004",
+      "description": "Order Service direct URL"
+    },
+    {
+      "key": "audit_service_url",
+      "value": "http://localhost:5005",
+      "description": "Audit Service direct URL"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "description": "JWT Access Token - Will be set after login"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "description": "Current user ID - Will be set after login"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🔐 Identity Service",
+      "description": "Authentication and user management endpoints",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.accessToken) {",
+                  "        pm.collectionVariables.set('access_token', response.accessToken);",
+                  "        pm.collectionVariables.set('user_id', response.user.id);",
+                  "        console.log('Access token set:', response.accessToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"confirmPassword\": \"TestPassword123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/register",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.accessToken) {",
+                  "        pm.collectionVariables.set('access_token', response.accessToken);",
+                  "        pm.collectionVariables.set('user_id', response.user.id);",
+                  "        console.log('Access token set:', response.accessToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"TestPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/login",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Demo Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.accessToken) {",
+                  "        pm.collectionVariables.set('access_token', response.accessToken);",
+                  "        pm.collectionVariables.set('user_id', response.user.id);",
+                  "        console.log('Demo access token set:', response.accessToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/demo-login",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "demo-login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Demo Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.accessToken) {",
+                  "        pm.collectionVariables.set('access_token', response.accessToken);",
+                  "        pm.collectionVariables.set('user_id', response.user.id);",
+                  "        console.log('Demo admin access token set:', response.accessToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/demo-admin-login",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "demo-admin-login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{access_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/refresh",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/me",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/users?page=1&pageSize=20",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{identity_service_url}}/api/auth/users/{{user_id}}",
+              "host": ["{{identity_service_url}}"],
+              "path": ["api", "auth", "users", "{{user_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🛍️ Product Service",
+      "description": "Product management endpoints",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_service_url}}/api/products?page=1&search=&category=all&company=all&order=a-z&price=",
+              "host": ["{{product_service_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "category",
+                  "value": "all"
+                },
+                {
+                  "key": "company",
+                  "value": "all"
+                },
+                {
+                  "key": "order",
+                  "value": "a-z"
+                },
+                {
+                  "key": "price",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_service_url}}/api/products/1",
+              "host": ["{{product_service_url}}"],
+              "path": ["api", "products", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_service_url}}/api/products/search?search=test&page=1",
+              "host": ["{{product_service_url}}"],
+              "path": ["api", "products", "search"],
+              "query": [
+                { "key": "search", "value": "test" },
+                { "key": "page", "value": "1" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Products Meta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_service_url}}/api/products/meta",
+              "host": ["{{product_service_url}}"],
+              "path": ["api", "products", "meta"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Product\",\n  \"description\": \"This is a test product for demonstration purposes\",\n  \"price\": 29.99,\n  \"category\": \"Tables\",\n  \"company\": \"Modenza\",\n  \"featured\": false,\n  \"image\": \"https://example.com/image.jpg\",\n  \"colors\": [\"red\", \"blue\", \"green\"]\n}"
+            },
+            "url": {
+              "raw": "{{product_service_url}}/api/products",
+              "host": ["{{product_service_url}}"],
+              "path": ["api", "products"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product (Admin Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Test Product\",\n  \"description\": \"Updated description for test product\",\n  \"price\": 39.99,\n  \"featured\": true,\n  \"colors\": [\"red\", \"blue\", \"yellow\"]\n}"
+            },
+            "url": {
+              "raw": "{{product_service_url}}/api/products/1",
+              "host": ["{{product_service_url}}"],
+              "path": ["api", "products", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product (Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{product_service_url}}/api/products/1",
+              "host": ["{{product_service_url}}"],
+              "path": ["api", "products", "1"]
+            }
+          },
+          "response": []
+  }
+      ]
+    },
+    {
+      "name": "🛒 Cart Service",
+      "description": "Shopping cart management endpoints",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cart_service_url}}/api/cart",
+              "host": ["{{cart_service_url}}"],
+              "path": ["api", "cart"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1,\n  \"quantity\": 2,\n  \"color\": \"Red\"\n}"
+            },
+            "url": {
+              "raw": "{{cart_service_url}}/api/cart/items",
+              "host": ["{{cart_service_url}}"],
+              "path": ["api", "cart", "items"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3,\n  \"color\": \"Blue\"\n}"
+            },
+            "url": {
+              "raw": "{{cart_service_url}}/api/cart/items/1",
+              "host": ["{{cart_service_url}}"],
+              "path": ["api", "cart", "items", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{cart_service_url}}/api/cart/items/1",
+              "host": ["{{cart_service_url}}"],
+              "path": ["api", "cart", "items", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{cart_service_url}}/api/cart",
+              "host": ["{{cart_service_url}}"],
+              "path": ["api", "cart"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cart Item Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cart_service_url}}/api/cart/count",
+              "host": ["{{cart_service_url}}"],
+              "path": ["api", "cart", "count"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cart Total",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cart_service_url}}/api/cart/total",
+              "host": ["{{cart_service_url}}"],
+              "path": ["api", "cart", "total"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📦 Order Service",
+      "description": "Order management endpoints",
+      "item": [
+        {
+          "name": "Create Order from Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"userEmail\": \"testuser@example.com\",\n  \"deliveryAddress\": \"123 Main St, City, State 12345\",\n  \"customerName\": \"Test User\",\n  \"notes\": \"Please deliver in the evening\"\n}"
+            },
+            "url": {
+              "raw": "{{order_service_url}}/api/orders/from-cart",
+              "host": ["{{order_service_url}}"],
+              "path": ["api", "orders", "from-cart"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{order_service_url}}/api/orders/1",
+              "host": ["{{order_service_url}}"],
+              "path": ["api", "orders", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{order_service_url}}/api/orders/my-orders?page=1&pageSize=20",
+              "host": ["{{order_service_url}}"],
+              "path": ["api", "orders", "my-orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Orders (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{order_service_url}}/api/orders?page=1&pageSize=20",
+              "host": ["{{order_service_url}}"],
+              "path": ["api", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Audit Service",
+      "description": "Audit logging endpoints",
+      "item": [
+        {
+          "name": "Create Audit Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entityName\": \"Product\",\n  \"entityId\": \"1\",\n  \"action\": \"Created\",\n  \"changes\": \"Product created with title: Test Product\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"userAgent\": \"Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{audit_service_url}}/api/auditlog",
+              "host": ["{{audit_service_url}}"],
+              "path": ["api", "auditlog"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_service_url}}/api/auditlog?page=1&pageSize=50",
+              "host": ["{{audit_service_url}}"],
+              "path": ["api", "auditlog"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Audit Log by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_service_url}}/api/auditlog/1",
+              "host": ["{{audit_service_url}}"],
+              "path": ["api", "auditlog", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_service_url}}/api/auditlog/user/{{user_id}}?page=1&pageSize=50",
+              "host": ["{{audit_service_url}}"],
+              "path": ["api", "auditlog", "user", "{{user_id}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Entity Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_service_url}}/api/auditlog/entity/Product/1?page=1&pageSize=50",
+              "host": ["{{audit_service_url}}"],
+              "path": ["api", "auditlog", "entity", "Product", "1"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+        ,
+        {
+          "name": "Get Audit Logs by Date Range (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_service_url}}/api/auditlog/daterange?fromDate=2024-01-01T00:00:00Z&toDate=2025-12-31T23:59:59Z&page=1&pageSize=50",
+              "host": ["{{audit_service_url}}"],
+              "path": ["api", "auditlog", "daterange"],
+              "query": [
+                { "key": "fromDate", "value": "2024-01-01T00:00:00Z" },
+                { "key": "toDate", "value": "2025-12-31T23:59:59Z" },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "50" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🌐 Gateway Service",
+      "description": "API Gateway and event testing endpoints",
+      "item": [
+        {
+          "name": "Test User Registered Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"testuser@example.com\",\n  \"userName\": \"testuser\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/events/test-user-registered",
+              "host": ["{{base_url}}"],
+              "path": ["api", "events", "test-user-registered"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test Order Created Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"550e8400-e29b-41d4-a716-446655440001\",\n  \"userId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"totalAmount\": 99.99,\n  \"items\": [\n    {\n      \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n      \"quantity\": 2,\n      \"price\": 49.99\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/events/test-order-created",
+              "host": ["{{base_url}}"],
+              "path": ["api", "events", "test-order-created"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test Product Inventory Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"550e8400-e29b-41d4-a716-446655440002\",\n  \"newStock\": 50,\n  \"previousStock\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/events/test-product-inventory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "events", "test-product-inventory"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Events Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/events/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "events", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏥 Health Checks",
+      "description": "Health check endpoints for all services",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Identity Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{identity_service_url}}/health",
+              "host": ["{{identity_service_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Product Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{product_service_url}}/health",
+              "host": ["{{product_service_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cart Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{cart_service_url}}/health",
+              "host": ["{{cart_service_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{order_service_url}}/health",
+              "host": ["{{order_service_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Audit Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{audit_service_url}}/health",
+              "host": ["{{audit_service_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🚀 Quick Test Scenarios",
+      "description": "End-to-end test scenarios for common user flows",
+      "item": [
+        {
+          "name": "Scenario 1: Complete Shopping Flow",
+          "description": "Complete user shopping flow from registration to order creation",
+          "item": [
+            {
+              "name": "1. Register User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Registration successful\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.collectionVariables.set('access_token', response.accessToken);",
+                      "    pm.collectionVariables.set('user_id', response.user.id);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"scenario1@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"confirmPassword\": \"TestPassword123!\",\n  \"firstName\": \"Scenario\",\n  \"lastName\": \"User\"\n}"
+                },
+                "url": {
+                  "raw": "{{identity_service_url}}/api/auth/register",
+                  "host": ["{{identity_service_url}}"],
+                  "path": ["api", "auth", "register"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Browse Products",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+            "pm.test(\"Products retrieved successfully\", function () {",
+            "    pm.response.to.have.status(200);",
+            "    const response = pm.response.json();",
+            "    pm.expect(response.data).to.be.an('array');",
+            "    if (response.data.length > 0) {",
+            "        pm.collectionVariables.set('test_product_id', response.data[0].id);",
+            "    }",
+            "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+          "raw": "{{product_service_url}}/api/products?page=1",
+                  "host": ["{{product_service_url}}"],
+                  "path": ["api", "products"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Add Items to Cart",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Item added to cart successfully\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.id).to.exist;",
+                      "    pm.collectionVariables.set('cart_item_id', response.id);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"productId\": {{test_product_id}},\n  \"quantity\": 2,\n  \"color\": \"red\"\n}"
+                },
+                "url": {
+                  "raw": "{{cart_service_url}}/api/cart/items",
+                  "host": ["{{cart_service_url}}"],
+                  "path": ["api", "cart", "items"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Review Cart",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Cart retrieved successfully\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.items).to.be.an('array');",
+                      "    pm.expect(response.items.length).to.be.greaterThan(0);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{cart_service_url}}/api/cart",
+                  "host": ["{{cart_service_url}}"],
+                  "path": ["api", "cart"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. Create Order",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Order created successfully\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.id).to.exist;",
+                      "    pm.collectionVariables.set('order_id', response.id);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"userEmail\": \"scenario1@example.com\",\n  \"deliveryAddress\": \"123 Test Street, Test City, TS 12345\",\n  \"customerName\": \"Scenario User\",\n  \"notes\": \"Test order from Postman scenario\"\n}"
+                },
+                "url": {
+                  "raw": "{{order_service_url}}/api/orders/from-cart",
+                  "host": ["{{order_service_url}}"],
+                  "path": ["api", "orders", "from-cart"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "6. Verify Order",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Order retrieved successfully\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.id).to.equal(pm.collectionVariables.get('order_id'));",
+                      "    pm.expect(response.orderItems).to.be.an('array');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{order_service_url}}/api/orders/{{order_id}}",
+                  "host": ["{{order_service_url}}"],
+                  "path": ["api", "orders", "{{order_id}}"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set authorization header if access_token is available",
+          "const token = pm.collectionVariables.get('access_token');",
+          "if (token && !pm.request.headers.has('Authorization')) {",
+          "    pm.request.headers.add({",
+          "        key: 'Authorization',",
+          "        value: 'Bearer ' + token",
+          "    });",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script - Log response time and status",
+          "console.log(`${pm.info.requestName}: ${pm.response.status} ${pm.response.code} (${pm.response.responseTime}ms)`);",
+          "",
+          "// Log any errors",
+          "if (pm.response.code >= 400) {",
+          "    console.log('Response body:', pm.response.text());",
+          "}"
+        ]
+      }
+    }
+  ]
+}

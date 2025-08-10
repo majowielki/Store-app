@@ -102,6 +102,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// NOTE: Do NOT use AuditLoggingMiddleware in AuditLogService to avoid recursion
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())

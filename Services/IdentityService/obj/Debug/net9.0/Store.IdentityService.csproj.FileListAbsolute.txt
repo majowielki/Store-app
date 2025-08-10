@@ -138,7 +138,6 @@ D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentitySe
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.AssemblyInfoInputs.cache
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.AssemblyInfo.cs
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.csproj.CoreCompileInputs.cache
-D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.MvcApplicationPartsAssemblyInfo.cache
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.sourcelink.json
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\rjimswa.dswa.cache.json
@@ -155,4 +154,4 @@ D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\refint\Store.Ide
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.pdb
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\ref\Store.IdentityService.dll
-D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.MvcApplicationPartsAssemblyInfo.cs

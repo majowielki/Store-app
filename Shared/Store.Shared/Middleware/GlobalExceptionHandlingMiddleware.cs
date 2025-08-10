@@ -84,14 +84,3 @@ public class GlobalExceptionHandlingMiddleware
         await context.Response.WriteAsync(jsonResponse);
     }
 }
-
-/// <summary>
-/// Extension method to register the global exception handling middleware
-/// </summary>
-public static class GlobalExceptionHandlingMiddlewareExtensions
-{
-    public static IApplicationBuilder UseGlobalExceptionHandling(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<GlobalExceptionHandlingMiddleware>();
-    }
-}

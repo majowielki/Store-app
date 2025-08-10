@@ -11,7 +11,7 @@
 -- Create databases for each microservice
 CREATE DATABASE store_identity_db
     WITH 
-    OWNER = postgres
+    OWNER = store_user
     ENCODING = 'UTF8'
     LC_COLLATE = 'en_US.utf8'
     LC_CTYPE = 'en_US.utf8'
@@ -20,7 +20,7 @@ CREATE DATABASE store_identity_db
 
 CREATE DATABASE store_product_db
     WITH 
-    OWNER = postgres
+    OWNER = store_user
     ENCODING = 'UTF8'
     LC_COLLATE = 'en_US.utf8'
     LC_CTYPE = 'en_US.utf8'
@@ -29,7 +29,7 @@ CREATE DATABASE store_product_db
 
 CREATE DATABASE store_cart_db
     WITH 
-    OWNER = postgres
+    OWNER = store_user
     ENCODING = 'UTF8'
     LC_COLLATE = 'en_US.utf8'
     LC_CTYPE = 'en_US.utf8'
@@ -38,7 +38,7 @@ CREATE DATABASE store_cart_db
 
 CREATE DATABASE store_order_db
     WITH 
-    OWNER = postgres
+    OWNER = store_user
     ENCODING = 'UTF8'
     LC_COLLATE = 'en_US.utf8'
     LC_CTYPE = 'en_US.utf8'
@@ -47,7 +47,7 @@ CREATE DATABASE store_order_db
 
 CREATE DATABASE store_audit_db
     WITH 
-    OWNER = postgres
+    OWNER = store_user
     ENCODING = 'UTF8'
     LC_COLLATE = 'en_US.utf8'
     LC_CTYPE = 'en_US.utf8'
@@ -55,11 +55,11 @@ CREATE DATABASE store_audit_db
     CONNECTION LIMIT = -1;
 
 -- Grant all privileges to the postgres user for all databases
-GRANT ALL PRIVILEGES ON DATABASE store_identity_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE store_product_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE store_cart_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE store_order_db TO postgres;
-GRANT ALL PRIVILEGES ON DATABASE store_audit_db TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE store_identity_db TO store_user;
+GRANT ALL PRIVILEGES ON DATABASE store_product_db TO store_user;
+GRANT ALL PRIVILEGES ON DATABASE store_cart_db TO store_user;
+GRANT ALL PRIVILEGES ON DATABASE store_order_db TO store_user;
+GRANT ALL PRIVILEGES ON DATABASE store_audit_db TO store_user;
 
 -- Connect to each database and create useful extensions
 \c store_identity_db;

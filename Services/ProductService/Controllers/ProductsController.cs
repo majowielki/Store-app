@@ -21,16 +21,18 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Get all products with filtering and pagination
+    /// Get all products with filtering and pagination (Frontend compatible)
+    /// Returns: ProductsResponse = { data: Product[]; meta: ProductsMeta; }
+    /// Product = { id: number; attributes: { category, company, createdAt, description, featured, image, price, publishedAt, title, updatedAt, colors } }
     /// </summary>
-    /// <param name="request">Query parameters for filtering and pagination</param>
-    /// <returns>Paginated list of products</returns>
+    /// <param name="queryParams">Query parameters for filtering and pagination</param>
+    /// <returns>Products response in frontend format</returns>
     [HttpGet]
-    public async Task<ActionResult<ProductListResponse>> GetProducts([FromQuery] ProductQueryRequest request)
+    public async Task<ActionResult<ProductsResponse>> GetProducts([FromQuery] ProductQueryParams queryParams)
     {
         try
         {
-            var result = await _productService.GetProductsAsync(request);
+            var result = await _productService.GetProductsForFrontendAsync(queryParams);
             return Ok(result);
         }
         catch (Exception ex)
@@ -41,28 +43,56 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Get a specific product by ID
+    /// Get a specific product by ID (Frontend compatible)
+    /// Returns: SingleProductResponse = { data: Product; meta: {} }
     /// </summary>
     /// <param name="id">Product ID</param>
-    /// <returns>Product details</returns>
+    /// <returns>Product details in frontend format</returns>
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductResponse>> GetProduct(int id)
+    public async Task<ActionResult<SingleProductResponse>> GetProduct(int id)
     {
         try
         {
-            var product = await _productService.GetProductByIdAsync(id);
-            
-            if (product == null)
-            {
-                return NotFound($"Product with ID {id} not found");
-            }
-
+            var product = await _productService.GetProductForFrontendAsync(id);
             return Ok(product);
+        }
+        catch (ArgumentException)
+        {
+            return NotFound($"Product with ID {id} not found");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving product with ID: {ProductId}", id);
             return StatusCode(500, "An error occurred while retrieving the product");
+        }
+    }
+
+    /// <summary>
+    /// Search products that contain the searched phrase
+    /// </summary>
+    /// <param name="search">Search term</param>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <returns>List of matching products in frontend format</returns>
+    [HttpGet("search")]
+    public async Task<ActionResult<ProductsResponse>> SearchProducts(
+        [FromQuery] string search,
+        [FromQuery] int page = 1)
+    {
+        if (string.IsNullOrEmpty(search))
+        {
+            return BadRequest("Search term is required");
+        }
+
+        try
+        {
+            var queryParams = new ProductQueryParams { Search = search, Page = page };
+            var result = await _productService.GetProductsForFrontendAsync(queryParams);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching products with term: {SearchTerm}", search);
+            return StatusCode(500, "An error occurred while searching products");
         }
     }
 
@@ -78,6 +108,12 @@ public class ProductsController : BaseApiController
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
+        }
+
+        // Check if user is demo admin and deny access
+        if (IsDemoAdmin())
+        {
+            return StatusCode(403, "Demo admin is not authorized to create products");
         }
 
         try
@@ -107,6 +143,12 @@ public class ProductsController : BaseApiController
             return BadRequest(ModelState);
         }
 
+        // Check if user is demo admin and deny access
+        if (IsDemoAdmin())
+        {
+            return StatusCode(403, "Demo admin is not authorized to update products");
+        }
+
         try
         {
             var product = await _productService.UpdateProductAsync(id, request);
@@ -134,6 +176,12 @@ public class ProductsController : BaseApiController
     [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult> DeleteProduct(int id)
     {
+        // Check if user is demo admin and deny access
+        if (IsDemoAdmin())
+        {
+            return StatusCode(403, "Demo admin is not authorized to delete products");
+        }
+
         try
         {
             var success = await _productService.DeleteProductAsync(id);
@@ -153,102 +201,36 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
-    /// Get products by category
+    /// Get products metadata (categories, companies)
     /// </summary>
-    /// <param name="category">Product category</param>
-    /// <param name="page">Page number (default: 1)</param>
-    /// <param name="pageSize">Page size (default: 20)</param>
-    /// <returns>List of products in the category</returns>
-    [HttpGet("category/{category}")]
-    public async Task<ActionResult<IEnumerable<ProductResponse>>> GetProductsByCategory(
-        Category category,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    /// <returns>Products metadata</returns>
+    [HttpGet("meta")]
+    public async Task<ActionResult<ProductsMeta>> GetProductsMeta()
     {
         try
         {
-            var products = await _productService.GetProductsByCategoryAsync(category, page, pageSize);
-            return Ok(products);
+            var meta = await _productService.GetProductsMetaAsync();
+            return Ok(meta);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving products by category: {Category}", category);
-            return StatusCode(500, "An error occurred while retrieving products by category");
+            _logger.LogError(ex, "Error retrieving products meta");
+            return StatusCode(500, "An error occurred while retrieving products metadata");
         }
     }
 
     /// <summary>
-    /// Get products by company
+    /// Check if the current user is a demo admin
     /// </summary>
-    /// <param name="company">Product company</param>
-    /// <param name="page">Page number (default: 1)</param>
-    /// <param name="pageSize">Page size (default: 20)</param>
-    /// <returns>List of products from the company</returns>
-    [HttpGet("company/{company}")]
-    public async Task<ActionResult<IEnumerable<ProductResponse>>> GetProductsByCompany(
-        Company company,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    /// <returns>True if demo admin, false otherwise</returns>
+    private bool IsDemoAdmin()
     {
-        try
-        {
-            var products = await _productService.GetProductsByCompanyAsync(company, page, pageSize);
-            return Ok(products);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving products by company: {Company}", company);
-            return StatusCode(500, "An error occurred while retrieving products by company");
-        }
-    }
-
-    /// <summary>
-    /// Search products
-    /// </summary>
-    /// <param name="searchTerm">Search term</param>
-    /// <param name="page">Page number (default: 1)</param>
-    /// <param name="pageSize">Page size (default: 20)</param>
-    /// <returns>List of matching products</returns>
-    [HttpGet("search")]
-    public async Task<ActionResult<IEnumerable<ProductResponse>>> SearchProducts(
-        [FromQuery] string searchTerm,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
-    {
-        if (string.IsNullOrEmpty(searchTerm))
-        {
-            return BadRequest("Search term is required");
-        }
-
-        try
-        {
-            var products = await _productService.SearchProductsAsync(searchTerm, page, pageSize);
-            return Ok(products);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
-            return StatusCode(500, "An error occurred while searching products");
-        }
-    }
-
-    /// <summary>
-    /// Check if a product exists
-    /// </summary>
-    /// <param name="id">Product ID</param>
-    /// <returns>Boolean indicating if product exists</returns>
-    [HttpGet("{id}/exists")]
-    public async Task<ActionResult<bool>> ProductExists(int id)
-    {
-        try
-        {
-            var exists = await _productService.ProductExistsAsync(id);
-            return Ok(exists);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error checking if product exists with ID: {ProductId}", id);
-            return StatusCode(500, "An error occurred while checking product existence");
-        }
+        var userRole = User?.FindFirst(ClaimTypes.Role)?.Value;
+        var userEmail = User?.FindFirst(ClaimTypes.Email)?.Value;
+        
+        // Check if user has demo admin role or email
+        return userRole?.ToLower() == Constants.Role_DemoAdmin.ToLower() || 
+               userEmail?.ToLower() == Constants.DemoAdminEmail.ToLower() ||
+               User?.FindFirst("demo")?.Value == "true";
     }
 }

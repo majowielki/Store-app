@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 
 import { logoutUser } from '../features/user/userSlice';
-import { clearCart } from '../features/cart/cartSlice';
+import { clearCart, clearCartOnServer } from '../features/cart/cartSlice';
 import { useToast } from '../hooks/use-toast';
 
 const Header = () => {
@@ -12,7 +12,11 @@ const Header = () => {
   const { toast } = useToast();
 
   const user = useAppSelector((state) => state.userState.user);
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // attempt to clear server cart if authenticated
+    if (user) {
+      await dispatch(clearCartOnServer());
+    }
     dispatch(clearCart());
     dispatch(logoutUser());
     toast({ description: 'Logged Out' });
@@ -25,7 +29,7 @@ const Header = () => {
 
         {user ? (
           <div className='flex gap-x-2 sm:gap-x-8 items-center'>
-            <p className='text-xs sm:text-sm'>Hello, {user.username}</p>
+            <p className='text-xs sm:text-sm'>Hello, {user.userName}</p>
             <Button variant='link' size='sm' onClick={handleLogout}>
               Logout
             </Button>

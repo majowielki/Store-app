@@ -123,7 +123,7 @@ public class OrdersController : ControllerBase
     /// <param name="pageSize">Page size</param>
     /// <returns>Paginated list of all orders</returns>
     [HttpGet]
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "true-admin,demo-admin")]
     public async Task<ActionResult<OrderListResponse>> GetAllOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         try

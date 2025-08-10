@@ -1,7 +1,7 @@
 {
-  "Store.CartService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\CartService",
-  "Store.GatewayService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Gateway\\APIGateway",
-  "Store.IdentityService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\IdentityService",
-  "Store.OrderService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\OrderService",
-  "Store.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Shared\\Store.Shared"
+  "Store.CartService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "d:\\Projekty\\store-app\\Services\\CartService",
+  "Store.GatewayService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "d:\\Projekty\\store-app\\Gateway\\APIGateway",
+  "Store.IdentityService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "d:\\Projekty\\store-app\\Services\\IdentityService",
+  "Store.OrderService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "d:\\Projekty\\store-app\\Services\\OrderService",
+  "Store.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "d:\\Projekty\\store-app\\Shared\\Store.Shared"
 }

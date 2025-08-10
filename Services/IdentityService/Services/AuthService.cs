@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
 using Store.Shared.Models;
 using Store.Shared.Utility;
+using Store.Shared.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace Store.IdentityService.Services;
 
@@ -20,29 +21,54 @@ public class AuthService : IAuthService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly Store.Shared.Services.IAuditLogClient _auditLogClient;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<IdentityRole> roleManager,
         IConfiguration configuration,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IHttpContextAccessor httpContextAccessor,
+        Store.Shared.Services.IAuditLogClient auditLogClient)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _configuration = configuration;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
+        _auditLogClient = auditLogClient;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        var ipAddress = GetClientIpAddress();
+        var userAgent = GetUserAgent();
+        
         try
         {
-            // Check if user already exists
             var existingUser = await _userManager.FindByEmailAsync(request.Email);
             if (existingUser != null)
             {
+                // Log failed registration attempt - user already exists
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "USER_REGISTRATION_FAILED",
+                    EntityName = "ApplicationUser",
+                    UserEmail = request.Email,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "EmailAlreadyExists",
+                        AttemptedEmail = request.Email,
+                        AttemptedFirstName = request.FirstName,
+                        AttemptedLastName = request.LastName
+                    })
+                });
+
                 return new AuthResponse
                 {
                     Success = false,
@@ -50,7 +76,6 @@ public class AuthService : IAuthService
                 };
             }
 
-            // Create new user
             var user = new ApplicationUser
             {
                 UserName = request.Email,
@@ -67,6 +92,23 @@ public class AuthService : IAuthService
             if (!result.Succeeded)
             {
                 var errors = result.Errors.Select(e => e.Description).ToList();
+                
+                // Log failed registration attempt - validation errors
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "USER_REGISTRATION_FAILED",
+                    EntityName = "ApplicationUser",
+                    UserEmail = request.Email,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "ValidationErrors",
+                        Errors = errors,
+                        AttemptedEmail = request.Email
+                    })
+                });
+
                 return new AuthResponse
                 {
                     Success = false,
@@ -74,14 +116,55 @@ public class AuthService : IAuthService
                 };
             }
 
-            // Assign default user role
             await EnsureRoleExistsAsync(Constants.Role_User);
             await _userManager.AddToRoleAsync(user, Constants.Role_User);
 
+            // Log successful registration
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "USER_REGISTRATION_SUCCESS",
+                EntityName = "ApplicationUser",
+                EntityId = user.Id,
+                UserId = user.Id,
+                UserEmail = user.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                NewValues = JsonSerializer.Serialize(new
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Roles = new[] { Constants.Role_User }
+                }),
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    AccountStatus = "Active",
+                    EmailConfirmed = true,
+                    AutoAssignedRole = Constants.Role_User
+                })
+            });
+
             _logger.LogInformation("User registered successfully: {Email}", request.Email);
 
-            // Generate JWT token
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
+
+            // Log token generation
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "JWT_TOKEN_GENERATED",
+                EntityName = "JWT",
+                UserId = user.Id,
+                UserEmail = user.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    TokenType = "Registration",
+                    ExpiresAt = expiresAt,
+                    UserRoles = new[] { Constants.Role_User }
+                })
+            });
 
             return new AuthResponse
             {
@@ -94,6 +177,22 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
+            // Log system error during registration
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "USER_REGISTRATION_ERROR",
+                EntityName = "ApplicationUser",
+                UserEmail = request.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    ErrorMessage = ex.Message,
+                    ErrorType = ex.GetType().Name,
+                    AttemptedEmail = request.Email
+                })
+            });
+
             _logger.LogError(ex, "Error during user registration");
             return new AuthResponse
             {
@@ -105,11 +204,29 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
+        var ipAddress = GetClientIpAddress();
+        var userAgent = GetUserAgent();
+        
         try
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null)
             {
+                // Log failed login attempt - user not found
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "USER_LOGIN_FAILED",
+                    EntityName = "ApplicationUser",
+                    UserEmail = request.Email,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "UserNotFound",
+                        AttemptedEmail = request.Email
+                    })
+                });
+
                 return new AuthResponse
                 {
                     Success = false,
@@ -119,6 +236,23 @@ public class AuthService : IAuthService
 
             if (!user.IsActive)
             {
+                // Log failed login attempt - account deactivated
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "USER_LOGIN_FAILED",
+                    EntityName = "ApplicationUser",
+                    EntityId = user.Id,
+                    UserId = user.Id,
+                    UserEmail = user.Email,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "AccountDeactivated",
+                        AttemptedEmail = request.Email
+                    })
+                });
+
                 return new AuthResponse
                 {
                     Success = false,
@@ -129,6 +263,26 @@ public class AuthService : IAuthService
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
             if (!result.Succeeded)
             {
+                // Log failed login attempt - invalid password
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "USER_LOGIN_FAILED",
+                    EntityName = "ApplicationUser",
+                    EntityId = user.Id,
+                    UserId = user.Id,
+                    UserEmail = user.Email,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "InvalidPassword",
+                        AttemptedEmail = request.Email,
+                        IsLockedOut = result.IsLockedOut,
+                        IsNotAllowed = result.IsNotAllowed,
+                        RequiresTwoFactor = result.RequiresTwoFactor
+                    })
+                });
+
                 return new AuthResponse
                 {
                     Success = false,
@@ -136,13 +290,56 @@ public class AuthService : IAuthService
                 };
             }
 
-            // Update last login
+            // Update last login time
+            var oldLastLoginAt = user.LastLoginAt;
             user.LastLoginAt = DateTime.UtcNow;
             user.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
 
-            // Generate JWT token
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
+
+            // Log successful login
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "USER_LOGIN_SUCCESS",
+                EntityName = "ApplicationUser",
+                EntityId = user.Id,
+                UserId = user.Id,
+                UserEmail = user.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                OldValues = JsonSerializer.Serialize(new
+                {
+                    LastLoginAt = oldLastLoginAt
+                }),
+                NewValues = JsonSerializer.Serialize(new
+                {
+                    LastLoginAt = user.LastLoginAt
+                }),
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    LoginMethod = "EmailPassword",
+                    TokenExpiresAt = expiresAt,
+                    UserRoles = await _userManager.GetRolesAsync(user)
+                })
+            });
+
+            // Log token generation
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "JWT_TOKEN_GENERATED",
+                EntityName = "JWT",
+                UserId = user.Id,
+                UserEmail = user.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    TokenType = "Login",
+                    ExpiresAt = expiresAt,
+                    UserRoles = await _userManager.GetRolesAsync(user)
+                })
+            });
 
             _logger.LogInformation("User logged in successfully: {Email}", request.Email);
 
@@ -157,6 +354,22 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
+            // Log system error during login
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "USER_LOGIN_ERROR",
+                EntityName = "ApplicationUser",
+                UserEmail = request.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    ErrorMessage = ex.Message,
+                    ErrorType = ex.GetType().Name,
+                    AttemptedEmail = request.Email
+                })
+            });
+
             _logger.LogError(ex, "Error during login");
             return new AuthResponse
             {
@@ -168,12 +381,29 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> DemoLoginAsync(DemoLoginRequest request)
     {
+        var ipAddress = GetClientIpAddress();
+        var userAgent = GetUserAgent();
+        
         try
         {
-            // Find demo user
             var demoUser = await _userManager.FindByEmailAsync(Constants.DemoUserEmail);
             if (demoUser == null)
             {
+                // Log demo user not found error
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "DEMO_LOGIN_FAILED",
+                    EntityName = "ApplicationUser",
+                    UserEmail = Constants.DemoUserEmail,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "DemoUserNotFound",
+                        ExpectedEmail = Constants.DemoUserEmail
+                    })
+                });
+
                 _logger.LogError("Demo user not found. Should be created during database initialization.");
                 return new AuthResponse
                 {
@@ -182,13 +412,56 @@ public class AuthService : IAuthService
                 };
             }
 
-            // Update last login
+            // Update last login time
+            var oldLastLoginAt = demoUser.LastLoginAt;
             demoUser.LastLoginAt = DateTime.UtcNow;
             demoUser.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(demoUser);
 
-            // Generate JWT token
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(demoUser);
+
+            // Log successful demo login
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "DEMO_LOGIN_SUCCESS",
+                EntityName = "ApplicationUser",
+                EntityId = demoUser.Id,
+                UserId = demoUser.Id,
+                UserEmail = demoUser.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                OldValues = JsonSerializer.Serialize(new
+                {
+                    LastLoginAt = oldLastLoginAt
+                }),
+                NewValues = JsonSerializer.Serialize(new
+                {
+                    LastLoginAt = demoUser.LastLoginAt
+                }),
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    LoginMethod = "DemoLogin",
+                    TokenExpiresAt = expiresAt,
+                    UserRoles = await _userManager.GetRolesAsync(demoUser)
+                })
+            });
+
+            // Log demo token generation
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "JWT_TOKEN_GENERATED",
+                EntityName = "JWT",
+                UserId = demoUser.Id,
+                UserEmail = demoUser.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    TokenType = "DemoLogin",
+                    ExpiresAt = expiresAt,
+                    UserRoles = await _userManager.GetRolesAsync(demoUser)
+                })
+            });
 
             _logger.LogInformation("Demo user logged in successfully");
 
@@ -203,6 +476,21 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
+            // Log demo login error
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "DEMO_LOGIN_ERROR",
+                EntityName = "ApplicationUser",
+                UserEmail = Constants.DemoUserEmail,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    ErrorMessage = ex.Message,
+                    ErrorType = ex.GetType().Name
+                })
+            });
+
             _logger.LogError(ex, "Error during demo login");
             return new AuthResponse
             {
@@ -212,70 +500,246 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResponse> CreateTrueAdminAsync(CreateTrueAdminRequest request)
+    public async Task<AuthResponse> DemoAdminLoginAsync(DemoAdminLoginRequest request)
     {
+        var ipAddress = GetClientIpAddress();
+        var userAgent = GetUserAgent();
+        
         try
         {
-            // Verify admin creation token
-            var validToken = _configuration[Constants.AdminCreationTokenKey];
-            if (string.IsNullOrEmpty(validToken) || request.AdminCreationToken != validToken)
+            var demoAdmin = await _userManager.FindByEmailAsync(Constants.DemoAdminEmail);
+            if (demoAdmin == null)
             {
-                _logger.LogWarning("Invalid admin creation token attempted");
+                // Log demo admin not found error
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "DEMO_ADMIN_LOGIN_FAILED",
+                    EntityName = "ApplicationUser",
+                    UserEmail = Constants.DemoAdminEmail,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "DemoAdminNotFound",
+                        ExpectedEmail = Constants.DemoAdminEmail
+                    })
+                });
+
+                _logger.LogError("Demo admin not found. Should be created during database initialization.");
                 return new AuthResponse
                 {
                     Success = false,
-                    Message = "Invalid admin creation token"
+                    Message = "Demo admin not available"
                 };
             }
 
-            // Check if user already exists
-            var existingUser = await _userManager.FindByEmailAsync(request.Email);
-            if (existingUser != null)
+            // Update last login time
+            var oldLastLoginAt = demoAdmin.LastLoginAt;
+            demoAdmin.LastLoginAt = DateTime.UtcNow;
+            demoAdmin.UpdatedAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(demoAdmin);
+
+            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(demoAdmin);
+
+            // Log successful demo admin login
+            await LogAuthenticationEventAsync(new AuditLog
             {
-                return new AuthResponse
+                Action = "DEMO_ADMIN_LOGIN_SUCCESS",
+                EntityName = "ApplicationUser",
+                EntityId = demoAdmin.Id,
+                UserId = demoAdmin.Id,
+                UserEmail = demoAdmin.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                OldValues = JsonSerializer.Serialize(new
                 {
-                    Success = false,
-                    Message = "User with this email already exists"
-                };
-            }
-
-            // Create new true admin user
-            var user = new ApplicationUser
-            {
-                UserName = request.Email,
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                EmailConfirmed = true,
-                IsActive = true
-            };
-
-            var result = await _userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return new AuthResponse
+                    LastLoginAt = oldLastLoginAt
+                }),
+                NewValues = JsonSerializer.Serialize(new
                 {
-                    Success = false,
-                    Message = string.Join(", ", errors)
-                };
-            }
+                    LastLoginAt = demoAdmin.LastLoginAt
+                }),
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    LoginMethod = "DemoAdminLogin",
+                    TokenExpiresAt = expiresAt,
+                    UserRoles = await _userManager.GetRolesAsync(demoAdmin)
+                })
+            });
 
-            // Assign true admin role
-            await EnsureRoleExistsAsync(Constants.Role_TrueAdmin);
-            await _userManager.AddToRoleAsync(user, Constants.Role_TrueAdmin);
+            // Log demo admin token generation
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "JWT_TOKEN_GENERATED",
+                EntityName = "JWT",
+                UserId = demoAdmin.Id,
+                UserEmail = demoAdmin.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    TokenType = "DemoAdminLogin",
+                    ExpiresAt = expiresAt,
+                    UserRoles = await _userManager.GetRolesAsync(demoAdmin)
+                })
+            });
 
-            _logger.LogInformation("True admin created successfully: {Email}", request.Email);
-
-            // Generate JWT token
-            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
+            _logger.LogInformation("Demo admin logged in successfully");
 
             return new AuthResponse
             {
                 Success = true,
-                Message = "True admin created successfully",
+                Message = "Demo admin login successful",
+                AccessToken = accessToken,
+                ExpiresAt = expiresAt,
+                User = await MapToUserResponseAsync(demoAdmin)
+            };
+        }
+        catch (Exception ex)
+        {
+            // Log demo admin login error
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "DEMO_ADMIN_LOGIN_ERROR",
+                EntityName = "ApplicationUser",
+                UserEmail = Constants.DemoAdminEmail,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    ErrorMessage = ex.Message,
+                    ErrorType = ex.GetType().Name
+                })
+            });
+
+            _logger.LogError(ex, "Error during demo admin login");
+            return new AuthResponse
+            {
+                Success = false,
+                Message = "An error occurred during demo admin login"
+            };
+        }
+    }
+
+    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    {
+        var ipAddress = GetClientIpAddress();
+        var userAgent = GetUserAgent();
+        
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
+            
+            ClaimsPrincipal principal;
+            try
+            {
+                principal = tokenHandler.ValidateToken(request.Token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidIssuer = _configuration["JwtSettings:Issuer"],
+                    ValidAudience = _configuration["JwtSettings:Audience"],
+                    ValidateLifetime = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+            }
+            catch (Exception tokenEx)
+            {
+                // Log invalid token refresh attempt
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "TOKEN_REFRESH_FAILED",
+                    EntityName = "JWT",
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "InvalidToken",
+                        TokenError = tokenEx.Message,
+                        ProvidedToken = request.Token?.Substring(0, Math.Min(50, request.Token.Length)) + "..."
+                    })
+                });
+
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid token"
+                };
+            }
+
+            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                // Log token refresh failure - no user ID in token
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "TOKEN_REFRESH_FAILED",
+                    EntityName = "JWT",
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = "NoUserIdInToken"
+                    })
+                });
+
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "Invalid token"
+                };
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null || !user.IsActive)
+            {
+                // Log token refresh failure - user not found or inactive
+                await LogAuthenticationEventAsync(new AuditLog
+                {
+                    Action = "TOKEN_REFRESH_FAILED",
+                    EntityName = "JWT",
+                    UserId = userId,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    AdditionalInfo = JsonSerializer.Serialize(new
+                    {
+                        Reason = user == null ? "UserNotFound" : "UserInactive",
+                        UserId = userId
+                    })
+                });
+
+                return new AuthResponse
+                {
+                    Success = false,
+                    Message = "User not found or inactive"
+                };
+            }
+
+            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
+
+            // Log successful token refresh
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "TOKEN_REFRESH_SUCCESS",
+                EntityName = "JWT",
+                UserId = user.Id,
+                UserEmail = user.Email,
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    NewTokenExpiresAt = expiresAt,
+                    UserRoles = await _userManager.GetRolesAsync(user)
+                })
+            });
+
+            _logger.LogInformation("Token refreshed successfully for user: {UserId}", userId);
+
+            return new AuthResponse
+            {
+                Success = true,
+                Message = "Token refreshed successfully",
                 AccessToken = accessToken,
                 ExpiresAt = expiresAt,
                 User = await MapToUserResponseAsync(user)
@@ -283,16 +747,30 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during true admin creation");
+            // Log token refresh system error
+            await LogAuthenticationEventAsync(new AuditLog
+            {
+                Action = "TOKEN_REFRESH_ERROR",
+                EntityName = "JWT",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                AdditionalInfo = JsonSerializer.Serialize(new
+                {
+                    ErrorMessage = ex.Message,
+                    ErrorType = ex.GetType().Name
+                })
+            });
+
+            _logger.LogError(ex, "Error during token refresh");
             return new AuthResponse
             {
                 Success = false,
-                Message = "An error occurred during admin creation"
+                Message = "An error occurred during token refresh"
             };
         }
     }
 
-    public async Task<ApiResponse<UserResponse>> GetUserProfileAsync(string userId)
+    public async Task<ApiResponse<UserResponse>> GetCurrentUserAsync(string userId)
     {
         try
         {
@@ -307,12 +785,12 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving user profile");
-            return ApiResponse<UserResponse>.Error("An error occurred while retrieving profile");
+            _logger.LogError(ex, "Error retrieving current user");
+            return ApiResponse<UserResponse>.Error("An error occurred while retrieving user information");
         }
     }
 
-    public async Task<ApiResponse<UserResponse>> UpdateUserProfileAsync(string userId, UpdateProfileRequest request)
+    public async Task<ApiResponse<UserResponse>> GetUserAsync(string userId)
     {
         try
         {
@@ -322,85 +800,13 @@ public class AuthService : IAuthService
                 return ApiResponse<UserResponse>.Error("User not found");
             }
 
-            // Update user properties
-            if (!string.IsNullOrEmpty(request.FirstName))
-                user.FirstName = request.FirstName;
-            
-            if (!string.IsNullOrEmpty(request.LastName))
-                user.LastName = request.LastName;
-            
-            if (!string.IsNullOrEmpty(request.SimpleAddress))
-                user.SimpleAddress = request.SimpleAddress;
-
-            user.UpdatedAt = DateTime.UtcNow;
-
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<UserResponse>.ValidationError(errors);
-            }
-
             var userResponse = await MapToUserResponseAsync(user);
-            return ApiResponse<UserResponse>.Success(userResponse, "Profile updated successfully");
+            return ApiResponse<UserResponse>.Success(userResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user profile");
-            return ApiResponse<UserResponse>.Error("An error occurred while updating profile");
-        }
-    }
-
-    public async Task<ApiResponse<string>> ChangePasswordAsync(string userId, ChangePasswordRequest request)
-    {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return ApiResponse<string>.Error("User not found");
-            }
-
-            var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<string>.ValidationError(errors);
-            }
-
-            return ApiResponse<string>.Success("", "Password changed successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during password change");
-            return ApiResponse<string>.Error("An error occurred while changing password");
-        }
-    }
-
-    public async Task<bool> ValidateTokenAsync(string token)
-    {
-        try
-        {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
-            
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = true,
-                ValidIssuer = _configuration["JwtSettings:Issuer"],
-                ValidateAudience = true,
-                ValidAudience = _configuration["JwtSettings:Audience"],
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            }, out SecurityToken validatedToken);
-
-            return true;
-        }
-        catch
-        {
-            return false;
+            _logger.LogError(ex, "Error retrieving user");
+            return ApiResponse<UserResponse>.Error("An error occurred while retrieving user information");
         }
     }
 
@@ -429,120 +835,6 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<ApiResponse<string>> AssignRoleAsync(string userId, string role)
-    {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return ApiResponse<string>.Error("User not found");
-            }
-
-            await EnsureRoleExistsAsync(role);
-
-            if (await _userManager.IsInRoleAsync(user, role))
-            {
-                return ApiResponse<string>.Success("", $"User already has {role} role");
-            }
-
-            var result = await _userManager.AddToRoleAsync(user, role);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<string>.ValidationError(errors);
-            }
-
-            return ApiResponse<string>.Success("", $"Role {role} assigned successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error assigning role");
-            return ApiResponse<string>.Error("An error occurred while assigning role");
-        }
-    }
-
-    public async Task<ApiResponse<string>> RemoveRoleAsync(string userId, string role)
-    {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return ApiResponse<string>.Error("User not found");
-            }
-
-            if (!await _userManager.IsInRoleAsync(user, role))
-            {
-                return ApiResponse<string>.Success("", $"User doesn't have {role} role");
-            }
-
-            var result = await _userManager.RemoveFromRoleAsync(user, role);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<string>.ValidationError(errors);
-            }
-
-            return ApiResponse<string>.Success("", $"Role {role} removed successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error removing role");
-            return ApiResponse<string>.Error("An error occurred while removing role");
-        }
-    }
-
-    public async Task<ApiResponse<string>> DeleteUserAsync(string userId)
-    {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return ApiResponse<string>.Error("User not found");
-            }
-
-            // Prevent deletion of demo user
-            if (user.Email == Constants.DemoUserEmail)
-            {
-                return ApiResponse<string>.Error("Cannot delete demo user");
-            }
-
-            var result = await _userManager.DeleteAsync(user);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<string>.ValidationError(errors);
-            }
-
-            _logger.LogInformation("User deleted successfully: {UserId}", userId);
-            return ApiResponse<string>.Success("", "User deleted successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting user");
-            return ApiResponse<string>.Error("An error occurred while deleting user");
-        }
-    }
-
-    public async Task<ApiResponse<string>> DemoAdminAttemptCreateAsync()
-    {
-        return ApiResponse<string>.Error("Demo admin cannot create users. Contact a true administrator for user creation.");
-    }
-
-    public async Task<ApiResponse<string>> DemoAdminAttemptUpdateAsync()
-    {
-        return ApiResponse<string>.Error("Demo admin cannot update users. Contact a true administrator for user updates.");
-    }
-
-    public async Task<ApiResponse<string>> DemoAdminAttemptDeleteAsync()
-    {
-        return ApiResponse<string>.Error("Demo admin cannot delete users. Contact a true administrator for user deletion.");
-    }
-
-    #region Private Methods
-
     private async Task<(string token, DateTime expiresAt)> GenerateAccessTokenAsync(ApplicationUser user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -561,11 +853,10 @@ public class AuthService : IAuthService
             new("displayName", user.DisplayName)
         };
 
-        // Add role claims
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
-            claims.Add(new Claim("role", role)); // For policy-based authorization
+            claims.Add(new Claim("role", role));
         }
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -608,5 +899,76 @@ public class AuthService : IAuthService
         }
     }
 
-    #endregion
+    /// <summary>
+    /// Helper method to log authentication events to the audit service
+    /// </summary>
+    private async Task LogAuthenticationEventAsync(AuditLog auditLog)
+    {
+        try
+        {
+            // Ensure timestamp is set
+            if (auditLog.Timestamp == default)
+            {
+                auditLog.Timestamp = DateTime.UtcNow;
+            }
+
+            await _auditLogClient.CreateAuditLogAsync(auditLog);
+        }
+        catch (Exception ex)
+        {
+            // Don't let audit logging failures break the main operation
+            _logger.LogError(ex, "Failed to create audit log for action: {Action}", auditLog.Action);
+        }
+    }
+
+    /// <summary>
+    /// Get client IP address from HTTP context
+    /// </summary>
+    private string? GetClientIpAddress()
+    {
+        try
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context == null) return null;
+
+            // Check for forwarded headers (useful when behind proxy/load balancer)
+            var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(forwardedFor))
+            {
+                // X-Forwarded-For can contain multiple IPs, take the first one
+                return forwardedFor.Split(',')[0].Trim();
+            }
+
+            var realIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(realIp))
+            {
+                return realIp;
+            }
+
+            // Fallback to connection remote IP
+            return context.Connection.RemoteIpAddress?.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get client IP address");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Get user agent from HTTP context
+    /// </summary>
+    private string? GetUserAgent()
+    {
+        try
+        {
+            var context = _httpContextAccessor.HttpContext;
+            return context?.Request.Headers.UserAgent.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get user agent");
+            return null;
+        }
+    }
 }

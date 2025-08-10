@@ -1,6 +1,4 @@
-# Store App - Complete Docker Compose Configuration
 services:
-  # Infrastructure Services
   postgres:
     image: postgres:16-alpine
     container_name: store-postgres
@@ -63,27 +61,64 @@ services:
     networks:
       - store-network
 
-  # Microservices
-  identity-service:
+  # AuditLog Service - MUST be started first before other services
+  auditlogservice:
     build:
       context: .
-      dockerfile: Services/IdentityService/Dockerfile
-    container_name: store-identity-service
+      dockerfile: Services/AuditLogService/Dockerfile
+    container_name: store-auditlogservice
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5004
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_audit_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+    ports:
+      - "5004:5004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - store-network
+
+  # Identity Service
+  identityservice:
+    build:
+      context: .
+      dockerfile: Services/IdentityService/Dockerfile
+    container_name: store-identityservice
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5001
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_identity_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
       - ConnectionStrings__Redis=redis:6379
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - JwtSettings__Authority=https://localhost:5001
+      - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
+      - TRUE_ADMIN_EMAIL=trueadmin@store.com
+      - TRUE_ADMIN_PASSWORD=${TRUE_ADMIN_PASSWORD:-SecurePassword123!}
     ports:
       - "5001:5001"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      auditlogservice:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
@@ -94,50 +129,23 @@ services:
     networks:
       - store-network
 
-  product-service:
+  # Product Service
+  productservice:
     build:
       context: .
       dockerfile: Services/ProductService/Dockerfile
-    container_name: store-product-service
+    container_name: store-productservice
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5003
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_product_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
       - ConnectionStrings__Redis=redis:6379
-      - RabbitMQ__HostName=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__ExchangeName=store_events
-    ports:
-      - "5002:5002"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - store-network
-
-  cart-service:
-    build:
-      context: .
-      dockerfile: Services/CartService/Dockerfile
-    container_name: store-cart-service
-    restart: unless-stopped
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_cart_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+      - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
+      - Services__IdentityService=http://identityservice:5001
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__Port=5672
       - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
@@ -153,6 +161,10 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      auditlogservice:
+        condition: service_healthy
+      identityservice:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
       interval: 30s
@@ -162,50 +174,24 @@ services:
     networks:
       - store-network
 
-  order-service:
+  # Cart Service
+  cartservice:
     build:
       context: .
-      dockerfile: Services/OrderService/Dockerfile
-    container_name: store-order-service
+      dockerfile: Services/CartService/Dockerfile
+    container_name: store-cartservice
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_order_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
+      - ASPNETCORE_URLS=http://+:5005
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_cart_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
       - ConnectionStrings__Redis=redis:6379
-      - RabbitMQ__HostName=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__ExchangeName=store_events
-    ports:
-      - "5004:5004"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - store-network
-
-  audit-service:
-    build:
-      context: .
-      dockerfile: Services/AuditLogService/Dockerfile
-    container_name: store-audit-service
-    restart: unless-stopped
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_audit_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+      - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
+      - Services__IdentityService=http://identityservice:5001
+      - Services__ProductService=http://productservice:5003
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__Port=5672
       - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
@@ -221,6 +207,12 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      auditlogservice:
+        condition: service_healthy
+      identityservice:
+        condition: service_healthy
+      productservice:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5005/health"]
       interval: 30s
@@ -230,6 +222,58 @@ services:
     networks:
       - store-network
 
+  # Order Service
+  orderservice:
+    build:
+      context: .
+      dockerfile: Services/OrderService/Dockerfile
+    container_name: store-orderservice
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5006
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_order_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
+      - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
+      - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
+      - Services__IdentityService=http://identityservice:5001
+      - Services__ProductService=http://productservice:5003
+      - Services__CartService=http://cartservice:5005
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
+      - RabbitMQ__VirtualHost=/
+      - RabbitMQ__ExchangeName=store_events
+    ports:
+      - "5006:5006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auditlogservice:
+        condition: service_healthy
+      identityservice:
+        condition: service_healthy
+      productservice:
+        condition: service_healthy
+      cartservice:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - store-network
+
+  # API Gateway
   gateway:
     build:
       context: .
@@ -238,31 +282,34 @@ services:
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
       - ConnectionStrings__Redis=redis:6379
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__Issuer=Store.API
+      - JwtSettings__Audience=Store.Client
       - RabbitMQ__HostName=rabbitmq
       - RabbitMQ__Port=5672
       - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
       - RabbitMQ__VirtualHost=/
       - RabbitMQ__ExchangeName=store_events
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
-      - ServiceUrls__IdentityService=http://identity-service:5001
-      - ServiceUrls__ProductService=http://product-service:5002
-      - ServiceUrls__CartService=http://cart-service:5003
-      - ServiceUrls__OrderService=http://order-service:5004
-      - ServiceUrls__AuditService=http://audit-service:5005
+      - ServiceUrls__IdentityService=http://identityservice:5001
+      - ServiceUrls__ProductService=http://productservice:5003
+      - ServiceUrls__CartService=http://cartservice:5005
+      - ServiceUrls__OrderService=http://orderservice:5006
+      - ServiceUrls__AuditService=http://auditlogservice:5004
     ports:
       - "5000:5000"
     depends_on:
-      identity-service:
+      identityservice:
         condition: service_healthy
-      product-service:
+      productservice:
         condition: service_healthy
-      cart-service:
+      cartservice:
         condition: service_healthy
-      order-service:
+      orderservice:
         condition: service_healthy
-      audit-service:
+      auditlogservice:
         condition: service_healthy
       redis:
         condition: service_healthy

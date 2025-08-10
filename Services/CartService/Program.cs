@@ -4,6 +4,7 @@ using Store.CartService.Services;
 using StackExchange.Redis;
 using System.Text.Json.Serialization;
 using Store.Shared.Middleware;
+using Store.Shared.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -59,14 +60,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Authorization
+// Authorization (roles aligned with IdentityService)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
-        policy.RequireClaim("role", "admin"));
+        policy.RequireRole("true-admin", "demo-admin"));
 
     options.AddPolicy("UserOrAdmin", policy =>
-        policy.RequireClaim("role", "user", "admin"));
+        policy.RequireRole("user", "true-admin", "demo-admin"));
+});
+
+// Configure HttpClient for AuditLogClient with proper base address
+var auditLogServiceUrl = builder.Configuration.GetValue<string>("Services:AuditLogService:BaseUrl") ?? "http://localhost:5004";
+builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
+{
+    client.BaseAddress = new Uri(auditLogServiceUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
 });
 
 // HTTP Client
@@ -124,7 +133,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseAuditLogging();
+app.UseGlobalExceptionHandling();
 
 if (app.Environment.IsDevelopment())
 {

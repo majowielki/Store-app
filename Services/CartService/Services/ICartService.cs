@@ -14,4 +14,5 @@ public interface ICartService
     Task<bool> ClearCartAsync(string userId);
     Task<int> GetCartItemCountAsync(string userId);
     Task<decimal> GetCartTotalAsync(string userId);
+    Task<CartResponse> SyncCartAsync(string userId, SyncCartRequest request);
 }

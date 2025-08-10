@@ -38,52 +38,13 @@ public class DemoLoginRequest
     // No authentication required - just return demo user token
 }
 
-public class CreateTrueAdminRequest
+public class DemoAdminLoginRequest
 {
-    [Required]
-    public string AdminCreationToken { get; set; } = string.Empty;
-    
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
-    
-    [Required]
-    [StringLength(100, MinimumLength = 8)]
-    public string Password { get; set; } = string.Empty;
-    
-    [Required]
-    [Compare("Password")]
-    public string ConfirmPassword { get; set; } = string.Empty;
-    
-    [StringLength(100)]
-    public string? FirstName { get; set; }
-    
-    [StringLength(100)]
-    public string? LastName { get; set; }
+    // No authentication required - just return demo admin token
 }
 
-public class ChangePasswordRequest
+public class RefreshTokenRequest
 {
     [Required]
-    public string CurrentPassword { get; set; } = string.Empty;
-    
-    [Required]
-    [StringLength(100, MinimumLength = 6)]
-    public string NewPassword { get; set; } = string.Empty;
-    
-    [Required]
-    [Compare("NewPassword")]
-    public string ConfirmPassword { get; set; } = string.Empty;
-}
-
-public class UpdateProfileRequest
-{
-    [StringLength(100)]
-    public string? FirstName { get; set; }
-    
-    [StringLength(100)]
-    public string? LastName { get; set; }
-    
-    [StringLength(300)]
-    public string? SimpleAddress { get; set; }
+    public string Token { get; set; } = string.Empty;
 }

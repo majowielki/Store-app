@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { LoaderFunction, redirect, useLoaderData } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { customFetch } from '@/utils';
@@ -22,23 +23,31 @@ export const loader =
       ...new URL(request.url).searchParams.entries(),
     ]);
     try {
-      const response = await customFetch.get<OrdersResponse>('/orders', {
+      // Use user-specific endpoint; admin endpoint is protected
+      const response = await customFetch.get<OrdersResponse>('/orders/my-orders', {
         params,
-        headers: {
-          Authorization: `Bearer ${user.jwt}`,
-        },
       });
-      return { ...response.data };
+      return response.data;
     } catch (error) {
       console.log(error);
       toast({ description: 'Failed to fetch orders' });
-      return null;
+      // Return safe empty response to avoid runtime null errors
+      const empty: OrdersResponse = {
+        orders: [],
+        totalCount: 0,
+        page: Number(params.page) || 1,
+        pageSize: Number(params.pageSize) || 20,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+      return empty;
     }
   };
 
 const Orders = () => {
-  const { meta } = useLoaderData() as OrdersResponse;
-  if (meta.total < 1) {
+  const ordersResponse = useLoaderData() as OrdersResponse;
+  if (!ordersResponse || ordersResponse.totalCount < 1) {
     return <SectionTitle text='Please make an order' />;
   }
 

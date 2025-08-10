@@ -6,6 +6,8 @@ using Store.Shared.Models;
 using Store.Shared.MessageBus;
 using System.Text.Json;
 
+#nullable enable
+
 namespace Store.OrderService.Services;
 
 public class OrderService : IOrderService
@@ -15,19 +17,22 @@ public class OrderService : IOrderService
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly IMessageBus? _messageBus;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public OrderService(
         OrderDbContext context,
         ILogger<OrderService> logger,
         HttpClient httpClient,
         IConfiguration configuration,
-        IMessageBus? messageBus = null)
+    IMessageBus? messageBus = null,
+    IHttpContextAccessor? httpContextAccessor = null)
     {
         _context = context;
         _logger = logger;
         _httpClient = httpClient;
         _configuration = configuration;
         _messageBus = messageBus;
+    _httpContextAccessor = httpContextAccessor ?? new HttpContextAccessor();
     }
 
     public async Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request)
@@ -197,8 +202,20 @@ public class OrderService : IOrderService
     {
         try
         {
-            var cartServiceUrl = _configuration["Services:CartService"] ?? "https://localhost:7002";
-            var response = await _httpClient.GetAsync($"{cartServiceUrl}/api/cart/{userId}");
+            var cartServiceUrl =
+                _configuration["Services:CartService:BaseUrl"]
+                ?? _configuration["Services:CartService"]
+                ?? "http://cartservice:5005";
+
+            // Forward the bearer token so CartService can authorize the user
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{cartServiceUrl.TrimEnd('/')}/api/cart");
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.TryAddWithoutValidation("Authorization", token);
+            }
+
+            var response = await _httpClient.SendAsync(request);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -213,12 +230,23 @@ public class OrderService : IOrderService
             }
 
             var cartJson = await response.Content.ReadAsStringAsync();
-            var cartResponse = JsonSerializer.Deserialize<CartResponseDto>(cartJson, new JsonSerializerOptions 
-            { 
-                PropertyNameCaseInsensitive = true 
+            var cartResponse = JsonSerializer.Deserialize<CartServiceResponseDto>(cartJson, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
             });
 
-            return cartResponse?.CartItems;
+            return cartResponse?.Items?.Select(i => new CartItemDto
+            {
+                Id = i.Id,
+                ProductId = i.ProductId,
+                ProductTitle = i.Title,
+                ProductImage = i.Image,
+                Price = i.Price,
+                Quantity = i.Quantity,
+                Color = i.Color,
+                Company = i.Company,
+                LineTotal = i.LineTotal
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -231,8 +259,19 @@ public class OrderService : IOrderService
     {
         try
         {
-            var cartServiceUrl = _configuration["Services:CartService"] ?? "https://localhost:7002";
-            var response = await _httpClient.DeleteAsync($"{cartServiceUrl}/api/cart/{userId}/clear");
+            var cartServiceUrl =
+                _configuration["Services:CartService:BaseUrl"]
+                ?? _configuration["Services:CartService"]
+                ?? "http://cartservice:5005";
+
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"{cartServiceUrl.TrimEnd('/')}/api/cart");
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.TryAddWithoutValidation("Authorization", token);
+            }
+
+            var response = await _httpClient.SendAsync(request);
             
             if (response.IsSuccessStatusCode)
             {
@@ -313,15 +352,28 @@ public class OrderService : IOrderService
 }
 
 // DTOs for CartService communication
-public class CartResponseDto
+public class CartServiceResponseDto
 {
     public int Id { get; set; }
     public string UserId { get; set; } = string.Empty;
-    public List<CartItemDto> CartItems { get; set; } = new();
+    public List<CartServiceCartItemDto> Items { get; set; } = new();
     public int TotalItems { get; set; }
-    public decimal CartTotal { get; set; }
+    public decimal Total { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class CartServiceCartItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Image { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public string Color { get; set; } = string.Empty;
+    public string Company { get; set; } = string.Empty;
+    public decimal LineTotal { get; set; }
 }
 
 public class CartItemDto

@@ -18,6 +18,8 @@ public class UpdateProductRequest
     
     public Company? Company { get; set; }
     
+    public bool? Featured { get; set; }
+    
     [Url]
     public string? Image { get; set; }
     

@@ -18,102 +18,6 @@ public class ProductService : IProductService
         _logger = logger;
     }
 
-    public async Task<ProductResponse?> GetProductByIdAsync(int id)
-    {
-        try
-        {
-            var product = await _context.Products
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            return product == null ? null : MapToProductResponse(product);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving product with ID: {ProductId}", id);
-            throw;
-        }
-    }
-
-    public async Task<ProductListResponse> GetProductsAsync(ProductQueryRequest request)
-    {
-        try
-        {
-            var query = _context.Products.AsNoTracking().AsQueryable();
-
-            // Apply filters
-            if (!string.IsNullOrEmpty(request.Search))
-            {
-                query = query.Where(p => p.Title.Contains(request.Search) || 
-                                       p.Description.Contains(request.Search));
-            }
-
-            if (request.Category.HasValue && request.Category != Category.All)
-            {
-                query = query.Where(p => p.Category == request.Category);
-            }
-
-            if (request.Company.HasValue && request.Company != Company.All)
-            {
-                query = query.Where(p => p.Company == request.Company);
-            }
-
-            if (request.MinPrice.HasValue)
-            {
-                query = query.Where(p => p.Price >= request.MinPrice);
-            }
-
-            if (request.MaxPrice.HasValue)
-            {
-                query = query.Where(p => p.Price <= request.MaxPrice);
-            }
-
-            if (!string.IsNullOrEmpty(request.Color))
-            {
-                query = query.Where(p => p.Colors.Contains(request.Color));
-            }
-
-            // Apply sorting
-            query = request.SortBy?.ToLower() switch
-            {
-                "price" => request.SortOrder?.ToLower() == "desc" 
-                    ? query.OrderByDescending(p => p.Price)
-                    : query.OrderBy(p => p.Price),
-                "title" => request.SortOrder?.ToLower() == "desc"
-                    ? query.OrderByDescending(p => p.Title)
-                    : query.OrderBy(p => p.Title),
-                "category" => request.SortOrder?.ToLower() == "desc"
-                    ? query.OrderByDescending(p => p.Category)
-                    : query.OrderBy(p => p.Category),
-                "company" => request.SortOrder?.ToLower() == "desc"
-                    ? query.OrderByDescending(p => p.Company)
-                    : query.OrderBy(p => p.Company),
-                _ => query.OrderBy(p => p.Title)
-            };
-
-            var totalCount = await query.CountAsync();
-            var skip = (request.Page - 1) * request.PageSize;
-
-            var products = await query
-                .Skip(skip)
-                .Take(request.PageSize)
-                .ToListAsync();
-
-            return new ProductListResponse
-            {
-                Products = products.Select(MapToProductResponse),
-                TotalCount = totalCount,
-                Page = request.Page,
-                PageSize = request.PageSize
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving products");
-            throw;
-        }
-    }
-
     public async Task<ProductResponse> CreateProductAsync(CreateProductRequest request)
     {
         try
@@ -125,6 +29,7 @@ public class ProductService : IProductService
                 Price = request.Price,
                 Category = request.Category,
                 Company = request.Company,
+                Featured = request.Featured,
                 Image = request.Image,
                 Colors = request.Colors,
                 CreatedAt = DateTime.UtcNow,
@@ -170,6 +75,9 @@ public class ProductService : IProductService
             if (request.Company.HasValue)
                 product.Company = request.Company.Value;
             
+            if (request.Featured.HasValue)
+                product.Featured = request.Featured.Value;
+            
             if (!string.IsNullOrEmpty(request.Image))
                 product.Image = request.Image;
             
@@ -212,82 +120,153 @@ public class ProductService : IProductService
         }
     }
 
-    public async Task<bool> ProductExistsAsync(int id)
+    // Frontend-compatible methods
+    public async Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams)
     {
         try
         {
-            return await _context.Products.AnyAsync(p => p.Id == id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error checking if product exists with ID: {ProductId}", id);
-            throw;
-        }
-    }
+            var query = _context.Products.AsNoTracking().Where(p => p.IsActive);
 
-    public async Task<IEnumerable<ProductResponse>> GetProductsByCategoryAsync(Category category, int page = 1, int pageSize = 20)
-    {
-        try
-        {
-            var skip = (page - 1) * pageSize;
-            var products = await _context.Products
-                .AsNoTracking()
-                .Where(p => p.Category == category)
+            // Apply filters
+            if (!string.IsNullOrEmpty(queryParams.Search))
+            {
+                query = query.Where(p => p.Title.Contains(queryParams.Search) || 
+                                       p.Description.Contains(queryParams.Search));
+            }
+
+            if (!string.IsNullOrEmpty(queryParams.Category) && queryParams.Category.ToLower() != "all")
+            {
+                if (Enum.TryParse<Category>(queryParams.Category, true, out var category))
+                {
+                    query = query.Where(p => p.Category == category);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(queryParams.Company) && queryParams.Company.ToLower() != "all")
+            {
+                if (Enum.TryParse<Company>(queryParams.Company, true, out var company))
+                {
+                    query = query.Where(p => p.Company == company);
+                }
+            }
+
+            // Apply price filter if provided (format: "min,max" or "min-max")
+            if (!string.IsNullOrEmpty(queryParams.Price))
+            {
+                var priceParts = queryParams.Price.Split(new[] { ',', '-' }, StringSplitOptions.RemoveEmptyEntries);
+                if (priceParts.Length == 2)
+                {
+                    if (decimal.TryParse(priceParts[0], out var minPrice))
+                        query = query.Where(p => p.Price >= minPrice);
+                    if (decimal.TryParse(priceParts[1], out var maxPrice))
+                        query = query.Where(p => p.Price <= maxPrice);
+                }
+            }
+
+            // Apply sorting
+            if (!string.IsNullOrEmpty(queryParams.Order))
+            {
+                query = queryParams.Order.ToLower() switch
+                {
+                    "a-z" => query.OrderBy(p => p.Title),
+                    "z-a" => query.OrderByDescending(p => p.Title),
+                    "high" => query.OrderByDescending(p => p.Price),
+                    "low" => query.OrderBy(p => p.Price),
+                    _ => query.OrderBy(p => p.Title)
+                };
+            }
+            else
+            {
+                query = query.OrderBy(p => p.Title);
+            }
+
+            const int pageSize = 12; // Standard page size for frontend
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+            var currentPage = queryParams.Page.GetValueOrDefault(1);
+            if (currentPage < 1) currentPage = 1;
+            var skip = (currentPage - 1) * pageSize;
+
+            var products = await query
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
 
-            return products.Select(MapToProductResponse);
+            var meta = await GetProductsMetaAsync();
+            meta.Pagination = new PaginationMeta
+            {
+                Page = currentPage,
+                PageCount = totalPages,
+                PageSize = pageSize,
+                Total = totalCount
+            };
+
+            return new ProductsResponse
+            {
+                Data = products.Select(MapToProductData).ToList(),
+                Meta = meta
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving products by category: {Category}", category);
+            _logger.LogError(ex, "Error retrieving products for frontend");
             throw;
         }
     }
 
-    public async Task<IEnumerable<ProductResponse>> GetProductsByCompanyAsync(Company company, int page = 1, int pageSize = 20)
+    public async Task<SingleProductResponse> GetProductForFrontendAsync(int id)
     {
         try
         {
-            var skip = (page - 1) * pageSize;
-            var products = await _context.Products
+            var product = await _context.Products
                 .AsNoTracking()
-                .Where(p => p.Company == company)
-                .Skip(skip)
-                .Take(pageSize)
-                .ToListAsync();
+                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
 
-            return products.Select(MapToProductResponse);
+            if (product == null)
+                throw new ArgumentException($"Product with ID {id} not found");
+
+            return new SingleProductResponse
+            {
+                Data = MapToProductData(product),
+                Meta = new { }
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving products by company: {Company}", company);
+            _logger.LogError(ex, "Error retrieving product for frontend with ID: {ProductId}", id);
             throw;
         }
     }
 
-    public async Task<IEnumerable<ProductResponse>> SearchProductsAsync(string searchTerm, int page = 1, int pageSize = 20)
+    public async Task<ProductsMeta> GetProductsMetaAsync()
     {
         try
         {
-            var skip = (page - 1) * pageSize;
-            var products = await _context.Products
-                .AsNoTracking()
-                .Where(p => p.Title.Contains(searchTerm) || p.Description.Contains(searchTerm))
-                .Skip(skip)
-                .Take(pageSize)
-                .ToListAsync();
+            var categories = Enum.GetValues<Category>()
+                .Where(c => c != Category.All)
+                .Select(c => c.ToString().ToLower())
+                .ToList();
 
-            return products.Select(MapToProductResponse);
+            var companies = Enum.GetValues<Company>()
+                .Where(c => c != Company.All)
+                .Select(c => c.ToString().ToLower())
+                .ToList();
+
+            return new ProductsMeta
+            {
+                Categories = categories,
+                Companies = companies,
+                Pagination = new PaginationMeta() // Will be set by calling method
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
+            _logger.LogError(ex, "Error retrieving products meta");
             throw;
         }
     }
 
+    // Helper methods
     private static ProductResponse MapToProductResponse(Product product)
     {
         return new ProductResponse
@@ -302,6 +281,28 @@ public class ProductService : IProductService
             Colors = product.Colors,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
+        };
+    }
+
+    private static ProductData MapToProductData(Product product)
+    {
+        return new ProductData
+        {
+            Id = product.Id,
+            Attributes = new ProductAttributes
+            {
+                Category = product.Category.ToString().ToLower(),
+                Company = product.Company.ToString().ToLower(),
+                CreatedAt = product.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                Description = product.Description,
+                Featured = product.Featured,
+                Image = product.Image,
+                Price = product.Price.ToString("F2"),
+                PublishedAt = product.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                Title = product.Title,
+                UpdatedAt = product.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                Colors = product.Colors.Select(c => c.ToLower()).ToList()
+            }
         };
     }
 }

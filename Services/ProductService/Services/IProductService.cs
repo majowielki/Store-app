@@ -1,19 +1,17 @@
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
-using Store.Shared.Utility;
 
 namespace Store.ProductService.Services;
 
 public interface IProductService
 {
-    // Core product operations
-    Task<ProductResponse?> GetProductByIdAsync(int id);
-    Task<ProductListResponse> GetProductsAsync(ProductQueryRequest request);
+    // Core product operations (admin only)
     Task<ProductResponse> CreateProductAsync(CreateProductRequest request);
     Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request);
     Task<bool> DeleteProductAsync(int id);
-    Task<bool> ProductExistsAsync(int id);
-    Task<IEnumerable<ProductResponse>> GetProductsByCategoryAsync(Category category, int page = 1, int pageSize = 20);
-    Task<IEnumerable<ProductResponse>> GetProductsByCompanyAsync(Company company, int page = 1, int pageSize = 20);
-    Task<IEnumerable<ProductResponse>> SearchProductsAsync(string searchTerm, int page = 1, int pageSize = 20);
+    
+    // Frontend-compatible operations (public)
+    Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams);
+    Task<SingleProductResponse> GetProductForFrontendAsync(int id);
+    Task<ProductsMeta> GetProductsMetaAsync();
 }

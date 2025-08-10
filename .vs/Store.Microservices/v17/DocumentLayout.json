@@ -3,12 +3,88 @@
   "WorkspaceRootPath": "D:\\Projekty\\store-app\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\messagebus\\rabbitmqconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\messagebus\\rabbitmqconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\middleware\\globalexceptionmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\middleware\\globalexceptionmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\messagebus\\messagebusextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\messagebus\\messagebusextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{32AE827D-9B97-4954-911E-54075C325E49}|Services\\AuditLogService\\Store.AuditLogService.csproj|d:\\projekty\\store-app\\services\\auditlogservice\\controllers\\auditlogcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{32AE827D-9B97-4954-911E-54075C325E49}|Services\\AuditLogService\\Store.AuditLogService.csproj|solutionrelative:services\\auditlogservice\\controllers\\auditlogcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\middleware\\auditloggingmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\middleware\\auditloggingmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\services\\iauditlogclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\services\\iauditlogclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|d:\\projekty\\store-app\\services\\identityservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|solutionrelative:services\\identityservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|d:\\projekty\\store-app\\services\\identityservice\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|solutionrelative:services\\identityservice\\services\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{32AE827D-9B97-4954-911E-54075C325E49}|Services\\AuditLogService\\Store.AuditLogService.csproj|d:\\projekty\\store-app\\services\\auditlogservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{32AE827D-9B97-4954-911E-54075C325E49}|Services\\AuditLogService\\Store.AuditLogService.csproj|solutionrelative:services\\auditlogservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Projekty\\store-app\\AUDIT_LOGGING_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:AUDIT_LOGGING_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|d:\\projekty\\store-app\\services\\identityservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|solutionrelative:services\\identityservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\extensions\\middlewareextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\extensions\\middlewareextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{12B71A86-42C0-4E48-A600-FF5B08B17C1A}|Services\\ProductService\\Store.ProductService.csproj|d:\\projekty\\store-app\\services\\productservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{12B71A86-42C0-4E48-A600-FF5B08B17C1A}|Services\\ProductService\\Store.ProductService.csproj|solutionrelative:services\\productservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{12B71A86-42C0-4E48-A600-FF5B08B17C1A}|Services\\ProductService\\Store.ProductService.csproj|d:\\projekty\\store-app\\services\\productservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{12B71A86-42C0-4E48-A600-FF5B08B17C1A}|Services\\ProductService\\Store.ProductService.csproj|solutionrelative:services\\productservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{086C133A-C2E8-471F-8A6A-AB8E4B47E521}|Services\\CartService\\Store.CartService.csproj|d:\\projekty\\store-app\\services\\cartservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{086C133A-C2E8-471F-8A6A-AB8E4B47E521}|Services\\CartService\\Store.CartService.csproj|solutionrelative:services\\cartservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{086C133A-C2E8-471F-8A6A-AB8E4B47E521}|Services\\CartService\\Store.CartService.csproj|d:\\projekty\\store-app\\services\\cartservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{086C133A-C2E8-471F-8A6A-AB8E4B47E521}|Services\\CartService\\Store.CartService.csproj|solutionrelative:services\\cartservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|d:\\projekty\\store-app\\services\\orderservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|solutionrelative:services\\orderservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|d:\\projekty\\store-app\\services\\orderservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|solutionrelative:services\\orderservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Projekty\\store-app\\docker-compose.yml||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:docker-compose.yml||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3EC3270C-1257-46F7-8B74-6D4000644BE0}|Gateway\\APIGateway\\Store.GatewayService.csproj|d:\\projekty\\store-app\\gateway\\apigateway\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{3EC3270C-1257-46F7-8B74-6D4000644BE0}|Gateway\\APIGateway\\Store.GatewayService.csproj|solutionrelative:gateway\\apigateway\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Projekty\\store-app\\AUDIT_LOGGING_REFACTORING_REPORT.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:AUDIT_LOGGING_REFACTORING_REPORT.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\middleware\\globalexceptionhandlingmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\middleware\\globalexceptionhandlingmiddleware.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Projekty\\store-app\\AUDIT_LOGGING_TEST_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:AUDIT_LOGGING_TEST_GUIDE.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}|"
     }
   ],
   "DocumentGroupContainers": [
@@ -18,7 +94,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 19,
           "Children": [
             {
               "$type": "Bookmark",
@@ -26,27 +102,271 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "MessageBusExtensions.cs",
-              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
-              "RelativeDocumentMoniker": "Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
-              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
-              "RelativeToolTip": "Shared\\Store.Shared\\MessageBus\\MessageBusExtensions.cs",
-              "ViewState": "AgIAABQAAAAAAAAAAAAQwCwAAAAAAAAAAAAAAA==",
+              "DocumentIndex": 20,
+              "Title": "AUDIT_LOGGING_TEST_GUIDE.md",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\AUDIT_LOGGING_TEST_GUIDE.md",
+              "RelativeDocumentMoniker": "AUDIT_LOGGING_TEST_GUIDE.md",
+              "ToolTip": "D:\\Projekty\\store-app\\AUDIT_LOGGING_TEST_GUIDE.md",
+              "RelativeToolTip": "AUDIT_LOGGING_TEST_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAKkAAABeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-08-10T17:06:33.206Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "GlobalExceptionHandlingMiddleware.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Middleware\\GlobalExceptionHandlingMiddleware.cs",
+              "RelativeDocumentMoniker": "Shared\\Store.Shared\\Middleware\\GlobalExceptionHandlingMiddleware.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Middleware\\GlobalExceptionHandlingMiddleware.cs",
+              "RelativeToolTip": "Shared\\Store.Shared\\Middleware\\GlobalExceptionHandlingMiddleware.cs",
+              "ViewState": "AgIAAFIAAAAAAAAAAEBVwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T18:43:28.11Z"
+              "WhenOpened": "2025-08-10T17:03:43.613Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "AUDIT_LOGGING_REFACTORING_REPORT.md",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\AUDIT_LOGGING_REFACTORING_REPORT.md",
+              "RelativeDocumentMoniker": "AUDIT_LOGGING_REFACTORING_REPORT.md",
+              "ToolTip": "D:\\Projekty\\store-app\\AUDIT_LOGGING_REFACTORING_REPORT.md",
+              "RelativeToolTip": "AUDIT_LOGGING_REFACTORING_REPORT.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJ0AAAB4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-08-10T17:02:09.015Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Gateway\\APIGateway\\appsettings.json",
+              "RelativeDocumentMoniker": "Gateway\\APIGateway\\appsettings.json",
+              "ToolTip": "D:\\Projekty\\store-app\\Gateway\\APIGateway\\appsettings.json",
+              "RelativeToolTip": "Gateway\\APIGateway\\appsettings.json",
+              "ViewState": "AgIAALUAAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-08-10T17:00:19.844Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "docker-compose.yml",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\docker-compose.yml",
+              "RelativeDocumentMoniker": "docker-compose.yml",
+              "ToolTip": "D:\\Projekty\\store-app\\docker-compose.yml",
+              "RelativeToolTip": "docker-compose.yml",
+              "ViewState": "AgIAAGABAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003775|",
+              "WhenOpened": "2025-08-10T16:58:12.33Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\OrderService\\appsettings.json",
+              "RelativeDocumentMoniker": "Services\\OrderService\\appsettings.json",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\OrderService\\appsettings.json",
+              "RelativeToolTip": "Services\\OrderService\\appsettings.json",
+              "ViewState": "AgIAACoAAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-08-10T16:57:24.341Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\OrderService\\Program.cs",
+              "RelativeDocumentMoniker": "Services\\OrderService\\Program.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\OrderService\\Program.cs",
+              "RelativeToolTip": "Services\\OrderService\\Program.cs",
+              "ViewState": "AgIAALMAAAAAAAAAAEBVwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T16:57:07.662Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\CartService\\appsettings.json",
+              "RelativeDocumentMoniker": "Services\\CartService\\appsettings.json",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\CartService\\appsettings.json",
+              "RelativeToolTip": "Services\\CartService\\appsettings.json",
+              "ViewState": "AgIAADAAAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-08-10T16:56:39.655Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\CartService\\Program.cs",
+              "RelativeDocumentMoniker": "Services\\CartService\\Program.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\CartService\\Program.cs",
+              "RelativeToolTip": "Services\\CartService\\Program.cs",
+              "ViewState": "AgIAALgAAAAAAAAAAIBZwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T16:56:21.641Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\ProductService\\appsettings.json",
+              "RelativeDocumentMoniker": "Services\\ProductService\\appsettings.json",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\ProductService\\appsettings.json",
+              "RelativeToolTip": "Services\\ProductService\\appsettings.json",
+              "ViewState": "AgIAAC8AAAAAAAAAAABRwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-08-10T16:55:52.775Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\ProductService\\Program.cs",
+              "RelativeDocumentMoniker": "Services\\ProductService\\Program.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\ProductService\\Program.cs",
+              "RelativeToolTip": "Services\\ProductService\\Program.cs",
+              "ViewState": "AgIAAGwAAAAAAAAAAEBVwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T16:54:10.728Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "MiddlewareExtensions.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Extensions\\MiddlewareExtensions.cs",
+              "RelativeDocumentMoniker": "Shared\\Store.Shared\\Extensions\\MiddlewareExtensions.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Extensions\\MiddlewareExtensions.cs",
+              "RelativeToolTip": "Shared\\Store.Shared\\Extensions\\MiddlewareExtensions.cs",
+              "ViewState": "AgIAABsAAAAAAAAAAEBVwB8AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T16:53:53.951Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\IdentityService\\appsettings.json",
+              "RelativeDocumentMoniker": "Services\\IdentityService\\appsettings.json",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\IdentityService\\appsettings.json",
+              "RelativeToolTip": "Services\\IdentityService\\appsettings.json",
+              "ViewState": "AgIAAC0AAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-08-10T16:53:12.567Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "AUDIT_LOGGING_GUIDE.md",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\AUDIT_LOGGING_GUIDE.md",
+              "RelativeDocumentMoniker": "AUDIT_LOGGING_GUIDE.md",
+              "ToolTip": "D:\\Projekty\\store-app\\AUDIT_LOGGING_GUIDE.md",
+              "RelativeToolTip": "AUDIT_LOGGING_GUIDE.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAOcAAAC+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-08-10T15:38:16.732Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\AuditLogService\\Program.cs",
+              "RelativeDocumentMoniker": "Services\\AuditLogService\\Program.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\AuditLogService\\Program.cs",
+              "RelativeToolTip": "Services\\AuditLogService\\Program.cs",
+              "ViewState": "AgIAAJ0AAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T15:32:02.025Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "AuthService.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\IdentityService\\Services\\AuthService.cs",
+              "RelativeDocumentMoniker": "Services\\IdentityService\\Services\\AuthService.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\IdentityService\\Services\\AuthService.cs",
+              "RelativeToolTip": "Services\\IdentityService\\Services\\AuthService.cs",
+              "ViewState": "AgIAAMwDAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T15:31:19.238Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\IdentityService\\Program.cs",
+              "RelativeDocumentMoniker": "Services\\IdentityService\\Program.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\IdentityService\\Program.cs",
+              "RelativeToolTip": "Services\\IdentityService\\Program.cs",
+              "ViewState": "AgIAAIgBAAAAAAAAAEBVwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T15:31:00.037Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IAuditLogClient.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Services\\IAuditLogClient.cs",
+              "RelativeDocumentMoniker": "Shared\\Store.Shared\\Services\\IAuditLogClient.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Services\\IAuditLogClient.cs",
+              "RelativeToolTip": "Shared\\Store.Shared\\Services\\IAuditLogClient.cs",
+              "ViewState": "AgIAAGkAAAAAAAAAAABRwGwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T15:28:44.341Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "RabbitMQConnection.cs",
-              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
-              "RelativeDocumentMoniker": "Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
-              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
-              "RelativeToolTip": "Shared\\Store.Shared\\MessageBus\\RabbitMQConnection.cs",
-              "ViewState": "AgIAAG0AAAAAAAAAAAAcwIsAAAAQAAAAAAAAAA==",
+              "Title": "GlobalExceptionMiddleware.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Middleware\\GlobalExceptionMiddleware.cs",
+              "RelativeDocumentMoniker": "Shared\\Store.Shared\\Middleware\\GlobalExceptionMiddleware.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Middleware\\GlobalExceptionMiddleware.cs",
+              "RelativeToolTip": "Shared\\Store.Shared\\Middleware\\GlobalExceptionMiddleware.cs",
+              "ViewState": "AgIAAAQAAAAAAAAAAAAgwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T18:42:52.962Z",
+              "WhenOpened": "2025-08-10T15:28:08.073Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AuditLogController.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\AuditLogService\\Controllers\\AuditLogController.cs",
+              "RelativeDocumentMoniker": "Services\\AuditLogService\\Controllers\\AuditLogController.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Services\\AuditLogService\\Controllers\\AuditLogController.cs",
+              "RelativeToolTip": "Services\\AuditLogService\\Controllers\\AuditLogController.cs",
+              "ViewState": "AgIAACwBAAAAAAAAAAAcwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T15:27:14.549Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AuditLoggingMiddleware.cs",
+              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Middleware\\AuditLoggingMiddleware.cs",
+              "RelativeDocumentMoniker": "Shared\\Store.Shared\\Middleware\\AuditLoggingMiddleware.cs",
+              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Middleware\\AuditLoggingMiddleware.cs",
+              "RelativeToolTip": "Shared\\Store.Shared\\Middleware\\AuditLoggingMiddleware.cs",
+              "ViewState": "AgIAADYBAAAAAAAAAABRwDkBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-10T15:27:00.724Z",
               "EditorCaption": ""
             }
           ]

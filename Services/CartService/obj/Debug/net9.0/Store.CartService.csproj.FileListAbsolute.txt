@@ -134,7 +134,6 @@ D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.Ge
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.AssemblyInfoInputs.cache
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.AssemblyInfo.cs
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.csproj.CoreCompileInputs.cache
-D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.MvcApplicationPartsAssemblyInfo.cache
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.sourcelink.json
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\rjimswa.dswa.cache.json
@@ -151,4 +150,4 @@ D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\refint\Store.CartSer
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.pdb
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\ref\Store.CartService.dll
-D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Services\CartService\obj\Debug\net9.0\Store.CartService.MvcApplicationPartsAssemblyInfo.cs

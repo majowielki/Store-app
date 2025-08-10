@@ -54,12 +54,50 @@ public class CartController : ControllerBase
     }
 
     /// <summary>
+    /// Sync local cart with server in a single request
+    /// </summary>
+    /// <param name="request">Items to merge into the server cart</param>
+    /// <returns>Updated server cart</returns>
+    [HttpPost("sync")]
+    public async Task<ActionResult<CartResponse>> SyncCart([FromBody] SyncCartRequest request)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not found");
+            }
+
+            // If no items provided, just return current cart (do not error)
+            if (request?.Items == null || request.Items.Count == 0)
+            {
+                var current = await _cartService.GetCartByUserIdAsync(userId) ?? await _cartService.CreateCartAsync(userId);
+                return Ok(current);
+            }
+
+            var cart = await _cartService.SyncCartAsync(userId, request);
+            return Ok(cart);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid sync request");
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing cart");
+            return StatusCode(500, "An error occurred while syncing the cart");
+        }
+    }
+
+    /// <summary>
     /// Add item to cart
     /// </summary>
     /// <param name="request">Item to add to cart</param>
     /// <returns>Added cart item</returns>
     [HttpPost("items")]
-    public async Task<ActionResult<CartItemResponse>> AddItemToCart([FromBody] AddCartItemRequest request)
+    public async Task<ActionResult<CartResponse>> AddItemToCart([FromBody] AddCartItemRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -74,8 +112,16 @@ public class CartController : ControllerBase
                 return Unauthorized("User not found");
             }
 
-            var cartItem = await _cartService.AddItemToCartAsync(userId, request);
-            return Ok(cartItem);
+            await _cartService.AddItemToCartAsync(userId, request);
+            var cart = await _cartService.GetCartByUserIdAsync(userId);
+            if (cart == null) return NotFound("Cart not found");
+            return Ok(cart);
+        }
+        catch (ArgumentException ex)
+        {
+            // Product not found or invalid input
+            _logger.LogWarning(ex, "Invalid add-to-cart request for product: {ProductId}", request.ProductId);
+            return NotFound(ex.Message);
         }
         catch (Exception ex)
         {
@@ -91,7 +137,7 @@ public class CartController : ControllerBase
     /// <param name="request">Update data</param>
     /// <returns>Updated cart item</returns>
     [HttpPut("items/{cartItemId}")]
-    public async Task<ActionResult<CartItemResponse>> UpdateCartItem(int cartItemId, [FromBody] UpdateCartItemRequest request)
+    public async Task<ActionResult<CartResponse>> UpdateCartItem(int cartItemId, [FromBody] UpdateCartItemRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -107,13 +153,14 @@ public class CartController : ControllerBase
             }
 
             var cartItem = await _cartService.UpdateCartItemAsync(userId, cartItemId, request);
-            
             if (cartItem == null)
             {
                 return NotFound($"Cart item with ID {cartItemId} not found");
             }
 
-            return Ok(cartItem);
+            var cart = await _cartService.GetCartByUserIdAsync(userId);
+            if (cart == null) return NotFound("Cart not found");
+            return Ok(cart);
         }
         catch (Exception ex)
         {
@@ -128,7 +175,7 @@ public class CartController : ControllerBase
     /// <param name="cartItemId">Cart item ID to remove</param>
     /// <returns>Success status</returns>
     [HttpDelete("items/{cartItemId}")]
-    public async Task<ActionResult> RemoveItemFromCart(int cartItemId)
+    public async Task<ActionResult<CartResponse>> RemoveItemFromCart(int cartItemId)
     {
         try
         {
@@ -139,13 +186,13 @@ public class CartController : ControllerBase
             }
 
             var success = await _cartService.RemoveItemFromCartAsync(userId, cartItemId);
-            
             if (!success)
             {
                 return NotFound($"Cart item with ID {cartItemId} not found");
             }
 
-            return NoContent();
+            var cart = await _cartService.GetCartByUserIdAsync(userId) ?? await _cartService.CreateCartAsync(userId);
+            return Ok(cart);
         }
         catch (Exception ex)
         {

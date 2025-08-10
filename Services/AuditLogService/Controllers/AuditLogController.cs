@@ -77,6 +77,55 @@ public class AuditLogController : ControllerBase
     }
 
     /// <summary>
+    /// Create audit log entry for internal services (no authentication required)
+    /// This endpoint is intended for inter-service communication for audit logging
+    /// </summary>
+    /// <param name="auditLog">Audit log data</param>
+    /// <returns>Created audit log ID</returns>
+    [HttpPost("internal")]
+    [AllowAnonymous]
+    public async Task<ActionResult<long>> CreateInternalAuditLog([FromBody] AuditLog auditLog)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            // Set the timestamp if not provided
+            if (auditLog.Timestamp == default)
+            {
+                auditLog.Timestamp = DateTime.UtcNow;
+            }
+
+            // For internal audit logs, accept the provided user information as-is
+            // since it comes from other authenticated services
+
+            // Set IP address from request context if not provided
+            if (string.IsNullOrEmpty(auditLog.IpAddress))
+            {
+                auditLog.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            }
+
+            // Set User-Agent from request headers if not provided
+            if (string.IsNullOrEmpty(auditLog.UserAgent))
+            {
+                auditLog.UserAgent = Request.Headers.UserAgent.ToString();
+            }
+
+            var auditLogId = await _auditLogService.CreateAuditLogAsync(auditLog);
+            
+            return CreatedAtAction(nameof(GetAuditLog), new { id = auditLogId }, auditLogId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating internal audit log");
+            return StatusCode(500, "An error occurred while creating the audit log");
+        }
+    }
+
+    /// <summary>
     /// Get a specific audit log by ID
     /// </summary>
     /// <param name="id">Audit log ID</param>

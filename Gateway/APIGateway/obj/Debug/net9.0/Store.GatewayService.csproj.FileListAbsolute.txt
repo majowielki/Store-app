@@ -103,7 +103,6 @@ D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.G
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.AssemblyInfoInputs.cache
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.AssemblyInfo.cs
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.csproj.CoreCompileInputs.cache
-D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.MvcApplicationPartsAssemblyInfo.cache
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.sourcelink.json
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\rjimswa.dswa.cache.json
@@ -120,4 +119,4 @@ D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\refint\Store.GatewaySe
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.pdb
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.genruntimeconfig.cache
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\ref\Store.GatewayService.dll
-D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.MvcApplicationPartsAssemblyInfo.cs
