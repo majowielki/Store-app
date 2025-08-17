@@ -155,3 +155,4 @@ D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentitySe
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\ref\Store.IdentityService.dll
 D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\Store.IdentityService.MvcApplicationPartsAssemblyInfo.cs
+D:\Projekty\store-app\Services\IdentityService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

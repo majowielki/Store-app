@@ -8,7 +8,6 @@ const defaultState: CartState = {
   cartItems: [],
   numItemsInCart: 0,
   cartTotal: 0,
-  shipping: 500,
   tax: 0,
   orderTotal: 0,
 };
@@ -37,15 +36,13 @@ const convertApiCartToLocal = (apiCart: ApiCartResponse): CartState => {
   }));
 
   const cartTotal = Number(apiCart.total);
-  const tax = cartTotal * 0.1;
-  const shipping = 500;
-  const orderTotal = cartTotal + tax + shipping;
+  const tax = cartTotal >= 299 ? 0 : 10; // using tax field to store delivery cost
+  const orderTotal = cartTotal + tax;
 
   return {
     cartItems,
     numItemsInCart: apiCart.totalItems,
     cartTotal,
-    shipping,
     tax,
     orderTotal,
   };
@@ -200,8 +197,9 @@ const cartSlice = createSlice({
       toast({ description: "Amount Updated" });
     },
     calculateTotals: (state) => {
-      state.tax = 0.1 * state.cartTotal;
-      state.orderTotal = state.cartTotal + state.shipping + state.tax;
+      // Delivery: 10 when subtotal < 299, otherwise free (0)
+      state.tax = state.cartTotal >= 299 ? 0 : 10; // tax field represents delivery
+      state.orderTotal = state.cartTotal + state.tax;
       localStorage.setItem("cart", JSON.stringify(state));
     },
     // Action to sync local state with server response
@@ -210,8 +208,9 @@ const cartSlice = createSlice({
       state.cartItems = serverState.cartItems;
       state.numItemsInCart = serverState.numItemsInCart;
       state.cartTotal = serverState.cartTotal;
-      state.tax = serverState.tax;
-      state.orderTotal = serverState.orderTotal;
+  // Recalculate delivery locally to ensure policy is applied
+  state.tax = state.cartTotal >= 299 ? 0 : 10;
+  state.orderTotal = state.cartTotal + state.tax;
       localStorage.setItem("cart", JSON.stringify(state));
     },
   },
@@ -223,8 +222,8 @@ const cartSlice = createSlice({
         state.cartItems = serverState.cartItems;
         state.numItemsInCart = serverState.numItemsInCart;
         state.cartTotal = serverState.cartTotal;
-        state.tax = serverState.tax;
-        state.orderTotal = serverState.orderTotal;
+  state.tax = state.cartTotal >= 299 ? 0 : 10;
+  state.orderTotal = state.cartTotal + state.tax;
         localStorage.setItem("cart", JSON.stringify(state));
       })
       .addCase(fetchCartAsync.rejected, (_, action) => {
@@ -241,8 +240,8 @@ const cartSlice = createSlice({
         state.cartItems = serverState.cartItems;
         state.numItemsInCart = serverState.numItemsInCart;
         state.cartTotal = serverState.cartTotal;
-        state.tax = serverState.tax;
-        state.orderTotal = serverState.orderTotal;
+  state.tax = state.cartTotal >= 299 ? 0 : 10;
+  state.orderTotal = state.cartTotal + state.tax;
         localStorage.setItem("cart", JSON.stringify(state));
         toast({ description: "Item added to cart" });
       })
@@ -260,8 +259,8 @@ const cartSlice = createSlice({
         state.cartItems = serverState.cartItems;
         state.numItemsInCart = serverState.numItemsInCart;
         state.cartTotal = serverState.cartTotal;
-        state.tax = serverState.tax;
-        state.orderTotal = serverState.orderTotal;
+  state.tax = state.cartTotal >= 299 ? 0 : 10;
+  state.orderTotal = state.cartTotal + state.tax;
         localStorage.setItem("cart", JSON.stringify(state));
         toast({ description: "Item updated" });
       })
@@ -297,8 +296,8 @@ const cartSlice = createSlice({
         state.cartItems = [];
         state.numItemsInCart = 0;
         state.cartTotal = 0;
-        state.tax = 0;
-        state.orderTotal = state.shipping;
+  state.tax = 0;
+  state.orderTotal = 0;
         localStorage.setItem("cart", JSON.stringify(state));
         toast({ description: "Cart cleared" });
       })
@@ -316,8 +315,8 @@ const cartSlice = createSlice({
         state.cartItems = serverState.cartItems;
         state.numItemsInCart = serverState.numItemsInCart;
         state.cartTotal = serverState.cartTotal;
-        state.tax = serverState.tax;
-        state.orderTotal = serverState.orderTotal;
+  state.tax = state.cartTotal >= 299 ? 0 : 10;
+  state.orderTotal = state.cartTotal + state.tax;
   localStorage.setItem("cart", JSON.stringify(state));
         toast({ description: "Cart synced" });
       })

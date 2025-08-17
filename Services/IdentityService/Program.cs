@@ -65,10 +65,15 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 // JWT Authentication
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"] ?? "your-very-long-secret-key-here-at-least-32-characters";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -80,7 +85,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
             ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ClockSkew = TimeSpan.FromMinutes(2)
+            ClockSkew = TimeSpan.FromMinutes(2),
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
 
         options.Events = new JwtBearerEvents
@@ -91,7 +97,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 {
                     context.Response.Headers["Token-Expired"] = "true";
                 }
-                // Helpful diagnostics for clients (dev only headers)
                 var rawMsg = context.Exception.Message ?? "invalid token";
                 var safeMsg = rawMsg.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
                 context.Response.Headers["WWW-Authenticate"] =
@@ -99,6 +104,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                     .CreateLogger("IdentityAuth");
                 logger.LogWarning(context.Exception, "JWT authentication failed at identity service");
+                // Log all headers and token for diagnostics
+                var headerList = context.Request.Headers.Select(h => $"{h.Key}={string.Join(";", h.Value.ToArray())}").ToArray();
+                logger.LogWarning("[OnAuthenticationFailed] Incoming headers: {Headers}", string.Join(", ", headerList));
+                logger.LogWarning("[OnAuthenticationFailed] Raw token: {Token}", context.Request.Headers["Authorization"].ToString());
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
@@ -108,6 +117,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var roles = string.Join(',', context.Principal?.Claims.Where(c => c.Type == "role" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(c => c.Value) ?? Array.Empty<string>());
                 logger.LogInformation("JWT validated at identity service for {UserId} with roles [{Roles}]", userId, roles);
+                // Log all claims for diagnostics
+                foreach (var claim in context.Principal?.Claims ?? Enumerable.Empty<System.Security.Claims.Claim>())
+                {
+                    logger.LogInformation("[OnTokenValidated] Claim: {Type} = {Value}", claim.Type, claim.Value);
+                }
                 return Task.CompletedTask;
             }
         };
@@ -120,15 +134,16 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminAccess", policy =>
         policy.RequireRole(Store.Shared.Utility.Constants.Role_TrueAdmin, Store.Shared.Utility.Constants.Role_DemoAdmin));
 
+    // UserAccess: only requires 'user' role (not admin roles)
     options.AddPolicy("UserAccess", policy =>
-        policy.RequireRole(Store.Shared.Utility.Constants.Role_User, Store.Shared.Utility.Constants.Role_DemoAdmin, Store.Shared.Utility.Constants.Role_TrueAdmin));
+        policy.RequireRole(Store.Shared.Utility.Constants.Role_User));
 });
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Configure HttpClient for AuditLogClient with proper base address
-var auditLogServiceUrl = builder.Configuration.GetValue<string>("Services:AuditLogService:BaseUrl") ?? "http://localhost:5004";
+var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
 builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
 {
     client.BaseAddress = new Uri(auditLogServiceUrl);
@@ -346,9 +361,10 @@ static async Task SeedTrueAdminAsync(UserManager<ApplicationUser> userManager, I
 
 static async Task SeedDemoAdminAsync(UserManager<ApplicationUser> userManager, ILogger logger)
 {
-    const string demoAdminEmail = "demoadmin@store.com";
-    const string demoAdminPassword = "DemoAdmin123!"; // This can be public as it's for demo purposes
-    
+    var demoAdminEmail = Constants.DemoAdminEmail;
+    var demoAdminPassword = Constants.DemoAdminPassword;
+    const string demoAdminAddress = "123 Demo Street, Demo City, DC 12345"; // Match demo user address
+
     if (await userManager.FindByEmailAsync(demoAdminEmail) == null)
     {
         var demoAdminUser = new ApplicationUser
@@ -360,7 +376,8 @@ static async Task SeedDemoAdminAsync(UserManager<ApplicationUser> userManager, I
             LastName = "Administrator",
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            SimpleAddress = demoAdminAddress // Set address
         };
         
         var result = await userManager.CreateAsync(demoAdminUser, demoAdminPassword);

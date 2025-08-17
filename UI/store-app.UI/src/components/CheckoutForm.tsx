@@ -6,6 +6,8 @@ import { customFetch } from '@/utils';
 import { toast } from '@/hooks/use-toast';
 import { clearCart } from '../features/cart/cartSlice';
 import { ReduxStore } from '@/store';
+import { useAppSelector } from '@/hooks';
+import FormCheckbox from './FormCheckbox';
 
 export const action =
   (store: ReduxStore): ActionFunction =>
@@ -13,6 +15,7 @@ export const action =
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const address = formData.get('address') as string;
+  const saveAddress = formData.get('saveAddress') === 'on';
 
     if (!name || !address) {
       toast({ description: 'please fill out all fields' });
@@ -29,6 +32,8 @@ export const action =
   const userEmail = user.email;
 
     try {
+  // Address saving is now handled by the order API using saveAddress
+
       await customFetch.post('/orders/from-cart', {
         // userId is set on the server from JWT; still include for DTO validation
         userId: user.id,
@@ -36,6 +41,7 @@ export const action =
         deliveryAddress,
         customerName,
         notes: undefined,
+        saveAddress,
       });
 
       store.dispatch(clearCart());
@@ -48,11 +54,26 @@ export const action =
   };
 
 const CheckoutForm = () => {
+  const user = useAppSelector((state) => state.userState.user);
+  const defaultUserName = user?.userName ?? '';
+  const defaultAddress = user?.simpleAddress ?? '';
+  const hiddenCheckboxUsers = ["demo@store.com", "demo-admin@store.com"];
+  const shouldShowCheckbox = user && !hiddenCheckboxUsers.includes(user.email);
+  const isDemo = !!(user && hiddenCheckboxUsers.includes(user.email));
   return (
     <Form method="post" className="flex flex-col gap-y-4">
-      <h4 className="font-medium text-xl mb-4">Shipping Information</h4>
-      <FormInput label="first name" name="name" type="text" />
-      <FormInput label="address" name="address" type="text" />
+      <h4 className="font-medium text-xl mb-4">Delivery Information</h4>
+      <FormInput label="user name" name="name" type="text" defaultValue={defaultUserName} disabled={isDemo} />
+      {isDemo && (
+        <input type="hidden" name="name" value={defaultUserName} />
+      )}
+      <FormInput label="address" name="address" type="text" defaultValue={defaultAddress} disabled={isDemo} />
+      {isDemo && (
+        <input type="hidden" name="address" value={defaultAddress} />
+      )}
+      {shouldShowCheckbox && (
+        <FormCheckbox name="saveAddress" label="save address to my profile" />
+      )}
       <SubmitBtn text="Place Your Order" className="mt-4" />
     </Form>
   );

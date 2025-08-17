@@ -10,10 +10,10 @@ export const loginUserAsync = createAsyncThunk(
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       const response = await authApi.login(credentials);
-      if (response.success && response.accessToken) {
-        // Store token in localStorage
+      console.log('loginUserAsync response:', response);
+      if (response.success && response.accessToken && response.user) {
         localStorage.setItem('authToken', response.accessToken);
-        return response;
+        return { user: response.user, accessToken: response.accessToken };
       } else {
         return rejectWithValue(response.message || 'Login failed');
       }
@@ -29,10 +29,10 @@ export const registerUserAsync = createAsyncThunk(
   async (userData: RegisterRequest, { rejectWithValue }) => {
     try {
       const response = await authApi.register(userData);
-      if (response.success && response.accessToken) {
-        // Store token in localStorage
+      console.log('registerUserAsync response:', response);
+      if (response.success && response.accessToken && response.user) {
         localStorage.setItem('authToken', response.accessToken);
-        return response;
+        return { user: response.user, accessToken: response.accessToken };
       } else {
         return rejectWithValue(response.message || 'Registration failed');
       }
@@ -75,9 +75,20 @@ export const getCurrentUserAsync = createAsyncThunk(
 
 // Helper function to get initial state
 const getInitialState = (): UserState => {
-  const token = localStorage.getItem('authToken');
+  let token = localStorage.getItem('authToken');
+  let user: UserResponse | null = null;
+  try {
+    const raw = localStorage.getItem('authUser');
+    if (raw) user = JSON.parse(raw) as UserResponse;
+  } catch {
+    user = null;
+  }
+  // Fallback: jeśli token w stanie jest null, a istnieje w localStorage, ustaw go
+  if (!token && typeof window !== 'undefined') {
+    token = localStorage.getItem('authToken') || null;
+  }
   return {
-    user: null,
+    user,
     token,
     isLoading: false,
     error: null,
@@ -98,9 +109,15 @@ const userSlice = createSlice({
       state.error = null;
   state.meAttempted = true;
       localStorage.removeItem('authToken');
+      localStorage.removeItem('authUser');
     },
     setUser: (state, action: PayloadAction<UserResponse>) => {
       state.user = action.payload;
+      try {
+        localStorage.setItem('authUser', JSON.stringify(action.payload));
+      } catch {
+        // ignore storage errors
+      }
     },
     setToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
@@ -120,6 +137,11 @@ const userSlice = createSlice({
         createdAt: new Date().toISOString(),
       };
       localStorage.setItem('authToken', jwt);
+      try {
+        localStorage.setItem('authUser', JSON.stringify(state.user));
+      } catch {
+        // ignore storage errors
+      }
       if (username === "demo user") {
         toast({ description: "Welcome Guest User" });
         return;
@@ -131,6 +153,7 @@ const userSlice = createSlice({
       state.token = null;
       state.error = null;
       localStorage.removeItem('authToken');
+      localStorage.removeItem('authUser');
     },
   },
   extraReducers: (builder) => {
@@ -193,6 +216,11 @@ const userSlice = createSlice({
         state.token = null;
         state.error = null;
         toast({ description: 'Successfully logged out!' });
+        try {
+          localStorage.removeItem('authUser');
+        } catch {
+          // ignore storage errors
+        }
       })
       .addCase(logoutUserAsync.rejected, (state, action) => {
         state.isLoading = false;
@@ -211,13 +239,27 @@ const userSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.error = null;
-    state.meAttempted = true;
+        state.meAttempted = true;
+        // Do NOT clear or overwrite the token here; preserve the token from login/register
+        try {
+          localStorage.setItem('authUser', JSON.stringify(action.payload));
+        } catch {
+          // ignore storage errors
+        }
       })
       .addCase(getCurrentUserAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
     state.meAttempted = true;
     // Do not eagerly clear token here; interceptor handles expiry/invalid.
+        // If /auth/me fails, ensure we don't keep a broken token forever.
+        try {
+          localStorage.removeItem('authToken');
+          sessionStorage.removeItem('authToken');
+      localStorage.removeItem('authUser');
+        } catch {
+          // ignore storage errors
+        }
       });
   },
 });

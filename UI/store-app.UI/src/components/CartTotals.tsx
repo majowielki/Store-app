@@ -22,14 +22,13 @@ const CartTotalRow = ({ label, amount, lastRow }: CartTotalRowProps) => {
 };
 
 const CartTotals = () => {
-  const { cartTotal, shipping, tax, orderTotal } = useAppSelector(
+  const { cartTotal, tax, orderTotal } = useAppSelector(
     (state) => state.cartState
   );
   return (
     <Card className="p-8 bg-muted">
       <CartTotalRow label="Subtotal" amount={cartTotal} />
-      <CartTotalRow label="Shipping" amount={shipping} />
-      <CartTotalRow label="Tax" amount={tax} />
+      <CartTotalRow label="Delivery" amount={tax} />
       <CardTitle className="mt-8">
         <CartTotalRow label="Order Total" amount={orderTotal} lastRow />
       </CardTitle>

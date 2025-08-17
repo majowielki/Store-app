@@ -1,4 +1,5 @@
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+
+import { RouterProvider, createBrowserRouter, redirect } from "react-router-dom";
 
 import {
   HomeLayout,
@@ -8,10 +9,13 @@ import {
   SingleProduct,
   Cart,
   About,
+  Contact,
   Register,
   Login,
   Checkout,
   Orders,
+  // user order detail
+  OrderDetail as UserOrderDetail,
 } from "./pages";
 import { ErrorElement } from "./components";
 
@@ -26,6 +30,15 @@ import { action as loginUser } from './pages/Login';
 import { action as checkoutAction } from './components/CheckoutForm';
 
 import { store } from './store';
+import AdminLayout from './pages/admin/AdminLayout';
+import Dashboard from './pages/admin/Dashboard';
+import AdminOrders from './pages/admin/Orders';
+import AdminOrderDetail from './pages/admin/OrderDetail';
+import AdminProducts from './pages/admin/Products';
+import AdminProductForm from './pages/admin/ProductForm';
+import AdminUsers from './pages/admin/Users';
+import AdminUserDetail from './pages/admin/UserDetail';
+import AdminUserOrders from './pages/admin/UserOrders';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -56,6 +69,8 @@ const router = createBrowserRouter([
         errorElement: <ErrorElement />,
       },
       { path: "about", element: <About />, errorElement: <ErrorElement /> },
+  { path: "kontakt", element: <Contact />, errorElement: <ErrorElement /> },
+  { path: "contact", element: <Contact />, errorElement: <ErrorElement /> },
       {
         path: "checkout",
         element: <Checkout />,
@@ -69,6 +84,36 @@ const router = createBrowserRouter([
         errorElement: <ErrorElement />,
         loader: ordersLoader(store),
       },
+      {
+        path: "orders/:id",
+        element: <UserOrderDetail />,
+        errorElement: <ErrorElement />,
+      },
+    ],
+  },
+  {
+    path: '/admin',
+    element: <AdminLayout />,
+    errorElement: <Error />,
+    loader: async () => {
+      const state = store.getState();
+  const roles = state.userState.user?.roles || [];
+  const isAdmin = roles.some((r) => /admin/i.test(r));
+  if (!isAdmin) {
+        return redirect('/');
+      }
+      return null;
+    },
+    children: [
+  { index: true, element: <Dashboard /> },
+  { path: 'orders', element: <AdminOrders /> },
+  { path: 'orders/:id', element: <AdminOrderDetail /> },
+  { path: 'products', element: <AdminProducts /> },
+  { path: 'products/:id', element: <AdminProductForm /> },
+  { path: 'products/new', element: <AdminProductForm /> },
+  { path: 'users', element: <AdminUsers /> },
+  { path: 'users/:id', element: <AdminUserDetail /> },
+  { path: 'users/:id/orders', element: <AdminUserOrders /> },
     ],
   },
   {
@@ -85,7 +130,5 @@ const router = createBrowserRouter([
   },
 ]);
 
-const App = () => {
-  return <RouterProvider router={router} />;
-};
+const App = () => <RouterProvider router={router} />;
 export default App;

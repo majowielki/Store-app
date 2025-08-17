@@ -27,6 +27,13 @@ public class AuditLogDbContext : DbContext
             entity.Property(e => e.UserEmail).HasMaxLength(256);
             entity.Property(e => e.IpAddress).HasMaxLength(45); // IPv6 max length
             entity.Property(e => e.UserAgent).HasMaxLength(500);
+            // New fields
+            entity.Property(e => e.Severity).HasMaxLength(20);
+            entity.Property(e => e.ServiceName).HasMaxLength(100);
+            entity.Property(e => e.CorrelationId).HasMaxLength(100);
+            entity.Property(e => e.HttpMethod).HasMaxLength(10);
+            entity.Property(e => e.Path).HasMaxLength(300);
+            entity.Property(e => e.SessionId).HasMaxLength(100);
             
             // Indexes for better query performance
             entity.HasIndex(e => e.EntityName);

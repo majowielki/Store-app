@@ -120,3 +120,4 @@ D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.p
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.genruntimeconfig.cache
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\ref\Store.GatewayService.dll
 D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\Store.GatewayService.MvcApplicationPartsAssemblyInfo.cs
+D:\Projekty\store-app\Gateway\APIGateway\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

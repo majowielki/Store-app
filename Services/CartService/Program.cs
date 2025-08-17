@@ -63,15 +63,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Authorization (roles aligned with IdentityService)
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy =>
+    options.AddPolicy("AdminAccess", policy =>
         policy.RequireRole("true-admin", "demo-admin"));
 
-    options.AddPolicy("UserOrAdmin", policy =>
+    options.AddPolicy("UserAccess", policy =>
         policy.RequireRole("user", "true-admin", "demo-admin"));
 });
 
 // Configure HttpClient for AuditLogClient with proper base address
-var auditLogServiceUrl = builder.Configuration.GetValue<string>("Services:AuditLogService:BaseUrl") ?? "http://localhost:5004";
+var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
 builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
 {
     client.BaseAddress = new Uri(auditLogServiceUrl);

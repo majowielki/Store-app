@@ -6,3 +6,4 @@ export * from "./formatAsDollars";
 export * from "./pagination";
 export * from "./api";
 export * from "./errorHandling";
+export * from "./categories";

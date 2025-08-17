@@ -14,4 +14,7 @@ public interface IProductService
     Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams);
     Task<SingleProductResponse> GetProductForFrontendAsync(int id);
     Task<ProductsMeta> GetProductsMetaAsync();
+    
+    // Admin advanced endpoint
+    Task<ProductsResponse> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir);
 }

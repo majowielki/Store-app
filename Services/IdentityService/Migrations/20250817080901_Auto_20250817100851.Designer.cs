@@ -12,8 +12,8 @@ using Store.IdentityService.Data;
 namespace Store.IdentityService.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    [Migration("20250802193753_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250817080901_Auto_20250817100851")]
+    partial class Auto_20250817100851
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

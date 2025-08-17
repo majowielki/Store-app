@@ -20,4 +20,7 @@ public class CreateOrderFromCartRequest
     
     [StringLength(500)]
     public string? Notes { get; set; }
+
+    // New: Save address to user profile if true
+    public bool SaveAddress { get; set; } = false;
 }

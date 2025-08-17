@@ -21,14 +21,16 @@ public class ProductDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Description).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(4000);
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.SalePrice).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5,2)");
             entity.Property(e => e.Image).IsRequired();
             // Configure Colors with conversion and a ValueComparer to avoid EF warnings for mutable lists
-            var colorsComparer = new ValueComparer<List<string>>(
-                (c1, c2) => c1 != null && c2 != null && c1.SequenceEqual(c2),
-                c => c == null ? 0 : c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-                c => c == null ? new List<string>() : c.ToList()
+            var listComparer = new ValueComparer<List<string>>(
+                (l1, l2) => l1 != null && l2 != null && l1.SequenceEqual(l2),
+                l => l == null ? 0 : l.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                l => l == null ? new List<string>() : l.ToList()
             );
 
             var colorsProperty = entity.Property(e => e.Colors)
@@ -36,7 +38,30 @@ public class ProductDbContext : DbContext
                     v => string.Join(',', v),
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
                 .HasMaxLength(500);
-            colorsProperty.Metadata.SetValueComparer(colorsComparer);
+            colorsProperty.Metadata.SetValueComparer(listComparer);
+
+            // Configure Groups as CSV similar to Colors
+            var groupsProperty = entity.Property(e => e.Groups)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                .HasMaxLength(200);
+            groupsProperty.Metadata.SetValueComparer(listComparer);
+
+            // Materials as CSV list
+            var materialsProperty = entity.Property(e => e.Materials)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                .HasMaxLength(500);
+            materialsProperty.Metadata.SetValueComparer(listComparer);
+
+            // New fields mapping
+            entity.Property(e => e.WidthCm).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.HeightCm).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DepthCm).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.WeightKg).HasColumnType("decimal(18,2)");
+
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()"); // PostgreSQL syntax
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()"); // PostgreSQL syntax

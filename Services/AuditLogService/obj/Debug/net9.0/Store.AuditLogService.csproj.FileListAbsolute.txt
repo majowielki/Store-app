@@ -150,3 +150,4 @@ D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogSe
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\ref\Store.AuditLogService.dll
 D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\Store.AuditLogService.MvcApplicationPartsAssemblyInfo.cs
+D:\Projekty\store-app\Services\AuditLogService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

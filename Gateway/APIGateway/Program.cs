@@ -8,7 +8,9 @@ using System.Text.Json;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+
 using Store.GatewayService.HealthChecks;
+using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -101,6 +103,10 @@ builder.Services.AddAuthorization(options =>
     
     options.AddPolicy("UserOrAdmin", policy =>
         policy.RequireRole("user", "true-admin", "demo-admin"));
+
+    // Add UserAccess policy to match IdentityService
+    options.AddPolicy("UserAccess", policy =>
+        policy.RequireRole("user", "true-admin", "demo-admin"));
 });
 
 // RabbitMQ Message Bus with error handling
@@ -118,9 +124,22 @@ catch (Exception ex)
 // HTTP Client
 builder.Services.AddHttpClient();
 
-// YARP Reverse Proxy
+// YARP Reverse Proxy z przekazywaniem Authorization
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddTransforms(builderContext =>
+    {
+        builderContext.AddRequestTransform(context =>
+        {
+            var authHeader = context.HttpContext.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(authHeader))
+            {
+                context.ProxyRequest.Headers.Remove("Authorization");
+                context.ProxyRequest.Headers.Add("Authorization", authHeader);
+            }
+            return ValueTask.CompletedTask;
+        });
+    });
 
 // Health Checks
 builder.Services.AddHealthChecks()
@@ -248,7 +267,7 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
     }
 });
 
-app.MapControllers();
 app.MapReverseProxy();
+app.MapControllers();
 
 app.Run();

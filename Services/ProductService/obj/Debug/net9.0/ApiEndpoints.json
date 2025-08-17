@@ -8,16 +8,6 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "Page",
-        "Type": "System.Int32",
-        "IsRequired": false
-      },
-      {
-        "Name": "PageSize",
-        "Type": "System.Int32",
-        "IsRequired": false
-      },
-      {
         "Name": "Search",
         "Type": "System.String",
         "IsRequired": false
@@ -28,18 +18,13 @@
         "IsRequired": false
       },
       {
-        "Name": "Company",
+        "Name": "Group",
         "Type": "System.String",
         "IsRequired": false
       },
       {
-        "Name": "MinPrice",
-        "Type": "System.Nullable\u00601[[System.Decimal, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
-        "IsRequired": false
-      },
-      {
-        "Name": "MaxPrice",
-        "Type": "System.Nullable\u00601[[System.Decimal, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "Name": "Company",
+        "Type": "System.String",
         "IsRequired": false
       },
       {
@@ -48,19 +33,34 @@
         "IsRequired": false
       },
       {
-        "Name": "SortBy",
+        "Name": "Order",
         "Type": "System.String",
         "IsRequired": false
       },
       {
-        "Name": "SortOrder",
+        "Name": "Price",
         "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Sale",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Page",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "PageSize",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       }
     ],
     "ReturnTypes": [
       {
-        "Type": "Store.ProductService.DTOs.Responses.ProductListResponse",
+        "Type": "Store.ProductService.DTOs.Responses.ProductsResponse",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -112,7 +112,7 @@
     ],
     "ReturnTypes": [
       {
-        "Type": "Store.ProductService.DTOs.Responses.ProductResponse",
+        "Type": "Store.ProductService.DTOs.Responses.SingleProductResponse",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -171,21 +171,76 @@
   },
   {
     "ContainingType": "Store.ProductService.Controllers.ProductsController",
-    "Method": "ProductExists",
-    "RelativePath": "api/Products/{id}/exists",
+    "Method": "GetProductsAdmin",
+    "RelativePath": "api/Products/admin",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Int32",
-        "IsRequired": true
+        "Name": "Search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Category",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Group",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Company",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Color",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Order",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Price",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Sale",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Page",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "PageSize",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "sortBy",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "sortDir",
+        "Type": "System.String",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": [
       {
-        "Type": "System.Boolean",
+        "Type": "Store.ProductService.DTOs.Responses.ProductsResponse",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -197,67 +252,15 @@
   },
   {
     "ContainingType": "Store.ProductService.Controllers.ProductsController",
-    "Method": "GetProductsByCategory",
-    "RelativePath": "api/Products/category/{category}",
+    "Method": "GetProductsMeta",
+    "RelativePath": "api/Products/meta",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
-    "Parameters": [
-      {
-        "Name": "category",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "page",
-        "Type": "System.Int32",
-        "IsRequired": false
-      },
-      {
-        "Name": "pageSize",
-        "Type": "System.Int32",
-        "IsRequired": false
-      }
-    ],
+    "Parameters": [],
     "ReturnTypes": [
       {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[Store.ProductService.DTOs.Responses.ProductResponse, Store.ProductService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
-  },
-  {
-    "ContainingType": "Store.ProductService.Controllers.ProductsController",
-    "Method": "GetProductsByCompany",
-    "RelativePath": "api/Products/company/{company}",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "company",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "page",
-        "Type": "System.Int32",
-        "IsRequired": false
-      },
-      {
-        "Name": "pageSize",
-        "Type": "System.Int32",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": [
-      {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[Store.ProductService.DTOs.Responses.ProductResponse, Store.ProductService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "Type": "Store.ProductService.DTOs.Responses.ProductsMeta",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -276,7 +279,7 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "searchTerm",
+        "Name": "search",
         "Type": "System.String",
         "IsRequired": false
       },
@@ -284,16 +287,11 @@
         "Name": "page",
         "Type": "System.Int32",
         "IsRequired": false
-      },
-      {
-        "Name": "pageSize",
-        "Type": "System.Int32",
-        "IsRequired": false
       }
     ],
     "ReturnTypes": [
       {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[Store.ProductService.DTOs.Responses.ProductResponse, Store.ProductService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "Type": "Store.ProductService.DTOs.Responses.ProductsResponse",
         "MediaTypes": [
           "text/plain",
           "application/json",

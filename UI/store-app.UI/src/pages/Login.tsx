@@ -1,112 +1,139 @@
+import { useAppDispatch } from '@/hooks';
 /* eslint-disable react-refresh/only-export-components */
-import { Form, Link, redirect, type ActionFunction, useNavigate } from 'react-router-dom';
+import { Form, Link, redirect, type ActionFunction } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SubmitBtn, FormInput } from '@/components';
-import { customFetch } from '@/utils';
 import { toast } from '@/hooks/use-toast';
 import { type ReduxStore } from '@/store';
-import { loginUser, getCurrentUserAsync } from '@/features/user/userSlice';
+import { loginUserAsync, getCurrentUserAsync } from '@/features/user/userSlice';
+import { authApi } from '@/utils/api';
 import { mergeLocalCartToServer, fetchCart } from '@/features/cart/cartSlice';
-import { useAppDispatch } from '@/hooks';
-import { AxiosError, AxiosResponse } from 'axios';
 
 export const action =
   (store: ReduxStore): ActionFunction =>
   async ({ request }): Promise<Response | null> => {
     const formData = await request.formData();
-    const data = Object.fromEntries(formData);
+      const credentials = {
+        email: formData.get('email')?.toString() || '',
+        password: formData.get('password')?.toString() || '',
+      };
     try {
-      const response: AxiosResponse = await customFetch.post('/auth/login', data);
-      // API returns { success, message, accessToken, expiresAt, user }
-      const jwt: string = response.data.accessToken;
-      const user = response.data.user;
-      const username: string = user?.displayName || user?.userName || user?.email || 'User';
-  store.dispatch(loginUser({ username, jwt }));
-  // Fetch real user profile using the stored token
-  // Fetch user profile to confirm token works
-  await store.dispatch(getCurrentUserAsync());
-  // sync guest cart to server, then fetch server cart
-  await store.dispatch(mergeLocalCartToServer());
-  await store.dispatch(fetchCart());
-      return redirect('/');
-    } catch (error) {
-      let errorMsg = 'Login failed';
-      if (error instanceof AxiosError) {
-        const respData: unknown = error.response?.data;
-        if (typeof respData === 'string') errorMsg = respData;
-        else if (respData && typeof respData === 'object') {
-          const obj = respData as { message?: string; errors?: Record<string, string[]> };
-          if (obj.message) errorMsg = obj.message;
-          else if (obj.errors) {
-            const firstKey = Object.keys(obj.errors)[0];
-            const firstErr = obj.errors[firstKey]?.[0];
-            if (firstErr) errorMsg = firstErr;
-          }
+      // Use async thunk for real login
+      const result = await store.dispatch(loginUserAsync(credentials));
+      if (loginUserAsync.fulfilled.match(result)) {
+        // Optionally fetch real user profile using /auth/me if enabled
+        if (import.meta.env.VITE_USE_AUTH_ME === 'true') {
+          await store.dispatch(getCurrentUserAsync());
         }
+        // sync guest cart to server, then fetch server cart
+        await store.dispatch(mergeLocalCartToServer());
+        await store.dispatch(fetchCart());
+        const roles: string[] = result.payload?.user?.roles || [];
+        return redirect(roles.includes('Admin') || roles.includes('admin') ? '/admin' : '/');
+      } else {
+        toast({ description: result.payload as string || 'Login failed' });
+        return null;
       }
-      toast({ description: errorMsg });
+    } catch {
+      toast({ description: 'Login failed' });
       return null;
     }
   };
 
 const Login = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
 
+  // Demo user login (no password, uses /auth/demo-login)
   const loginAsGuestUser = async (): Promise<void> => {
     try {
-      const response: AxiosResponse = await customFetch.post('/auth/demo-login', {});
-      const jwt: string = response.data.accessToken;
-      const user = response.data.user;
-      const username: string = user?.displayName || user?.userName || user?.email || 'Guest';
-  dispatch(loginUser({ username, jwt }));
-  // Fetch real user profile (demo user)
-  await dispatch(getCurrentUserAsync());
-  await dispatch(mergeLocalCartToServer());
-  await dispatch(fetchCart());
-      navigate('/');
-    } catch (error) {
-      let errorMsg = 'Login failed';
-      if (error instanceof AxiosError) {
-        const respData: unknown = error.response?.data;
-        if (typeof respData === 'string') errorMsg = respData;
-        else if (respData && typeof respData === 'object') {
-          const obj = respData as { message?: string; errors?: Record<string, string[]> };
-          if (obj.message) errorMsg = obj.message;
-          else if (obj.errors) {
-            const firstKey = Object.keys(obj.errors)[0];
-            const firstErr = obj.errors[firstKey]?.[0];
-            if (firstErr) errorMsg = firstErr;
-          }
-        }
+      const response = await authApi.demoLogin();
+      if (response.success && response.accessToken && response.user) {
+        localStorage.setItem('authToken', response.accessToken);
+        localStorage.setItem('authUser', JSON.stringify(response.user));
+        await dispatch({ type: 'user/setUser', payload: response.user });
+        await dispatch({ type: 'user/setToken', payload: response.accessToken });
+        toast({ description: 'Demo user logged in!' });
+        window.location.href = '/';
+      } else {
+        toast({ description: response.message || 'Demo user login failed', variant: 'destructive' });
       }
-      toast({ description: errorMsg });
+    } catch {
+      toast({ description: 'Demo user login failed', variant: 'destructive' });
+    }
+  };
+
+  // Demo admin login (no password, uses /auth/demo-admin-login)
+  const loginAsDemoAdmin = async (): Promise<void> => {
+    try {
+      const response = await authApi.demoAdminLogin();
+      if (response.success && response.accessToken && response.user) {
+        localStorage.setItem('authToken', response.accessToken);
+        localStorage.setItem('authUser', JSON.stringify(response.user));
+        await dispatch({ type: 'user/setUser', payload: response.user });
+        await dispatch({ type: 'user/setToken', payload: response.accessToken });
+        toast({ description: 'Demo admin logged in!' });
+        window.location.href = '/admin';
+      } else {
+        toast({ description: response.message || 'Demo admin login failed', variant: 'destructive' });
+      }
+    } catch {
+      toast({ description: 'Demo admin login failed', variant: 'destructive' });
+    }
+  };
+  // ...
+  // ...
+  const handleClose = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/';
     }
   };
   return (
-    <section className='h-screen grid place-items-center'>
-      <Card className='w-96 bg-muted'>
+    <section className="h-screen grid place-items-center">
+      <Card className="w-96 bg-muted relative">
+          <button
+            onClick={handleClose}
+            className="absolute top-2 right-2 text-xl px-2 py-1 rounded hover:bg-gray-200"
+            title="Close"
+          >
+            ×
+          </button>
         <CardHeader>
-          <CardTitle className='text-center'>Login</CardTitle>
+          <CardTitle className="text-center">Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method='post'>
-            <FormInput type='email' label='email' name='email' />
-            <FormInput type='password' name='password' />
-            <SubmitBtn text='Login' className='w-full mt-4' />
-            <Button
-              type='button'
-              variant='outline'
-              onClick={loginAsGuestUser}
-              className='w-full mt-4'
-            >
-              Guest User
-            </Button>
-            <p className='text-center mt-4'>
-              Not a member yet?{' '}
-              <Button type='button' asChild variant='link'>
-                <Link to='/register'>Register</Link>
+          <Form method="post" className="space-y-4">
+            <FormInput type="email" name="email" />
+            <FormInput type="password" name="password" />
+            <SubmitBtn text="Login" className="w-full mt-4" />
+            {/* Jeśli chcesz przycisk logowania jako gość, odkomentuj poniżej i zaimplementuj funkcję loginAsGuestUser */}
+            {/* <Button type="button" variant="secondary" className="w-full" onClick={loginAsGuestUser}>
+              Login as Guest
+            </Button> */}
+              <div className='flex gap-2 mt-4'>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  className='w-1/2'
+                  onClick={loginAsGuestUser}
+                >
+                  Demo User
+                </Button>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  className='w-1/2'
+                  onClick={loginAsDemoAdmin}
+                >
+                  Demo Admin
+                </Button>
+              </div>
+            <p className="text-center mt-4">
+              Not a member?{' '}
+              <Button type="button" asChild variant="link">
+                <Link to="/register">Register</Link>
               </Button>
             </p>
           </Form>

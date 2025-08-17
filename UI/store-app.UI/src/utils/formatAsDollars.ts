@@ -1,7 +1,8 @@
 export const formatAsDollars = (price: string | number): string => {
-  const dollarsAmount = new Intl.NumberFormat("en-US", {
+  const n = typeof price === 'string' ? Number(price) : price;
+  const value = Number.isFinite(n) ? n : 0;
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(Number(price) / 100);
-  return dollarsAmount;
+  }).format(value);
 };

@@ -13,8 +13,8 @@ using Store.CartService.Data;
 namespace Store.CartService.Migrations
 {
     [DbContext(typeof(CartDbContext))]
-    [Migration("20250803195940_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20250817080929_Auto_20250817100919")]
+    partial class Auto_20250817100919
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -127,13 +127,23 @@ namespace Store.CartService.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("DepthCm")
+                        .HasColumnType("numeric");
+
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
-                    b.Property<bool>("Featured")
-                        .HasColumnType("boolean");
+                    b.Property<decimal?>("DiscountPercent")
+                        .HasColumnType("numeric");
+
+                    b.PrimitiveCollection<List<string>>("Groups")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<decimal?>("HeightCm")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Image")
                         .IsRequired()
@@ -142,8 +152,18 @@ namespace Store.CartService.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.PrimitiveCollection<List<string>>("Materials")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<bool>("NewArrival")
+                        .HasColumnType("boolean");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("SalePrice")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -152,6 +172,12 @@ namespace Store.CartService.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("WeightKg")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal?>("WidthCm")
+                        .HasColumnType("numeric");
 
                     b.HasKey("Id");
 

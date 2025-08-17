@@ -32,6 +32,7 @@ customFetch.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
+      const isMeEndpoint = typeof error.config?.url === 'string' && /\/auth\/me\b/.test(error.config.url);
       const expired = error.response.headers?.['token-expired'] === 'true' ||
                       error.response.headers?.['Token-Expired'] === 'true';
       const wwwAuth: string | undefined = error.response.headers?.['www-authenticate'];
@@ -41,6 +42,11 @@ customFetch.interceptors.response.use(
         localStorage.removeItem('authToken');
         sessionStorage.removeItem('authToken');
         console.warn('Authentication token expired');
+      } else if (isMeEndpoint) {
+        // If the current-user endpoint says 401, our stored token isn't usable. Clear it to recover.
+        localStorage.removeItem('authToken');
+        sessionStorage.removeItem('authToken');
+        console.warn('Unauthorized on /auth/me; cleared stored token');
       } else if (looksInvalid) {
         // Token is not acceptable by server (bad signature/issuer/audience). Clear to recover.
         localStorage.removeItem('authToken');

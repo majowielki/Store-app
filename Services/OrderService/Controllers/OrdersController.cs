@@ -73,6 +73,14 @@ public class OrdersController : ControllerBase
                 return Unauthorized("User not found");
             }
 
+            // If admin, bypass user filter
+            if (User.IsInRole("true-admin") || User.IsInRole("demo-admin"))
+            {
+                var adminOrder = await _orderService.GetOrderByIdForAdminAsync(id);
+                if (adminOrder == null) return NotFound($"Order with ID {id} not found");
+                return Ok(adminOrder);
+            }
+
             var order = await _orderService.GetOrderByIdAsync(id, userId);
 
             if (order == null)
@@ -135,6 +143,83 @@ public class OrdersController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving all orders");
             return StatusCode(500, "An error occurred while retrieving orders");
+        }
+    }
+
+    /// <summary>
+    /// Get orders by user id (Admin only)
+    /// </summary>
+    [HttpGet("by-user/{userId}")]
+    [Authorize(Roles = "true-admin,demo-admin")]
+    public async Task<ActionResult<OrderListResponse>> GetOrdersByUserId([FromRoute] string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var orders = await _orderService.GetOrdersByUserIdAsync(userId, page, pageSize);
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving orders for user: {UserId}", userId);
+            return StatusCode(500, "An error occurred while retrieving orders");
+        }
+    }
+
+    /// <summary>
+    /// Get aggregated order statistics (Admin only)
+    /// </summary>
+    [HttpGet("stats")]
+    [Authorize(Roles = "true-admin,demo-admin")]
+    public async Task<ActionResult<OrderStatsResponse>> GetStats([FromQuery] int days = 30)
+    {
+        try
+        {
+            var stats = await _orderService.GetOrderStatsAsync(days <= 0 ? 30 : days);
+            // Ensure always a valid response, even if no orders
+            if (stats == null)
+            {
+                return Ok(new OrderStatsResponse
+                {
+                    TotalOrders = 0,
+                    TotalRevenue = 0,
+                    Daily = new List<TimeBucketStats>(),
+                    Weekly = new List<TimeBucketStats>(),
+                    TopProducts = new List<TopProductStats>()
+                });
+            }
+            // Defensive: fill empty lists if null
+            stats.Daily ??= new List<TimeBucketStats>();
+            stats.Weekly ??= new List<TimeBucketStats>();
+            stats.TopProducts ??= new List<TopProductStats>();
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving order stats");
+            return StatusCode(500, "An error occurred while retrieving order stats");
+        }
+    }
+
+    /// <summary>
+    /// Check if current user has any orders
+    /// </summary>
+    [HttpGet("has-orders")] // For promotions eligibility checks
+    public async Task<ActionResult<HasOrdersResponse>> HasOrders()
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not found");
+            }
+            var count = await _orderService.GetUserOrdersCountAsync(userId);
+            return Ok(new HasOrdersResponse { HasOrders = count > 0, OrdersCount = count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking user orders existence");
+            return StatusCode(500, "An error occurred while checking orders");
         }
     }
 }

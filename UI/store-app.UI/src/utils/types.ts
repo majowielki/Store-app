@@ -11,10 +11,18 @@ export interface ProductAttributes {
   featured: boolean;
   image: string;
   price: string; // backend returns string for price
+  salePrice?: string | null;
+  discountPercent?: number | null;
   publishedAt: string;
   title: string;
   updatedAt: string;
   colors: string[];
+  // Extended product model fields (DB changes required)
+  widthCm?: number | null;
+  heightCm?: number | null;
+  depthCm?: number | null;
+  weightKg?: number | null;
+  materials?: string | null;
 }
 
 export interface ProductData {
@@ -35,6 +43,10 @@ export interface PaginationMeta {
 export interface ProductsMeta {
   categories: string[];
   companies: string[];
+  colors: string[];
+  groups?: string[];
+  // Map of group -> categories belonging to that group, for dependent dropdowns
+  groupCategoryMap?: Record<string, string[]>;
   pagination: PaginationMeta;
 }
 
@@ -47,10 +59,12 @@ export interface Params {
   search?: string;
   category?: string;
   company?: string;
+  color?: string;
   order?: string;
   price?: string;
-  shipping?: string;
   page?: number;
+  group?: string;
+  sale?: string;
 }
 
 // This must remain a type because it uses intersection (&)
@@ -79,7 +93,6 @@ export interface CartState {
   cartItems: CartItem[];
   numItemsInCart: number;
   cartTotal: number;
-  shipping: number;
   tax: number;
   orderTotal: number;
 }
@@ -205,6 +218,8 @@ export interface OrderItemResponse {
   color: string;
   company: string;
   lineTotal: number;
+  deliveryCost?: number | null;
+  orderDiscount?: number | null;
 }
 
 export interface Order {
@@ -222,13 +237,13 @@ export interface Order {
 
 // Use camelCase to match System.Text.Json default policy in our services
 export interface OrdersResponse {
-  orders: Order[];
+  items: Order[];
   totalCount: number;
   page: number;
   pageSize: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 }
 
 export interface CreateOrderFromCartRequest {
@@ -246,4 +261,51 @@ export interface Checkout {
   orderTotal: string;
   cartItems: CartItem[];
   numItemsInCart: number;
+}
+
+// ADMIN/IDENTITY types
+export interface AdminUsersResponse {
+  users: UserResponse[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+// Admin stats types
+export interface AdminTopProduct {
+  productId: number;
+  title: string;
+  quantity: number;
+  revenue: number;
+}
+
+export interface AdminDailyBucket {
+  date: string; // yyyy-MM-dd
+  revenue: number;
+  ordersCount: number;
+}
+
+export interface AdminWeeklyBucket {
+  isoWeek: string; // e.g. 2025-W33
+  startDate: string; // Monday ISO date
+  endDate: string; // Sunday ISO date
+  revenue: number;
+  ordersCount: number;
+}
+
+export interface AdminOrderStats {
+  days: number;
+  totals: { revenue: number; ordersCount: number };
+  dailyBuckets: AdminDailyBucket[];
+  weeklyBuckets: AdminWeeklyBucket[];
+  topProducts: AdminTopProduct[];
+}
+
+// Has orders for current user
+export interface HasOrdersResponse {
+  hasOrders: boolean;
+  ordersCount: number;
 }

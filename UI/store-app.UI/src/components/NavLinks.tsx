@@ -1,15 +1,16 @@
 import { links } from '@/utils';
 import { NavLink } from 'react-router-dom';
-import { useAppSelector } from '@/hooks';
+// import { useAppSelector } from '@/hooks';
 
 const NavLinks = () => {
-  const user = useAppSelector((state) => state.userState.user);
+  // user selector removed (was unused)
+  const hiddenInHeader = new Set(['/', 'about', 'products', 'cart', 'checkout', 'orders']);
   return (
     <div className='hidden lg:flex justify-center items-center gap-x-4'>
-      {links.map((link) => {
-        const restrictedRoutes =
-          link.href === 'checkout' || link.href === 'orders';
-        if (restrictedRoutes && !user) return null;
+      {links
+        .filter((link) => !hiddenInHeader.has(link.href))
+        .map((link) => {
+  // all restricted routes are hidden in header now
         return (
           <NavLink
             to={link.href}
@@ -24,6 +25,7 @@ const NavLinks = () => {
           </NavLink>
         );
       })}
+  {/* Admin link removed; now in account dropdown */}
     </div>
   );
 }

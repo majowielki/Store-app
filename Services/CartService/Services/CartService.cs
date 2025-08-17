@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
 using Store.Shared.Models;
+using Store.Shared.Services;
 
 namespace Store.CartService.Services;
 
@@ -14,17 +16,26 @@ public class CartService : ICartService
     private readonly ILogger<CartService> _logger;
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
+    private readonly IAuditLogClient _auditLogClient;
+
+    private static readonly System.Text.Json.JsonSerializerOptions AuditJsonOptions = new()
+    {
+        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+    };
 
     public CartService(
         CartDbContext context, 
         ILogger<CartService> logger, 
         HttpClient httpClient,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IAuditLogClient auditLogClient)
     {
         _context = context;
         _logger = logger;
         _httpClient = httpClient;
         _configuration = configuration;
+        _auditLogClient = auditLogClient;
     }
 
     public async Task<CartResponse?> GetCartByUserIdAsync(string userId)
@@ -43,6 +54,14 @@ public class CartService : ICartService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving cart for user: {UserId}", userId);
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_RETRIEVE_FAILED",
+                EntityName = "Cart",
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
+            });
             throw;
         }
     }
@@ -61,11 +80,30 @@ public class CartService : ICartService
             _context.Carts.Add(cart);
             await _context.SaveChangesAsync();
 
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_CREATED",
+                EntityName = "Cart",
+                EntityId = cart.Id.ToString(),
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                NewValues = System.Text.Json.JsonSerializer.Serialize(cart, AuditJsonOptions),
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
+            });
+
             return MapToCartResponse(cart);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating cart for user: {UserId}", userId);
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_CREATION_FAILED",
+                EntityName = "Cart",
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" }, AuditJsonOptions)
+            });
             throw;
         }
     }
@@ -137,11 +175,29 @@ public class CartService : ICartService
             cart.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_ITEM_ADDED",
+                EntityName = "CartItem",
+                EntityId = cartItem.Id.ToString(),
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                NewValues = System.Text.Json.JsonSerializer.Serialize(cartItem, AuditJsonOptions),
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
+            });
             return MapToCartItemResponse(cartItem);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding item to cart for user: {UserId}, Product: {ProductId}", userId, request.ProductId);
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_ITEM_ADD_FAILED",
+                EntityName = "CartItem",
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
+            });
             throw;
         }
     }
@@ -174,11 +230,30 @@ public class CartService : ICartService
 
             await _context.SaveChangesAsync();
 
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_ITEM_UPDATED",
+                EntityName = "CartItem",
+                EntityId = cartItemId.ToString(),
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                NewValues = System.Text.Json.JsonSerializer.Serialize(cartItem, AuditJsonOptions),
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
+            });
             return MapToCartItemResponse(cartItem);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating cart item: {CartItemId} for user: {UserId}", cartItemId, userId);
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_ITEM_UPDATE_FAILED",
+                EntityName = "CartItem",
+                EntityId = cartItemId.ToString(),
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
+            });
             throw;
         }
     }
@@ -197,11 +272,30 @@ public class CartService : ICartService
             cartItem.Cart.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_ITEM_REMOVED",
+                EntityName = "CartItem",
+                EntityId = cartItemId.ToString(),
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
+            });
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error removing cart item: {CartItemId} for user: {UserId}", cartItemId, userId);
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_ITEM_REMOVE_FAILED",
+                EntityName = "CartItem",
+                EntityId = cartItemId.ToString(),
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
+            });
             throw;
         }
     }
@@ -220,11 +314,28 @@ public class CartService : ICartService
             cart.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_CLEARED",
+                EntityName = "Cart",
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
+            });
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error clearing cart for user: {UserId}", userId);
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "CART_CLEAR_FAILED",
+                EntityName = "Cart",
+                UserId = userId,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
+            });
             throw;
         }
     }

@@ -16,6 +16,7 @@ public interface IAuthService
     // User operations
     Task<ApiResponse<UserResponse>> GetCurrentUserAsync(string userId);
     Task<ApiResponse<UserResponse>> GetUserAsync(string userId);
+    Task<ApiResponse<UserResponse>> UpdateAddressAsync(string userId, string simpleAddress);
     
     // Admin operations (Admin access required)
     Task<ApiResponse<IEnumerable<UserResponse>>> GetAllUsersAsync(int page = 1, int pageSize = 20);

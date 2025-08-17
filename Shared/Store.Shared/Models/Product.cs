@@ -12,12 +12,20 @@ public class Product
     public string Title { get; set; } = string.Empty;
     
     [Required]
-    [StringLength(1000, MinimumLength = 10)]
+    [StringLength(4000, MinimumLength = 10)]
     public string Description { get; set; } = string.Empty;
     
     [Required]
     [Range(0.01, 999999.99)]
     public decimal Price { get; set; }
+    
+    // Optional sale price; when set it represents the current price during a sale
+    [Range(0.01, 999999.99)]
+    public decimal? SalePrice { get; set; }
+
+    // Optional discount percent (0-100)
+    [Range(0, 100)]
+    public decimal? DiscountPercent { get; set; }
     
     [Required]
     public Category Category { get; set; }
@@ -25,7 +33,7 @@ public class Product
     [Required]
     public Company Company { get; set; }
     
-    public bool Featured { get; set; } = false;
+    public bool NewArrival { get; set; } = false;
 
     [Required]
     [Url]
@@ -34,6 +42,25 @@ public class Product
     [Required]
     [MinLength(1)]
     public List<string> Colors { get; set; } = new();
+
+    // Optional groups (e.g., furniture, kids, bathroom, garden). Lowercase preferred.
+    public List<string> Groups { get; set; } = new();
+
+    // New fields: dimensions and weight
+    [Range(0, 100000)]
+    public decimal? WidthCm { get; set; }
+
+    [Range(0, 100000)]
+    public decimal? HeightCm { get; set; }
+
+    [Range(0, 100000)]
+    public decimal? DepthCm { get; set; }
+
+    [Range(0, 100000)]
+    public decimal? WeightKg { get; set; }
+
+    // Materials list (simple strings like wood, steel, glass)
+    public List<string> Materials { get; set; } = new();
     
     public bool IsActive { get; set; } = true;
     

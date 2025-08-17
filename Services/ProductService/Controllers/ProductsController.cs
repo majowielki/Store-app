@@ -220,6 +220,32 @@ public class ProductsController : BaseApiController
     }
 
     /// <summary>
+    /// Get all products for admin with advanced sorting and pagination
+    /// </summary>
+    /// <param name="queryParams">Query parameters for filtering, sorting, and pagination</param>
+    /// <param name="sortBy">Column to sort by (id, price, title, company)</param>
+    /// <param name="sortDir">Sort direction (asc, desc)</param>
+    /// <returns>Products response in frontend format</returns>
+    [HttpGet("admin")]
+    //[Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ProductsResponse>> GetProductsAdmin(
+    [FromQuery] ProductQueryParams queryParams, 
+    [FromQuery] string sortBy = null, 
+    [FromQuery] string sortDir = null)
+    {
+        try
+        {
+            var result = await _productService.GetProductsForAdminAsync(queryParams, sortBy, sortDir);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving admin products");
+            return StatusCode(500, "An error occurred while retrieving products for admin");
+        }
+    }
+
+    /// <summary>
     /// Check if the current user is a demo admin
     /// </summary>
     /// <returns>True if demo admin, false otherwise</returns>

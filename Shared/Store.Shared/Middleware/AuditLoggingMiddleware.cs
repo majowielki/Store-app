@@ -76,16 +76,23 @@ public class AuditLoggingMiddleware
             if (ShouldSkipLogging(context.Request.Path))
                 return;
 
+            var correlationId = context.TraceIdentifier;
+            var serviceName = AppDomain.CurrentDomain.FriendlyName;
             var auditLog = new AuditLog
             {
                 Action = "HTTP_REQUEST",
                 EntityName = "HttpRequest",
-                EntityId = context.TraceIdentifier,
+                EntityId = correlationId,
                 UserId = GetUserId(context),
                 UserEmail = GetUserEmail(context),
                 Timestamp = timestamp,
                 IpAddress = GetClientIpAddress(context),
                 UserAgent = GetUserAgent(context),
+                ServiceName = serviceName,
+                CorrelationId = correlationId,
+                HttpMethod = context.Request.Method,
+                Path = context.Request.Path.Value,
+                Severity = "Info",
                 AdditionalInfo = JsonSerializer.Serialize(new
                 {
                     Method = context.Request.Method,
@@ -118,18 +125,26 @@ public class AuditLoggingMiddleware
                 return;
 
             var statusCode = context.Response.StatusCode;
-            var action = statusCode >= 400 ? "HTTP_ERROR_RESPONSE" : "HTTP_RESPONSE";
-
+            var action = statusCode >= 500 ? "HTTP_SERVER_ERROR" : statusCode >= 400 ? "HTTP_CLIENT_ERROR" : "HTTP_RESPONSE";
+            var severity = statusCode >= 500 ? "Critical" : statusCode >= 400 ? "Warning" : "Info";
+            var correlationId = context.TraceIdentifier;
+            var serviceName = AppDomain.CurrentDomain.FriendlyName;
             var auditLog = new AuditLog
             {
                 Action = action,
                 EntityName = "HttpResponse",
-                EntityId = context.TraceIdentifier,
+                EntityId = correlationId,
                 UserId = GetUserId(context),
                 UserEmail = GetUserEmail(context),
                 Timestamp = endTime,
                 IpAddress = GetClientIpAddress(context),
                 UserAgent = GetUserAgent(context),
+                ServiceName = serviceName,
+                CorrelationId = correlationId,
+                HttpMethod = context.Request.Method,
+                Path = context.Request.Path.Value,
+                StatusCode = statusCode,
+                Severity = severity,
                 AdditionalInfo = JsonSerializer.Serialize(new
                 {
                     Method = context.Request.Method,
@@ -146,16 +161,6 @@ public class AuditLoggingMiddleware
                 })
             };
 
-            // Add severity for error responses
-            if (statusCode >= 500)
-            {
-                auditLog.Action = "HTTP_SERVER_ERROR";
-            }
-            else if (statusCode >= 400)
-            {
-                auditLog.Action = "HTTP_CLIENT_ERROR";
-            }
-
             await CreateAuditLogAsync(auditLog);
         }
         catch (Exception ex)
@@ -168,16 +173,24 @@ public class AuditLoggingMiddleware
     {
         try
         {
+            var correlationId = context.TraceIdentifier;
+            var serviceName = AppDomain.CurrentDomain.FriendlyName;
             var auditLog = new AuditLog
             {
                 Action = "HTTP_UNHANDLED_EXCEPTION",
                 EntityName = "HttpException",
-                EntityId = context.TraceIdentifier,
+                EntityId = correlationId,
                 UserId = GetUserId(context),
                 UserEmail = GetUserEmail(context),
                 Timestamp = timestamp,
                 IpAddress = GetClientIpAddress(context),
                 UserAgent = GetUserAgent(context),
+                ServiceName = serviceName,
+                CorrelationId = correlationId,
+                HttpMethod = context.Request.Method,
+                Path = context.Request.Path.Value,
+                Severity = "Critical",
+                StackTrace = exception.StackTrace, // Store call stack
                 AdditionalInfo = JsonSerializer.Serialize(new
                 {
                     Method = context.Request.Method,

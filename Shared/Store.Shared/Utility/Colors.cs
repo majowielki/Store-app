@@ -9,6 +9,7 @@ namespace Store.Shared.Utility
 {
     public enum Colors
     {
+        All,
         White,
         Black,
         Gray,
@@ -34,6 +35,7 @@ namespace Store.Shared.Utility
         /// </summary>
         public static string GetDisplayName(this Colors color) => color switch
         {
+            Colors.All => "All Colors",
             Colors.White => "White",
             Colors.Black => "Black",
             Colors.Gray => "Gray",
@@ -58,6 +60,7 @@ namespace Store.Shared.Utility
         /// </summary>
         public static string GetHexCode(this Colors color) => color switch
         {
+            Colors.All => "#CCCCCC",
             Colors.White => "#FFFFFF",
             Colors.Black => "#000000",
             Colors.Gray => "#808080",

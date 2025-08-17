@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Store.AuditLogService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Auto_20250817100933 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -29,7 +29,15 @@ namespace Store.AuditLogService.Migrations
                     Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IpAddress = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: true),
                     UserAgent = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    AdditionalInfo = table.Column<string>(type: "text", nullable: true)
+                    AdditionalInfo = table.Column<string>(type: "text", nullable: true),
+                    Severity = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    ServiceName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    CorrelationId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    HttpMethod = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    Path = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    StatusCode = table.Column<int>(type: "integer", nullable: true),
+                    SessionId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    StackTrace = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {

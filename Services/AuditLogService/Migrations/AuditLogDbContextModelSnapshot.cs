@@ -41,6 +41,10 @@ namespace Store.AuditLogService.Migrations
                     b.Property<string>("Changes")
                         .HasColumnType("text");
 
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("EntityId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -49,6 +53,10 @@ namespace Store.AuditLogService.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("HttpMethod")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("IpAddress")
                         .HasMaxLength(45)
@@ -59,6 +67,28 @@ namespace Store.AuditLogService.Migrations
 
                     b.Property<string>("OldValues")
                         .HasColumnType("text");
+
+                    b.Property<string>("Path")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("ServiceName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Severity")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StackTrace")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("StatusCode")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone");

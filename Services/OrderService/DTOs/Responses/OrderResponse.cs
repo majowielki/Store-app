@@ -27,4 +27,8 @@ public class OrderItemResponse
     public string Color { get; set; } = string.Empty; // Keep variants
     public string Company { get; set; } = string.Empty;
     public decimal LineTotal { get; set; }
+
+    public decimal? DeliveryCost { get; set; } // Include delivery cost in response
+
+    public decimal? OrderDiscount { get; set; } // Include order discount in response
 }

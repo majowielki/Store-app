@@ -1,11 +1,14 @@
-import { Outlet, useNavigation } from "react-router-dom";
+import { Outlet, useNavigation, useLocation } from "react-router-dom";
+import React, { useEffect } from 'react';
 import { Header, Loading, Navbar } from "@/components";
-import { useEffect } from 'react';
+import GlobalAlerts from '@/components/GlobalAlerts';
+import Footer from '@/components/Footer';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { fetchCart } from '@/features/cart/cartSlice';
 import { getCurrentUserAsync } from '@/features/user/userSlice';
 
 const HomeLayout = () => {
+  const useAuthMe = import.meta.env.VITE_USE_AUTH_ME === 'true';
   const navigation = useNavigation();
   const isPageLoading = navigation.state === "loading";
   const dispatch = useAppDispatch();
@@ -14,12 +17,18 @@ const HomeLayout = () => {
   const userLoading = useAppSelector((s) => s.userState.isLoading);
   const meAttempted = useAppSelector((s) => s.userState.meAttempted);
 
+  // Scroll to top on route change
+  const { pathname, search } = useLocation();
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [pathname, search]);
+
   // If we have a token but no user yet, validate token and load user first
   useEffect(() => {
-    if (token && !user && !userLoading && !meAttempted) {
+    if (useAuthMe && token && !user && !userLoading && !meAttempted) {
       dispatch(getCurrentUserAsync());
     }
-  }, [token, user, userLoading, meAttempted, dispatch]);
+  }, [useAuthMe, token, user, userLoading, meAttempted, dispatch]);
 
   // Fetch cart only after user is known (prevents 401 from stale/invalid tokens on startup)
   useEffect(() => {
@@ -27,13 +36,16 @@ const HomeLayout = () => {
       dispatch(fetchCart());
     }
   }, [token, user, dispatch]);
+
   return (
     <>
       <Header />
       <Navbar />
+      <GlobalAlerts />
       <div className="align-element py-20">
         {isPageLoading ? <Loading /> : <Outlet />}
       </div>
+      <Footer />
     </>
   );
 };

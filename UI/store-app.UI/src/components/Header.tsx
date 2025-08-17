@@ -1,52 +1,50 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
-import { useAppDispatch, useAppSelector } from '@/hooks';
 
-import { logoutUser } from '../features/user/userSlice';
-import { clearCart, clearCartOnServer } from '../features/cart/cartSlice';
-import { useToast } from '../hooks/use-toast';
+
+import Logo from './Logo';
+import SearchBar from './SearchBar';
+import AccountButton from './AccountButton';
+import MobileBottomBar from './MobileBottomBar';
+import CartButton from './CartButton';
+import ModeToggle from './ModeToggle';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useState } from 'react';
+import CustomSidebar from './CustomSidebar';
+import { useLocation } from 'react-router-dom';
+
 
 const Header = () => {
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
-  const user = useAppSelector((state) => state.userState.user);
-  const handleLogout = async () => {
-    // attempt to clear server cart if authenticated
-    if (user) {
-      await dispatch(clearCartOnServer());
-    }
-    dispatch(clearCart());
-    dispatch(logoutUser());
-    toast({ description: 'Logged Out' });
-    navigate('/');
-  };
+  // On mobile/tablet and not on admin dashboard, hide account, cart, and theme switch (they are in bottom bar)
+  const showUtils = !isMobile || isAdminRoute;
+
   return (
-    <header>
-      <div className=' align-element flex justify-center sm:justify-end py-2'>
-        {/* USER */}
-
-        {user ? (
-          <div className='flex gap-x-2 sm:gap-x-8 items-center'>
-            <p className='text-xs sm:text-sm'>Hello, {user.userName}</p>
-            <Button variant='link' size='sm' onClick={handleLogout}>
-              Logout
-            </Button>
+    <>
+      <header className="bg-background">
+        <div className="align-element flex items-center justify-between gap-4 py-3">
+          <div className="flex items-center gap-4 min-w-[120px]">
+            <Logo />
           </div>
-        ) : (
-          <div className='flex gap-x-6 justify-center items-center -mr-4'>
-            <Button asChild variant='link' size='sm'>
-              <Link to='/login'>Sign in / Guest</Link>
-            </Button>
-
-            <Button asChild variant='link' size='sm'>
-              <Link to='/register'>Register</Link>
-            </Button>
+          <div className="flex-1 flex justify-center">
+            <SearchBar />
           </div>
-        )}
-      </div>
-    </header>
+          {showUtils && (
+            <div className="flex items-center gap-2 min-w-[80px] justify-end">
+              <AccountButton />
+              <CartButton />
+              {/* Only show ModeToggle on mobile/tablet or on admin route to avoid duplicate on desktop */}
+              {(!isMobile || isAdminRoute) && <ModeToggle />}
+            </div>
+          )}
+        </div>
+      </header>
+      {isMobile && !isAdminRoute && <MobileBottomBar onMenuClick={() => setMenuOpen(true)} />}
+      <CustomSidebar open={menuOpen} setOpen={setMenuOpen} />
+    </>
   );
-}
+};
+
 export default Header;

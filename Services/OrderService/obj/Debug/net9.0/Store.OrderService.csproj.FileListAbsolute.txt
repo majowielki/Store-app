@@ -151,3 +151,4 @@ D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\ref\Store.OrderService.dll
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.MvcApplicationPartsAssemblyInfo.cs
+D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

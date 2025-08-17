@@ -15,9 +15,14 @@ const Hero = () => {
           reprehenderit aut delectus veniam cum perferendis unde sint doloremque
           non nam.
         </p>
-        <Button asChild size="lg" className="mt-10">
-          <Link to="/products">Our Products</Link>
-        </Button>
+        <div className="mt-10 flex items-center gap-3">
+          <Button asChild size="lg">
+            <Link to="/products">Our Products</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link to="/about">About us</Link>
+          </Button>
+        </div>
       </div>
       <HeroCarousel />
     </section>

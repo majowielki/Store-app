@@ -152,3 +152,4 @@ D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductServ
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\ref\Store.ProductService.dll
 D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\Store.ProductService.MvcApplicationPartsAssemblyInfo.cs
+D:\Projekty\store-app\Services\ProductService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

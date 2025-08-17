@@ -37,14 +37,14 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 // Authorization
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy => 
-        policy.RequireRole("Admin", "true-admin", "demo-admin"));
-    options.AddPolicy("UserOnly", policy => 
-        policy.RequireRole("User", "Admin", "true-admin", "demo-admin"));
+    options.AddPolicy("AdminAccess", policy =>
+        policy.RequireRole("true-admin", "demo-admin"));
+    options.AddPolicy("UserAccess", policy =>
+        policy.RequireRole("user", "true-admin", "demo-admin"));
 });
 
 // Configure HttpClient for AuditLogClient with proper base address
-var auditLogServiceUrl = builder.Configuration.GetValue<string>("Services:AuditLogService:BaseUrl") ?? "http://localhost:5004";
+var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
 builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
 {
     client.BaseAddress = new Uri(auditLogServiceUrl);

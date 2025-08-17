@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
@@ -5,6 +7,9 @@ using Store.OrderService.DTOs.Responses;
 using Store.Shared.Models;
 using Store.Shared.MessageBus;
 using System.Text.Json;
+using Store.Shared.Services;
+using System.Text.Json.Serialization;
+using SharedOrderItemResponse = Store.Shared.Models.OrderItemResponse;
 
 #nullable enable
 
@@ -18,29 +23,36 @@ public class OrderService : IOrderService
     private readonly IConfiguration _configuration;
     private readonly IMessageBus? _messageBus;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IAuditLogClient _auditLogClient;
+
+    private static readonly JsonSerializerOptions AuditJsonOptions = new()
+    {
+        ReferenceHandler = ReferenceHandler.IgnoreCycles,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     public OrderService(
         OrderDbContext context,
         ILogger<OrderService> logger,
         HttpClient httpClient,
         IConfiguration configuration,
-    IMessageBus? messageBus = null,
-    IHttpContextAccessor? httpContextAccessor = null)
+        IMessageBus? messageBus = null,
+        IHttpContextAccessor? httpContextAccessor = null,
+        IAuditLogClient? auditLogClient = null)
     {
         _context = context;
         _logger = logger;
         _httpClient = httpClient;
         _configuration = configuration;
         _messageBus = messageBus;
-    _httpContextAccessor = httpContextAccessor ?? new HttpContextAccessor();
+        _httpContextAccessor = httpContextAccessor ?? new HttpContextAccessor();
+        _auditLogClient = auditLogClient ?? throw new ArgumentNullException(nameof(auditLogClient));
     }
 
     public async Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request)
     {
         try
         {
-            _logger.LogInformation("Creating order from cart for user: {UserId}", request.UserId);
-
             // Get cart items from Cart Service
             var cartItems = await GetCartItemsAsync(request.UserId);
             
@@ -48,6 +60,9 @@ public class OrderService : IOrderService
             {
                 throw new InvalidOperationException("Cart is empty or not found");
             }
+
+            // Check if this is the user's first order
+            var hasPlacedFirstOrder = await _context.Orders.AnyAsync(o => o.UserId == request.UserId);
 
             // Create the order
             var order = new Order
@@ -66,16 +81,56 @@ public class OrderService : IOrderService
                 ProductId = ci.ProductId,
                 ProductTitle = ci.ProductTitle,
                 ProductImage = ci.ProductImage,
-                Price = ci.Price,
+                Price = (ci.Price > 0 ? ci.Price : 0.01m),
                 Quantity = ci.Quantity,
-                Color = ci.Color,
-                Company = ci.Company
+                Color = ci.Color
             }).ToList();
+
+            // Apply first-order discount
+            if (!hasPlacedFirstOrder)
+            {
+                var discount = order.OrderTotal * 0.20m;
+                order.OrderItems.Add(new OrderItem
+                {
+                    ProductId = 0, // Placeholder for discount
+                    ProductTitle = "First Order Discount",
+                    Price = -discount,
+                    Quantity = 1,
+                    Color = "N/A",
+                    OrderDiscount = discount // Map the discount amount
+                });
+            }
+
+            // Add delivery fee
+            var deliveryFee = order.DeliveryFee;
+            if (deliveryFee > 0)
+            {
+                order.OrderItems.Add(new OrderItem
+                {
+                    ProductId = 0, // Placeholder for delivery fee
+                    ProductTitle = "Delivery Fee",
+                    Price = deliveryFee,
+                    Quantity = 1,
+                    Color = "N/A",
+                    DeliveryCost = deliveryFee // Map the delivery fee
+                });
+            }
 
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Order created successfully with ID: {OrderId}", order.Id);
+            // Audit log: order created
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "ORDER_CREATED",
+                EntityName = nameof(Order),
+                EntityId = order.Id.ToString(),
+                UserId = order.UserId,
+                UserEmail = order.UserEmail,
+                Timestamp = DateTime.UtcNow,
+                NewValues = JsonSerializer.Serialize(order, AuditJsonOptions),
+                AdditionalInfo = JsonSerializer.Serialize(new { Source = "OrderService" }, AuditJsonOptions)
+            });
 
             // Clear the cart after successful order creation
             await ClearCartAsync(request.UserId);
@@ -83,11 +138,103 @@ public class OrderService : IOrderService
             // Publish order created event
             await PublishOrderCreatedEventAsync(order);
 
-            return MapToOrderResponse(order);
+            // Save address to user profile if requested and not demo user
+            if (request.SaveAddress && !string.IsNullOrWhiteSpace(request.DeliveryAddress))
+            {
+                try
+                {
+                    var httpContext = _httpContextAccessor.HttpContext;
+                    var authHeader = httpContext?.Request.Headers["Authorization"].FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(authHeader))
+                    {
+                        // Always ensure 'Bearer ' prefix
+                        var headerValue = authHeader.StartsWith("Bearer ") ? authHeader : $"Bearer {authHeader}";
+                        var handler = new JwtSecurityTokenHandler();
+                        var jwt = handler.ReadJwtToken(headerValue.Replace("Bearer ", ""));
+                        var userId = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                        var roles = jwt.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+                        var email = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+
+                        var identityServiceUrl =
+                            _configuration["Services:IdentityService:BaseUrl"]
+                            ?? _configuration["Services:IdentityService"];
+                        if (string.IsNullOrWhiteSpace(identityServiceUrl))
+                        {
+                            _logger.LogError("IdentityService URL is not configured. Cannot update user address for user: {UserId}", request.UserId);
+                        }
+                        else
+                        {
+                            var updateAddressRequest = new
+                            {
+                                SimpleAddress = request.DeliveryAddress
+                            };
+                            var url = $"{identityServiceUrl.TrimEnd('/')}/api/auth/me/address";
+                            var httpRequest = new HttpRequestMessage(HttpMethod.Put, url)
+                            {
+                                Content = new StringContent(JsonSerializer.Serialize(updateAddressRequest), System.Text.Encoding.UTF8, "application/json")
+                            };
+                            httpRequest.Headers.Remove("Authorization"); // Remove any existing
+                            httpRequest.Headers.TryAddWithoutValidation("Authorization", headerValue);
+
+                            _logger.LogInformation("Sending address update to IdentityService. URL: {Url}, Payload: {Payload}, Authorization: {Authorization}", url, JsonSerializer.Serialize(updateAddressRequest), headerValue);
+                            var response = await _httpClient.SendAsync(httpRequest);
+                            var responseBody = await response.Content.ReadAsStringAsync();
+                            _logger.LogInformation("IdentityService response: StatusCode={StatusCode}, Body={Body}", response.StatusCode, responseBody);
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                _logger.LogWarning("Failed to save address to user profile for user: {UserId}. Status: {StatusCode}, Body: {Body}", request.UserId, response.StatusCode, responseBody);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No Authorization header found in HttpContext for address update!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error saving address to user profile for user: {UserId}", request.UserId);
+                }
+            }
+
+            return new Store.OrderService.DTOs.Responses.OrderResponse
+            {
+                Id = order.Id,
+                UserId = order.UserId,
+                UserEmail = order.UserEmail,
+                DeliveryAddress = order.DeliveryAddress,
+                CustomerName = order.CustomerName,
+                OrderItems = order.OrderItems.Select(oi => new Store.OrderService.DTOs.Responses.OrderItemResponse
+                {
+                    Id = oi.Id,
+                    ProductId = oi.ProductId,
+                    ProductTitle = oi.ProductTitle,
+                    ProductImage = oi.ProductImage,
+                    Price = oi.Price,
+                    Quantity = oi.Quantity,
+                    Color = oi.Color,
+                    DeliveryCost = oi.DeliveryCost, // Map delivery cost
+                    OrderDiscount = oi.OrderDiscount // Map order discount
+                }).ToList(),
+                TotalItems = order.TotalItems,
+                OrderTotal = order.OrderTotal,
+                CreatedAt = order.CreatedAt,
+                Notes = order.Notes
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating order from cart for user: {UserId}", request.UserId);
+            // Audit log: order creation failed
+            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
+            {
+                Action = "ORDER_CREATION_FAILED",
+                EntityName = nameof(Order),
+                UserId = request.UserId,
+                UserEmail = request.UserEmail,
+                Timestamp = DateTime.UtcNow,
+                AdditionalInfo = JsonSerializer.Serialize(new { Exception = ex.Message, Source = "OrderService" }, AuditJsonOptions)
+            });
             throw;
         }
     }
@@ -122,6 +269,23 @@ public class OrderService : IOrderService
         }
     }
 
+    public async Task<OrderResponse?> GetOrderByIdForAdminAsync(int orderId)
+    {
+        try
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            return order == null ? null : MapToOrderResponse(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving order for admin: {OrderId}", orderId);
+            throw;
+        }
+    }
+
     public async Task<OrderListResponse> GetUserOrdersAsync(string userId, int page = 1, int pageSize = 20)
     {
         try
@@ -151,6 +315,12 @@ public class OrderService : IOrderService
             _logger.LogError(ex, "Error retrieving orders for user: {UserId}", userId);
             throw;
         }
+    }
+
+    public async Task<OrderListResponse> GetOrdersByUserIdAsync(string userId, int page = 1, int pageSize = 20)
+    {
+        // Same as GetUserOrdersAsync but intended for admin queries without caller restriction
+        return await GetUserOrdersAsync(userId, page, pageSize);
     }
 
     public async Task<OrderListResponse> GetAllOrdersAsync(int page = 1, int pageSize = 20)
@@ -196,6 +366,92 @@ public class OrderService : IOrderService
             _logger.LogError(ex, "Error getting order count for user: {UserId}", userId);
             throw;
         }
+    }
+
+    public async Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = 30)
+    {
+        var since = DateTime.UtcNow.Date.AddDays(-Math.Abs(daysWindow));
+
+        // Preload needed data
+        var ordersQuery = _context.Orders
+            .AsNoTracking()
+            .Include(o => o.OrderItems)
+            .Where(o => o.CreatedAt >= since);
+
+        var orders = await ordersQuery.ToListAsync();
+
+        if (orders.Count == 0)
+        {
+            // Always return a valid, empty stats object
+            return new OrderStatsResponse
+            {
+                TotalOrders = 0,
+                TotalRevenue = 0,
+                Daily = new List<TimeBucketStats>(),
+                Weekly = new List<TimeBucketStats>(),
+                TopProducts = new List<TopProductStats>()
+            };
+        }
+
+        var response = new OrderStatsResponse
+        {
+            TotalOrders = orders.Count,
+            TotalRevenue = orders.Sum(o => o.OrderTotal)
+        };
+
+        // Daily buckets
+        var daily = orders
+            .GroupBy(o => o.CreatedAt.Date)
+            .OrderBy(g => g.Key)
+            .Select(g => new TimeBucketStats
+            {
+                BucketStart = g.Key,
+                Orders = g.Count(),
+                Revenue = g.Sum(o => o.OrderTotal)
+            })
+            .ToList();
+
+        response.Daily = daily;
+
+        // Weekly buckets (ISO week by Monday start)
+        static DateTime WeekStart(DateTime date)
+        {
+            int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+            return date.AddDays(-diff).Date;
+        }
+
+        var weekly = orders
+            .GroupBy(o => WeekStart(o.CreatedAt))
+            .OrderBy(g => g.Key)
+            .Select(g => new TimeBucketStats
+            {
+                BucketStart = g.Key,
+                Orders = g.Count(),
+                Revenue = g.Sum(o => o.OrderTotal)
+            })
+            .ToList();
+
+        response.Weekly = weekly;
+
+        // Top products by quantity and revenue in window
+        var topProducts = orders
+            .SelectMany(o => o.OrderItems)
+            .GroupBy(i => new { i.ProductId, i.ProductTitle })
+            .Select(g => new TopProductStats
+            {
+                ProductId = g.Key.ProductId,
+                ProductTitle = g.Key.ProductTitle,
+                Quantity = g.Sum(i => i.Quantity),
+                Revenue = g.Sum(i => i.LineTotal)
+            })
+            .OrderByDescending(x => x.Quantity)
+            .ThenByDescending(x => x.Revenue)
+            .Take(10)
+            .ToList();
+
+        response.TopProducts = topProducts;
+
+        return response;
     }
 
     private async Task<List<CartItemDto>?> GetCartItemsAsync(string userId)
@@ -324,14 +580,14 @@ public class OrderService : IOrderService
 
     private OrderResponse MapToOrderResponse(Order order)
     {
-        return new OrderResponse
+        return new Store.OrderService.DTOs.Responses.OrderResponse
         {
             Id = order.Id,
             UserId = order.UserId,
             UserEmail = order.UserEmail,
             DeliveryAddress = order.DeliveryAddress,
             CustomerName = order.CustomerName,
-            OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
+            OrderItems = order.OrderItems.Select(oi => new Store.OrderService.DTOs.Responses.OrderItemResponse
             {
                 Id = oi.Id,
                 ProductId = oi.ProductId,
@@ -340,8 +596,8 @@ public class OrderService : IOrderService
                 Price = oi.Price,
                 Quantity = oi.Quantity,
                 Color = oi.Color,
-                Company = oi.Company,
-                LineTotal = oi.LineTotal
+                DeliveryCost = oi.DeliveryCost, // Map delivery cost
+                OrderDiscount = oi.OrderDiscount // Map order discount
             }).ToList(),
             TotalItems = order.TotalItems,
             OrderTotal = order.OrderTotal,

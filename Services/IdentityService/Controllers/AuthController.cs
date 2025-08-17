@@ -4,6 +4,7 @@ using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Services;
 using Store.Shared.Models;
+using Store.Shared.Utility;
 using System.Security.Claims;
 
 namespace Store.IdentityService.Controllers;
@@ -13,12 +14,10 @@ namespace Store.IdentityService.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
-    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService)
     {
         _authService = authService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -45,9 +44,8 @@ public class AuthController : ControllerBase
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error during user registration for email: {Email}", request.Email);
             return StatusCode(500, new AuthResponse 
             { 
                 Success = false, 
@@ -80,9 +78,8 @@ public class AuthController : ControllerBase
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error during user login for email: {Email}", request.Email);
             return StatusCode(500, new AuthResponse 
             { 
                 Success = false, 
@@ -110,9 +107,8 @@ public class AuthController : ControllerBase
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error during demo login");
             return StatusCode(500, new AuthResponse 
             { 
                 Success = false, 
@@ -140,9 +136,8 @@ public class AuthController : ControllerBase
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error during demo admin login");
             return StatusCode(500, new AuthResponse 
             { 
                 Success = false, 
@@ -175,9 +170,8 @@ public class AuthController : ControllerBase
 
             return Ok(result);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error during token refresh");
             return StatusCode(500, new AuthResponse 
             { 
                 Success = false, 
@@ -205,7 +199,6 @@ public class AuthController : ControllerBase
             var result = await _authService.GetCurrentUserAsync(userId);
             if (!result.IsSuccess || result.Data is null)
             {
-                // Preserve specific status when available
                 if ((int)result.StatusCode == StatusCodes.Status401Unauthorized)
                 {
                     return Unauthorized(result.Message);
@@ -219,10 +212,46 @@ public class AuthController : ControllerBase
 
             return Ok(result.Data);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error retrieving current user");
             return StatusCode(500, "An error occurred while retrieving user information");
+        }
+    }
+
+    /// <summary>
+    /// Update current user's simple address
+    /// </summary>
+    [HttpPut("me/address")]
+    [Authorize(Policy = "UserAccess")]
+    public async Task<ActionResult<UserResponse>> UpdateMyAddress([FromBody] UpdateAddressRequest request)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            var roles = User.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User not found");
+            }
+
+            var result = await _authService.UpdateAddressAsync(userId, request.SimpleAddress);
+
+            if (!result.IsSuccess || result.Data is null)
+            {
+                if ((int)result.StatusCode == StatusCodes.Status404NotFound)
+                {
+                    return NotFound(result.Message);
+                }
+                return BadRequest(result.Message);
+            }
+
+            return Ok(result.Data);
+        }
+        catch
+        {
+            return StatusCode(500, "An error occurred while updating address");
         }
     }
 
@@ -235,7 +264,6 @@ public class AuthController : ControllerBase
     public ActionResult Logout()
     {
         // In a future iteration, implement token revocation/blacklist if refresh tokens are stored server-side.
-        _logger.LogInformation("User {UserId} requested logout", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         return NoContent();
     }
 
@@ -262,9 +290,8 @@ public class AuthController : ControllerBase
             var result = await _authService.GetUserAsync(userId);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error retrieving user {UserId}", userId);
             return StatusCode(500, new ApiResponse<UserResponse> 
             { 
                 IsSuccess = false, 
@@ -288,9 +315,8 @@ public class AuthController : ControllerBase
             var result = await _authService.GetAllUsersAsync(page, pageSize);
             return Ok(result);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error retrieving all users");
             return StatusCode(500, new ApiResponse<IEnumerable<UserResponse>> 
             { 
                 IsSuccess = false, 

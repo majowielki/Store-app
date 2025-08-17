@@ -108,7 +108,7 @@ services:
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - JwtSettings__Authority=https://localhost:5001
-      - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
+      - Services__AuditLogService=http://auditlogservice:5004
       - TRUE_ADMIN_EMAIL=trueadmin@store.com
       - TRUE_ADMIN_PASSWORD=${TRUE_ADMIN_PASSWORD:-SecurePassword123!}
     ports:
@@ -230,23 +230,23 @@ services:
     container_name: store-orderservice
     restart: unless-stopped
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5006
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_order_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - ConnectionStrings__Redis=redis:6379
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
-      - JwtSettings__Issuer=Store.API
-      - JwtSettings__Audience=Store.Client
-      - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
-      - Services__IdentityService=http://identityservice:5001
-      - Services__ProductService=http://productservice:5003
-      - Services__CartService=http://cartservice:5005
-      - RabbitMQ__HostName=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__ExchangeName=store_events
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5006
+      ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_order_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432"
+      ConnectionStrings__Redis: redis:6379
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      JwtSettings__Issuer: Store.API
+      JwtSettings__Audience: Store.Client
+      Services__AuditLogService: http://auditlogservice:5004
+      Services__IdentityService: http://identityservice:5001
+      Services__ProductService: http://productservice:5003
+      Services__CartService: http://cartservice:5005
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__UserName: ${RABBITMQ_USER:-store_user}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-StrongPassword123!}
+      RabbitMQ__VirtualHost: /
+      RabbitMQ__ExchangeName: store_events
     ports:
       - "5006:5006"
     depends_on:

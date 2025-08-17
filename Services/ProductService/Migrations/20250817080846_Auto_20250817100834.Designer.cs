@@ -12,8 +12,8 @@ using Store.ProductService.Data;
 namespace Store.ProductService.Migrations
 {
     [DbContext(typeof(ProductDbContext))]
-    [Migration("20250810092947_AddFeaturedColumn")]
-    partial class AddFeaturedColumn
+    [Migration("20250817080846_Auto_20250817100834")]
+    partial class Auto_20250817100834
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -49,13 +49,24 @@ namespace Store.ProductService.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<decimal?>("DepthCm")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
-                    b.Property<bool>("Featured")
-                        .HasColumnType("boolean");
+                    b.Property<decimal?>("DiscountPercent")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Groups")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("HeightCm")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Image")
                         .IsRequired()
@@ -66,7 +77,18 @@ namespace Store.ProductService.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("Materials")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("NewArrival")
+                        .HasColumnType("boolean");
+
                     b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("SalePrice")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Title")
@@ -78,6 +100,12 @@ namespace Store.ProductService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
+
+                    b.Property<decimal?>("WeightKg")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("WidthCm")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 

@@ -9,7 +9,8 @@ const ProductsList = () => {
     <div className="mt-12 grid gap-y-8">
       {products.map((product) => {
         const { title, price, image, company } = product.attributes;
-        const dollarsAmount = formatAsDollars(price);
+        const salePrice = (product.attributes as unknown as { salePrice?: string | null }).salePrice ?? null;
+        const hasSale = salePrice !== null && Number(salePrice) < Number(price);
         return (
           <Link key={product.id} to={`/products/${product.id}`}>
             <Card>
@@ -23,7 +24,22 @@ const ProductsList = () => {
                   <h2 className="text-xl font-semibold capitalize">{title}</h2>
                   <h4>{company}</h4>
                 </div>
-                <p className="text-primary md:ml-auto">{dollarsAmount}</p>
+                <p className="md:ml-auto mt-2 md:mt-0">
+                  {hasSale ? (
+                    <>
+                      <span className="text-primary font-semibold mr-2">
+                        {formatAsDollars(salePrice)}
+                      </span>
+                      <span className="line-through text-muted-foreground">
+                        {formatAsDollars(price)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-primary font-light">
+                      {formatAsDollars(price)}
+                    </span>
+                  )}
+                </p>
               </CardContent>
             </Card>
           </Link>

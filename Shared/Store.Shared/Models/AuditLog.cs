@@ -31,4 +31,21 @@ public class AuditLog
     public string? UserAgent { get; set; }
     
     public string? AdditionalInfo { get; set; }
+    
+    // New fields for richer audit
+    public string? Severity { get; set; }
+    
+    public string? ServiceName { get; set; }
+    
+    public string? CorrelationId { get; set; }
+    
+    public string? HttpMethod { get; set; }
+    
+    public string? Path { get; set; }
+    
+    public int? StatusCode { get; set; }
+    
+    public string? SessionId { get; set; }
+    
+    public string? StackTrace { get; set; } // New for call stack
 }
