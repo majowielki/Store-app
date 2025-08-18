@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { formatAsDollars } from '@/utils';
 import { useAppDispatch } from '@/hooks';
-import { addAlert } from '@/features/alerts/alertsSlice';
+// ...existing code...
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/components/ui/pagination';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
@@ -27,7 +27,7 @@ const Orders = () => {
         const res = await orderApi.getAllOrders(page, pageSize);
         setData(res);
       } catch {
-        dispatch(addAlert({ id: crypto.randomUUID(), title: 'Failed to load orders', variant: 'destructive' }));
+  // ...existing code...
       } finally {
         setLoading(false);
       }

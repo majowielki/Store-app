@@ -68,28 +68,25 @@ const Users = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Last logging</TableHead>
+                <TableHead className="text-right">Orders</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell>{u.id}</TableCell>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>{u.displayName || `${u.firstName ?? ''} ${u.lastName ?? ''}`}</TableCell>
-                  <TableCell>{Array.isArray(u.roles) ? u.roles.join(', ') : ''}</TableCell>
                   <TableCell>
                     {u.isActive ? <span className="text-green-600">Active</span> : <span className="text-muted-foreground">Inactive</span>}
                   </TableCell>
+                  <TableCell>
+                    {new Date(u.createdAt).toLocaleString()}
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link to={`/admin/users/${u.id}`}>Details</Link>
-                    </Button>
                     <Button asChild size="sm" variant="outline">
                       <Link to={`/admin/users/${u.id}/orders`}>Orders</Link>
                     </Button>

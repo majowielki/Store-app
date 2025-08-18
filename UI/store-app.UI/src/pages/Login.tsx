@@ -4,6 +4,8 @@ import { Form, Link, redirect, type ActionFunction } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SubmitBtn, FormInput } from '@/components';
+import { useState } from 'react';
+import { validateLogin } from '@/utils/validation';
 import { toast } from '@/hooks/use-toast';
 import { type ReduxStore } from '@/store';
 import { loginUserAsync, getCurrentUserAsync } from '@/features/user/userSlice';
@@ -43,8 +45,9 @@ export const action =
 
 const Login = () => {
   const dispatch = useAppDispatch();
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Demo user login (no password, uses /auth/demo-login)
   const loginAsGuestUser = async (): Promise<void> => {
     try {
       const response = await authApi.demoLogin();
@@ -63,7 +66,6 @@ const Login = () => {
     }
   };
 
-  // Demo admin login (no password, uses /auth/demo-admin-login)
   const loginAsDemoAdmin = async (): Promise<void> => {
     try {
       const response = await authApi.demoAdminLogin();
@@ -81,15 +83,31 @@ const Login = () => {
       toast({ description: 'Demo admin login failed', variant: 'destructive' });
     }
   };
-  // ...
-  // ...
+
   const handleClose = () => {
+    // Check if previous page was login or register
+    const referrer = document.referrer;
+    if (referrer && (referrer.includes('/login') || referrer.includes('/register'))) {
+      window.location.href = '/';
+      return;
+    }
     if (window.history.length > 1) {
       window.history.back();
     } else {
       window.location.href = '/';
     }
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleValidate = () => {
+    const validation = validateLogin(form);
+    setErrors(validation);
+    return Object.keys(validation).length === 0;
+  };
+
   return (
     <section className="h-screen grid place-items-center">
       <Card className="w-96 bg-muted relative">
@@ -104,32 +122,30 @@ const Login = () => {
           <CardTitle className="text-center">Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="space-y-4">
-            <FormInput type="email" name="email" />
-            <FormInput type="password" name="password" />
+          <Form method="post" className="space-y-4" onSubmit={e => { if (!handleValidate()) { e.preventDefault(); } }}>
+            <FormInput type="email" name="email" value={form.email} onChange={handleChange} />
+            {errors.email && <div className='text-red-500 text-xs mb-1'>{errors.email}</div>}
+            <FormInput type="password" name="password" value={form.password} onChange={handleChange} />
+            {errors.password && <div className='text-red-500 text-xs mb-1'>{errors.password}</div>}
             <SubmitBtn text="Login" className="w-full mt-4" />
-            {/* Jeśli chcesz przycisk logowania jako gość, odkomentuj poniżej i zaimplementuj funkcję loginAsGuestUser */}
-            {/* <Button type="button" variant="secondary" className="w-full" onClick={loginAsGuestUser}>
-              Login as Guest
-            </Button> */}
-              <div className='flex gap-2 mt-4'>
-                <Button
-                  type='button'
-                  variant='secondary'
-                  className='w-1/2'
-                  onClick={loginAsGuestUser}
-                >
-                  Demo User
-                </Button>
-                <Button
-                  type='button'
-                  variant='secondary'
-                  className='w-1/2'
-                  onClick={loginAsDemoAdmin}
-                >
-                  Demo Admin
-                </Button>
-              </div>
+            <div className='flex gap-2 mt-4'>
+              <Button
+                type='button'
+                variant='outline'
+                className='w-1/2'
+                onClick={loginAsGuestUser}
+              >
+                Demo User
+              </Button>
+              <Button
+                type='button'
+                variant='outline'
+                className='w-1/2'
+                onClick={loginAsDemoAdmin}
+              >
+                Demo Admin
+              </Button>
+            </div>
             <p className="text-center mt-4">
               Not a member?{' '}
               <Button type="button" asChild variant="link">

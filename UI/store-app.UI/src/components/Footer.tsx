@@ -33,7 +33,7 @@ const Footer = () => {
         </div>
         <div>
           <h4 className="font-semibold mb-3">Contact details</h4>
-          <p className="text-sm text-muted-foreground">1 Example St, 00-000 City</p>
+          <p className="text-sm text-muted-foreground">Strzegomska 140A 54-429 Wrocław</p>
           <p className="text-sm text-muted-foreground">+48 000 000 000</p>
           <p className="text-sm text-muted-foreground">contact@store.com</p>
           <div className="mt-3">

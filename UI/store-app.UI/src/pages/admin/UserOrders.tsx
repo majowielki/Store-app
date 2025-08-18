@@ -31,7 +31,9 @@ const UserOrders = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Orders for user {id}</h2>
+        <h2 className="text-xl font-semibold">
+          Orders for {data?.items?.[0]?.customerName ? `${data.items[0].customerName}` : `user ${id}`}
+        </h2>
         <Button asChild variant="outline" size="sm">
           <Link to="/admin/users">Back to Users</Link>
         </Button>
@@ -45,6 +47,7 @@ const UserOrders = () => {
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Customer</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Total Items</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Date</TableHead>
@@ -52,10 +55,11 @@ const UserOrders = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.orders?.map((o: Order) => (
+              {data?.items?.map((o: Order) => (
                 <TableRow key={o.id}>
                   <TableCell>{o.id}</TableCell>
                   <TableCell>{o.customerName}</TableCell>
+                  <TableCell>{o.userEmail}</TableCell>
                   <TableCell>{o.totalItems}</TableCell>
                   <TableCell>{formatAsDollars(o.orderTotal)}</TableCell>
                   <TableCell>{new Date(o.createdAt).toLocaleString()}</TableCell>

@@ -17,4 +17,8 @@ public class ProductQueryParams
     public int? Page { get; set; }
     // Optional page size for admin or custom UI
     public int? PageSize { get; set; }
+
+    // Added new fields for filtering
+    public string? Materials { get; set; }
+    public string? Colors { get; set; }
 }

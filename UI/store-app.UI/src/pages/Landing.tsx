@@ -1,4 +1,5 @@
 import { Hero, FeaturedProducts } from "@/components";
+import { LandingImageBox } from "@/components/LandingImageBox";
 import InfoTiles from '@/components/InfoTiles';
 import NewsletterSection from '@/components/NewsletterSection';
 import { newsletterApi } from '@/utils/api';
@@ -17,6 +18,7 @@ const Landing = () => {
   return (
     <>
   <Hero />
+  <LandingImageBox />
   <FeaturedProducts />
   <InfoTiles />
   <NewsletterSection onSubscribe={newsletterApi.subscribe} />

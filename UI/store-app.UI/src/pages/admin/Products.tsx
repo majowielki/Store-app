@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { useToast, toast } from '@/hooks/use-toast';
 import {
   Pagination,
   PaginationContent,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/pagination';
 
 const Products = () => {
+  useToast();
 
   const [items, setItems] = useState<ProductData[]>([]);
   const [meta, setMeta] = useState<ProductsResponse['meta'] | null>(null);
@@ -30,23 +32,36 @@ const Products = () => {
     const load = async () => {
       setLoading(true);
       try {
-        // Użyj endpointu admina i przekazuj sortBy oraz sortDir
         const params: Record<string, string | number> = {
           page,
           pageSize,
           sortBy: sort.key,
           sortDir: sort.direction,
         };
-  const res = await customFetch.get<ProductsResponse>('/products/admin', { params });
-  console.log('API /api/products/admin response:', res.data);
-  setItems(res.data.data);
-  setMeta(res.data.meta);
+        const res = await customFetch.get<ProductsResponse>('/products/admin', { params });
+        setItems(res.data.data);
+        setMeta(res.data.meta);
       } finally {
         setLoading(false);
       }
     };
     void load();
   }, [page, pageSize, sort]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      await customFetch.delete(`/products/${id}`);
+      toast({ description: 'Product deleted.' });
+      setItems((prev: ProductData[]) => prev.filter((p: ProductData) => p.id !== id));
+    } catch (err) {
+      if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
+        toast({ description: 'Demo admin is not allowed to perform this action.', variant: 'destructive' });
+      } else {
+        toast({ description: 'Failed to delete product.', variant: 'destructive' });
+      }
+    }
+  };
 
   const handleSort = (key: keyof ProductData | 'company' | 'price' | 'title') => {
     setSort((prev) => {
@@ -57,18 +72,7 @@ const Products = () => {
     });
   };
 
-
-  // Nie sortujemy lokalnie, sortowanie po stronie backendu
-  const sortedItems = items;
-
-  // Pagination logic (backend-driven)
-  // const totalProducts = meta?.pagination?.total ?? 0;
-  const totalPages = meta?.pagination?.pageCount ?? 1;
-  const paginatedItems = sortedItems;
-
-
-  // Sort button with icon
-  const SortButton = (key: keyof ProductData | 'company' | 'price' | 'title', label: string) => {
+  function SortButton(key: keyof ProductData | 'company' | 'price' | 'title', label: string) {
     const isActive = sort.key === key;
     return (
       <button
@@ -88,7 +92,10 @@ const Products = () => {
         </span>
       </button>
     );
-  };
+  }
+
+  const totalPages = meta?.pagination?.pageCount ?? 1;
+  const paginatedItems = items;
 
   return (
     <div className="space-y-4">
@@ -106,18 +113,10 @@ const Products = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="select-none">
-                    {SortButton('id', 'ID')}
-                  </TableHead>
-                  <TableHead className="select-none">
-                    {SortButton('title', 'Title')}
-                  </TableHead>
-                  <TableHead className="select-none">
-                    {SortButton('price', 'Price')}
-                  </TableHead>
-                  <TableHead className="select-none">
-                    {SortButton('company', 'Company')}
-                  </TableHead>
+                  <TableHead className="select-none">{SortButton('id', 'ID')}</TableHead>
+                  <TableHead className="select-none">{SortButton('title', 'Title')}</TableHead>
+                  <TableHead className="select-none">{SortButton('price', 'Price')}</TableHead>
+                  <TableHead className="select-none">{SortButton('company', 'Company')}</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -130,13 +129,12 @@ const Products = () => {
                     <TableCell>{p.attributes.company}</TableCell>
                     <TableCell className="text-right space-x-2 flex items-center justify-end gap-2">
                       <Button asChild size="sm" variant="outline"><Link to={`/admin/products/${p.id}`}>Edit</Link></Button>
-                      <Button size="sm" variant="destructive" aria-label="Delete"><Trash2 className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="destructive" aria-label="Delete" onClick={() => handleDelete(p.id)}><Trash2 className="w-4 h-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            {/* Pagination controls */}
             {totalPages > 1 && (
               <Pagination className="mt-4">
                 <PaginationContent>

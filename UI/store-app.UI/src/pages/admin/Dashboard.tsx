@@ -146,6 +146,7 @@ const Dashboard = () => {
               <TableBody>
                 {(stats.topProducts?.length ?? 0) > 0 ? (
                   [...stats.topProducts]
+                    .filter(prod => prod.title !== 'First Order Discount' && prod.title !== 'Delivery Fee')
                     .sort((a, b) => b.quantity - a.quantity)
                     .map((prod) => (
                       <TableRow key={prod.productId + '-' + prod.title}>

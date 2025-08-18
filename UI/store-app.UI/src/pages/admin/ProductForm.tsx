@@ -4,10 +4,12 @@ import { customFetch } from '@/utils';
 import type { ProductData } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useToast, toast } from '@/hooks/use-toast';
 import FormInput from '@/components/FormInput';
 import FormCheckbox from '@/components/FormCheckbox';
 
 const ProductForm = () => {
+  useToast();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const editing = !!id && id !== 'new';
@@ -31,11 +33,28 @@ const ProductForm = () => {
     const payload = Object.fromEntries(fd.entries());
     try {
       if (editing) {
-        await customFetch.put(`/products/${id}`, payload);
+        try {
+          await customFetch.put(`/products/${id}`, payload);
+          navigate('/admin/products');
+        } catch (err) {
+          if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
+            toast({ description: 'Demo admin is not allowed to perform this action.', variant: 'destructive' });
+          } else {
+            toast({ description: 'Failed to update product.', variant: 'destructive' });
+          }
+        }
       } else {
-        await customFetch.post(`/products`, payload);
+        try {
+          await customFetch.post(`/products`, payload);
+          navigate('/admin/products');
+        } catch (err) {
+          if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
+            toast({ description: 'Demo admin is not allowed to perform this action.', variant: 'destructive' });
+          } else {
+            toast({ description: 'Failed to create product.', variant: 'destructive' });
+          }
+        }
       }
-      navigate('/admin/products');
     } finally {
       setSaving(false);
     }

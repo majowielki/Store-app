@@ -1,7 +1,7 @@
 import { Outlet, useNavigation, useLocation } from "react-router-dom";
 import React, { useEffect } from 'react';
 import { Header, Loading, Navbar } from "@/components";
-import GlobalAlerts from '@/components/GlobalAlerts';
+// ...existing code...
 import Footer from '@/components/Footer';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { fetchCart } from '@/features/cart/cartSlice';
@@ -41,7 +41,7 @@ const HomeLayout = () => {
     <>
       <Header />
       <Navbar />
-      <GlobalAlerts />
+  {/* ...existing code... */}
       <div className="align-element py-20">
         {isPageLoading ? <Loading /> : <Outlet />}
       </div>

@@ -149,9 +149,56 @@ public class AdminController : ControllerBase
         sanitizedOrder["totalItems"] = order["totalItems"]?.GetValue<int>() ?? 0;
         sanitizedOrder["orderTotal"] = order["orderTotal"]?.GetValue<decimal>() ?? 0;
         sanitizedOrder["createdAt"] = order["createdAt"]?.GetValue<DateTime>() ?? default;
-    sanitizedOrder["notes"] = order["notes"]?.GetValue<string>();
+        sanitizedOrder["notes"] = order["notes"]?.GetValue<string>();
         sanitizedOrder["orderItems"] = order["orderItems"];
 
         return Ok(sanitizedOrder);
+    }
+
+    [HttpGet("users/{userId}/orders")]
+    public async Task<ActionResult<IEnumerable<object>>> GetUserOrders(
+        [FromRoute] string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var orderServiceUrl = _configuration["Services:OrderService"] ?? "http://orderservice:5006";
+        var client = _httpClientFactory.CreateClient();
+
+        if (Request.Headers.TryGetValue("Authorization", out var auth))
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", auth.ToString());
+        }
+
+        var url = $"{orderServiceUrl.TrimEnd('/')}/api/orders/by-user/{userId}?page={page}&pageSize={pageSize}";
+        var response = await client.GetAsync(url);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var paginated = await response.Content.ReadFromJsonAsync<PaginatedOrderResponse>();
+        var orders = paginated?.Orders ?? new List<AdminOrderResponse>();
+
+        var sanitizedOrders = orders.Select(o => new AdminOrderResponse
+        {
+            Id = o.Id,
+            UserId = userId, // Preserve the userId for filtering
+            UserEmail = "anonymized-user-email",
+            DeliveryAddress = "anonymized-delivery-address",
+            CustomerName = "anonymized-customer-name",
+            TotalItems = o.TotalItems,
+            OrderTotal = o.OrderTotal,
+            CreatedAt = o.CreatedAt,
+            Notes = o.Notes
+        });
+
+        return Ok(new
+        {
+            Items = sanitizedOrders,
+            TotalCount = paginated?.TotalCount ?? 0,
+            Page = paginated?.Page ?? page,
+            PageSize = paginated?.PageSize ?? pageSize
+        });
     }
 }

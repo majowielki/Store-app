@@ -233,32 +233,11 @@ public class ProductService : IProductService
                     p.Description.ToLower().Contains(searchLower));
             }
 
-            // Filter by group and category together
-            string? groupFilter = null;
-            if (!string.IsNullOrEmpty(queryParams.Group) && queryParams.Group.ToLower() != "all")
-            {
-                var grp = new string(queryParams.Group.Where(c => !char.IsControl(c)).ToArray()).Trim();
-                if (!string.IsNullOrEmpty(grp))
-                {
-                    groupFilter = grp.ToLowerInvariant();
-                }
-            }
-
-            // Filter by concrete category only (independent from groups)
             if (!string.IsNullOrEmpty(queryParams.Category) && queryParams.Category.ToLower() != "all")
             {
                 if (Enum.TryParse<Category>(queryParams.Category, true, out var category))
                 {
                     query = query.Where(p => p.Category == category);
-                }
-            }
-            else if (!string.IsNullOrEmpty(groupFilter))
-            {
-                // If group is set but category is not, filter by all categories in that group
-                if (Enum.TryParse<Group>(queryParams.Group, true, out var groupEnum))
-                {
-                    var groupCategories = groupEnum.GetCategories().ToList();
-                    query = query.Where(p => groupCategories.Contains(p.Category));
                 }
             }
 
@@ -270,18 +249,6 @@ public class ProductService : IProductService
                 }
             }
 
-            // Capture color filter; will apply after materialization (property uses List<string> with converter)
-            string? colorFilter = null;
-            if (!string.IsNullOrEmpty(queryParams.Color) && queryParams.Color.ToLower() != "all")
-            {
-                var color = new string(queryParams.Color.Where(c => !char.IsControl(c)).ToArray()).Trim();
-                if (!string.IsNullOrEmpty(color))
-                {
-                    colorFilter = color.ToLowerInvariant();
-                }
-            }
-
-            // Apply price filter if provided (format: "min,max" or "min-max")
             if (!string.IsNullOrEmpty(queryParams.Price))
             {
                 var priceParts = queryParams.Price.Split(new[] { ',', '-' }, StringSplitOptions.RemoveEmptyEntries);
@@ -294,16 +261,16 @@ public class ProductService : IProductService
                 }
             }
 
-            // Apply sale filter if requested (accepts "on", "true", "1", "yes")
-            if (!string.IsNullOrEmpty(queryParams.Sale))
+            if (!string.IsNullOrEmpty(queryParams.Materials))
             {
-                var saleRaw = queryParams.Sale.Trim();
-                var truthy = new[] { "on", "true", "1", "yes" };
-                var isSale = truthy.Contains(saleRaw, StringComparer.OrdinalIgnoreCase);
-                if (isSale)
-                {
-                    query = query.Where(p => p.SalePrice.HasValue || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0));
-                }
+                var materialsFilter = queryParams.Materials.ToLower().Split(',');
+                query = query.Where(p => p.Materials.Any(m => materialsFilter.Contains(m.ToLower())));
+            }
+
+            if (!string.IsNullOrEmpty(queryParams.Colors))
+            {
+                var colorsFilter = queryParams.Colors.ToLower().Split(',');
+                query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
             }
 
             // Apply sorting
@@ -323,27 +290,14 @@ public class ProductService : IProductService
                 query = query.OrderBy(p => p.Title);
             }
 
-            // Materialize after DB-side filters; then apply group/color (client-side) safely
-            var materialized = await query.ToListAsync();
-
-            if (!string.IsNullOrEmpty(colorFilter))
-            {
-                materialized = materialized
-                    .Where(p => p.Colors.Any(c => string.Equals(c, colorFilter, StringComparison.OrdinalIgnoreCase)))
-                    .ToList();
-            }
-
             const int pageSize = 12; // Standard page size for frontend
-            var totalCount = materialized.Count;
+            var totalCount = await query.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
             var currentPage = queryParams.Page.GetValueOrDefault(1);
             if (currentPage < 1) currentPage = 1;
             var skip = (currentPage - 1) * pageSize;
 
-            var products = materialized
-                .Skip(skip)
-                .Take(pageSize)
-                .ToList();
+            var products = await query.Skip(skip).Take(pageSize).ToListAsync();
 
             var meta = await GetProductsMetaAsync();
             meta.Pagination = new PaginationMeta
@@ -470,23 +424,13 @@ public class ProductService : IProductService
         {
             var query = _context.Products.AsNoTracking(); // Admin: show all, not just IsActive
 
-            // Apply filters (reuse logic from frontend, but without IsActive restriction)
+            // Apply filters
             if (!string.IsNullOrEmpty(queryParams.Search))
             {
                 var searchLower = queryParams.Search.ToLower();
                 query = query.Where(p =>
                     p.Title.ToLower().Contains(searchLower) ||
                     p.Description.ToLower().Contains(searchLower));
-            }
-
-            string? groupFilter = null;
-            if (!string.IsNullOrEmpty(queryParams.Group) && queryParams.Group.ToLower() != "all")
-            {
-                var grp = new string(queryParams.Group.Where(c => !char.IsControl(c)).ToArray()).Trim();
-                if (!string.IsNullOrEmpty(grp))
-                {
-                    groupFilter = grp.ToLowerInvariant();
-                }
             }
 
             if (!string.IsNullOrEmpty(queryParams.Category) && queryParams.Category.ToLower() != "all")
@@ -496,30 +440,12 @@ public class ProductService : IProductService
                     query = query.Where(p => p.Category == category);
                 }
             }
-            else if (!string.IsNullOrEmpty(groupFilter))
-            {
-                if (Enum.TryParse<Group>(queryParams.Group, true, out var groupEnum))
-                {
-                    var groupCategories = groupEnum.GetCategories().ToList();
-                    query = query.Where(p => groupCategories.Contains(p.Category));
-                }
-            }
 
             if (!string.IsNullOrEmpty(queryParams.Company) && queryParams.Company.ToLower() != "all")
             {
                 if (Enum.TryParse<Company>(queryParams.Company, true, out var company))
                 {
                     query = query.Where(p => p.Company == company);
-                }
-            }
-
-            string? colorFilter = null;
-            if (!string.IsNullOrEmpty(queryParams.Color) && queryParams.Color.ToLower() != "all")
-            {
-                var color = new string(queryParams.Color.Where(c => !char.IsControl(c)).ToArray()).Trim();
-                if (!string.IsNullOrEmpty(color))
-                {
-                    colorFilter = color.ToLowerInvariant();
                 }
             }
 
@@ -535,15 +461,16 @@ public class ProductService : IProductService
                 }
             }
 
-            if (!string.IsNullOrEmpty(queryParams.Sale))
+            if (!string.IsNullOrEmpty(queryParams.Materials))
             {
-                var saleRaw = queryParams.Sale.Trim();
-                var truthy = new[] { "on", "true", "1", "yes" };
-                var isSale = truthy.Contains(saleRaw, StringComparer.OrdinalIgnoreCase);
-                if (isSale)
-                {
-                    query = query.Where(p => p.SalePrice.HasValue || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0));
-                }
+                var materialsFilter = queryParams.Materials.ToLower().Split(',');
+                query = query.Where(p => p.Materials.Any(m => materialsFilter.Contains(m.ToLower())));
+            }
+
+            if (!string.IsNullOrEmpty(queryParams.Colors))
+            {
+                var colorsFilter = queryParams.Colors.ToLower().Split(',');
+                query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
             }
 
             // Advanced sorting for admin
@@ -557,27 +484,16 @@ public class ProductService : IProductService
                 _ => query.OrderBy(p => p.Id)
             };
 
-            var materialized = await query.ToListAsync();
-            if (!string.IsNullOrEmpty(colorFilter))
-            {
-                materialized = materialized
-                    .Where(p => p.Colors.Any(c => string.Equals(c, colorFilter, StringComparison.OrdinalIgnoreCase)))
-                    .ToList();
-            }
-
             int pageSize = queryParams.PageSize.GetValueOrDefault(50); // Default 50 for admin
             if (pageSize < 1) pageSize = 1;
             if (pageSize > 1000) pageSize = 1000;
-            var totalCount = materialized.Count;
+            var totalCount = await query.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
             var currentPage = queryParams.Page.GetValueOrDefault(1);
             if (currentPage < 1) currentPage = 1;
             var skip = (currentPage - 1) * pageSize;
 
-            var products = materialized
-                .Skip(skip)
-                .Take(pageSize)
-                .ToList();
+            var products = await query.Skip(skip).Take(pageSize).ToListAsync();
 
             var meta = await GetProductsMetaAsync();
             meta.Pagination = new PaginationMeta

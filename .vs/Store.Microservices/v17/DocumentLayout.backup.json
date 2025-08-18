@@ -5,22 +5,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|d:\\projekty\\store-app\\services\\identityservice\\controllers\\adminuserscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|solutionrelative:services\\identityservice\\controllers\\adminuserscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|d:\\projekty\\store-app\\shared\\store.shared\\models\\order.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{6512D73E-B289-4A67-91A7-DF7CA2CCAE67}|Shared\\Store.Shared\\Store.Shared.csproj|solutionrelative:shared\\store.shared\\models\\order.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|d:\\projekty\\store-app\\services\\orderservice\\services\\orderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|solutionrelative:services\\orderservice\\services\\orderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|d:\\projekty\\store-app\\services\\orderservice\\dtos\\responses\\orderresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{21B02D70-B3F3-4016-A924-E79C1A4AE97D}|Services\\OrderService\\Store.OrderService.csproj|solutionrelative:services\\orderservice\\dtos\\responses\\orderresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|d:\\projekty\\store-app\\services\\identityservice\\dtos\\responses\\adminorderresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B529A609-FD5D-4FF0-821D-CDE2A7C5B35C}|Services\\IdentityService\\Store.IdentityService.csproj|solutionrelative:services\\identityservice\\dtos\\responses\\adminorderresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -30,24 +14,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "AdminOrderResponse.cs",
-              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\IdentityService\\DTOs\\Responses\\AdminOrderResponse.cs",
-              "RelativeDocumentMoniker": "Services\\IdentityService\\DTOs\\Responses\\AdminOrderResponse.cs",
-              "ToolTip": "D:\\Projekty\\store-app\\Services\\IdentityService\\DTOs\\Responses\\AdminOrderResponse.cs",
-              "RelativeToolTip": "Services\\IdentityService\\DTOs\\Responses\\AdminOrderResponse.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-17T18:16:14.577Z",
-              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -57,48 +28,9 @@
               "RelativeDocumentMoniker": "Services\\IdentityService\\Controllers\\AdminUsersController.cs",
               "ToolTip": "D:\\Projekty\\store-app\\Services\\IdentityService\\Controllers\\AdminUsersController.cs",
               "RelativeToolTip": "Services\\IdentityService\\Controllers\\AdminUsersController.cs",
-              "ViewState": "AgIAABMAAAAAAAAAAAAmwB4AAAAnAAAAAAAAAA==",
+              "ViewState": "AgIAAIsAAAAAAAAAAAAcwJ0AAAADAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-17T18:15:53.019Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "OrderResponse.cs",
-              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\OrderService\\DTOs\\Responses\\OrderResponse.cs",
-              "RelativeDocumentMoniker": "Services\\OrderService\\DTOs\\Responses\\OrderResponse.cs",
-              "ToolTip": "D:\\Projekty\\store-app\\Services\\OrderService\\DTOs\\Responses\\OrderResponse.cs",
-              "RelativeToolTip": "Services\\OrderService\\DTOs\\Responses\\OrderResponse.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-17T08:07:04.766Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "OrderService.cs",
-              "DocumentMoniker": "D:\\Projekty\\store-app\\Services\\OrderService\\Services\\OrderService.cs",
-              "RelativeDocumentMoniker": "Services\\OrderService\\Services\\OrderService.cs",
-              "ToolTip": "D:\\Projekty\\store-app\\Services\\OrderService\\Services\\OrderService.cs",
-              "RelativeToolTip": "Services\\OrderService\\Services\\OrderService.cs",
-              "ViewState": "AgIAAFsBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-17T07:36:54.847Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Order.cs",
-              "DocumentMoniker": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Models\\Order.cs",
-              "RelativeDocumentMoniker": "Shared\\Store.Shared\\Models\\Order.cs",
-              "ToolTip": "D:\\Projekty\\store-app\\Shared\\Store.Shared\\Models\\Order.cs",
-              "RelativeToolTip": "Shared\\Store.Shared\\Models\\Order.cs",
-              "ViewState": "AgIAADMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-17T07:36:39.834Z",
+              "WhenOpened": "2025-08-18T08:14:07.397Z",
               "EditorCaption": ""
             }
           ]
