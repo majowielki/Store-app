@@ -10,6 +10,8 @@ import FormCheckbox from "./FormCheckbox";
 // shipping checkbox removed
 
 const Filters = () => {
+  // Capitalize display labels for groups, companies, colors
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const isMobile = useIsMobile();
   const [showFilters, setShowFilters] = React.useState(() => !isMobile);
   // Update showFilters if screen size changes
@@ -50,6 +52,7 @@ const Filters = () => {
   }, [group, location.key, groupList]);
   // Map groupCategoryMap (array) to lookup and extract categories for selected group (case-insensitive)
   const categoriesFromMap = React.useMemo(() => {
+  const toSlug = (str: string) => str.toLowerCase().replace(/\s+/g, '');
     const mapArr = Array.isArray(meta.groupCategoryMap) ? meta.groupCategoryMap : [];
     // Build lookup: lowercased key -> { name, categories }
     const lookup: Record<string, { name: string; categories: unknown[] }> = {};
@@ -65,28 +68,49 @@ const Filters = () => {
     const groupKey = (groupValue || '').toLowerCase();
     const groupCats = lookup[groupKey]?.categories;
     if (Array.isArray(groupCats) && groupCats.length > 0) {
+      // Return array of { value, label } with value as slug
       return groupCats.map((cat) => {
-        if (typeof cat === 'string') return cat;
-        if (cat && typeof cat === 'object') {
-          return (cat as { name?: string; label?: string; slug?: string }).name || (cat as { label?: string; slug?: string }).label || (cat as { slug?: string }).slug || '';
+        let value = '';
+        let label = '';
+        if (typeof cat === 'string') {
+          value = toSlug(cat);
+          label = capitalize(cat);
+        } else if (cat && typeof cat === 'object') {
+          value = (cat as { slug?: string; name?: string; label?: string }).slug
+            || (cat as { name?: string }).name && toSlug((cat as { name?: string }).name!)
+            || (cat as { label?: string }).label && toSlug((cat as { label?: string }).label!)
+            || '';
+          label = capitalize(
+            (cat as { name?: string }).name
+            || (cat as { label?: string }).label
+            || (cat as { slug?: string }).slug
+            || ''
+          );
         }
-        return '';
-      }).filter((s) => typeof s === 'string' && s.length > 0);
+        return { value, label };
+      }).filter((c) => typeof c.value === 'string' && c.value.length > 0);
     }
     // fallback: only show all categories if group is 'all', otherwise show empty
-    return groupKey === 'all' ? meta.categories : [];
+    if (groupKey === 'all') {
+      return (meta.categories || []).map((cat: string) => ({
+        value: toSlug(cat),
+        label: capitalize(cat),
+      }));
+    }
+    return [];
   }, [groupValue, meta.groupCategoryMap, meta.categories]);
-  // Capitalize display labels for groups, categories, companies, colors
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  // ...existing code...
   // Include 'all' in groupOptions so the Select Group dropdown can display 'All' as a valid selection
+  // Use original group values for options, but display capitalized labels
   const groupOptions = (Array.isArray(meta.groups) && meta.groups.length > 0 ? meta.groups : ['all'])
-    .map(capitalize);
-  const categoriesFromMapCapitalized = categoriesFromMap.map(capitalize);
+    .map((g) => ({ value: g, label: capitalize(g) }));
   const companiesCapitalized = (meta.companies || [])
     .filter(c => c.toLowerCase() !== 'all')
-    .map(capitalize);
-  const colorsCapitalized = (meta.colors || []).map(capitalize);
-  const categoryDefault = groupValue === initialGroup ? (category ? capitalize(category) : undefined) : undefined;
+    .map(c => ({ value: c, label: capitalize(c) }));
+  const colorsCapitalized = (meta.colors || [])
+    .map(c => ({ value: c, label: capitalize(c) }));
+  // Use the raw category value for defaultValue
+  const categoryDefault = groupValue === initialGroup ? (category ? category : undefined) : undefined;
 
   return (
     <div className="mb-4">
@@ -118,18 +142,16 @@ const Filters = () => {
               label="select group"
               name="group"
               options={groupOptions}
-              defaultValue={group ? capitalize(group) : undefined}
+              defaultValue={groupValue}
               includeAll
-              value={groupValue ? capitalize(groupValue) : undefined}
+              value={groupValue}
               onValueChange={(val) => {
-                // Map back to original value (lowercase)
-                const original = (meta.groups?.find((g: string) => capitalize(g) === val)) || val?.toLowerCase() || 'all';
-                setGroupValue(original);
+                setGroupValue(val);
                 const sp = new URLSearchParams(location.search);
-                if (!original || original === 'all') {
+                if (!val || val === 'all') {
                   sp.delete('group');
                 } else {
-                  sp.set('group', original);
+                  sp.set('group', val);
                 }
                 // Reset category when group changes to avoid invalid selections
                 sp.delete('category');
@@ -144,7 +166,7 @@ const Filters = () => {
             key={`category-${groupValue}`}
             label="select category"
             name="category"
-            options={categoriesFromMapCapitalized}
+            options={categoriesFromMap}
             defaultValue={categoryDefault}
             includeAll
           />

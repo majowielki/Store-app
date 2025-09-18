@@ -1,5 +1,5 @@
 import { useLoaderData, useNavigate } from 'react-router-dom';
-import { type OrdersResponse } from '@/utils';
+import { type OrdersResponse, formatAsDollars } from '@/utils';
 import {
   Table,
   TableBody,
@@ -16,7 +16,7 @@ import { MoreHorizontal } from 'lucide-react';
 const OrdersList = () => {
   const ordersResponse = useLoaderData() as OrdersResponse;
   const navigate = useNavigate();
-  const orders = ordersResponse.orders;
+  const orders = ordersResponse.items || [];
 
   return (
     <div className='mt-16'>
@@ -36,7 +36,7 @@ const OrdersList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.map((order) => {
+          {(orders || []).map((order) => {
             return (
               <TableRow key={order.id}>
                 <TableCell>{order.customerName}</TableCell>
@@ -48,7 +48,7 @@ const OrdersList = () => {
                       ).length
                     : order.totalItems}
                 </TableCell>
-                <TableCell>{order.orderTotal}</TableCell>
+                <TableCell>{formatAsDollars(order.orderTotal)}</TableCell>
                 <TableCell>{new Date(order.createdAt).toDateString()}</TableCell>
                 <TableCell className='text-right'>
                   <DropdownMenu>

@@ -40,7 +40,13 @@ const OrderDetail = () => {
               <div>Date: {new Date(order.createdAt).toLocaleString()}</div>
             </div>
             <div>
-              <div>Total Items: {order.totalItems}</div>
+              <div>
+                Total Items: {
+                  order.orderItems
+                    ? order.orderItems.filter(it => it.deliveryCost == null && it.orderDiscount == null).reduce((sum, it) => sum + (it.quantity ?? 0), 0)
+                    : order.totalItems
+                }
+              </div>
               <div>Order Total: {formatAsDollars(order.orderTotal)}</div>
               {deliveryItem && (
                 <div>Delivery: {formatAsDollars(deliveryItem.deliveryCost ?? 0)}</div>

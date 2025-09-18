@@ -1,4 +1,13 @@
 services:
+  # UI Service
+  ui:
+    image: store-app-ui:latest
+    container_name: store-ui
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    networks:
+      - store-network
   postgres:
     image: postgres:16-alpine
     container_name: store-postgres

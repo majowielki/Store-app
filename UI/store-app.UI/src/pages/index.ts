@@ -12,3 +12,6 @@ export { default as Checkout } from './Checkout';
 export { default as Orders } from './Orders';
 export { default as Contact } from './Contact';
 export { default as OrderDetail } from './OrderDetail';
+
+// Eksport admina
+export * as admin from './admin';

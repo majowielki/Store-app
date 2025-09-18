@@ -49,7 +49,7 @@ public class OrderService : IOrderService
         _auditLogClient = auditLogClient ?? throw new ArgumentNullException(nameof(auditLogClient));
     }
 
-    public async Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request)
+    public async Task<ApiResponse<OrderResponse>> CreateOrderFromCartAsync(CreateOrderFromCartRequest request)
     {
         try
         {
@@ -58,7 +58,7 @@ public class OrderService : IOrderService
             
             if (cartItems == null || !cartItems.Any())
             {
-                throw new InvalidOperationException("Cart is empty or not found");
+                return ApiResponse<OrderResponse>.Error("Cart is empty or not found");
             }
 
             // Check if this is the user's first order
@@ -151,18 +151,10 @@ public class OrderService : IOrderService
                         var headerValue = authHeader.StartsWith("Bearer ") ? authHeader : $"Bearer {authHeader}";
                         var handler = new JwtSecurityTokenHandler();
                         var jwt = handler.ReadJwtToken(headerValue.Replace("Bearer ", ""));
-                        var userId = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                        var roles = jwt.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
-                        var email = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-
                         var identityServiceUrl =
                             _configuration["Services:IdentityService:BaseUrl"]
                             ?? _configuration["Services:IdentityService"];
-                        if (string.IsNullOrWhiteSpace(identityServiceUrl))
-                        {
-                            _logger.LogError("IdentityService URL is not configured. Cannot update user address for user: {UserId}", request.UserId);
-                        }
-                        else
+                        if (!string.IsNullOrWhiteSpace(identityServiceUrl))
                         {
                             var updateAddressRequest = new
                             {
@@ -197,7 +189,7 @@ public class OrderService : IOrderService
                 }
             }
 
-            return new Store.OrderService.DTOs.Responses.OrderResponse
+            var orderResponse = new Store.OrderService.DTOs.Responses.OrderResponse
             {
                 Id = order.Id,
                 UserId = order.UserId,
@@ -221,6 +213,7 @@ public class OrderService : IOrderService
                 CreatedAt = order.CreatedAt,
                 Notes = order.Notes
             };
+            return ApiResponse<OrderResponse>.Success(orderResponse);
         }
         catch (Exception ex)
         {
@@ -235,11 +228,11 @@ public class OrderService : IOrderService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = JsonSerializer.Serialize(new { Exception = ex.Message, Source = "OrderService" }, AuditJsonOptions)
             });
-            throw;
+            return ApiResponse<OrderResponse>.Error("An error occurred while creating the order.");
         }
     }
 
-    public async Task<OrderResponse?> GetOrderByIdAsync(int orderId, string userId)
+    public async Task<ApiResponse<OrderResponse?>> GetOrderByIdAsync(int orderId, string userId)
     {
         try
         {
@@ -249,7 +242,7 @@ public class OrderService : IOrderService
 
             if (order == null)
             {
-                return null;
+                return ApiResponse<OrderResponse?>.Error("Order not found");
             }
 
             // Check if user has access to this order (user can only see their own orders unless admin)
@@ -257,19 +250,19 @@ public class OrderService : IOrderService
             {
                 _logger.LogWarning("User {UserId} attempted to access order {OrderId} belonging to {OrderUserId}", 
                     userId, orderId, order.UserId);
-                return null;
+                return ApiResponse<OrderResponse?>.Error("Unauthorized");
             }
 
-            return MapToOrderResponse(order);
+            return ApiResponse<OrderResponse?>.Success(MapToOrderResponse(order));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving order: {OrderId}", orderId);
-            throw;
+            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.");
         }
     }
 
-    public async Task<OrderResponse?> GetOrderByIdForAdminAsync(int orderId)
+    public async Task<ApiResponse<OrderResponse?>> GetOrderByIdForAdminAsync(int orderId)
     {
         try
         {
@@ -277,16 +270,21 @@ public class OrderService : IOrderService
                 .Include(o => o.OrderItems)
                 .FirstOrDefaultAsync(o => o.Id == orderId);
 
-            return order == null ? null : MapToOrderResponse(order);
+            if (order == null)
+            {
+                return ApiResponse<OrderResponse?>.Error("Order not found");
+            }
+
+            return ApiResponse<OrderResponse?>.Success(MapToOrderResponse(order));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving order for admin: {OrderId}", orderId);
-            throw;
+            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.");
         }
     }
 
-    public async Task<OrderListResponse> GetUserOrdersAsync(string userId, int page = 1, int pageSize = 20)
+    public async Task<ApiResponse<OrderListResponse>> GetUserOrdersAsync(string userId, int page = 1, int pageSize = 20)
     {
         try
         {
@@ -302,28 +300,30 @@ public class OrderService : IOrderService
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new OrderListResponse
+            var response = new OrderListResponse
             {
                 Orders = orders.Select(MapToOrderResponse),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
             };
+
+            return ApiResponse<OrderListResponse>.Success(response);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving orders for user: {UserId}", userId);
-            throw;
+            return ApiResponse<OrderListResponse>.Error("An error occurred while retrieving user orders.");
         }
     }
 
-    public async Task<OrderListResponse> GetOrdersByUserIdAsync(string userId, int page = 1, int pageSize = 20)
+    public async Task<ApiResponse<OrderListResponse>> GetOrdersByUserIdAsync(string userId, int page = 1, int pageSize = 20)
     {
         // Same as GetUserOrdersAsync but intended for admin queries without caller restriction
         return await GetUserOrdersAsync(userId, page, pageSize);
     }
 
-    public async Task<OrderListResponse> GetAllOrdersAsync(int page = 1, int pageSize = 20)
+    public async Task<ApiResponse<OrderListResponse>> GetAllOrdersAsync(int page = 1, int pageSize = 20)
     {
         try
         {
@@ -338,120 +338,129 @@ public class OrderService : IOrderService
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new OrderListResponse
+            var response = new OrderListResponse
             {
                 Orders = orders.Select(MapToOrderResponse),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
             };
+
+            return ApiResponse<OrderListResponse>.Success(response);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving all orders");
-            throw;
+            return ApiResponse<OrderListResponse>.Error("An error occurred while retrieving all orders.");
         }
     }
 
-    public async Task<int> GetUserOrdersCountAsync(string userId)
+    public async Task<ApiResponse<int>> GetUserOrdersCountAsync(string userId)
     {
         try
         {
-            return await _context.Orders
-                .Where(o => o.UserId == userId)
-                .CountAsync();
+            var count = await _context.Orders.Where(o => o.UserId == userId).CountAsync();
+            return ApiResponse<int>.Success(count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting order count for user: {UserId}", userId);
-            throw;
+            return ApiResponse<int>.Error("An error occurred while getting order count.");
         }
     }
 
-    public async Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = 30)
+    public async Task<ApiResponse<OrderStatsResponse>> GetOrderStatsAsync(int daysWindow = 30)
     {
-        var since = DateTime.UtcNow.Date.AddDays(-Math.Abs(daysWindow));
-
-        // Preload needed data
-        var ordersQuery = _context.Orders
-            .AsNoTracking()
-            .Include(o => o.OrderItems)
-            .Where(o => o.CreatedAt >= since);
-
-        var orders = await ordersQuery.ToListAsync();
-
-        if (orders.Count == 0)
+        try
         {
-            // Always return a valid, empty stats object
-            return new OrderStatsResponse
+            var since = DateTime.UtcNow.Date.AddDays(-Math.Abs(daysWindow));
+
+            // Preload needed data
+            var ordersQuery = _context.Orders
+                .AsNoTracking()
+                .Include(o => o.OrderItems)
+                .Where(o => o.CreatedAt >= since);
+
+            var orders = await ordersQuery.ToListAsync();
+
+            if (orders.Count == 0)
             {
-                TotalOrders = 0,
-                TotalRevenue = 0,
-                Daily = new List<TimeBucketStats>(),
-                Weekly = new List<TimeBucketStats>(),
-                TopProducts = new List<TopProductStats>()
+                // Always return a valid, empty stats object
+                return ApiResponse<OrderStatsResponse>.Success(new OrderStatsResponse
+                {
+                    TotalOrders = 0,
+                    TotalRevenue = 0,
+                    Daily = new List<TimeBucketStats>(),
+                    Weekly = new List<TimeBucketStats>(),
+                    TopProducts = new List<TopProductStats>()
+                });
+            }
+
+            var response = new OrderStatsResponse
+            {
+                TotalOrders = orders.Count,
+                TotalRevenue = orders.Sum(o => o.OrderTotal)
             };
+
+            // Daily buckets
+            var daily = orders
+                .GroupBy(o => o.CreatedAt.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new TimeBucketStats
+                {
+                    BucketStart = g.Key,
+                    Orders = g.Count(),
+                    Revenue = g.Sum(o => o.OrderTotal)
+                })
+                .ToList();
+
+            response.Daily = daily;
+
+            // Weekly buckets (ISO week by Monday start)
+            static DateTime WeekStart(DateTime date)
+            {
+                int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+                return date.AddDays(-diff).Date;
+            }
+
+            var weekly = orders
+                .GroupBy(o => WeekStart(o.CreatedAt))
+                .OrderBy(g => g.Key)
+                .Select(g => new TimeBucketStats
+                {
+                    BucketStart = g.Key,
+                    Orders = g.Count(),
+                    Revenue = g.Sum(o => o.OrderTotal)
+                })
+                .ToList();
+
+            response.Weekly = weekly;
+
+            // Top products by quantity and revenue in window
+            var topProducts = orders
+                .SelectMany(o => o.OrderItems)
+                .GroupBy(i => new { i.ProductId, i.ProductTitle })
+                .Select(g => new TopProductStats
+                {
+                    ProductId = g.Key.ProductId,
+                    ProductTitle = g.Key.ProductTitle,
+                    Quantity = g.Sum(i => i.Quantity),
+                    Revenue = g.Sum(i => i.LineTotal)
+                })
+                .OrderByDescending(x => x.Quantity)
+                .ThenByDescending(x => x.Revenue)
+                .Take(10)
+                .ToList();
+
+            response.TopProducts = topProducts;
+
+            return ApiResponse<OrderStatsResponse>.Success(response);
         }
-
-        var response = new OrderStatsResponse
+        catch (Exception ex)
         {
-            TotalOrders = orders.Count,
-            TotalRevenue = orders.Sum(o => o.OrderTotal)
-        };
-
-        // Daily buckets
-        var daily = orders
-            .GroupBy(o => o.CreatedAt.Date)
-            .OrderBy(g => g.Key)
-            .Select(g => new TimeBucketStats
-            {
-                BucketStart = g.Key,
-                Orders = g.Count(),
-                Revenue = g.Sum(o => o.OrderTotal)
-            })
-            .ToList();
-
-        response.Daily = daily;
-
-        // Weekly buckets (ISO week by Monday start)
-        static DateTime WeekStart(DateTime date)
-        {
-            int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
-            return date.AddDays(-diff).Date;
+            _logger.LogError(ex, "Error getting order stats");
+            return ApiResponse<OrderStatsResponse>.Error("An error occurred while getting order stats.");
         }
-
-        var weekly = orders
-            .GroupBy(o => WeekStart(o.CreatedAt))
-            .OrderBy(g => g.Key)
-            .Select(g => new TimeBucketStats
-            {
-                BucketStart = g.Key,
-                Orders = g.Count(),
-                Revenue = g.Sum(o => o.OrderTotal)
-            })
-            .ToList();
-
-        response.Weekly = weekly;
-
-        // Top products by quantity and revenue in window
-        var topProducts = orders
-            .SelectMany(o => o.OrderItems)
-            .GroupBy(i => new { i.ProductId, i.ProductTitle })
-            .Select(g => new TopProductStats
-            {
-                ProductId = g.Key.ProductId,
-                ProductTitle = g.Key.ProductTitle,
-                Quantity = g.Sum(i => i.Quantity),
-                Revenue = g.Sum(i => i.LineTotal)
-            })
-            .OrderByDescending(x => x.Quantity)
-            .ThenByDescending(x => x.Revenue)
-            .Take(10)
-            .ToList();
-
-        response.TopProducts = topProducts;
-
-        return response;
     }
 
     private async Task<List<CartItemDto>?> GetCartItemsAsync(string userId)
@@ -472,7 +481,6 @@ public class OrderService : IOrderService
             }
 
             var response = await _httpClient.SendAsync(request);
-            
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -480,18 +488,23 @@ public class OrderService : IOrderService
                     _logger.LogWarning("Cart not found for user: {UserId}", userId);
                     return null;
                 }
-                
                 _logger.LogError("Error retrieving cart from CartService. Status: {StatusCode}", response.StatusCode);
                 throw new Exception($"Failed to retrieve cart from CartService. Status: {response.StatusCode}");
             }
 
             var cartJson = await response.Content.ReadAsStringAsync();
-            var cartResponse = JsonSerializer.Deserialize<CartServiceResponseDto>(cartJson, new JsonSerializerOptions
+            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<CartServiceResponseDto>>(cartJson, new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
 
-            return cartResponse?.Items?.Select(i => new CartItemDto
+            if (apiResponse == null || !apiResponse.IsSuccess || apiResponse.Data == null)
+            {
+                _logger.LogWarning("CartService returned error or empty data for user: {UserId}. Message: {Message}", userId, apiResponse?.Message);
+                return null;
+            }
+
+            return apiResponse.Data.Items?.Select(i => new CartItemDto
             {
                 Id = i.Id,
                 ProductId = i.ProductId,

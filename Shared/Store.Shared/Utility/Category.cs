@@ -6,43 +6,45 @@ namespace Store.Shared.Utility
 {
     public enum Category
     {
-        All,
-        Sofas,
-        Chairs,
-        Tables,
-        Beds,
-        Mattresses,
-        Desks,
-        TVStands,
-        Bookcases,
-        Wardrobes,
-        Dressers,
-        Nightstands,
-        Sideboards,
-        Lighting,
-        Rugs,
-        Outdoor,
-        Office,
-        Kids,
-        Bathroom,
-        Kitchen,
-        Entryway,
-        Decor,
-        Storage,
-        Other
+    All,
+    Sofas,
+    Chairs,
+    Tables,
+    Beds,
+    Mattresses,
+    Desks,
+    TVStands,
+    Bookcases,
+    Wardrobes,
+    Dressers,
+    Nightstands,
+    Sideboards,
+    Rugs,
+    OutdoorFurniture,
+    EntrywayFurniture,
+    Decor,
+    BathroomStorage,
+    BathroomFurniture,
+    BathroomMirrors,
+    KitchenCabinets,
+    KitchenIslands,
+    GardenSets,
+    KidsBeds,
+    KidsDesks,
+    TableLamps,
+    FloorLamps
     }
 
-    // High-level grouping to support UI filters
     public enum Group
     {
-        All,
-        Furniture,
-        Kitchen,
-        Bathroom,
-        Decorations,
-        Lamps,
-        Kids,
-        Garden
+    All,
+    Furniture,
+    Kitchen,
+    Bathroom,
+    Bedroom,
+    Decorations,
+    Kids,
+    Garden
     }
 
     public static class CategoryHelper
@@ -62,84 +64,59 @@ namespace Store.Shared.Utility
             Category.Dressers => "Dressers",
             Category.Nightstands => "Nightstands",
             Category.Sideboards => "Sideboards",
-            Category.Lighting => "Lighting",
             Category.Rugs => "Rugs",
-            Category.Outdoor => "Outdoor Furniture",
-            Category.Office => "Office Furniture",
-            Category.Kids => "Kids Furniture",
-            Category.Bathroom => "Bathroom Furniture",
-            Category.Kitchen => "Kitchen Furniture",
-            Category.Entryway => "Entryway Furniture",
+            Category.OutdoorFurniture => "Outdoor Furniture",
+            Category.EntrywayFurniture => "Entryway Furniture",
             Category.Decor => "Decor",
-            Category.Storage => "Storage",
-            Category.Other => "Other",
+            Category.BathroomStorage => "Bathroom Storage",
+            Category.BathroomFurniture => "Bathroom Furniture",
+            Category.BathroomMirrors => "Bathroom Mirrors",
+            Category.KitchenCabinets => "Kitchen Cabinets",
+            Category.KitchenIslands => "Kitchen Islands",
+            Category.GardenSets => "Garden Sets",
+            Category.KidsBeds => "Kids Beds",
+            Category.KidsDesks => "Kids Desks",
+            Category.TableLamps => "Table Lamps",
+            Category.FloorLamps => "Floor Lamps",
             _ => category.ToString()
         };
 
-        // Group display names for UI
         public static string GetDisplayName(this Group group) => group switch
         {
             Group.All => "All products",
             Group.Furniture => "Furniture",
             Group.Kitchen => "Kitchen",
             Group.Bathroom => "Bathroom",
+            Group.Bedroom => "Bedroom",
             Group.Decorations => "Decorations",
-            Group.Lamps => "Lamps",
             Group.Kids => "Kids",
             Group.Garden => "Garden",
             _ => group.ToString()
         };
 
-        public static List<Category> GetActiveCategories()
-        {
-            return Enum.GetValues<Category>()
-                .Where(c => c != Category.All)
-                .ToList();
-        }
-
-        public static Category? ParseCategory(string categoryName)
-        {
-            if (Enum.TryParse<Category>(categoryName, true, out var category))
-                return category;
-            return null;
-        }
-
-        public static bool IsValidCategory(string categoryName)
-        {
-            return ParseCategory(categoryName).HasValue;
-        }
-
-        public static Group? ParseGroup(string groupName)
-        {
-            if (Enum.TryParse<Group>(groupName.Replace(" ", string.Empty), true, out var group))
-                return group;
-            return null;
-        }
-
         public static Group? GetGroup(this Category category) => category switch
         {
-            Category.Lighting => Group.Lamps,
             Category.Rugs or Category.Decor => Group.Decorations,
-            Category.Kids => Group.Kids,
-            Category.Outdoor => Group.Garden,
-            Category.Bathroom => Group.Bathroom,
-            Category.Kitchen => Group.Kitchen,
-            // Everything else is considered Furniture by default
-            Category.Sofas or Category.Chairs or Category.Tables or Category.TVStands or Category.Bookcases or Category.Wardrobes or Category.Dressers or Category.Nightstands or Category.Sideboards or Category.Mattresses or Category.Desks or Category.Entryway or Category.Office or Category.Storage
+            Category.KidsBeds or Category.KidsDesks => Group.Kids,
+            Category.OutdoorFurniture or Category.GardenSets => Group.Garden,
+            Category.BathroomFurniture or Category.BathroomMirrors or Category.BathroomStorage => Group.Bathroom,
+            Category.KitchenCabinets or Category.KitchenIslands => Group.Kitchen,
+            Category.Beds or Category.Mattresses or Category.Nightstands or Category.Wardrobes or Category.Dressers or Category.TableLamps => Group.Bedroom,
+            Category.Sofas or Category.Chairs or Category.Tables or Category.TVStands or Category.Bookcases or Category.Desks or Category.EntrywayFurniture or Category.FloorLamps or Category.Sideboards
                 => Group.Furniture,
             _ => Group.Furniture
         };
 
         public static IReadOnlyCollection<Category> GetCategories(this Group group) => group switch
         {
-            Group.All => Enum.GetValues<Category>().Where(c => c != Category.All && c != Category.Other).ToArray(),
-            Group.Furniture => new[] { Category.Sofas, Category.Chairs, Category.Tables, Category.TVStands, Category.Bookcases, Category.Wardrobes, Category.Dressers, Category.Nightstands, Category.Sideboards, Category.Mattresses, Category.Desks, Category.Entryway, Category.Office, Category.Storage, Category.Beds },
-            Group.Kitchen => new[] { Category.Kitchen, Category.Tables, Category.Chairs, Category.Storage },
-            Group.Bathroom => new[] { Category.Bathroom, Category.Storage },
+            Group.All => Enum.GetValues<Category>().Where(c => c != Category.All).ToArray(),
+            Group.Furniture => new[] { Category.Sofas, Category.Chairs, Category.Tables, Category.TVStands, Category.Bookcases, Category.Desks, Category.EntrywayFurniture, Category.FloorLamps, Category.Sideboards },
+            Group.Kitchen => new[] { Category.KitchenCabinets, Category.KitchenIslands },
+            Group.Bathroom => new[] { Category.BathroomFurniture, Category.BathroomMirrors, Category.BathroomStorage },
+            Group.Bedroom => new[] { Category.Beds, Category.Mattresses, Category.Nightstands, Category.Wardrobes, Category.Dressers, Category.TableLamps },
             Group.Decorations => new[] { Category.Decor, Category.Rugs },
-            Group.Lamps => new[] { Category.Lighting },
-            Group.Kids => new[] { Category.Kids, Category.Beds, Category.Storage },
-            Group.Garden => new[] { Category.Outdoor },
+            Group.Kids => new[] { Category.KidsBeds, Category.KidsDesks },
+            Group.Garden => new[] { Category.OutdoorFurniture, Category.GardenSets },
             _ => Enum.GetValues<Category>().Where(c => c != Category.All).ToArray()
         };
     }

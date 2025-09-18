@@ -31,3 +31,16 @@ export { default as CheckoutForm } from "./CheckoutForm";
 export { default as OrdersList } from './OrdersList';
 export { default as ComplexPaginationContainer } from './ComplexPagination';
 export { default as SaleBadge } from './SaleBadge';
+
+// Brakujące eksporty
+export { default as InfoTiles } from './InfoTiles';
+export { LandingImageBox } from './LandingImageBox';
+export { default as AdminHeader } from './AdminHeader';
+export { default as AdminBottomBar } from './AdminBottomBar';
+export { default as CustomSidebar } from './CustomSidebar';
+export { default as Footer } from './Footer';
+export { default as LinksDropdown } from './LinksDropdown';
+export { default as MegaMenu } from './MegaMenu';
+export { default as MobileBottomBar } from './MobileBottomBar';
+export { default as NewsletterSection } from './NewsletterSection';
+export { default as SidebarNav } from './SidebarNav';

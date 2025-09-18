@@ -1,7 +1,13 @@
+
+import { toast } from '@/hooks/use-toast';
+import { extractApiErrorMessage } from './errorHandling';
 import axios, { AxiosRequestConfig } from "axios";
 
-// Use environment variable configured in .env files with a safe fallback
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+// Use environment variable configured in .env files (required)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+if (!API_BASE_URL) {
+  throw new Error('VITE_API_BASE_URL is not set. Please define it in your .env file.');
+}
 
 export const customFetch = axios.create({
   baseURL: API_BASE_URL,
@@ -14,11 +20,12 @@ export const customFetch = axios.create({
 // Request interceptor for adding auth token
 customFetch.interceptors.request.use(
   (config) => {
-    // Add auth token if available
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    // Add Authorization header if token exists
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+  // ...
     return config;
   },
   (error) => {
@@ -30,8 +37,8 @@ customFetch.interceptors.request.use(
 customFetch.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle 401 Unauthorized
-    if (error.response?.status === 401) {
+  // Handle 401 Unauthorized
+  if (error.response?.status === 401) {
       const isMeEndpoint = typeof error.config?.url === 'string' && /\/auth\/me\b/.test(error.config.url);
       const expired = error.response.headers?.['token-expired'] === 'true' ||
                       error.response.headers?.['Token-Expired'] === 'true';
@@ -57,8 +64,8 @@ customFetch.interceptors.response.use(
       }
     }
 
-    // Handle 400 Bad Request cases
-    if (error.response?.status === 400) {
+  // Handle 400 Bad Request cases
+  if (error.response?.status === 400) {
       try {
         const data = error.response.data;
         const message: string | undefined = typeof data === 'string' ? data : data?.message;
@@ -94,11 +101,24 @@ customFetch.interceptors.response.use(
       }
     }
     
+
+    // Nie pokazuj toasta dla 401 na /auth/me jeśli nie ma tokena
+    const isMeEndpoint = typeof error.config?.url === 'string' && /\/auth\/me\b/.test(error.config.url);
+    const hasToken = !!(localStorage.getItem('authToken') || sessionStorage.getItem('authToken'));
+    if (!(error.response?.status === 401 && isMeEndpoint && !hasToken)) {
+      const message = extractApiErrorMessage(error);
+      toast({
+        title: 'API Error',
+        description: message,
+        variant: 'destructive',
+      });
+    }
+
     // Handle network errors
     if (!error.response) {
       console.error('Network error:', error.message);
     }
-    
+
     return Promise.reject(error);
   }
 );

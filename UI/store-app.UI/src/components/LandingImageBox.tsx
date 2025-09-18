@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import hero1 from "@/assets/hero1.webp";
+import banner from "@/assets/banner.jpg";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const AUTH_TOKEN_KEY = "token"; // Change if your auth key is different
+const AUTH_TOKEN_KEY = "authToken"; // Match actual auth key used in app
 const IMAGE_BOX_HIDE_UNTIL_KEY = "imageBoxHideUntil";
 const HIDE_DURATION_MS = 30 * 1000; // 30 seconds
 
@@ -37,7 +37,7 @@ export const LandingImageBox: React.FC = () => {
 
   return (
     <div
-      className="relative mx-auto my-8 max-w-xl cursor-pointer rounded-lg border bg-white shadow-lg"
+      className="relative mx-auto my-8 cursor-pointer rounded-lg border bg-white shadow-lg"
       onClick={handleBoxClick}
       tabIndex={0}
       aria-label="Register promotion"
@@ -53,7 +53,7 @@ export const LandingImageBox: React.FC = () => {
         <X className="h-5 w-5" />
       </Button>
       <img
-        src={hero1}
+        src={banner}
         alt="Register and get exclusive offers!"
         className="w-full rounded-lg"
         draggable={false}

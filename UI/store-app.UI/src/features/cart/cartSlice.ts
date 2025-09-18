@@ -38,10 +38,12 @@ const convertApiCartToLocal = (apiCart: ApiCartResponse): CartState => {
   const cartTotal = Number(apiCart.total);
   const tax = cartTotal >= 299 ? 0 : 10; // using tax field to store delivery cost
   const orderTotal = cartTotal + tax;
+  // Always calculate numItemsInCart as the sum of all item amounts
+  const numItemsInCart = cartItems.reduce((sum, item) => sum + item.amount, 0);
 
   return {
     cartItems,
-    numItemsInCart: apiCart.totalItems,
+    numItemsInCart,
     cartTotal,
     tax,
     orderTotal,

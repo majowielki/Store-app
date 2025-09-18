@@ -24,16 +24,27 @@ export const loader =
     ]);
     try {
       // Use user-specific endpoint; admin endpoint is protected
-      const response = await customFetch.get<OrdersResponse>('/orders/my-orders', {
+      const response = await customFetch.get('/orders/my-orders', {
         params,
       });
-      return response.data;
-    } catch (error) {
-      console.log(error);
+      // Map backend response to OrdersResponse shape expected by UI
+      const backend = response.data.data;
+      const items = backend.orders || [];
+      const mapped: OrdersResponse = {
+        items,
+        totalCount: backend.totalCount ?? items.length,
+        page: backend.page ?? 1,
+        pageSize: backend.pageSize ?? 20,
+        totalPages: backend.totalPages ?? 1,
+        hasNextPage: backend.hasNextPage ?? false,
+        hasPreviousPage: backend.hasPreviousPage ?? false,
+      };
+      return mapped;
+  } catch {
       toast({ description: 'Failed to fetch orders' });
       // Return safe empty response to avoid runtime null errors
       const empty: OrdersResponse = {
-        orders: [],
+        items: [],
         totalCount: 0,
         page: Number(params.page) || 1,
         pageSize: Number(params.pageSize) || 20,

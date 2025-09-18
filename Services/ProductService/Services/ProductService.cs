@@ -225,6 +225,8 @@ public class ProductService : IProductService
             var query = _context.Products.AsNoTracking().Where(p => p.IsActive);
 
             // Apply filters
+            var groupFilter = !string.IsNullOrEmpty(queryParams.Group) && queryParams.Group.ToLower() != "all"
+                ? queryParams.Group.ToLower() : null;
             if (!string.IsNullOrEmpty(queryParams.Search))
             {
                 var searchLower = queryParams.Search.ToLower();
@@ -273,6 +275,16 @@ public class ProductService : IProductService
                 query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
             }
 
+            // Sale filter
+            if (!string.IsNullOrEmpty(queryParams.Sale))
+            {
+                var saleValue = queryParams.Sale.Trim().ToLower();
+                if (saleValue == "true" || saleValue == "on" || saleValue == "1")
+                {
+                    query = query.Where(p => (p.SalePrice.HasValue && p.SalePrice.Value > 0) || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0));
+                }
+            }
+
             // Apply sorting
             if (!string.IsNullOrEmpty(queryParams.Order))
             {
@@ -291,13 +303,20 @@ public class ProductService : IProductService
             }
 
             const int pageSize = 12; // Standard page size for frontend
-            var totalCount = await query.CountAsync();
+            var allProducts = await query.ToListAsync();
+
+            // Apply group filter in memory (EF can't translate string methods on value-converted lists)
+            if (groupFilter != null)
+            {
+                allProducts = allProducts.Where(p => p.Groups != null && p.Groups.Any(g => !string.IsNullOrEmpty(g) && g.ToLower() == groupFilter)).ToList();
+            }
+
+            var totalCount = allProducts.Count;
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
             var currentPage = queryParams.Page.GetValueOrDefault(1);
             if (currentPage < 1) currentPage = 1;
             var skip = (currentPage - 1) * pageSize;
-
-            var products = await query.Skip(skip).Take(pageSize).ToListAsync();
+            var products = allProducts.Skip(skip).Take(pageSize).ToList();
 
             var meta = await GetProductsMetaAsync();
             meta.Pagination = new PaginationMeta

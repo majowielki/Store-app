@@ -25,8 +25,8 @@ public class CartService : ICartService
     };
 
     public CartService(
-        CartDbContext context, 
-        ILogger<CartService> logger, 
+        CartDbContext context,
+        ILogger<CartService> logger,
         HttpClient httpClient,
         IConfiguration configuration,
         IAuditLogClient auditLogClient)
@@ -38,7 +38,7 @@ public class CartService : ICartService
         _auditLogClient = auditLogClient;
     }
 
-    public async Task<CartResponse?> GetCartByUserIdAsync(string userId)
+    public async Task<ApiResponse<CartResponse?>> GetCartByUserIdAsync(string userId)
     {
         try
         {
@@ -47,9 +47,9 @@ public class CartService : ICartService
                     .ThenInclude(ci => ci.Product)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
-            if (cart == null) return null;
+            if (cart == null) return ApiResponse<CartResponse?>.Error("Cart not found");
 
-            return MapToCartResponse(cart);
+            return ApiResponse<CartResponse?>.Success(MapToCartResponse(cart));
         }
         catch (Exception ex)
         {
@@ -62,11 +62,11 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
             });
-            throw;
+            return ApiResponse<CartResponse?>.Error("An error occurred while retrieving the cart.");
         }
     }
 
-    public async Task<CartResponse> CreateCartAsync(string userId)
+    public async Task<ApiResponse<CartResponse>> CreateCartAsync(string userId)
     {
         try
         {
@@ -91,7 +91,7 @@ public class CartService : ICartService
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
             });
 
-            return MapToCartResponse(cart);
+            return ApiResponse<CartResponse>.Success(MapToCartResponse(cart));
         }
         catch (Exception ex)
         {
@@ -104,15 +104,14 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" }, AuditJsonOptions)
             });
-            throw;
+            return ApiResponse<CartResponse>.Error("An error occurred while creating the cart.");
         }
     }
 
-    public async Task<CartItemResponse> AddItemToCartAsync(string userId, AddCartItemRequest request)
+    public async Task<ApiResponse<CartItemResponse>> AddItemToCartAsync(string userId, AddCartItemRequest request)
     {
         try
         {
-            // Get or create cart
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
@@ -129,31 +128,26 @@ public class CartService : ICartService
                 await _context.SaveChangesAsync();
             }
 
-            // Get product information
             var product = await GetOrCreateProductAsync(request.ProductId);
-            
             if (product == null)
             {
-                throw new ArgumentException($"Product with ID {request.ProductId} not found");
+                return ApiResponse<CartItemResponse>.Error($"Product with ID {request.ProductId} not found");
             }
 
-            // Check if item already exists in cart with same color
-            var existingItem = cart.CartItems.FirstOrDefault(ci => 
-                ci.ProductId == request.ProductId && 
+            var existingItem = cart.CartItems.FirstOrDefault(ci =>
+                ci.ProductId == request.ProductId &&
                 ci.ProductColor == request.Color);
 
             CartItem cartItem;
 
             if (existingItem != null)
             {
-                // Update quantity
                 existingItem.Amount += request.Quantity;
                 existingItem.UpdatedAt = DateTime.UtcNow;
                 cartItem = existingItem;
             }
             else
             {
-                // Create new cart item
                 cartItem = new CartItem
                 {
                     CartId = cart.Id,
@@ -168,7 +162,6 @@ public class CartService : ICartService
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
-
                 _context.CartItems.Add(cartItem);
             }
 
@@ -185,7 +178,7 @@ public class CartService : ICartService
                 NewValues = System.Text.Json.JsonSerializer.Serialize(cartItem, AuditJsonOptions),
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
             });
-            return MapToCartItemResponse(cartItem);
+            return ApiResponse<CartItemResponse>.Success(MapToCartItemResponse(cartItem));
         }
         catch (Exception ex)
         {
@@ -198,11 +191,11 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
             });
-            throw;
+            return ApiResponse<CartItemResponse>.Error("An error occurred while adding item to cart.");
         }
     }
 
-    public async Task<CartItemResponse?> UpdateCartItemAsync(string userId, int cartItemId, UpdateCartItemRequest request)
+    public async Task<ApiResponse<CartItemResponse?>> UpdateCartItemAsync(string userId, int cartItemId, UpdateCartItemRequest request)
     {
         try
         {
@@ -211,23 +204,18 @@ public class CartService : ICartService
                 .Include(ci => ci.Product)
                 .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.Cart.UserId == userId);
 
-            if (cartItem == null) return null;
+            if (cartItem == null) return ApiResponse<CartItemResponse?>.Error("Cart item not found");
 
-            // Update quantity if provided
             if (request.Quantity.HasValue)
             {
                 cartItem.Amount = request.Quantity.Value;
             }
-
-            // Update color if provided
             if (!string.IsNullOrEmpty(request.Color))
             {
                 cartItem.ProductColor = request.Color;
             }
-
             cartItem.UpdatedAt = DateTime.UtcNow;
             cartItem.Cart.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
             await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
@@ -240,7 +228,7 @@ public class CartService : ICartService
                 NewValues = System.Text.Json.JsonSerializer.Serialize(cartItem, AuditJsonOptions),
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
             });
-            return MapToCartItemResponse(cartItem);
+            return ApiResponse<CartItemResponse?>.Success(MapToCartItemResponse(cartItem));
         }
         catch (Exception ex)
         {
@@ -254,11 +242,11 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
             });
-            throw;
+            return ApiResponse<CartItemResponse?>.Error("An error occurred while updating cart item.");
         }
     }
 
-    public async Task<bool> RemoveItemFromCartAsync(string userId, int cartItemId)
+    public async Task<ApiResponse<bool>> RemoveItemFromCartAsync(string userId, int cartItemId)
     {
         try
         {
@@ -266,11 +254,10 @@ public class CartService : ICartService
                 .Include(ci => ci.Cart)
                 .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.Cart.UserId == userId);
 
-            if (cartItem == null) return false;
+            if (cartItem == null) return ApiResponse<bool>.Error("Cart item not found");
 
             _context.CartItems.Remove(cartItem);
             cartItem.Cart.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
             await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
@@ -282,7 +269,7 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
             });
-            return true;
+            return ApiResponse<bool>.Success(true);
         }
         catch (Exception ex)
         {
@@ -296,11 +283,11 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
             });
-            throw;
+            return ApiResponse<bool>.Error("An error occurred while removing cart item.");
         }
     }
 
-    public async Task<bool> ClearCartAsync(string userId)
+    public async Task<ApiResponse<bool>> ClearCartAsync(string userId)
     {
         try
         {
@@ -308,11 +295,10 @@ public class CartService : ICartService
                 .Include(c => c.CartItems)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
-            if (cart == null) return false;
+            if (cart == null) return ApiResponse<bool>.Error("Cart not found");
 
             _context.CartItems.RemoveRange(cart.CartItems);
             cart.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
             await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
@@ -323,7 +309,7 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "CartService" }, AuditJsonOptions)
             });
-            return true;
+            return ApiResponse<bool>.Success(true);
         }
         catch (Exception ex)
         {
@@ -336,54 +322,50 @@ public class CartService : ICartService
                 Timestamp = DateTime.UtcNow,
                 AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "CartService" })
             });
-            throw;
+            return ApiResponse<bool>.Error("An error occurred while clearing cart.");
         }
     }
 
-    public async Task<int> GetCartItemCountAsync(string userId)
+    public async Task<ApiResponse<int>> GetCartItemCountAsync(string userId)
     {
         try
         {
             var count = await _context.CartItems
                 .Where(ci => ci.Cart.UserId == userId)
                 .SumAsync(ci => ci.Amount);
-
-            return count;
+            return ApiResponse<int>.Success(count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting cart item count for user: {UserId}", userId);
-            throw;
+            return ApiResponse<int>.Error("An error occurred while getting cart item count.");
         }
     }
 
-    public async Task<decimal> GetCartTotalAsync(string userId)
+    public async Task<ApiResponse<decimal>> GetCartTotalAsync(string userId)
     {
         try
         {
             var total = await _context.CartItems
                 .Where(ci => ci.Cart.UserId == userId)
                 .SumAsync(ci => ci.LineTotal);
-
-            return total;
+            return ApiResponse<decimal>.Success(total);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting cart total for user: {UserId}", userId);
-            throw;
+            return ApiResponse<decimal>.Error("An error occurred while getting cart total.");
         }
     }
 
-    public async Task<CartResponse> SyncCartAsync(string userId, SyncCartRequest request)
+    public async Task<ApiResponse<CartResponse>> SyncCartAsync(string userId, SyncCartRequest request)
     {
         if (request == null || request.Items == null || request.Items.Count == 0)
         {
-            throw new ArgumentException("Sync request must contain at least one item");
+            return ApiResponse<CartResponse>.ValidationError(new List<string> { "Sync request must contain at least one item" });
         }
-
         try
         {
-            // Get or create cart with items and products
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Product)
@@ -401,21 +383,17 @@ public class CartService : ICartService
                 await _context.SaveChangesAsync();
             }
 
-            // Merge incoming items
             foreach (var item in request.Items)
             {
-                // Validate/resolve product
                 var product = await GetOrCreateProductAsync(item.ProductId);
                 if (product == null)
                 {
                     _logger.LogWarning("Skipping sync item - product not found: {ProductId}", item.ProductId);
                     continue;
                 }
-
                 var existingItem = cart.CartItems.FirstOrDefault(ci =>
                     ci.ProductId == item.ProductId &&
                     ci.ProductColor == item.Color);
-
                 if (existingItem != null)
                 {
                     existingItem.Amount += item.Quantity;
@@ -441,22 +419,18 @@ public class CartService : ICartService
                     cart.CartItems.Add(newItem);
                 }
             }
-
             cart.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-
-            // Reload with product info for a consistent response
             cart = await _context.Carts
                 .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Product)
                 .FirstAsync(c => c.Id == cart.Id);
-
-            return MapToCartResponse(cart);
+            return ApiResponse<CartResponse>.Success(MapToCartResponse(cart));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error syncing cart for user: {UserId}", userId);
-            throw;
+            return ApiResponse<CartResponse>.Error("An error occurred while syncing cart.");
         }
     }
 

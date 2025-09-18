@@ -1,7 +1,7 @@
-type Link = {
+export interface Link {
   href: string;
   label: string;
-};
+}
 
 export const links: Link[] = [
   { href: "/", label: "home" },

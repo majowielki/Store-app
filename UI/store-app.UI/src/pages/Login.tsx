@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { type ReduxStore } from '@/store';
 import { loginUserAsync, getCurrentUserAsync } from '@/features/user/userSlice';
 import { authApi } from '@/utils/api';
-import { mergeLocalCartToServer, fetchCart } from '@/features/cart/cartSlice';
+import { mergeLocalCartToServer } from '@/features/cart/cartSlice';
 
 export const action =
   (store: ReduxStore): ActionFunction =>
@@ -28,9 +28,8 @@ export const action =
         if (import.meta.env.VITE_USE_AUTH_ME === 'true') {
           await store.dispatch(getCurrentUserAsync());
         }
-        // sync guest cart to server, then fetch server cart
-        await store.dispatch(mergeLocalCartToServer());
-        await store.dispatch(fetchCart());
+  // Sync guest cart to server and use the merged result as the source of truth
+  await store.dispatch(mergeLocalCartToServer());
         const roles: string[] = result.payload?.user?.roles || [];
         return redirect(roles.includes('Admin') || roles.includes('admin') ? '/admin' : '/');
       } else {

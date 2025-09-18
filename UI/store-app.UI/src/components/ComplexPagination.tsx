@@ -16,8 +16,8 @@ import { useLoaderData, useLocation } from 'react-router-dom';
 
 const ComplexPaginationContainer = () => {
   const ordersResponse = useLoaderData() as OrdersResponse;
-  const pageCount = ordersResponse.totalPages;
-  const page = ordersResponse.page;
+  const pageCount = ordersResponse.totalPages ?? 1;
+  const page = ordersResponse.page ?? 1;
   const { search, pathname } = useLocation();
 
   if (pageCount < 2) return null;
@@ -52,7 +52,7 @@ const ComplexPaginationContainer = () => {
 
     // ellipsis before current page
     if (page > 2) {
-      pages.push(constructEllipsis('dots-1'));
+      pages.push(constructEllipsis(`dots-before-${page}`));
     }
 
     // active page (if not first or last)
@@ -62,7 +62,7 @@ const ComplexPaginationContainer = () => {
 
     // ellipsis after current page
     if (page < pageCount - 1) {
-      pages.push(constructEllipsis('dots-2'));
+      pages.push(constructEllipsis(`dots-after-${page}`));
     }
 
     // last page

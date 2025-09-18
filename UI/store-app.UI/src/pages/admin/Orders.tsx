@@ -60,7 +60,22 @@ const Orders = () => {
                 <TableRow key={o.id}>
                   <TableCell>{o.id}</TableCell>
                   <TableCell>{o.customerName}</TableCell>
-                  <TableCell>{o.orderItems ? o.orderItems.filter(it => it.deliveryCost == null && it.orderDiscount == null).reduce((sum, it) => sum + it.quantity, 0) : o.totalItems}</TableCell>
+                  {/*
+                    Only count real product items, not delivery or discount lines.
+                    Exclude items where deliveryCost or orderDiscount is set (e.g. Delivery Fee, First Order Discount)
+                  */}
+                  <TableCell>
+                    {o.orderItems
+                      ? o.orderItems
+                          .filter(it => {
+                            // Exclude delivery and discount lines by title or by cost/discount fields
+                            const isDelivery = it.deliveryCost != null || (it.productTitle && it.productTitle.toLowerCase().includes('delivery'));
+                            const isDiscount = it.orderDiscount != null || (it.productTitle && it.productTitle.toLowerCase().includes('discount'));
+                            return !isDelivery && !isDiscount;
+                          })
+                          .reduce((sum, it) => sum + (it.quantity ?? 0), 0)
+                      : o.totalItems}
+                  </TableCell>
                   <TableCell>{formatAsDollars(o.orderTotal)}</TableCell>
                   <TableCell>{new Date(o.createdAt).toLocaleString()}</TableCell>
                   <TableCell className="text-right">

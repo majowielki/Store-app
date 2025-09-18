@@ -29,11 +29,16 @@ interface FourthColumnProps {
 
 export const FirstColumn = ({ title, image }: FirstColumnProps) => {
   return (
-    <img
-      src={image}
-      alt={title}
-      className="h-24 w-24 rounded-lg sm:h-32 sm:w-32 object-cover"
-    />
+    <div className="w-24 h-18 sm:w-32 sm:h-24 aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+      <img
+        src={image}
+        alt={title}
+        width={1184}
+        height={896}
+        className="w-full h-full object-cover"
+        style={{ aspectRatio: '4/3' }}
+      />
+    </div>
   );
 };
 

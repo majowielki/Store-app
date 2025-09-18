@@ -26,32 +26,15 @@ public class AuthController : ControllerBase
     /// <param name="request">Registration data</param>
     /// <returns>Authentication response with token</returns>
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
     {
-        if (!ModelState.IsValid)
+        // FluentValidation will handle validation automatically
+        var result = await _authService.RegisterAsync(request);
+        if (!result.IsSuccess)
         {
-            return BadRequest(ModelState);
+            return BadRequest(result);
         }
-
-        try
-        {
-            var result = await _authService.RegisterAsync(request);
-            
-            if (!result.Success)
-            {
-                return BadRequest(result);
-            }
-
-            return Ok(result);
-        }
-        catch
-        {
-            return StatusCode(500, new AuthResponse 
-            { 
-                Success = false, 
-                Message = "An error occurred during registration" 
-            });
-        }
+        return Ok(result);
     }
 
     /// <summary>
@@ -60,32 +43,18 @@ public class AuthController : ControllerBase
     /// <param name="request">Login credentials</param>
     /// <returns>Authentication response with token</returns>
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ApiResponse<AuthResponse>.ValidationError(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
         }
-
-        try
+        var result = await _authService.LoginAsync(request);
+        if (!result.IsSuccess)
         {
-            var result = await _authService.LoginAsync(request);
-            
-            if (!result.Success)
-            {
-                return Unauthorized(result);
-            }
-
-            return Ok(result);
+            return Unauthorized(result);
         }
-        catch
-        {
-            return StatusCode(500, new AuthResponse 
-            { 
-                Success = false, 
-                Message = "An error occurred during login" 
-            });
-        }
+        return Ok(result);
     }
 
     /// <summary>
@@ -94,27 +63,14 @@ public class AuthController : ControllerBase
     /// <param name="request">Demo login request (empty)</param>
     /// <returns>Authentication response with demo user token</returns>
     [HttpPost("demo-login")]
-    public async Task<ActionResult<AuthResponse>> DemoLogin([FromBody] DemoLoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> DemoLogin([FromBody] DemoLoginRequest request)
     {
-        try
+        var result = await _authService.DemoLoginAsync(request);
+        if (!result.IsSuccess)
         {
-            var result = await _authService.DemoLoginAsync(request);
-            
-            if (!result.Success)
-            {
-                return BadRequest(result);
-            }
-
-            return Ok(result);
+            return BadRequest(result);
         }
-        catch
-        {
-            return StatusCode(500, new AuthResponse 
-            { 
-                Success = false, 
-                Message = "An error occurred during demo login" 
-            });
-        }
+        return Ok(result);
     }
 
     /// <summary>
@@ -123,27 +79,14 @@ public class AuthController : ControllerBase
     /// <param name="request">Demo admin login request (empty)</param>
     /// <returns>Authentication response with demo admin token</returns>
     [HttpPost("demo-admin-login")]
-    public async Task<ActionResult<AuthResponse>> DemoAdminLogin([FromBody] DemoAdminLoginRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> DemoAdminLogin([FromBody] DemoAdminLoginRequest request)
     {
-        try
+        var result = await _authService.DemoAdminLoginAsync(request);
+        if (!result.IsSuccess)
         {
-            var result = await _authService.DemoAdminLoginAsync(request);
-            
-            if (!result.Success)
-            {
-                return BadRequest(result);
-            }
-
-            return Ok(result);
+            return BadRequest(result);
         }
-        catch
-        {
-            return StatusCode(500, new AuthResponse 
-            { 
-                Success = false, 
-                Message = "An error occurred during demo admin login" 
-            });
-        }
+        return Ok(result);
     }
 
     /// <summary>
@@ -152,32 +95,18 @@ public class AuthController : ControllerBase
     /// <param name="request">Refresh token request</param>
     /// <returns>New authentication response with refreshed token</returns>
     [HttpPost("refresh")]
-    public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return BadRequest(ApiResponse<AuthResponse>.ValidationError(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
         }
-
-        try
+        var result = await _authService.RefreshTokenAsync(request);
+        if (!result.IsSuccess)
         {
-            var result = await _authService.RefreshTokenAsync(request);
-            
-            if (!result.Success)
-            {
-                return Unauthorized(result);
-            }
-
-            return Ok(result);
+            return Unauthorized(result);
         }
-        catch
-        {
-            return StatusCode(500, new AuthResponse 
-            { 
-                Success = false, 
-                Message = "An error occurred during token refresh" 
-            });
-        }
+        return Ok(result);
     }
 
     /// <summary>
@@ -185,15 +114,17 @@ public class AuthController : ControllerBase
     /// </summary>
     /// <returns>Current user profile data</returns>
     [HttpGet("me")]
-    [Authorize(Policy = "UserAccess")]
+    [AllowAnonymous]
     public async Task<ActionResult<UserResponse>> GetCurrentUser()
     {
         try
         {
+            // Try to get userId from claims (token)
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized("User not found");
+                // No token or invalid token: return 204 No Content (anonymous user)
+                return NoContent();
             }
 
             var result = await _authService.GetCurrentUserAsync(userId);
@@ -201,7 +132,7 @@ public class AuthController : ControllerBase
             {
                 if ((int)result.StatusCode == StatusCodes.Status401Unauthorized)
                 {
-                    return Unauthorized(result.Message);
+                    return NoContent(); // treat as anonymous
                 }
                 if ((int)result.StatusCode == StatusCodes.Status404NotFound)
                 {

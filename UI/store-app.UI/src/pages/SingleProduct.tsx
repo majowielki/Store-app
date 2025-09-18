@@ -93,11 +93,16 @@ const SingleProduct = () => {
       {/* PRODUCT */}
       <div className="mt-6 grid gap-y-8 lg:grid-cols-2 lg:gap-x-16">
         {/* IMAGE FIRST COL */}
-        <img
-          src={image}
-          alt={title}
-          className="w-96 h-96 object-cover rounded-lg lg:w-full"
-        />
+        <div className="w-full max-w-[500px] mx-auto aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center sm:max-w-[400px] lg:max-w-full">
+          <img
+            src={image}
+            alt={title}
+            width={1184}
+            height={896}
+            className="w-full h-full object-cover"
+            style={{ aspectRatio: '4/3' }}
+          />
+        </div>
         {/* PRODUCT INFO SECOND COL */}
         <div>
           <h1 className="capitalize text-3xl font-bold">{title}</h1>

@@ -42,23 +42,17 @@ public class AuthService : IAuthService
         _auditLogClient = auditLogClient;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request)
     {
         var ipAddress = GetClientIpAddress();
         var userAgent = GetUserAgent();
-        
         try
         {
             var existingUser = await _userManager.FindByEmailAsync(request.Email);
             if (existingUser != null)
             {
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "User with this email already exists"
-                };
+                return ApiResponse<AuthResponse>.Error("User with this email already exists");
             }
-
             var user = new ApplicationUser
             {
                 UserName = request.Email,
@@ -70,27 +64,17 @@ public class AuthService : IAuthService
                 EmailConfirmed = true,
                 IsActive = true
             };
-
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
                 var errors = result.Errors.Select(e => e.Description).ToList();
-                
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = string.Join(", ", errors)
-                };
+                return ApiResponse<AuthResponse>.ValidationError(errors);
             }
-
             await EnsureRoleExistsAsync(Constants.Role_User);
             await _userManager.AddToRoleAsync(user, Constants.Role_User);
-
             _logger.LogInformation("User registered successfully: {Email}", request.Email);
-
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
-
-            return new AuthResponse
+            var authResponse = new AuthResponse
             {
                 Success = true,
                 Message = "Registration successful",
@@ -98,65 +82,42 @@ public class AuthService : IAuthService
                 ExpiresAt = expiresAt,
                 User = await MapToUserResponseAsync(user)
             };
+            return ApiResponse<AuthResponse>.Success(authResponse);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during user registration");
-            return new AuthResponse
-            {
-                Success = false,
-                Message = "An error occurred during registration"
-            };
+            return ApiResponse<AuthResponse>.Error("An error occurred during registration");
         }
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request)
     {
         var ipAddress = GetClientIpAddress();
         var userAgent = GetUserAgent();
-        
         try
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user == null)
             {
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Invalid email or password"
-                };
+                return ApiResponse<AuthResponse>.Error("Invalid email or password");
             }
-
             if (!user.IsActive)
             {
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Account is deactivated"
-                };
+                return ApiResponse<AuthResponse>.Error("Account is deactivated");
             }
-
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
             if (!result.Succeeded)
             {
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Invalid email or password"
-                };
+                return ApiResponse<AuthResponse>.Error("Invalid email or password");
             }
-
-            // Update last login time
             var oldLastLoginAt = user.LastLoginAt;
             user.LastLoginAt = DateTime.UtcNow;
             user.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
-
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
-
             _logger.LogInformation("User logged in successfully: {Email}", request.Email);
-
-            return new AuthResponse
+            var authResponse = new AuthResponse
             {
                 Success = true,
                 Message = "Login successful",
@@ -164,47 +125,34 @@ public class AuthService : IAuthService
                 ExpiresAt = expiresAt,
                 User = await MapToUserResponseAsync(user)
             };
+            return ApiResponse<AuthResponse>.Success(authResponse);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login");
-            return new AuthResponse
-            {
-                Success = false,
-                Message = "An error occurred during login"
-            };
+            return ApiResponse<AuthResponse>.Error("An error occurred during login");
         }
     }
 
-    public async Task<AuthResponse> DemoLoginAsync(DemoLoginRequest request)
+    public async Task<ApiResponse<AuthResponse>> DemoLoginAsync(DemoLoginRequest request)
     {
         var ipAddress = GetClientIpAddress();
         var userAgent = GetUserAgent();
-        
         try
         {
             var demoUser = await _userManager.FindByEmailAsync(Constants.DemoUserEmail);
             if (demoUser == null)
             {
                 _logger.LogError("Demo user not found. Should be created during database initialization.");
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Demo user not available"
-                };
+                return ApiResponse<AuthResponse>.Error("Demo user not available");
             }
-
-            // Update last login time
             var oldLastLoginAt = demoUser.LastLoginAt;
             demoUser.LastLoginAt = DateTime.UtcNow;
             demoUser.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(demoUser);
-
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(demoUser);
-
             _logger.LogInformation("Demo user logged in successfully");
-
-            return new AuthResponse
+            var authResponse = new AuthResponse
             {
                 Success = true,
                 Message = "Demo login successful",
@@ -212,47 +160,34 @@ public class AuthService : IAuthService
                 ExpiresAt = expiresAt,
                 User = await MapToUserResponseAsync(demoUser)
             };
+            return ApiResponse<AuthResponse>.Success(authResponse);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during demo login");
-            return new AuthResponse
-            {
-                Success = false,
-                Message = "An error occurred during demo login"
-            };
+            return ApiResponse<AuthResponse>.Error("An error occurred during demo login");
         }
     }
 
-    public async Task<AuthResponse> DemoAdminLoginAsync(DemoAdminLoginRequest request)
+    public async Task<ApiResponse<AuthResponse>> DemoAdminLoginAsync(DemoAdminLoginRequest request)
     {
         var ipAddress = GetClientIpAddress();
         var userAgent = GetUserAgent();
-        
         try
         {
             var demoAdmin = await _userManager.FindByEmailAsync(Constants.DemoAdminEmail);
             if (demoAdmin == null)
             {
                 _logger.LogError("Demo admin not found. Should be created during database initialization.");
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Demo admin not available"
-                };
+                return ApiResponse<AuthResponse>.Error("Demo admin not available");
             }
-
-            // Update last login time
             var oldLastLoginAt = demoAdmin.LastLoginAt;
             demoAdmin.LastLoginAt = DateTime.UtcNow;
             demoAdmin.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(demoAdmin);
-
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(demoAdmin);
-
             _logger.LogInformation("Demo admin logged in successfully");
-
-            return new AuthResponse
+            var authResponse = new AuthResponse
             {
                 Success = true,
                 Message = "Demo admin login successful",
@@ -260,28 +195,23 @@ public class AuthService : IAuthService
                 ExpiresAt = expiresAt,
                 User = await MapToUserResponseAsync(demoAdmin)
             };
+            return ApiResponse<AuthResponse>.Success(authResponse);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during demo admin login");
-            return new AuthResponse
-            {
-                Success = false,
-                Message = "An error occurred during demo admin login"
-            };
+            return ApiResponse<AuthResponse>.Error("An error occurred during demo admin login");
         }
     }
 
-    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    public async Task<ApiResponse<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request)
     {
         var ipAddress = GetClientIpAddress();
         var userAgent = GetUserAgent();
-        
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
-            
             ClaimsPrincipal principal;
             try
             {
@@ -297,38 +227,21 @@ public class AuthService : IAuthService
             }
             catch (Exception tokenEx)
             {
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Invalid token"
-                };
+                return ApiResponse<AuthResponse>.Error("Invalid token");
             }
-
             var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "Invalid token"
-                };
+                return ApiResponse<AuthResponse>.Error("Invalid token");
             }
-
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null || !user.IsActive)
             {
-                return new AuthResponse
-                {
-                    Success = false,
-                    Message = "User not found or inactive"
-                };
+                return ApiResponse<AuthResponse>.Error("User not found or inactive");
             }
-
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
-
             _logger.LogInformation("Token refreshed successfully for user: {UserId}", userId);
-
-            return new AuthResponse
+            var authResponse = new AuthResponse
             {
                 Success = true,
                 Message = "Token refreshed successfully",
@@ -336,15 +249,12 @@ public class AuthService : IAuthService
                 ExpiresAt = expiresAt,
                 User = await MapToUserResponseAsync(user)
             };
+            return ApiResponse<AuthResponse>.Success(authResponse);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during token refresh");
-            return new AuthResponse
-            {
-                Success = false,
-                Message = "An error occurred during token refresh"
-            };
+            return ApiResponse<AuthResponse>.Error("An error occurred during token refresh");
         }
     }
 
@@ -459,7 +369,10 @@ public class AuthService : IAuthService
     private async Task<(string token, DateTime expiresAt)> GenerateAccessTokenAsync(ApplicationUser user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
+        var secretKey = _configuration["JwtSettings:SecretKey"];
+        if (string.IsNullOrEmpty(secretKey))
+            throw new InvalidOperationException("JWT SecretKey is not configured");
+        var key = Encoding.UTF8.GetBytes(secretKey);
         var expiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["JwtSettings:ExpirationInMinutes"]!));
 
         var roles = (await _userManager.GetRolesAsync(user)).Distinct().ToList();

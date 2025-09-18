@@ -8,7 +8,7 @@ import { validateRegister } from '@/utils/validation';
 // ...existing code...
 import { store } from '@/store';
 import { registerUserAsync, getCurrentUserAsync } from '@/features/user/userSlice';
-import { mergeLocalCartToServer, fetchCart } from '@/features/cart/cartSlice';
+import { mergeLocalCartToServer } from '@/features/cart/cartSlice';
 import { toast } from '@/hooks/use-toast';
 // ...existing code...
 
@@ -29,7 +29,10 @@ export const action = async ({ request }: { request: Request }): Promise<Respons
         await store.dispatch(getCurrentUserAsync());
       }
       await store.dispatch(mergeLocalCartToServer());
-      await store.dispatch(fetchCart());
+      // Set a flag so HomeLayout knows not to fetchCart again right after registration
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('justMergedGuestCart', 'true');
+      }
       toast({ description: 'Registered' });
       return redirect('/');
     } else {

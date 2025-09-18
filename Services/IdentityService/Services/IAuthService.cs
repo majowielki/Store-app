@@ -7,11 +7,11 @@ namespace Store.IdentityService.Services;
 public interface IAuthService
 {
     // Core authentication operations
-    Task<AuthResponse> RegisterAsync(RegisterRequest request);
-    Task<AuthResponse> LoginAsync(LoginRequest request);
-    Task<AuthResponse> DemoLoginAsync(DemoLoginRequest request);
-    Task<AuthResponse> DemoAdminLoginAsync(DemoAdminLoginRequest request);
-    Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request);
+    Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request);
+    Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request);
+    Task<ApiResponse<AuthResponse>> DemoLoginAsync(DemoLoginRequest request);
+    Task<ApiResponse<AuthResponse>> DemoAdminLoginAsync(DemoAdminLoginRequest request);
+    Task<ApiResponse<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request);
     
     // User operations
     Task<ApiResponse<UserResponse>> GetCurrentUserAsync(string userId);

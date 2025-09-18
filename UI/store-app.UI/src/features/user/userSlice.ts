@@ -10,7 +10,6 @@ export const loginUserAsync = createAsyncThunk(
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       const response = await authApi.login(credentials);
-      console.log('loginUserAsync response:', response);
       if (response.success && response.accessToken && response.user) {
         localStorage.setItem('authToken', response.accessToken);
         return { user: response.user, accessToken: response.accessToken };
@@ -29,7 +28,6 @@ export const registerUserAsync = createAsyncThunk(
   async (userData: RegisterRequest, { rejectWithValue }) => {
     try {
       const response = await authApi.register(userData);
-      console.log('registerUserAsync response:', response);
       if (response.success && response.accessToken && response.user) {
         localStorage.setItem('authToken', response.accessToken);
         return { user: response.user, accessToken: response.accessToken };
@@ -63,6 +61,11 @@ export const logoutUserAsync = createAsyncThunk(
 export const getCurrentUserAsync = createAsyncThunk(
   'user/getCurrentUser',
   async (_, { rejectWithValue }) => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    if (!token) {
+      // Nie wykonuj requestu, nie zwracaj błędu ani toasta
+      return rejectWithValue(null);
+    }
     try {
       const user = await authApi.getCurrentUser();
       return user;
@@ -250,13 +253,17 @@ const userSlice = createSlice({
       .addCase(getCurrentUserAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-    state.meAttempted = true;
-    // Do not eagerly clear token here; interceptor handles expiry/invalid.
-        // If /auth/me fails, ensure we don't keep a broken token forever.
+        state.meAttempted = true;
+        // Jeśli nie ma tokena, nie wyświetlaj błędu ani toasta
+        const hasToken = !!(localStorage.getItem('authToken') || sessionStorage.getItem('authToken'));
+        if (hasToken) {
+          console.error('[getCurrentUserAsync.rejected]', action.payload);
+          toast({ description: `[getCurrentUserAsync.rejected] ${action.payload}`, variant: 'destructive' });
+        }
         try {
           localStorage.removeItem('authToken');
           sessionStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
+          localStorage.removeItem('authUser');
         } catch {
           // ignore storage errors
         }

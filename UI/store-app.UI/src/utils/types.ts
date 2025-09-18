@@ -22,7 +22,16 @@ export interface ProductAttributes {
   heightCm?: number | null;
   depthCm?: number | null;
   weightKg?: number | null;
-  materials?: string | null;
+	materials?: string | null;
+}
+
+// Generic API response envelope matching backend
+export interface ApiResponse<T> {
+  isSuccess: boolean;
+  data: T;
+  message: string;
+  errors: string[];
+  statusCode: number;
 }
 
 export interface ProductData {

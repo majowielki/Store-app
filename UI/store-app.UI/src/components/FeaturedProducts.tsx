@@ -7,10 +7,19 @@ import { Link } from 'react-router-dom';
 const FeaturedProducts = () => {
   const loaderData = useLoaderData() as ProductsResponse | undefined;
   const products = loaderData?.data ?? [];
-  // Temporary client-side filter for discounted products
-  const toShow = products.slice(0, 6);
+  // Show up to 6 products with salePrice or discountPercent set, fill with others if needed
+  const discounted = products.filter((product) => {
+    const { salePrice, discountPercent } = product.attributes as { salePrice?: string | null; discountPercent?: number | null };
+    return (salePrice && salePrice !== "" && salePrice !== null) || (typeof discountPercent === 'number' && discountPercent > 0);
+  });
+  let toShow = discounted.slice(0, 6);
+  if (toShow.length < 6) {
+    // Fill with non-discounted products (not already included)
+    const nonDiscounted = products.filter((p) => !discounted.includes(p));
+    toShow = toShow.concat(nonDiscounted.slice(0, 6 - toShow.length));
+  }
   return (
-    <section className="pt-24">
+  <section className="pt-12">
   <SectionTitle text="discounted products" />
       <div className="pt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
   {toShow.map((product) => {
@@ -25,11 +34,14 @@ const FeaturedProducts = () => {
             <Link to={`/products/${product.id}`} key={product.id}>
               <Card>
                 <CardContent className="p-4">
-                  <div className="relative">
+                  <div className="relative w-full aspect-[4/3] bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
                     <img
                       src={image}
                       alt={title}
-                      className="rounded-md h-64 md:h-48 w-full object-cover"
+                      width={1184}
+                      height={896}
+                      className="w-full h-full object-cover"
+                      style={{ aspectRatio: '4/3' }}
                     />
                     {hasSale && <SaleBadge percent={percent} />}
                   </div>

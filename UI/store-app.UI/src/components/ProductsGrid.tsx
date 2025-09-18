@@ -1,5 +1,6 @@
 import { Link, useLoaderData } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import SaleBadge from "./SaleBadge";
 import { formatAsDollars, type ProductsResponse } from "@/utils";
 
 const ProductsGrid = () => {
@@ -16,11 +17,19 @@ const ProductsGrid = () => {
           <Link to={`/products/${product.id}`} key={product.id}>
             <Card>
               <CardContent className="p-4">
-                <img
-                  src={image}
-                  alt={title}
-                  className="rounded-md h-64 md:h-48 w-full object-cover"
-                />
+                <div className="relative w-full aspect-[4/3] bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
+                  <img
+                    src={image}
+                    alt={title}
+                    width={1184}
+                    height={896}
+                    className="w-full h-full object-cover"
+                    style={{ aspectRatio: '4/3' }}
+                  />
+                  {hasSale && (
+                    <SaleBadge percent={((Number(price) - Number(salePrice)) / Number(price)) * 100} />
+                  )}
+                </div>
                 <div className="mt-4 text-center">
                   <h2 className="text-xl font-semibold capitalize">{title}</h2>
                   <p className="mt-2">

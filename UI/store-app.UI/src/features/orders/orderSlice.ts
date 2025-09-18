@@ -5,13 +5,13 @@ import { getErrorMessage } from "@/utils/errorHandling";
 import { toast } from "@/hooks/use-toast";
 
 interface OrdersResponse {
-  orders: Order[];
+  items: Order[];
   totalCount: number;
   page: number;
   pageSize: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 }
 
 interface OrderState {
@@ -156,13 +156,13 @@ const orderSlice = createSlice({
       .addCase(fetchMyOrdersAsync.fulfilled, (state, action) => {
         state.isLoading = false;
         state.error = null;
-        state.orders = action.payload.orders;
+        state.orders = action.payload.items;
         state.totalCount = action.payload.totalCount;
         state.page = action.payload.page;
         state.pageSize = action.payload.pageSize;
-        state.totalPages = action.payload.totalPages;
-        state.hasNextPage = action.payload.hasNextPage;
-        state.hasPreviousPage = action.payload.hasPreviousPage;
+        state.totalPages = action.payload.totalPages ?? 0;
+        state.hasNextPage = action.payload.hasNextPage ?? false;
+        state.hasPreviousPage = action.payload.hasPreviousPage ?? false;
       })
       .addCase(fetchMyOrdersAsync.rejected, (state, action) => {
         state.isLoading = false;

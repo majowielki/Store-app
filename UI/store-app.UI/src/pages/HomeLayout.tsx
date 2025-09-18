@@ -5,6 +5,7 @@ import { Header, Loading, Navbar } from "@/components";
 import Footer from '@/components/Footer';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { fetchCart } from '@/features/cart/cartSlice';
+import { useRef } from 'react';
 import { getCurrentUserAsync } from '@/features/user/userSlice';
 
 const HomeLayout = () => {
@@ -25,15 +26,46 @@ const HomeLayout = () => {
 
   // If we have a token but no user yet, validate token and load user first
   useEffect(() => {
-    if (useAuthMe && token && !user && !userLoading && !meAttempted) {
+    if (
+      typeof window !== 'undefined' &&
+      useAuthMe &&
+      token &&
+      !user &&
+      !userLoading &&
+      !meAttempted
+    ) {
       dispatch(getCurrentUserAsync());
     }
   }, [useAuthMe, token, user, userLoading, meAttempted, dispatch]);
 
+
+  // On first app load, always initialize Redux cart state from localStorage
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (!initialized.current) {
+      const cart = localStorage.getItem('cart');
+      if (cart) {
+        try {
+          const parsed = JSON.parse(cart);
+          dispatch({ type: 'cart/syncWithServer', payload: parsed });
+        } catch {
+          // ignore JSON parse errors
+        }
+      }
+      initialized.current = true;
+    }
+  }, [dispatch]);
+
   // Fetch cart only after user is known (prevents 401 from stale/invalid tokens on startup)
   useEffect(() => {
+    // Only fetch cart if we did NOT just merge a guest cart (after login/registration)
     if (token && user) {
-      dispatch(fetchCart());
+      const justMerged = sessionStorage.getItem('justMergedGuestCart');
+      if (!justMerged) {
+        dispatch(fetchCart());
+      } else {
+        sessionStorage.removeItem('justMergedGuestCart');
+      }
     }
   }, [token, user, dispatch]);
 

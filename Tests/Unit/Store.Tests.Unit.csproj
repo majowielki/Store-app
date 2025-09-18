@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.8" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.3">
@@ -25,6 +27,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\Store.Shared\Store.Shared.csproj" />
+    <ProjectReference Include="..\..\Services\IdentityService\Store.IdentityService.csproj" />
+    <ProjectReference Include="..\..\Services\CartService\Store.CartService.csproj" />
+    <ProjectReference Include="..\..\Services\OrderService\Store.OrderService.csproj" />
+    <ProjectReference Include="..\..\Services\ProductService\Store.ProductService.csproj" />
+    <ProjectReference Include="..\..\Services\AuditLogService\Store.AuditLogService.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,8 @@ import FormInput from './FormInput';
 import SubmitBtn from './SubmitBtn';
 import { customFetch } from '@/utils';
 import { toast } from '@/hooks/use-toast';
-import { clearCart } from '../features/cart/cartSlice';
+import { clearCart } from '../features/cart';
+import { getCurrentUserAsync } from '../features/user/userSlice';
 import { ReduxStore } from '@/store';
 import { useAppSelector } from '@/hooks';
 import FormCheckbox from './FormCheckbox';
@@ -43,6 +44,11 @@ export const action =
         notes: undefined,
         saveAddress,
       });
+
+      // If address was saved, fetch updated user data
+      if (saveAddress) {
+        await store.dispatch(getCurrentUserAsync());
+      }
 
       store.dispatch(clearCart());
       toast({ description: 'order placed' });

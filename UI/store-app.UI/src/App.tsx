@@ -39,6 +39,7 @@ import AdminProductForm from './pages/admin/ProductForm';
 import AdminUsers from './pages/admin/Users';
 import AdminUserDetail from './pages/admin/UserDetail';
 import AdminUserOrders from './pages/admin/UserOrders';
+import { UserBootstrap } from './features/user/UserBootstrap';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -130,5 +131,10 @@ const router = createBrowserRouter([
   },
 ]);
 
-const App = () => <RouterProvider router={router} />;
+const App = () => (
+  <>
+    <UserBootstrap />
+    <RouterProvider router={router} />
+  </>
+);
 export default App;

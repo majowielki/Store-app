@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Store.AuditLogService")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9cc8f4a37d87294b433995dd4de1fcce7a9f0a4f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f642907474c6c69c776a2ec2d00cbcf9d90b60a8")]
 [assembly: System.Reflection.AssemblyProductAttribute("Store.AuditLogService")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Store.AuditLogService")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -4,11 +4,17 @@ using Store.ProductService.Services;
 using StackExchange.Redis;
 using Store.Shared.Middleware;
 using Store.Shared.Extensions;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add standard API controllers
-builder.Services.AddStandardApiControllers();
+builder.Services.AddStandardApiControllers()
+    .AddFluentValidation(fv =>
+    {
+        fv.RegisterValidatorsFromAssemblyContaining<Store.ProductService.Validators.CreateProductRequestValidator>();
+    });
 
 // Database
 builder.Services.AddDbContext<ProductDbContext>(options =>

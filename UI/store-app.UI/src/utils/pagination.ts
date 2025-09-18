@@ -10,7 +10,7 @@ export const constructUrl = ({
   pathname,
 }: ConstructUrlParams): string => {
   const searchParams = new URLSearchParams(search);
-  searchParams.set("page", pageNumber.toString());
+  searchParams.set("page", (pageNumber !== undefined && pageNumber !== null ? pageNumber.toString() : ""));
 
   return `${pathname}?${searchParams.toString()}`;
 };

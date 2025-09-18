@@ -11,6 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json.Serialization;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,10 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    })
+    .AddFluentValidation(fv =>
+    {
+        fv.RegisterValidatorsFromAssemblyContaining<Store.IdentityService.Validators.RegisterRequestValidator>();
     });
 
 // Database
@@ -134,9 +140,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminAccess", policy =>
         policy.RequireRole(Store.Shared.Utility.Constants.Role_TrueAdmin, Store.Shared.Utility.Constants.Role_DemoAdmin));
 
-    // UserAccess: only requires 'user' role (not admin roles)
+    // UserAccess: allow user, true-admin, and demo-admin roles
     options.AddPolicy("UserAccess", policy =>
-        policy.RequireRole(Store.Shared.Utility.Constants.Role_User));
+        policy.RequireRole(
+            Store.Shared.Utility.Constants.Role_User,
+            Store.Shared.Utility.Constants.Role_TrueAdmin,
+            Store.Shared.Utility.Constants.Role_DemoAdmin
+        ));
 });
 
 // Services

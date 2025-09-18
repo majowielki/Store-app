@@ -105,17 +105,12 @@ public class ProductsController : BaseApiController
     [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult<ProductResponse>> CreateProduct([FromBody] CreateProductRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
+        // FluentValidation will handle validation automatically
         // Check if user is demo admin and deny access
         if (IsDemoAdmin())
         {
             return StatusCode(403, "Demo admin is not authorized to create products");
         }
-
         try
         {
             var product = await _productService.CreateProductAsync(request);

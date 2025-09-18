@@ -2,6 +2,7 @@
 using Store.AuditLogService.Data;
 using Store.Shared.Models;
 using Microsoft.Extensions.Logging;
+using Store.Shared.Models;
 
 namespace Store.AuditLogService.Services;
 
@@ -16,7 +17,7 @@ public class AuditLogService : IAuditLogService
         _logger = logger;
     }
 
-    public async Task<long> CreateAuditLogAsync(AuditLog auditLog)
+    public async Task<ApiResponse<long>> CreateAuditLogAsync(AuditLog auditLog)
     {
         try
         {
@@ -24,52 +25,56 @@ public class AuditLogService : IAuditLogService
             await _context.SaveChangesAsync();
             
             _logger.LogInformation("Audit log created successfully with ID: {AuditLogId}", auditLog.Id);
-            return auditLog.Id;
+            return ApiResponse<long>.Success(auditLog.Id);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating audit log for entity {EntityName} with ID {EntityId}", 
                 auditLog.EntityName, auditLog.EntityId);
-            throw;
+            return ApiResponse<long>.Error("An error occurred while creating audit log");
         }
     }
 
-    public async Task<AuditLog?> GetAuditLogAsync(long id)
+    public async Task<ApiResponse<AuditLog?>> GetAuditLogAsync(long id)
     {
         try
         {
-            return await _context.AuditLogs
+            var log = await _context.AuditLogs
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
+            if (log == null)
+                return ApiResponse<AuditLog?>.Error("Audit log not found");
+            return ApiResponse<AuditLog?>.Success(log);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving audit log with ID: {AuditLogId}", id);
-            throw;
+            return ApiResponse<AuditLog?>.Error("An error occurred while retrieving audit log");
         }
     }
 
-    public async Task<IEnumerable<AuditLog>> GetAuditLogsAsync(int page = 1, int pageSize = 50)
+    public async Task<ApiResponse<IEnumerable<AuditLog>>> GetAuditLogsAsync(int page = 1, int pageSize = 50)
     {
         try
         {
             var skip = (page - 1) * pageSize;
-            
-            return await _context.AuditLogs
+            var logs = await _context.AuditLogs
                 .AsNoTracking()
                 .OrderByDescending(a => a.Timestamp)
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
+            
+            return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving audit logs for page {Page}, pageSize {PageSize}", page, pageSize);
-            throw;
+            return ApiResponse<IEnumerable<AuditLog>>.Error("An error occurred while retrieving audit logs");
         }
     }
 
-    public async Task<IEnumerable<AuditLog>> GetAuditLogsByEntityAsync(string entityName, string? entityId = null, int page = 1, int pageSize = 50)
+    public async Task<ApiResponse<IEnumerable<AuditLog>>> GetAuditLogsByEntityAsync(string entityName, string? entityId = null, int page = 1, int pageSize = 50)
     {
         try
         {
@@ -83,75 +88,80 @@ public class AuditLogService : IAuditLogService
                 query = query.Where(a => a.EntityId == entityId);
             }
 
-            return await query
+            var logs = await query
                 .OrderByDescending(a => a.Timestamp)
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
+            
+            return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving audit logs for entity {EntityName} with ID {EntityId}", entityName, entityId);
-            throw;
+            return ApiResponse<IEnumerable<AuditLog>>.Error("An error occurred while retrieving audit logs");
         }
     }
 
-    public async Task<IEnumerable<AuditLog>> GetAuditLogsByUserAsync(string userId, int page = 1, int pageSize = 50)
+    public async Task<ApiResponse<IEnumerable<AuditLog>>> GetAuditLogsByUserAsync(string userId, int page = 1, int pageSize = 50)
     {
         try
         {
             var skip = (page - 1) * pageSize;
-            
-            return await _context.AuditLogs
+            var logs = await _context.AuditLogs
                 .AsNoTracking()
                 .Where(a => a.UserId == userId)
                 .OrderByDescending(a => a.Timestamp)
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
+            
+            return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving audit logs for user {UserId}", userId);
-            throw;
+            return ApiResponse<IEnumerable<AuditLog>>.Error("An error occurred while retrieving audit logs");
         }
     }
 
-    public async Task<IEnumerable<AuditLog>> GetAuditLogsByDateRangeAsync(DateTime fromDate, DateTime toDate, int page = 1, int pageSize = 50)
+    public async Task<ApiResponse<IEnumerable<AuditLog>>> GetAuditLogsByDateRangeAsync(DateTime fromDate, DateTime toDate, int page = 1, int pageSize = 50)
     {
         try
         {
             var skip = (page - 1) * pageSize;
-            
-            return await _context.AuditLogs
+            var logs = await _context.AuditLogs
                 .AsNoTracking()
                 .Where(a => a.Timestamp >= fromDate && a.Timestamp <= toDate)
                 .OrderByDescending(a => a.Timestamp)
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
+            
+            return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving audit logs for date range {FromDate} to {ToDate}", fromDate, toDate);
-            throw;
+            return ApiResponse<IEnumerable<AuditLog>>.Error("An error occurred while retrieving audit logs");
         }
     }
 
-    public async Task<int> GetTotalCountAsync()
+    public async Task<ApiResponse<int>> GetTotalCountAsync()
     {
         try
         {
-            return await _context.AuditLogs.CountAsync();
+            var count = await _context.AuditLogs.CountAsync();
+            return ApiResponse<int>.Success(count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting total audit log count");
-            throw;
+            return ApiResponse<int>.Error("An error occurred while getting audit log count");
         }
     }
 
-    public async Task<int> GetTotalCountByEntityAsync(string entityName, string? entityId = null)
+    public async Task<ApiResponse<int>> GetTotalCountByEntityAsync(string entityName, string? entityId = null)
     {
         try
         {
@@ -162,27 +172,30 @@ public class AuditLogService : IAuditLogService
                 query = query.Where(a => a.EntityId == entityId);
             }
 
-            return await query.CountAsync();
+            var count = await query.CountAsync();
+            return ApiResponse<int>.Success(count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting audit log count for entity {EntityName} with ID {EntityId}", entityName, entityId);
-            throw;
+            return ApiResponse<int>.Error("An error occurred while getting audit log count");
         }
     }
 
-    public async Task<int> GetTotalCountByUserAsync(string userId)
+    public async Task<ApiResponse<int>> GetTotalCountByUserAsync(string userId)
     {
         try
         {
-            return await _context.AuditLogs
+            var count = await _context.AuditLogs
                 .Where(a => a.UserId == userId)
                 .CountAsync();
+            
+            return ApiResponse<int>.Success(count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting audit log count for user {UserId}", userId);
-            throw;
+            return ApiResponse<int>.Error("An error occurred while getting audit log count");
         }
     }
 }

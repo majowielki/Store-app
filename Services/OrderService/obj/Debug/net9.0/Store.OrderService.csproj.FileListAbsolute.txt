@@ -8,6 +8,9 @@ D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Store.OrderService.
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Store.OrderService.pdb
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\HealthChecks.NpgSql.dll
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\HealthChecks.Redis.dll
+D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\FluentValidation.dll
+D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\FluentValidation.AspNetCore.dll
+D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\FluentValidation.DependencyInjectionExtensions.dll
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Humanizer.dll
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 D:\Projekty\store-app\Services\OrderService\bin\Debug\net9.0\Microsoft.AspNetCore.OpenApi.dll
@@ -134,6 +137,7 @@ D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.AssemblyInfoInputs.cache
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.AssemblyInfo.cs
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.csproj.CoreCompileInputs.cache
+D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.MvcApplicationPartsAssemblyInfo.cs
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.MvcApplicationPartsAssemblyInfo.cache
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.sourcelink.json
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\rjimswa.dswa.cache.json
@@ -150,5 +154,3 @@ D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\refint\Store.OrderS
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.pdb
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.genruntimeconfig.cache
 D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\ref\Store.OrderService.dll
-D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\Store.OrderService.MvcApplicationPartsAssemblyInfo.cs
-D:\Projekty\store-app\Services\OrderService\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
