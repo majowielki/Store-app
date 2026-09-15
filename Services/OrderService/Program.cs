@@ -5,9 +5,6 @@ using Store.OrderService.Services;
 using System.Text.Json.Serialization;
 using Store.Shared.Middleware;
 using Store.Shared.Extensions;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Store.Shared.MessageBus;
@@ -35,37 +32,12 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
 });
 
-// JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "your-very-long-secret-key-here-at-least-32-characters";
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
-            ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ClockSkew = TimeSpan.FromMinutes(2)
-        };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                if (context.Exception is SecurityTokenExpiredException)
-                {
-                    context.Response.Headers["Token-Expired"] = "true";
-                }
-                return Task.CompletedTask;
-            }
-        };
-    });
+// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02);
+// the shared setup already adds the Token-Expired header on expired tokens
+builder.Services.AddJwtAuthentication(builder.Configuration, options =>
+{
+    options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
+});
 
 // Authorization
 builder.Services.AddAuthorization(options =>

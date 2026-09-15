@@ -110,8 +110,8 @@ The application uses environment variables for configuration. Copy `.env.example
 POSTGRES_PASSWORD=StrongPassword123!
 POSTGRES_PORT=5432
 
-# JWT Configuration
-JWT_SECRET_KEY=your-very-long-secret-key-here
+# JWT Configuration (JWT_SECRET_KEY is required, min. 32 chars, no default: openssl rand -base64 48)
+JWT_SECRET_KEY=
 JWT_ISSUER=Store.API
 JWT_AUDIENCE=Store.Client
 

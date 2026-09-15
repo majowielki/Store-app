@@ -8,7 +8,6 @@ using Store.Shared.Extensions;
 using Store.Shared.Utility;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json.Serialization;
 using FluentValidation;
@@ -70,30 +69,11 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-// JWT Authentication
-
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "your-very-long-secret-key-here-at-least-32-characters";
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-    .AddJwtBearer(options =>
+// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02)
+builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
-            ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ClockSkew = TimeSpan.FromMinutes(2),
-            RoleClaimType = System.Security.Claims.ClaimTypes.Role
-        };
+        options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
+        options.TokenValidationParameters.RoleClaimType = System.Security.Claims.ClaimTypes.Role;
 
         options.Events = new JwtBearerEvents
         {

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Store.Shared.Configuration;
 using System.Text;
 
 namespace Store.Shared.Extensions;
@@ -13,28 +15,44 @@ namespace Store.Shared.Extensions;
 public static class ServiceExtensions
 {
     /// <summary>
-    /// Adds JWT authentication with standard configuration
+    /// Adds JWT bearer authentication configured from the validated <see cref="JwtOptions"/>.
+    /// The signing key, issuer and audience have no fallbacks: when <c>JwtSettings</c> is
+    /// missing or invalid the host fails to start (SEC-02).
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <param name="configuration">Application configuration</param>
+    /// <param name="configure">Optional per-service customisation applied after the shared defaults (events, clock skew, claim types)</param>
     /// <returns>Service collection</returns>
-    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddJwtAuthentication(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        Action<JwtBearerOptions>? configure = null)
     {
-        var jwtSettings = configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"] ?? 
-            throw new InvalidOperationException("JWT SecretKey is not configured");
+        services.AddStoreOptions<JwtOptions>(configuration, JwtOptions.SectionName);
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+        // Set the authenticate/challenge schemes explicitly: AddIdentity (IdentityService)
+        // registers cookie schemes as defaults and DefaultScheme alone would not override them.
+        services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer();
+
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<JwtOptions>>((options, jwt) =>
             {
+                var settings = jwt.Value;
+
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.SecretKey)),
                     ValidateIssuer = true,
-                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidIssuer = settings.Issuer,
                     ValidateAudience = true,
-                    ValidAudience = jwtSettings["Audience"],
+                    ValidAudience = settings.Audience,
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
@@ -43,13 +61,15 @@ public static class ServiceExtensions
                 {
                     OnAuthenticationFailed = context =>
                     {
-                        if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                        if (context.Exception is SecurityTokenExpiredException)
                         {
-                            context.Response.Headers.Add("Token-Expired", "true");
+                            context.Response.Headers["Token-Expired"] = "true";
                         }
                         return Task.CompletedTask;
                     }
                 };
+
+                configure?.Invoke(options);
             });
 
         return services;

@@ -82,7 +82,7 @@ services:
       - ASPNETCORE_URLS=http://+:5004
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_audit_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
       - ConnectionStrings__Redis=redis:6379
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
     ports:
@@ -113,7 +113,7 @@ services:
       - ASPNETCORE_URLS=http://+:5001
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_identity_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
       - ConnectionStrings__Redis=redis:6379
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - JwtSettings__Authority=https://localhost:5001
@@ -150,7 +150,7 @@ services:
       - ASPNETCORE_URLS=http://+:5003
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_product_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
       - ConnectionStrings__Redis=redis:6379
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
@@ -195,7 +195,7 @@ services:
       - ASPNETCORE_URLS=http://+:5005
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_cart_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
       - ConnectionStrings__Redis=redis:6379
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - Services__AuditLogService__BaseUrl=http://auditlogservice:5004
@@ -243,7 +243,7 @@ services:
       ASPNETCORE_URLS: http://+:5006
       ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_order_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432"
       ConnectionStrings__Redis: redis:6379
-      JwtSettings__SecretKey: ${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       JwtSettings__Issuer: Store.API
       JwtSettings__Audience: Store.Client
       Services__AuditLogService: http://auditlogservice:5004
@@ -293,7 +293,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5000
       - ConnectionStrings__Redis=redis:6379
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:-your-very-long-secret-key-here-at-least-32-characters-long-for-store-app}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - RabbitMQ__HostName=rabbitmq

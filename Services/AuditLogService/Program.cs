@@ -2,9 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
 using Store.Shared.Middleware;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Store.Shared.Extensions;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using FluentValidation;
@@ -28,24 +26,12 @@ builder.Services.AddControllers()
 builder.Services.AddDbContext<AuditLogDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "your-very-long-secret-key-here-at-least-32-characters";
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
-            ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
-        };
-    });
+// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02)
+builder.Services.AddJwtAuthentication(builder.Configuration, options =>
+{
+    // Clock skew this service used before the shared setup (JwtBearer default); unified in SEC-18
+    options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
+});
 
 // Authorization
 builder.Services.AddAuthorization(options =>

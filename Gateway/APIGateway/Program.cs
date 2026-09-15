@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Store.Shared.Extensions;
 using Store.Shared.MessageBus;
 using Store.Shared.Middleware;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -27,31 +27,11 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
     });
 
-// Enhanced JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? builder.Configuration["Jwt:Key"];
-
-if (string.IsNullOrEmpty(secretKey))
-{
-    throw new InvalidOperationException("JWT secret key is not configured");
-}
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02)
+builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            // Default to IdentityService values if not provided via configuration
-            ValidIssuer = jwtSettings["Issuer"] ?? "Store.API",
-            ValidAudience = jwtSettings["Audience"] ?? "Store.Client",
-            ClockSkew = TimeSpan.FromMinutes(2),
-            RequireExpirationTime = true
-        };
+        options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
+        options.TokenValidationParameters.RequireExpirationTime = true;
 
         options.Events = new JwtBearerEvents
         {
