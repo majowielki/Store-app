@@ -87,27 +87,12 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
                 var safeMsg = rawMsg.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
                 context.Response.Headers["WWW-Authenticate"] =
                     $"Bearer error=\"invalid_token\", error_description=\"{safeMsg}\"";
+                // Never log headers, the raw token or claims (SEC-05); the exception type and
+                // IdentityModel's PII-free message are enough to diagnose a rejected token.
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                     .CreateLogger("IdentityAuth");
-                logger.LogWarning(context.Exception, "JWT authentication failed at identity service");
-                // Log all headers and token for diagnostics
-                var headerList = context.Request.Headers.Select(h => $"{h.Key}={string.Join(";", h.Value.ToArray())}").ToArray();
-                logger.LogWarning("[OnAuthenticationFailed] Incoming headers: {Headers}", string.Join(", ", headerList));
-                logger.LogWarning("[OnAuthenticationFailed] Raw token: {Token}", context.Request.Headers["Authorization"].ToString());
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
-                    .CreateLogger("IdentityAuth");
-                var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var roles = string.Join(',', context.Principal?.Claims.Where(c => c.Type == "role" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(c => c.Value) ?? Array.Empty<string>());
-                logger.LogInformation("JWT validated at identity service for {UserId} with roles [{Roles}]", userId, roles);
-                // Log all claims for diagnostics
-                foreach (var claim in context.Principal?.Claims ?? Enumerable.Empty<System.Security.Claims.Claim>())
-                {
-                    logger.LogInformation("[OnTokenValidated] Claim: {Type} = {Value}", claim.Type, claim.Value);
-                }
+                logger.LogWarning("JWT authentication failed at identity service: {ErrorType}: {Error}",
+                    context.Exception.GetType().Name, context.Exception.Message);
                 return Task.CompletedTask;
             }
         };
@@ -234,7 +219,7 @@ try
                 logger.LogInformation("Role seeding completed successfully.");
                 
                 // Seed all users (True Admin, Demo Admin, Demo User)
-                await SeedUsersAsync(userManager, builder.Configuration, logger);
+                await SeedUsersAsync(userManager, builder.Configuration, app.Environment, logger);
                 logger.LogInformation("User seeding completed successfully.");
             }
             else
@@ -272,10 +257,10 @@ static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger 
     }
 }
 
-static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IConfiguration configuration, ILogger logger)
+static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IConfiguration configuration, IHostEnvironment environment, ILogger logger)
 {
     // 1. Seed True Admin - Use environment variables or secure configuration
-    await SeedTrueAdminAsync(userManager, configuration, logger);
+    await SeedTrueAdminAsync(userManager, configuration, environment, logger);
     
     // 2. Seed Demo Admin
     await SeedDemoAdminAsync(userManager, logger);
@@ -284,71 +269,70 @@ static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IConf
     await SeedDemoStoreUserAsync(userManager, logger);
 }
 
-static async Task SeedTrueAdminAsync(UserManager<ApplicationUser> userManager, IConfiguration configuration, ILogger logger)
+static async Task SeedTrueAdminAsync(UserManager<ApplicationUser> userManager, IConfiguration configuration, IHostEnvironment environment, ILogger logger)
 {
     // Use environment variables for maximum security
-    var adminEmail = Environment.GetEnvironmentVariable("TRUE_ADMIN_EMAIL") 
-                    ?? configuration["TrueAdmin:Email"] 
+    var adminEmail = Environment.GetEnvironmentVariable("TRUE_ADMIN_EMAIL")
+                    ?? configuration["TrueAdmin:Email"]
                     ?? "trueadmin@store.com";
-    
+
     // Password should come from environment variables or secure key vault
-    var adminPassword = Environment.GetEnvironmentVariable("TRUE_ADMIN_PASSWORD") 
+    var adminPassword = Environment.GetEnvironmentVariable("TRUE_ADMIN_PASSWORD")
                        ?? configuration["TrueAdmin:Password"];
-    
-    // If no password is configured, generate a secure random one and log instructions
+
+    if (await userManager.FindByEmailAsync(adminEmail) != null)
+    {
+        logger.LogInformation("True Admin already exists: {Email}", adminEmail);
+        return;
+    }
+
+    // The password is never generated and never logged (SEC-05, SEC-13). Without one the
+    // account is not created: production refuses to start, other environments skip the seed.
     if (string.IsNullOrEmpty(adminPassword))
     {
-        adminPassword = GenerateSecurePassword();
-        logger.LogWarning("===============================================");
-        logger.LogWarning("TRUE ADMIN CREDENTIALS GENERATED:");
-        logger.LogWarning("Email: {Email}", adminEmail);
-        logger.LogWarning("Password: {Password}", adminPassword);
-        logger.LogWarning("===============================================");
-        logger.LogWarning("IMPORTANT: Save these credits securely!");
-        logger.LogWarning("Set TRUE_ADMIN_PASSWORD environment variable for production!");
-        logger.LogWarning("===============================================");
+        const string hint = "Set TrueAdmin:Password (TrueAdmin__Password / TRUE_ADMIN_PASSWORD) to create the true admin account.";
+        if (environment.IsProduction())
+        {
+            throw new InvalidOperationException("True admin password is not configured. " + hint);
+        }
+
+        logger.LogWarning("True Admin not created: no password configured. {Hint}", hint);
+        return;
     }
-    
-    if (await userManager.FindByEmailAsync(adminEmail) == null)
+
+    var adminUser = new ApplicationUser
     {
-        var adminUser = new ApplicationUser
+        UserName = adminEmail,
+        Email = adminEmail,
+        EmailConfirmed = true,
+        FirstName = "True",
+        LastName = "Administrator",
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    var result = await userManager.CreateAsync(adminUser, adminPassword);
+    if (result.Succeeded)
+    {
+        await userManager.AddToRoleAsync(adminUser, Constants.Role_TrueAdmin);
+        logger.LogInformation("True Admin created successfully: {Email}", adminEmail);
+
+        // Log admin creation token information
+        var adminCreationToken = Environment.GetEnvironmentVariable("ADMIN_CREATION_TOKEN")
+                               ?? configuration[Constants.AdminCreationTokenKey];
+        if (!string.IsNullOrEmpty(adminCreationToken))
         {
-            UserName = adminEmail,
-            Email = adminEmail,
-            EmailConfirmed = true,
-            FirstName = "True",
-            LastName = "Administrator",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        
-        var result = await userManager.CreateAsync(adminUser, adminPassword);
-        if (result.Succeeded)
-        {
-            await userManager.AddToRoleAsync(adminUser, Constants.Role_TrueAdmin);
-            logger.LogInformation("True Admin created successfully: {Email}", adminEmail);
-            
-            // Log admin creation token information
-            var adminCreationToken = Environment.GetEnvironmentVariable("ADMIN_CREATION_TOKEN") 
-                                   ?? configuration[Constants.AdminCreationTokenKey];
-            if (!string.IsNullOrEmpty(adminCreationToken))
-            {
-                logger.LogInformation("Admin creation token is configured for additional true admin creation");
-            }
-            else
-            {
-                logger.LogWarning("Consider setting ADMIN_CREATION_TOKEN environment variable for secure additional admin creation");
-            }
+            logger.LogInformation("Admin creation token is configured for additional true admin creation");
         }
         else
         {
-            logger.LogError("Failed to create True Admin: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
+            logger.LogWarning("Consider setting ADMIN_CREATION_TOKEN environment variable for secure additional admin creation");
         }
     }
     else
     {
-        logger.LogInformation("True Admin already exists: {Email}", adminEmail);
+        logger.LogError("Failed to create True Admin: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
     }
 }
 
@@ -377,7 +361,7 @@ static async Task SeedDemoAdminAsync(UserManager<ApplicationUser> userManager, I
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(demoAdminUser, Constants.Role_DemoAdmin);
-            logger.LogInformation("Demo Admin created - Email: {Email} / Password: {Password}", demoAdminEmail, demoAdminPassword);
+            logger.LogInformation("Demo Admin created: {Email}", demoAdminEmail);
         }
         else
         {
@@ -422,32 +406,4 @@ static async Task SeedDemoStoreUserAsync(UserManager<ApplicationUser> userManage
     {
         logger.LogInformation("Demo Store User already exists: {Email}", Constants.DemoUserEmail);
     }
-}
-
-static string GenerateSecurePassword()
-{
-    const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-    var random = new Random();
-    var password = new char[16];
-    
-    // Ensure at least one of each required character type
-    password[0] = chars[random.Next(0, 26)]; // Uppercase
-    password[1] = chars[random.Next(26, 52)]; // Lowercase  
-    password[2] = chars[random.Next(52, 62)]; // Digit
-    password[3] = chars[random.Next(62, chars.Length)]; // Special char
-    
-    // Fill the rest randomly
-    for (int i = 4; i < password.Length; i++)
-    {
-        password[i] = chars[random.Next(chars.Length)];
-    }
-    
-    // Shuffle the password
-    for (int i = password.Length - 1; i > 0; i--)
-    {
-        int j = random.Next(i + 1);
-        (password[i], password[j]) = (password[j], password[i]);
-    }
-    
-    return new string(password);
 }

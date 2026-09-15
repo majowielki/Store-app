@@ -47,18 +47,12 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
                 var safeMsg = rawMsg.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
                 context.Response.Headers["WWW-Authenticate"] =
                     $"Bearer error=\"invalid_token\", error_description=\"{safeMsg}\"";
+                // Exception type and IdentityModel's PII-free message only - no headers,
+                // tokens or claims in logs (SEC-05); successful validations are not logged (MIN-17)
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                     .CreateLogger("GatewayAuth");
-                logger.LogWarning(context.Exception, "JWT authentication failed at gateway");
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
-                    .CreateLogger("GatewayAuth");
-                var name = context.Principal?.Identity?.Name;
-                var roles = string.Join(',', context.Principal?.Claims.Where(c => c.Type == "role" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role").Select(c => c.Value) ?? Array.Empty<string>());
-                logger.LogInformation("JWT validated at gateway for {Name} with roles [{Roles}]", name, roles);
+                logger.LogWarning("JWT authentication failed at gateway: {ErrorType}: {Error}",
+                    context.Exception.GetType().Name, context.Exception.Message);
                 return Task.CompletedTask;
             },
             OnChallenge = context =>

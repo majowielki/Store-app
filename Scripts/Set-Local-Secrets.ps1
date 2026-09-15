@@ -18,6 +18,10 @@
 .PARAMETER InternalApiKey
   Service-to-service key. When omitted a random 48-byte key is generated and printed.
 
+.PARAMETER TrueAdminPassword
+  Optional. Password for the seeded true-admin account (IdentityService). It is never generated
+  or logged by the service (SEC-05); without it a fresh database gets no true admin.
+
 .EXAMPLE
   ./Scripts/Set-Local-Secrets.ps1
   ./Scripts/Set-Local-Secrets.ps1 -JwtSecretKey "<same value as JWT_SECRET_KEY in .env>" -InternalApiKey "<same as INTERNAL_API_KEY>"
@@ -25,6 +29,7 @@
 param(
   [string]$JwtSecretKey,
   [string]$InternalApiKey,
+  [string]$TrueAdminPassword,
   [string]$RootPath = (Split-Path -Parent $PSScriptRoot)
 )
 
@@ -51,6 +56,7 @@ if (-not $InternalApiKey) { $InternalApiKey = New-RandomKey; $generated += "INTE
 
 Assert-KeyLength "JwtSecretKey" $JwtSecretKey
 Assert-KeyLength "InternalApiKey" $InternalApiKey
+if ($TrueAdminPassword -and $TrueAdminPassword.Length -lt 8) { throw "TrueAdminPassword must be at least 8 characters long." }
 
 if ($generated.Count -gt 0) {
   Write-Host "Generated keys (copy them to .env if you also use docker compose):"
@@ -65,6 +71,10 @@ $projects = [ordered]@{
   "Services/CartService/Store.CartService.csproj"           = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/OrderService/Store.OrderService.csproj"         = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/AuditLogService/Store.AuditLogService.csproj"   = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
+}
+
+if ($TrueAdminPassword) {
+  $projects["Services/IdentityService/Store.IdentityService.csproj"]["TrueAdmin:Password"] = $TrueAdminPassword
 }
 
 foreach ($project in $projects.Keys) {

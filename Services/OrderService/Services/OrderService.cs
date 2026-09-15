@@ -168,10 +168,11 @@ public class OrderService : IOrderService
                             httpRequest.Headers.Remove("Authorization"); // Remove any existing
                             httpRequest.Headers.TryAddWithoutValidation("Authorization", headerValue);
 
-                            _logger.LogInformation("Sending address update to IdentityService. URL: {Url}, Payload: {Payload}, Authorization: {Authorization}", url, JsonSerializer.Serialize(updateAddressRequest), headerValue);
+                            // No token, address or response body in logs (SEC-05)
+                            _logger.LogInformation("Sending address update to IdentityService for user {UserId}", request.UserId);
                             var response = await _httpClient.SendAsync(httpRequest);
                             var responseBody = await response.Content.ReadAsStringAsync();
-                            _logger.LogInformation("IdentityService response: StatusCode={StatusCode}, Body={Body}", response.StatusCode, responseBody);
+                            _logger.LogInformation("IdentityService address update response: {StatusCode}", response.StatusCode);
                             if (!response.IsSuccessStatusCode)
                             {
                                 _logger.LogWarning("Failed to save address to user profile for user: {UserId}. Status: {StatusCode}, Body: {Body}", request.UserId, response.StatusCode, responseBody);
