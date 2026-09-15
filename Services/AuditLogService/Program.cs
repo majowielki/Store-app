@@ -3,6 +3,7 @@ using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
 using Store.Shared.Middleware;
 using Store.Shared.Extensions;
+using Store.Shared.Authorization;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using FluentValidation;
@@ -33,15 +34,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
 });
 
-// Authorization
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireClaim("role", "admin"));
-
-    options.AddPolicy("UserOrAdmin", policy =>
-        policy.RequireClaim("role", "user", "admin"));
-});
+// Authorization - shared policies User / Admin / AdminWrite (BLK-02, MAJ-09)
+builder.Services.AddStoreAuthorization();
 
 // Service-to-service calls to POST /api/auditlog/internal must present the shared key (SEC-04)
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);

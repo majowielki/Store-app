@@ -55,7 +55,7 @@ const Products = () => {
       toast({ description: 'Product deleted.' });
       setItems((prev: ProductData[]) => prev.filter((p: ProductData) => p.id !== id));
     } catch (err) {
-      if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
+      if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 403) {
         toast({ description: 'Demo admin is not allowed to perform this action.', variant: 'destructive' });
       } else {
         toast({ description: 'Failed to delete product.', variant: 'destructive' });

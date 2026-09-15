@@ -5,6 +5,7 @@ using Store.IdentityService.Models;
 using Store.IdentityService.Services;
 using Store.Shared.Middleware;
 using Store.Shared.Extensions;
+using Store.Shared.Authorization;
 using Store.Shared.Utility;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -98,21 +99,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
         };
     });
 
-// Authorization
-builder.Services.AddAuthorization(options =>
-{
-    // Policies used by controllers
-    options.AddPolicy("AdminAccess", policy =>
-        policy.RequireRole(Store.Shared.Utility.Constants.Role_TrueAdmin, Store.Shared.Utility.Constants.Role_DemoAdmin));
-
-    // UserAccess: allow user, true-admin, and demo-admin roles
-    options.AddPolicy("UserAccess", policy =>
-        policy.RequireRole(
-            Store.Shared.Utility.Constants.Role_User,
-            Store.Shared.Utility.Constants.Role_TrueAdmin,
-            Store.Shared.Utility.Constants.Role_DemoAdmin
-        ));
-});
+// Authorization - shared policies User / Admin / AdminWrite (MAJ-09)
+builder.Services.AddStoreAuthorization();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();

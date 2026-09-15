@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Store.Shared.Authorization;
 using Store.Shared.MessageBus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -9,7 +10,7 @@ namespace Store.GatewayService.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [EnableRateLimiting("ApiPolicy")]
-[Authorize(Policy = "UserOrAdmin")]
+[Authorize(Policy = Policies.User)]
 public class EventsController : ControllerBase
 {
     private readonly IMessageBus _messageBus;

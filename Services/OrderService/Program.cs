@@ -5,6 +5,7 @@ using Store.OrderService.Services;
 using System.Text.Json.Serialization;
 using Store.Shared.Middleware;
 using Store.Shared.Extensions;
+using Store.Shared.Authorization;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Store.Shared.MessageBus;
@@ -39,15 +40,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
 });
 
-// Authorization
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminAccess", policy =>
-        policy.RequireRole(Store.Shared.Utility.Constants.Role_TrueAdmin, Store.Shared.Utility.Constants.Role_DemoAdmin));
-
-    options.AddPolicy("UserAccess", policy =>
-        policy.RequireRole(Store.Shared.Utility.Constants.Role_User, Store.Shared.Utility.Constants.Role_DemoAdmin, Store.Shared.Utility.Constants.Role_TrueAdmin));
-});
+// Authorization - shared policies User / Admin / AdminWrite (MAJ-09)
+builder.Services.AddStoreAuthorization();
 
 // Configure HttpClient for AuditLogClient with proper base address;
 // every call carries the shared service key required by POST /api/auditlog/internal (SEC-04)

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Store.Shared.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
@@ -153,7 +154,7 @@ public class AuthController : ControllerBase
     /// Update current user's simple address
     /// </summary>
     [HttpPut("me/address")]
-    [Authorize(Policy = "UserAccess")]
+    [Authorize(Policy = Policies.User)]
     public async Task<ActionResult<UserResponse>> UpdateMyAddress([FromBody] UpdateAddressRequest request)
     {
         try
@@ -191,7 +192,7 @@ public class AuthController : ControllerBase
     /// </summary>
     /// <returns>Status 204 on success</returns>
     [HttpPost("logout")]
-    [Authorize(Policy = "UserAccess")]
+    [Authorize(Policy = Policies.User)]
     public ActionResult Logout()
     {
         // In a future iteration, implement token revocation/blacklist if refresh tokens are stored server-side.
@@ -204,7 +205,7 @@ public class AuthController : ControllerBase
     /// <param name="userId">User ID</param>
     /// <returns>User profile data</returns>
     [HttpGet("users/{userId}")]
-    [Authorize(Policy = "AdminAccess")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ApiResponse<UserResponse>>> GetUser(string userId)
     {
         if (string.IsNullOrEmpty(userId))
@@ -238,7 +239,7 @@ public class AuthController : ControllerBase
     /// <param name="pageSize">Page size</param>
     /// <returns>List of users</returns>
     [HttpGet("users")]
-    [Authorize(Policy = "AdminAccess")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ApiResponse<IEnumerable<UserResponse>>>> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         try

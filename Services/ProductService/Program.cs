@@ -4,6 +4,7 @@ using Store.ProductService.Services;
 using StackExchange.Redis;
 using Store.Shared.Middleware;
 using Store.Shared.Extensions;
+using Store.Shared.Authorization;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 
@@ -40,14 +41,8 @@ catch (Exception ex)
 // JWT Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
-// Authorization
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminAccess", policy =>
-        policy.RequireRole("true-admin", "demo-admin"));
-    options.AddPolicy("UserAccess", policy =>
-        policy.RequireRole("user", "true-admin", "demo-admin"));
-});
+// Authorization - shared policies User / Admin / AdminWrite (BLK-01, MAJ-09)
+builder.Services.AddStoreAuthorization();
 
 // Configure HttpClient for AuditLogClient with proper base address;
 // every call carries the shared service key required by POST /api/auditlog/internal (SEC-04)

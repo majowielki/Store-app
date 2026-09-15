@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Store.Shared.Authorization;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
 
@@ -85,10 +86,10 @@ public class ReverseProxyConfigurationTests
     {
         var routes = LoadProxyConfig(environment).Routes.ToDictionary(r => r.RouteId);
 
-        Assert.Equal("UserOrAdmin", routes["cart-route"].AuthorizationPolicy);
-        Assert.Equal("UserOrAdmin", routes["orders-route"].AuthorizationPolicy);
-        Assert.Equal("AdminOnly", routes["audit-route"].AuthorizationPolicy);
-        Assert.Equal("AdminOnly", routes["admin-route"].AuthorizationPolicy);
+        Assert.Equal(Policies.User, routes["cart-route"].AuthorizationPolicy);
+        Assert.Equal(Policies.User, routes["orders-route"].AuthorizationPolicy);
+        Assert.Equal(Policies.Admin, routes["audit-route"].AuthorizationPolicy);
+        Assert.Equal(Policies.Admin, routes["admin-route"].AuthorizationPolicy);
     }
 
     [Theory]

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Store.Shared.Authorization;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Services;
@@ -56,7 +57,7 @@ public class OrdersController : ControllerBase
         {
             return Unauthorized(ApiResponse<OrderResponse?>.Error("User not found"));
         }
-        if (User.IsInRole("true-admin") || User.IsInRole("demo-admin"))
+        if (User.IsStoreAdmin())
         {
             var adminOrder = await _orderService.GetOrderByIdForAdminAsync(id);
             return StatusCode((int)adminOrder.StatusCode, adminOrder);
@@ -90,7 +91,7 @@ public class OrdersController : ControllerBase
     /// <param name="pageSize">Page size</param>
     /// <returns>Paginated list of all orders</returns>
     [HttpGet]
-    [Authorize(Roles = "true-admin,demo-admin")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ApiResponse<OrderListResponse>>> GetAllOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var response = await _orderService.GetAllOrdersAsync(page, pageSize);
@@ -101,7 +102,7 @@ public class OrdersController : ControllerBase
     /// Get orders by user id (Admin only)
     /// </summary>
     [HttpGet("by-user/{userId}")]
-    [Authorize(Roles = "true-admin,demo-admin")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ApiResponse<OrderListResponse>>> GetOrdersByUserId([FromRoute] string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var response = await _orderService.GetOrdersByUserIdAsync(userId, page, pageSize);
@@ -112,7 +113,7 @@ public class OrdersController : ControllerBase
     /// Get aggregated order statistics (Admin only)
     /// </summary>
     [HttpGet("stats")]
-    [Authorize(Roles = "true-admin,demo-admin")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ApiResponse<OrderStatsResponse>>> GetStats([FromQuery] int days = 30)
     {
         var response = await _orderService.GetOrderStatsAsync(days <= 0 ? 30 : days);

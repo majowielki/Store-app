@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Store.AuditLogService.Services;
 using Store.Shared.Authentication;
+using Store.Shared.Authorization;
 using Store.Shared.Models;
 using System.Security.Claims;
 
@@ -27,7 +28,7 @@ public class AuditLogController : ControllerBase
     /// <param name="auditLog">Audit log data</param>
     /// <returns>Created audit log ID</returns>
     [HttpPost]
-    [Authorize(Policy = "UserOrAdmin")]
+    [Authorize(Policy = Policies.User)]
     public async Task<ActionResult<ApiResponse<long>>> CreateAuditLog([FromBody] AuditLog auditLog)
     {
         // FluentValidation will handle validation automatically
@@ -102,7 +103,7 @@ public class AuditLogController : ControllerBase
     /// <param name="id">Audit log ID</param>
     /// <returns>Audit log details</returns>
     [HttpGet("{id}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ApiResponse<AuditLog?>>> GetAuditLog(long id)
     {
         var result = await _auditLogService.GetAuditLogAsync(id);
@@ -119,7 +120,7 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs</returns>
     [HttpGet]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (page < 1) page = 1;
@@ -154,7 +155,7 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs for the entity</returns>
     [HttpGet("entity/{entityName}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogsByEntity(string entityName, [FromQuery] string? entityId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (page < 1) page = 1;
@@ -190,7 +191,7 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs for the user</returns>
     [HttpGet("user/{userId}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogsByUser(string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (page < 1) page = 1;
@@ -226,7 +227,7 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs within the date range</returns>
     [HttpGet("daterange")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogsByDateRange([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (fromDate > toDate)

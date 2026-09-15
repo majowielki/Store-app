@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Store.Shared.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Store.IdentityService.Models;
@@ -11,7 +12,7 @@ namespace Store.IdentityService.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize(Policy = "AdminAccess")]
+[Authorize(Policy = Policies.Admin)]
 public class AdminController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;

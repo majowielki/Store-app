@@ -5,6 +5,7 @@ using StackExchange.Redis;
 using System.Text.Json.Serialization;
 using Store.Shared.Middleware;
 using Store.Shared.Extensions;
+using Store.Shared.Authorization;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using FluentValidation;
@@ -51,15 +52,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
 });
 
-// Authorization (roles aligned with IdentityService)
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminAccess", policy =>
-        policy.RequireRole("true-admin", "demo-admin"));
-
-    options.AddPolicy("UserAccess", policy =>
-        policy.RequireRole("user", "true-admin", "demo-admin"));
-});
+// Authorization - shared policies User / Admin / AdminWrite (MAJ-09)
+builder.Services.AddStoreAuthorization();
 
 // Configure HttpClient for AuditLogClient with proper base address;
 // every call carries the shared service key required by POST /api/auditlog/internal (SEC-04)

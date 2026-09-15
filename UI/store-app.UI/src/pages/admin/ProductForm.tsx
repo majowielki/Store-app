@@ -37,7 +37,7 @@ const ProductForm = () => {
           await customFetch.put(`/products/${id}`, payload);
           navigate('/admin/products');
         } catch (err) {
-          if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
+          if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 403) {
             toast({ description: 'Demo admin is not allowed to perform this action.', variant: 'destructive' });
           } else {
             toast({ description: 'Failed to update product.', variant: 'destructive' });
@@ -48,7 +48,7 @@ const ProductForm = () => {
           await customFetch.post(`/products`, payload);
           navigate('/admin/products');
         } catch (err) {
-          if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 400) {
+          if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 403) {
             toast({ description: 'Demo admin is not allowed to perform this action.', variant: 'destructive' });
           } else {
             toast({ description: 'Failed to create product.', variant: 'destructive' });

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Store.Shared.Extensions;
+using Store.Shared.Authorization;
 using Store.Shared.MessageBus;
 using Store.Shared.Middleware;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -68,20 +69,8 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
         };
     });
 
-// Authorization policies
-builder.Services.AddAuthorization(options =>
-{
-    // Match roles emitted by IdentityService (user, demo-admin, true-admin)
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("true-admin", "demo-admin"));
-    
-    options.AddPolicy("UserOrAdmin", policy =>
-        policy.RequireRole("user", "true-admin", "demo-admin"));
-
-    // Add UserAccess policy to match IdentityService
-    options.AddPolicy("UserAccess", policy =>
-        policy.RequireRole("user", "true-admin", "demo-admin"));
-});
+// Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes (MAJ-09)
+builder.Services.AddStoreAuthorization();
 
 // RabbitMQ Message Bus with error handling
 try

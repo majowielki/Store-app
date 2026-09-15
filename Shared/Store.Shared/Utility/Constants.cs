@@ -2,10 +2,10 @@ namespace Store.Shared.Utility
 {
     public class Constants
     {
-        // Roles
-        public const string Role_TrueAdmin = "true-admin";
-        public const string Role_DemoAdmin = "demo-admin";
-        public const string Role_User = "user";
+        // Roles - defined in Store.Shared.Authorization.Roles; kept here for existing callers
+        public const string Role_TrueAdmin = Authorization.Roles.TrueAdmin;
+        public const string Role_DemoAdmin = Authorization.Roles.DemoAdmin;
+        public const string Role_User = Authorization.Roles.User;
 
         // Demo User Credentials
         public const string DemoUserEmail = "demo@store.com";

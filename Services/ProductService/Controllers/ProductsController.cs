@@ -4,9 +4,8 @@ using Microsoft.Extensions.Logging;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Services;
+using Store.Shared.Authorization;
 using Store.Shared.Controllers;
-using Store.Shared.Utility;
-using System.Security.Claims;
 
 namespace Store.ProductService.Controllers;
 
@@ -102,15 +101,10 @@ public class ProductsController : BaseApiController
     /// <param name="request">Product creation data</param>
     /// <returns>Created product</returns>
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.AdminWrite)]
     public async Task<ActionResult<ProductResponse>> CreateProduct([FromBody] CreateProductRequest request)
     {
-        // FluentValidation will handle validation automatically
-        // Check if user is demo admin and deny access
-        if (IsDemoAdmin())
-        {
-            return StatusCode(403, "Demo admin is not authorized to create products");
-        }
+        // FluentValidation will handle validation automatically; demo-admin is rejected by the policy (403)
         try
         {
             var product = await _productService.CreateProductAsync(request);
@@ -130,18 +124,12 @@ public class ProductsController : BaseApiController
     /// <param name="request">Product update data</param>
     /// <returns>Updated product</returns>
     [HttpPut("{id}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.AdminWrite)]
     public async Task<ActionResult<ProductResponse>> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
-        }
-
-        // Check if user is demo admin and deny access
-        if (IsDemoAdmin())
-        {
-            return StatusCode(403, "Demo admin is not authorized to update products");
         }
 
         try
@@ -168,15 +156,9 @@ public class ProductsController : BaseApiController
     /// <param name="id">Product ID</param>
     /// <returns>Success status</returns>
     [HttpDelete("{id}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize(Policy = Policies.AdminWrite)]
     public async Task<ActionResult> DeleteProduct(int id)
     {
-        // Check if user is demo admin and deny access
-        if (IsDemoAdmin())
-        {
-            return StatusCode(403, "Demo admin is not authorized to delete products");
-        }
-
         try
         {
             var success = await _productService.DeleteProductAsync(id);
@@ -222,9 +204,8 @@ public class ProductsController : BaseApiController
     /// <param name="sortDir">Sort direction (asc, desc)</param>
     /// <returns>Products response in frontend format</returns>
     [HttpGet("admin")]
-    // Returns inactive products too - admins only (SEC-04). "AdminAccess" is the policy this
-    // service registers; the "AdminOnly" name used elsewhere in this controller is fixed in BLK-01.
-    [Authorize(Policy = "AdminAccess")]
+    // Returns inactive products too - admins only (SEC-04)
+    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ProductsResponse>> GetProductsAdmin(
     [FromQuery] ProductQueryParams queryParams, 
     [FromQuery] string sortBy = null, 
@@ -240,20 +221,5 @@ public class ProductsController : BaseApiController
             _logger.LogError(ex, "Error retrieving admin products");
             return StatusCode(500, "An error occurred while retrieving products for admin");
         }
-    }
-
-    /// <summary>
-    /// Check if the current user is a demo admin
-    /// </summary>
-    /// <returns>True if demo admin, false otherwise</returns>
-    private bool IsDemoAdmin()
-    {
-        var userRole = User?.FindFirst(ClaimTypes.Role)?.Value;
-        var userEmail = User?.FindFirst(ClaimTypes.Email)?.Value;
-        
-        // Check if user has demo admin role or email
-        return userRole?.ToLower() == Constants.Role_DemoAdmin.ToLower() || 
-               userEmail?.ToLower() == Constants.DemoAdminEmail.ToLower() ||
-               User?.FindFirst("demo")?.Value == "true";
     }
 }
