@@ -1,4 +1,4 @@
-# Normalise line endings: LF in the repository, native on checkout (MIN-10, BLK-12)
+# Normalise line endings: LF in the repository, native on checkout
 * text=auto
 
 *.cs        text diff=csharp

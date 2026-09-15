@@ -20,7 +20,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
 
-// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+// FluentValidation: validators from DI, request models validated before the action runs
 builder.Services.AddValidatorsFromAssemblyContaining<Store.OrderService.Validators.CreateOrderFromCartRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
@@ -32,18 +32,18 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
 });
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02);
+// JWT Authentication - key, issuer and audience come from validated JwtOptions;
 // the shared setup already adds the Token-Expired header on expired tokens
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 {
     options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
 });
 
-// Authorization - shared policies User / Admin / AdminWrite (MAJ-09)
+// Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
 // Configure HttpClient for AuditLogClient with proper base address;
-// every call carries the shared service key required by POST /api/auditlog/internal (SEC-04)
+// every call carries the shared service key required by POST /api/auditlog/internal
 var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
 builder.Services.AddInternalApiKeyClient(builder.Configuration);
 builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>

@@ -84,7 +84,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
             statuses.Add(response.StatusCode);
         }
 
-        // SEC-06: Identity lockout (5 attempts / 5 minutes) is honoured and reported as 423
+        // Regression: Identity lockout (5 attempts / 5 minutes) is honoured and reported as 423
         Assert.Equal(
             new[] { HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.Locked },
             statuses);

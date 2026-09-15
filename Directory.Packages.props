@@ -1,6 +1,6 @@
 <Project>
 
-  <!-- Central package management (MAJ-17): every version lives here, csproj files reference
+  <!-- Central package management: every version lives here, csproj files reference
        packages without a Version attribute. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>

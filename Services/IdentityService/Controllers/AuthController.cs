@@ -53,7 +53,7 @@ public class AuthController : ControllerBase
         var result = await _authService.LoginAsync(request);
         if (!result.IsSuccess)
         {
-            // 423 Locked when Identity's lockout kicked in (SEC-06), 401 for every other failure
+            // 423 Locked when Identity's lockout kicked in, 401 for every other failure
             return result.StatusCode == HttpStatusCode.Locked
                 ? StatusCode(StatusCodes.Status423Locked, result)
                 : Unauthorized(result);

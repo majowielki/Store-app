@@ -18,7 +18,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
 
-// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+// FluentValidation: validators from DI, request models validated before the action runs
 builder.Services.AddValidatorsFromAssemblyContaining<Store.CartService.Validators.AddCartItemRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
@@ -43,18 +43,18 @@ catch (Exception ex)
     logger.LogWarning(ex, "Redis connection failed, continuing without Redis");
 }
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02)
+// JWT Authentication - key, issuer and audience come from validated JwtOptions
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 {
-    // Clock skew this service used before the shared setup (JwtBearer default); unified in SEC-18
+    // Clock skew this service used before the shared setup (JwtBearer default); to be unified across services later
     options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
 });
 
-// Authorization - shared policies User / Admin / AdminWrite (MAJ-09)
+// Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
 // Configure HttpClient for AuditLogClient with proper base address;
-// every call carries the shared service key required by POST /api/auditlog/internal (SEC-04)
+// every call carries the shared service key required by POST /api/auditlog/internal
 var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
 builder.Services.AddInternalApiKeyClient(builder.Configuration);
 builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>

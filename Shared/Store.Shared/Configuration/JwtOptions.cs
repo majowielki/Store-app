@@ -5,7 +5,7 @@ namespace Store.Shared.Configuration;
 /// <summary>
 /// JWT settings shared by the gateway and every service. Bound from the <c>JwtSettings</c>
 /// section and validated when the host starts, so a missing or too short signing key stops
-/// the application instead of silently falling back to a well-known value (SEC-02).
+/// the application instead of silently falling back to a well-known value.
 /// </summary>
 public sealed class JwtOptions
 {

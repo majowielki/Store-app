@@ -30,7 +30,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
     });
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02)
+// JWT Authentication - key, issuer and audience come from validated JwtOptions
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     {
         options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
@@ -51,7 +51,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
                 context.Response.Headers["WWW-Authenticate"] =
                     $"Bearer error=\"invalid_token\", error_description=\"{safeMsg}\"";
                 // Exception type and IdentityModel's PII-free message only - no headers,
-                // tokens or claims in logs (SEC-05); successful validations are not logged (MIN-17)
+                // tokens or claims in logs; successful validations are not logged
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                     .CreateLogger("GatewayAuth");
                 logger.LogWarning("JWT authentication failed at gateway: {ErrorType}: {Error}",
@@ -71,7 +71,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
         };
     });
 
-// Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes (MAJ-09)
+// Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes
 builder.Services.AddStoreAuthorization();
 
 // RabbitMQ Message Bus with error handling
@@ -111,7 +111,7 @@ builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy("Gateway is running"))
     .AddCheck<RabbitMQHealthCheck>("rabbitmq");
 
-// Rate Limiting (SEC-06): sliding windows per client address on the identity route, attached in
+// Rate Limiting: sliding windows per client address on the identity route, attached in
 // appsettings.json via "RateLimiterPolicy": "auth"; credential endpoints get the stricter limit
 builder.Services.AddStoreOptions<AuthRateLimitOptions>(builder.Configuration, AuthRateLimitOptions.SectionName);
 builder.Services.AddRateLimiter(options =>

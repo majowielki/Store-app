@@ -60,7 +60,7 @@ csharp_space_after_keywords_in_control_flow_statements = true
 
 # Diagnostics enforced in build (EnforceCodeStyleInBuild + AnalysisLevel latest-recommended).
 # Rules that would only add noise for this code base are turned down explicitly.
-dotnet_diagnostic.IDE0005.severity = warning   # unused using (NIT-02)
+dotnet_diagnostic.IDE0005.severity = warning   # unused using
 dotnet_diagnostic.IDE0055.severity = suggestion # formatting - handled by dotnet format
 dotnet_diagnostic.IDE0290.severity = none      # primary constructors
 dotnet_diagnostic.CA1848.severity = none       # LoggerMessage delegates - not worth it here

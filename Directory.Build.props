@@ -1,6 +1,6 @@
 <Project>
 
-  <!-- Settings shared by every project in the repository (MAJ-17, MAJ-18). Per-project csproj
+  <!-- Settings shared by every project in the repository. Per-project csproj
        files keep only what differs: target framework, project type, package references. -->
   <PropertyGroup>
     <LangVersion>latest</LangVersion>

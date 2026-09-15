@@ -45,7 +45,7 @@ public class AuditLogClient : IAuditLogClient
 
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-            // Internal endpoint: the InternalApiKeyMessageHandler attached to this client adds the service key (SEC-04)
+            // Internal endpoint: the InternalApiKeyMessageHandler attached to this client adds the service key
             var response = await _httpClient.PostAsync("/api/auditlog/internal", content);
 
             if (response.IsSuccessStatusCode)

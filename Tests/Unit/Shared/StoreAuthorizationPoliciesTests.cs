@@ -7,7 +7,7 @@ using Xunit;
 namespace Store.Tests.Unit.Shared;
 
 /// <summary>
-/// BLK-01 / BLK-02 / MAJ-09: one set of policies, evaluated against the roles IdentityService
+/// One set of policies, evaluated against the roles IdentityService
 /// issues. The JWT bearer handler maps the "role" claim to <see cref="ClaimTypes.Role"/>, which
 /// is what the principals below carry.
 /// </summary>
@@ -75,7 +75,7 @@ public class StoreAuthorizationPoliciesTests
     [Fact]
     public async Task Role_order_in_the_token_does_not_matter()
     {
-        // ProductsController.IsDemoAdmin() used to look at the first role claim only (MAJ-09)
+        // ProductsController.IsDemoAdmin() used to look at the first role claim only
         var demoAdminListedSecond = PrincipalWithRoles(Roles.User, Roles.DemoAdmin);
 
         Assert.True(await Allowed(demoAdminListedSecond, Policies.Admin));

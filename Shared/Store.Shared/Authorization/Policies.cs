@@ -17,6 +17,6 @@ public static class Policies
     /// <summary>Changes to catalogue, users and orders: true-admin only - demo-admin is read-only.</summary>
     public const string AdminWrite = "AdminWrite";
 
-    /// <summary>Trusted service-to-service caller presenting the internal API key (SEC-04).</summary>
+    /// <summary>Trusted service-to-service caller presenting the internal API key.</summary>
     public const string InternalService = InternalApiKeyDefaults.PolicyName;
 }

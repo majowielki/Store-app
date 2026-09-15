@@ -8,7 +8,7 @@ namespace Store.Tests.Unit.Gateway;
 
 /// <summary>
 /// Loads the gateway configuration exactly the way the host does (appsettings.json + the
-/// environment file) and checks the parts that broke production before (BLK-04, BLK-13):
+/// environment file) and checks the parts that broke production before:
 /// every environment must expose the same routes, point them at existing clusters, contain
 /// no "${VAR}" placeholders (.NET does not expand them) and validate tokens with the same
 /// issuer/audience that IdentityService issues.

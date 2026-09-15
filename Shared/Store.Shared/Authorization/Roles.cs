@@ -2,7 +2,7 @@ namespace Store.Shared.Authorization;
 
 /// <summary>
 /// Role names issued by IdentityService in the "role" claim. Single source of truth for every
-/// service and the gateway (BLK-01, BLK-02, MAJ-09).
+/// service and the gateway.
 /// </summary>
 public static class Roles
 {

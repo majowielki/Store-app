@@ -17,7 +17,7 @@ public static class ServiceExtensions
     /// <summary>
     /// Adds JWT bearer authentication configured from the validated <see cref="JwtOptions"/>.
     /// The signing key, issuer and audience have no fallbacks: when <c>JwtSettings</c> is
-    /// missing or invalid the host fails to start (SEC-02).
+    /// missing or invalid the host fails to start.
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <param name="configuration">Application configuration</param>

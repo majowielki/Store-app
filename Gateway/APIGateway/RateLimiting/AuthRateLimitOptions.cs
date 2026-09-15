@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Store.GatewayService.RateLimiting;
 
 /// <summary>
-/// Limits applied per client address to the identity route (SEC-06). Bound from
+/// Limits applied per client address to the identity route. Bound from
 /// <c>RateLimiting:Auth</c>. Credential endpoints (login, register, refresh, demo logins) get the
 /// stricter <see cref="CredentialPermitLimit"/>; every other /api/auth/* call the general one.
 /// </summary>

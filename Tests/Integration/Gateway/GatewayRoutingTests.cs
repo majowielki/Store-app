@@ -59,7 +59,7 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    // SEC-06: credential endpoints are rate limited per client address
+    // Regression: credential endpoints are rate limited per client address
     [Fact]
     public async Task Login_attempts_beyond_the_limit_get_429_with_retry_after()
     {

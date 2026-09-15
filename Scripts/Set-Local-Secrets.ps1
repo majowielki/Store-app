@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Stores the secrets every service needs at startup in dotnet user-secrets (SEC-02, SEC-04).
+  Stores the secrets every service needs at startup in dotnet user-secrets.
 
 .DESCRIPTION
   Services refuse to start without:
@@ -20,7 +20,7 @@
 
 .PARAMETER TrueAdminPassword
   Optional. Password for the seeded true-admin account (IdentityService). It is never generated
-  or logged by the service (SEC-05); without it a fresh database gets no true admin.
+  or logged by the service; without it a fresh database gets no true admin.
 
 .EXAMPLE
   ./Scripts/Set-Local-Secrets.ps1

@@ -42,7 +42,7 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
         Assert.True(body.GetProperty("data").GetArrayLength() > 0, "the seeder should have populated the catalogue");
     }
 
-    // BLK-01: the create/update/delete endpoints used a policy the service never registered,
+    // Regression: the create/update/delete endpoints used a policy the service never registered,
     // so even true-admin got an error. Now: true-admin writes, demo-admin is read-only.
     [Theory]
     [InlineData("anonymous", HttpStatusCode.Unauthorized)]

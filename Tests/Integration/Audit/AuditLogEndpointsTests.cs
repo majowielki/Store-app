@@ -27,7 +27,7 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
         timestamp = DateTime.UtcNow
     };
 
-    // BLK-02: reads required a role nobody has, so every admin got 403
+    // Regression: reads required a role nobody has, so every admin got 403
     [Theory]
     [InlineData("anonymous", HttpStatusCode.Unauthorized)]
     [InlineData(Roles.User, HttpStatusCode.Forbidden)]
@@ -42,7 +42,7 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
         Assert.Equal(expected, response.StatusCode);
     }
 
-    // SEC-04: the internal endpoint accepts the shared service key only
+    // Regression: the internal endpoint accepts the shared service key only
     [Fact]
     public async Task Internal_endpoint_rejects_requests_without_the_service_key()
     {

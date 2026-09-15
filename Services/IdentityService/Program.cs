@@ -23,7 +23,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+// FluentValidation: validators from DI, request models validated before the action runs
 builder.Services.AddValidatorsFromAssemblyContaining<Store.IdentityService.Validators.RegisterRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
@@ -69,7 +69,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02)
+// JWT Authentication - key, issuer and audience come from validated JwtOptions
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     {
         options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
@@ -87,7 +87,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
                 var safeMsg = rawMsg.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
                 context.Response.Headers["WWW-Authenticate"] =
                     $"Bearer error=\"invalid_token\", error_description=\"{safeMsg}\"";
-                // Never log headers, the raw token or claims (SEC-05); the exception type and
+                // Never log headers, the raw token or claims; the exception type and
                 // IdentityModel's PII-free message are enough to diagnose a rejected token.
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
                     .CreateLogger("IdentityAuth");
@@ -98,14 +98,14 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
         };
     });
 
-// Authorization - shared policies User / Admin / AdminWrite (MAJ-09)
+// Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Configure HttpClient for AuditLogClient with proper base address;
-// every call carries the shared service key required by POST /api/auditlog/internal (SEC-04)
+// every call carries the shared service key required by POST /api/auditlog/internal
 var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
 builder.Services.AddInternalApiKeyClient(builder.Configuration);
 builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
@@ -273,7 +273,7 @@ static async Task SeedTrueAdminAsync(UserManager<ApplicationUser> userManager, I
         return;
     }
 
-    // The password is never generated and never logged (SEC-05, SEC-13). Without one the
+    // The password is never generated and never logged. Without one the
     // account is not created: production refuses to start, other environments skip the seed.
     if (string.IsNullOrEmpty(adminPassword))
     {

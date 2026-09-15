@@ -19,7 +19,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+// FluentValidation: validators from DI, request models validated before the action runs
 builder.Services.AddValidatorsFromAssemblyContaining<Store.AuditLogService.Validators.AuditLogValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
@@ -27,17 +27,17 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<AuditLogDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions (SEC-02)
+// JWT Authentication - key, issuer and audience come from validated JwtOptions
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 {
-    // Clock skew this service used before the shared setup (JwtBearer default); unified in SEC-18
+    // Clock skew this service used before the shared setup (JwtBearer default); to be unified across services later
     options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
 });
 
-// Authorization - shared policies User / Admin / AdminWrite (BLK-02, MAJ-09)
+// Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
-// Service-to-service calls to POST /api/auditlog/internal must present the shared key (SEC-04)
+// Service-to-service calls to POST /api/auditlog/internal must present the shared key
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
 // Services

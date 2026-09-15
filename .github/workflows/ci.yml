@@ -35,16 +35,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fail if build or IDE artifacts are tracked (BLK-12)
+      - name: Fail if build or IDE artifacts are tracked
         run: |
           if git ls-files | grep -E '(^|/)(bin|obj|\.vs|node_modules)/'; then
-            echo "::error::Build/IDE artifacts are tracked in git (see BLK-12)"
+            echo "::error::Build/IDE artifacts are tracked in git"
             exit 1
           fi
-      - name: Fail if environment-specific secrets files are tracked (SEC-01)
+      - name: Fail if environment-specific secrets files are tracked
         run: |
           if git ls-files | grep -E 'Services/.*/appsettings\.Production\.json$|(^|/)\.env$|rabbitmq\.yaml$'; then
-            echo "::error::Secret-bearing configuration is tracked in git (see SEC-01)"
+            echo "::error::Secret-bearing configuration is tracked in git"
             exit 1
           fi
 

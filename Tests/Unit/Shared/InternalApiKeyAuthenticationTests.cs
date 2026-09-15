@@ -13,7 +13,7 @@ using Xunit;
 namespace Store.Tests.Unit.Shared;
 
 /// <summary>
-/// SEC-04: service-to-service calls must carry the shared key; everything else is rejected.
+/// Regression: service-to-service calls must carry the shared key; everything else is rejected.
 /// </summary>
 public class InternalApiKeyAuthenticationTests
 {

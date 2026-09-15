@@ -105,7 +105,7 @@ public class AuthService : IAuthService
             {
                 return ApiResponse<AuthResponse>.Error("Account is deactivated");
             }
-            // lockoutOnFailure: true - failed attempts count towards Identity's lockout (SEC-06)
+            // lockoutOnFailure: true - failed attempts count towards Identity's lockout
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
             if (result.IsLockedOut)
             {

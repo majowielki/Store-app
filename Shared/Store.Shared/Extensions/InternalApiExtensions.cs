@@ -7,7 +7,7 @@ using Store.Shared.Configuration;
 namespace Store.Shared.Extensions;
 
 /// <summary>
-/// Registration of the shared internal API key (SEC-04)
+/// Registration of the shared internal API key
 /// </summary>
 public static class InternalApiExtensions
 {

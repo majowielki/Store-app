@@ -203,7 +203,7 @@ public class ProductsController : BaseApiController
     /// <param name="sortDir">Sort direction (asc, desc)</param>
     /// <returns>Products response in frontend format</returns>
     [HttpGet("admin")]
-    // Returns inactive products too - admins only (SEC-04)
+    // Returns inactive products too - admins only
     [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ProductsResponse>> GetProductsAdmin(
     [FromQuery] ProductQueryParams queryParams,

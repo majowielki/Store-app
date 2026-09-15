@@ -166,7 +166,7 @@ public class OrderService : IOrderService
                             httpRequest.Headers.Remove("Authorization"); // Remove any existing
                             httpRequest.Headers.TryAddWithoutValidation("Authorization", headerValue);
 
-                            // No token, address or response body in logs (SEC-05)
+                            // No token, address or response body in logs
                             _logger.LogInformation("Sending address update to IdentityService for user {UserId}", request.UserId);
                             var response = await _httpClient.SendAsync(httpRequest);
                             var responseBody = await response.Content.ReadAsStringAsync();

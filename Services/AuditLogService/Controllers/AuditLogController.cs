@@ -62,7 +62,7 @@ public class AuditLogController : ControllerBase
     /// <summary>
     /// Create audit log entry for internal services.
     /// Intended for inter-service communication only: the caller must present the shared
-    /// service key in the X-Internal-Api-Key header (SEC-04).
+    /// service key in the X-Internal-Api-Key header.
     /// </summary>
     /// <param name="auditLog">Audit log data</param>
     /// <returns>Created audit log ID</returns>
