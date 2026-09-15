@@ -23,7 +23,7 @@ jobs:
     name: Secrets scan (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
@@ -34,7 +34,7 @@ jobs:
     name: Repository hygiene
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Fail if build or IDE artifacts are tracked
         run: |
           if git ls-files | grep -E '(^|/)(bin|obj|\.vs|node_modules)/'; then
@@ -52,7 +52,7 @@ jobs:
     name: Backend build and tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -99,7 +99,7 @@ jobs:
       run:
         working-directory: UI/store-app.UI
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -126,7 +126,7 @@ jobs:
           - { name: auditlog, dockerfile: Services/AuditLogService/Dockerfile }
           - { name: ui, dockerfile: UI/store-app.UI/Dockerfile }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v3
       - name: Build
         uses: docker/build-push-action@v6
