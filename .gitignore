@@ -486,3 +486,13 @@ Icon?
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+##
+## Environment-specific configuration with secrets (SEC-01) - never commit
+##
+**/appsettings.Production.json
+**/appsettings.*.local.json
+# Gateway production config holds only routing/clusters (no secrets) and stays tracked
+!Gateway/APIGateway/appsettings.Production.json
+.env.*.local
+coverage/

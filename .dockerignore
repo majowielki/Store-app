@@ -45,3 +45,9 @@ Thumbs.db
 # Temporary files
 **/*.tmp
 **/*.temp
+
+# Environment-specific configuration with secrets (SEC-01) - never bake into images
+**/appsettings.Production.json
+**/appsettings.*.local.json
+**/.env
+**/.env.*

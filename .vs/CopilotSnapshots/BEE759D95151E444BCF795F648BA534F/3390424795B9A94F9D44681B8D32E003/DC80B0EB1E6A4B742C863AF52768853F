@@ -1,6 +1,0 @@
-﻿namespace Store.ProductService.DTOs.Requests
-{
-    public class CreateProductRequest
-    {
-    }
-}

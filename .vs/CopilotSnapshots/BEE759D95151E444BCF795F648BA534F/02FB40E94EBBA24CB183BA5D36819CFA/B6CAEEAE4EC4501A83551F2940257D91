@@ -1,6 +1,0 @@
-﻿namespace Store.ProductService.DTOs.Responses
-{
-    public class ProductResponse
-    {
-    }
-}

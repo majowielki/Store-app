@@ -1,6 +1,0 @@
-﻿namespace Store.AuditLogService.Services
-{
-    public class AuditLogService
-    {
-    }
-}

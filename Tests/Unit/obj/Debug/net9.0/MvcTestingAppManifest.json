@@ -1,8 +1,0 @@
-{
-  "Store.AuditLogService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\AuditLogService",
-  "Store.CartService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\CartService",
-  "Store.IdentityService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\IdentityService",
-  "Store.OrderService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\OrderService",
-  "Store.ProductService, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Services\\ProductService",
-  "Store.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\Projekty\\store-app\\Shared\\Store.Shared"
-}
