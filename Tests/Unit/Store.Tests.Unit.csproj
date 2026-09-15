@@ -23,6 +23,16 @@
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.7" />
     <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+
+  <!-- Real configuration files under test (Gateway/ReverseProxyConfigurationTests) -->
+  <ItemGroup>
+    <Content Include="..\..\Gateway\APIGateway\appsettings.json" Link="Config\Gateway\appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Gateway\APIGateway\appsettings.Development.json" Link="Config\Gateway\appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Gateway\APIGateway\appsettings.Production.json" Link="Config\Gateway\appsettings.Production.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Services\IdentityService\appsettings.json" Link="Config\IdentityService\appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Services\IdentityService\appsettings.Development.json" Link="Config\IdentityService\appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
