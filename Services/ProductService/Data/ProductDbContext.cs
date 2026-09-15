@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Store.Shared.Models;
 
 namespace Store.ProductService.Data;
@@ -26,35 +25,22 @@ public class ProductDbContext : DbContext
             entity.Property(e => e.SalePrice).HasColumnType("decimal(18,2)");
             entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5,2)");
             entity.Property(e => e.Image).IsRequired();
-            // Configure Colors with conversion and a ValueComparer to avoid EF warnings for mutable lists
-            var listComparer = new ValueComparer<List<string>>(
-                (l1, l2) => l1 != null && l2 != null && l1.SequenceEqual(l2),
-                l => l == null ? 0 : l.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-                l => l == null ? new List<string>() : l.ToList()
-            );
 
-            var colorsProperty = entity.Property(e => e.Colors)
-                .HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
-                .HasMaxLength(500);
-            colorsProperty.Metadata.SetValueComparer(listComparer);
+            // Colors, Groups and Materials are native PostgreSQL text[] columns (EF primitive
+            // collections), so filters such as p.Colors.Any(...) translate to SQL instead of throwing.
+            // The GIN indexes back the overlap/containment operators those filters use.
+            entity.Property(e => e.Colors).HasColumnType("text[]");
+            entity.Property(e => e.Groups).HasColumnType("text[]");
+            entity.Property(e => e.Materials).HasColumnType("text[]");
+            entity.HasIndex(e => e.Colors).HasMethod("gin");
+            entity.HasIndex(e => e.Groups).HasMethod("gin");
+            entity.HasIndex(e => e.Materials).HasMethod("gin");
 
-            // Configure Groups as CSV similar to Colors
-            var groupsProperty = entity.Property(e => e.Groups)
-                .HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
-                .HasMaxLength(200);
-            groupsProperty.Metadata.SetValueComparer(listComparer);
-
-            // Materials as CSV list
-            var materialsProperty = entity.Property(e => e.Materials)
-                .HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
-                .HasMaxLength(500);
-            materialsProperty.Metadata.SetValueComparer(listComparer);
+            // Columns every catalogue query filters or sorts on
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.Company);
+            entity.HasIndex(e => e.Title);
 
             // New fields mapping
             entity.Property(e => e.WidthCm).HasColumnType("decimal(18,2)");

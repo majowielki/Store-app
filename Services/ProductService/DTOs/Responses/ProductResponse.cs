@@ -10,6 +10,8 @@ public class ProductResponse
     public decimal Price { get; set; }
     public decimal? SalePrice { get; set; }
     public decimal? DiscountPercent { get; set; }
+    /// <summary>Price the customer pays (sale price or discounted price, else the list price).</summary>
+    public decimal EffectivePrice { get; set; }
     public Category Category { get; set; }
     public Company Company { get; set; }
     public bool NewArrival { get; set; }

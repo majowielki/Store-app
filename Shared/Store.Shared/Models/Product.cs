@@ -1,5 +1,6 @@
 using Store.Shared.Utility;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Store.Shared.Models;
 
@@ -63,6 +64,17 @@ public class Product
     public List<string> Materials { get; set; } = new();
 
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// The price a customer actually pays: the sale price when one is set, otherwise the list
+    /// price reduced by the discount percent. Cart and order snapshots must use this value.
+    /// </summary>
+    [NotMapped]
+    public decimal EffectivePrice => SalePrice is > 0
+        ? SalePrice.Value
+        : DiscountPercent is > 0
+            ? Math.Round(Price * (1 - DiscountPercent.Value / 100m), 2, MidpointRounding.AwayFromZero)
+            : Price;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

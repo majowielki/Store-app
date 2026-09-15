@@ -154,7 +154,7 @@ public class CartService : ICartService
                     ProductId = request.ProductId,
                     Title = product.Title,
                     Image = product.Image,
-                    Price = product.Price,
+                    Price = product.EffectivePrice,
                     Amount = request.Quantity,
                     ProductColor = request.Color,
                     Company = product.Company.ToString(),
@@ -348,7 +348,7 @@ public class CartService : ICartService
         {
             var total = await _context.CartItems
                 .Where(ci => ci.Cart.UserId == userId)
-                .SumAsync(ci => ci.LineTotal);
+                .SumAsync(ci => ci.Price * ci.Amount);
             return ApiResponse<decimal>.Success(total);
         }
         catch (Exception ex)
@@ -407,7 +407,7 @@ public class CartService : ICartService
                         ProductId = item.ProductId,
                         Title = product.Title,
                         Image = product.Image,
-                        Price = product.Price,
+                        Price = product.EffectivePrice,
                         Amount = item.Quantity,
                         ProductColor = item.Color,
                         Company = product.Company.ToString(),
@@ -434,58 +434,49 @@ public class CartService : ICartService
         }
     }
 
+    /// <summary>
+    /// Returns the product as the catalogue currently describes it, so the cart snapshots the
+    /// price the customer sees (sale price included). The local copy is only a fallback for
+    /// when ProductService is unavailable.
+    /// </summary>
     private async Task<Product?> GetOrCreateProductAsync(int productId)
     {
-        // First, check if product exists in local database
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
+        var local = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
 
-        // If we have a product but it's incomplete (from older buggy inserts), try to refresh it
-        if (product != null)
-        {
-            if (string.IsNullOrWhiteSpace(product.Title) || string.IsNullOrWhiteSpace(product.Image) || product.Price <= 0)
-            {
-                try
-                {
-                    var refreshed = await FetchProductFromProductServiceAsync(productId);
-                    if (refreshed != null)
-                    {
-                        product.Title = refreshed.Title;
-                        product.Description = refreshed.Description;
-                        product.Image = refreshed.Image;
-                        product.Price = refreshed.Price;
-                        product.Category = refreshed.Category;
-                        product.Company = refreshed.Company;
-                        product.Colors = refreshed.Colors ?? new List<string>();
-                        product.UpdatedAt = DateTime.UtcNow;
-                        await _context.SaveChangesAsync();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to refresh incomplete product {ProductId}", productId);
-                }
-            }
-            return product;
-        }
-
-        // If not found locally, try to fetch from Product Service
+        Product? fetched = null;
         try
         {
-            var fetched = await FetchProductFromProductServiceAsync(productId);
-            if (fetched != null)
-            {
-                product = fetched;
-                _context.Products.Add(product);
-                await _context.SaveChangesAsync();
-                return product;
-            }
+            fetched = await FetchProductFromProductServiceAsync(productId);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to fetch product {ProductId} from Product Service", productId);
         }
 
-        return null;
+        if (fetched == null)
+        {
+            return local;
+        }
+
+        if (local == null)
+        {
+            _context.Products.Add(fetched);
+            await _context.SaveChangesAsync();
+            return fetched;
+        }
+
+        local.Title = fetched.Title;
+        local.Description = fetched.Description;
+        local.Image = fetched.Image;
+        local.Price = fetched.Price;
+        local.SalePrice = fetched.SalePrice;
+        local.DiscountPercent = fetched.DiscountPercent;
+        local.Category = fetched.Category;
+        local.Company = fetched.Company;
+        local.Colors = fetched.Colors;
+        local.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return local;
     }
 
     private async Task<Product?> FetchProductFromProductServiceAsync(int productId)
@@ -511,9 +502,8 @@ public class CartService : ICartService
         }
 
         // Parse and map fields
-        decimal price = 0m;
-        if (!string.IsNullOrWhiteSpace(attr.Price))
-            decimal.TryParse(attr.Price, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out price);
+        var price = ParsePrice(attr.Price) ?? 0m;
+        var salePrice = ParsePrice(attr.SalePrice);
 
         var category = Store.Shared.Utility.Category.All;
         if (!string.IsNullOrWhiteSpace(attr.Category))
@@ -530,6 +520,8 @@ public class CartService : ICartService
             Description = attr.Description ?? string.Empty,
             Image = attr.Image,
             Price = price,
+            SalePrice = salePrice,
+            DiscountPercent = attr.DiscountPercent,
             Category = category,
             Company = company,
             Colors = attr.Colors ?? new List<string>(),
@@ -537,6 +529,11 @@ public class CartService : ICartService
             UpdatedAt = DateTime.UtcNow
         };
     }
+
+    private static decimal? ParsePrice(string? value)
+        => decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
 
     private static CartResponse MapToCartResponse(Cart cart)
     {
@@ -611,6 +608,8 @@ public class ProductAttributesDto
     public bool Featured { get; set; }
     public string Image { get; set; } = string.Empty;
     public string Price { get; set; } = string.Empty;
+    public string? SalePrice { get; set; }
+    public decimal? DiscountPercent { get; set; }
     public string PublishedAt { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;

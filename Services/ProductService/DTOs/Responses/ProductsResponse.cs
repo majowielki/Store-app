@@ -23,6 +23,8 @@ public class ProductAttributes
     public string Price { get; set; } = string.Empty;
     public string? SalePrice { get; set; }
     public decimal? DiscountPercent { get; set; }
+    /// <summary>Price the customer pays (sale price or discounted price, else the list price).</summary>
+    public string EffectivePrice { get; set; } = string.Empty;
     public string PublishedAt { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;

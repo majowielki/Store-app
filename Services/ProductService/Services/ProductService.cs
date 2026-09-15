@@ -222,17 +222,21 @@ public class ProductService : IProductService
     {
         try
         {
+            // Every filter below translates to SQL; nothing is filtered or paginated in memory
             var query = _context.Products.AsNoTracking().Where(p => p.IsActive);
 
-            // Apply filters
-            var groupFilter = !string.IsNullOrEmpty(queryParams.Group) && queryParams.Group.ToLower() != "all"
-                ? queryParams.Group.ToLower() : null;
+            if (!string.IsNullOrEmpty(queryParams.Group) && queryParams.Group.ToLower() != "all")
+            {
+                var groupFilter = queryParams.Group.ToLower();
+                query = query.Where(p => p.Groups.Any(g => g.ToLower() == groupFilter));
+            }
+
             if (!string.IsNullOrEmpty(queryParams.Search))
             {
-                var searchLower = queryParams.Search.ToLower();
+                var pattern = $"%{queryParams.Search.Trim()}%";
                 query = query.Where(p =>
-                    p.Title.ToLower().Contains(searchLower) ||
-                    p.Description.ToLower().Contains(searchLower));
+                    EF.Functions.ILike(p.Title, pattern) ||
+                    EF.Functions.ILike(p.Description, pattern));
             }
 
             if (!string.IsNullOrEmpty(queryParams.Category) && queryParams.Category.ToLower() != "all")
@@ -303,20 +307,11 @@ public class ProductService : IProductService
             }
 
             const int pageSize = 12; // Standard page size for frontend
-            var allProducts = await query.ToListAsync();
-
-            // Apply group filter in memory (EF can't translate string methods on value-converted lists)
-            if (groupFilter != null)
-            {
-                allProducts = allProducts.Where(p => p.Groups != null && p.Groups.Any(g => !string.IsNullOrEmpty(g) && g.ToLower() == groupFilter)).ToList();
-            }
-
-            var totalCount = allProducts.Count;
+            var totalCount = await query.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
             var currentPage = queryParams.Page.GetValueOrDefault(1);
             if (currentPage < 1) currentPage = 1;
-            var skip = (currentPage - 1) * pageSize;
-            var products = allProducts.Skip(skip).Take(pageSize).ToList();
+            var products = await query.Skip((currentPage - 1) * pageSize).Take(pageSize).ToListAsync();
 
             var meta = await GetProductsMetaAsync();
             meta.Pagination = new PaginationMeta
@@ -446,10 +441,10 @@ public class ProductService : IProductService
             // Apply filters
             if (!string.IsNullOrEmpty(queryParams.Search))
             {
-                var searchLower = queryParams.Search.ToLower();
+                var pattern = $"%{queryParams.Search.Trim()}%";
                 query = query.Where(p =>
-                    p.Title.ToLower().Contains(searchLower) ||
-                    p.Description.ToLower().Contains(searchLower));
+                    EF.Functions.ILike(p.Title, pattern) ||
+                    EF.Functions.ILike(p.Description, pattern));
             }
 
             if (!string.IsNullOrEmpty(queryParams.Category) && queryParams.Category.ToLower() != "all")
@@ -547,6 +542,7 @@ public class ProductService : IProductService
             Price = product.Price,
             SalePrice = product.SalePrice,
             DiscountPercent = product.DiscountPercent,
+            EffectivePrice = product.EffectivePrice,
             Category = product.Category,
             Company = product.Company,
             NewArrival = product.NewArrival,
@@ -589,9 +585,10 @@ public class ProductService : IProductService
                 Description = product.Description,
                 NewArrival = product.NewArrival,
                 Image = product.Image,
-                Price = product.Price.ToString("F2"),
-                SalePrice = salePrice.HasValue ? salePrice.Value.ToString("F2") : null,
+                Price = product.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                SalePrice = salePrice.HasValue ? salePrice.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : null,
                 DiscountPercent = discountPercent,
+                EffectivePrice = product.EffectivePrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
                 PublishedAt = product.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                 Title = product.Title,
                 UpdatedAt = product.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),

@@ -14,6 +14,8 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Same number/date formatting on a Polish developer machine and in Linux containers -->
+    <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Needed for IDE0005 (unused usings) to run in the build; missing XML comments are not enforced -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>

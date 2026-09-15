@@ -49,12 +49,14 @@ const SingleProduct = () => {
   const [amount, setAmount] = useState(1);
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.userState.user);
+  // The cart charges what the page shows: the sale price when the product is on sale
+  const effectivePrice = product.attributes.effectivePrice ?? (hasSale && salePrice ? salePrice : price);
   const cartProduct: CartItem = {
     cartID: product.id + productColor,
     productID: product.id,
     image,
     title,
-    price,
+    price: effectivePrice,
     amount,
     productColor,
     company,

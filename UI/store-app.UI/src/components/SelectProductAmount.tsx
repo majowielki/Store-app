@@ -6,10 +6,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export enum Mode {
-  SingleProduct = "singleProduct",
-  CartItem = "cartItem",
-}
+import { Mode } from "./selectProductAmountMode";
+
+export { Mode };
 
 interface SelectProductAmountProps {
   mode: Mode.SingleProduct;

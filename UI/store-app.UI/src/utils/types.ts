@@ -8,21 +8,24 @@ export interface ProductAttributes {
   company: string;
   createdAt: string;
   description: string;
-  featured: boolean;
+  newArrival?: boolean;
   image: string;
   price: string; // backend returns string for price
   salePrice?: string | null;
   discountPercent?: number | null;
+  /** Price the customer pays: sale price when on sale, otherwise the list price */
+  effectivePrice?: string;
   publishedAt: string;
   title: string;
   updatedAt: string;
   colors: string[];
+  groups?: string[] | null;
   // Extended product model fields (DB changes required)
   widthCm?: number | null;
   heightCm?: number | null;
   depthCm?: number | null;
   weightKg?: number | null;
-	materials?: string | null;
+  materials?: string[] | null;
 }
 
 // Generic API response envelope matching backend
