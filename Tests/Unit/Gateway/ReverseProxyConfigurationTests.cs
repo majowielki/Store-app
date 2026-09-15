@@ -86,6 +86,7 @@ public class ReverseProxyConfigurationTests
     {
         var routes = LoadProxyConfig(environment).Routes.ToDictionary(r => r.RouteId);
 
+        Assert.Equal("auth", routes["identity-route"].RateLimiterPolicy);
         Assert.Equal(Policies.User, routes["cart-route"].AuthorizationPolicy);
         Assert.Equal(Policies.User, routes["orders-route"].AuthorizationPolicy);
         Assert.Equal(Policies.Admin, routes["audit-route"].AuthorizationPolicy);

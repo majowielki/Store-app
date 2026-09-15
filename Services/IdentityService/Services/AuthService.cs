@@ -8,6 +8,7 @@ using Store.Shared.Models;
 using Store.Shared.Utility;
 using Store.Shared.Services;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -106,7 +107,13 @@ public class AuthService : IAuthService
             {
                 return ApiResponse<AuthResponse>.Error("Account is deactivated");
             }
-            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+            // lockoutOnFailure: true - failed attempts count towards Identity's lockout (SEC-06)
+            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (result.IsLockedOut)
+            {
+                _logger.LogWarning("Login rejected: account locked out for {Email}", request.Email);
+                return ApiResponse<AuthResponse>.Error("Account is temporarily locked. Try again later.", HttpStatusCode.Locked);
+            }
             if (!result.Succeeded)
             {
                 return ApiResponse<AuthResponse>.Error("Invalid email or password");

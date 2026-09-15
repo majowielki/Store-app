@@ -6,6 +6,7 @@ using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Services;
 using Store.Shared.Models;
 using Store.Shared.Utility;
+using System.Net;
 using System.Security.Claims;
 
 namespace Store.IdentityService.Controllers;
@@ -53,7 +54,10 @@ public class AuthController : ControllerBase
         var result = await _authService.LoginAsync(request);
         if (!result.IsSuccess)
         {
-            return Unauthorized(result);
+            // 423 Locked when Identity's lockout kicked in (SEC-06), 401 for every other failure
+            return result.StatusCode == HttpStatusCode.Locked
+                ? StatusCode(StatusCodes.Status423Locked, result)
+                : Unauthorized(result);
         }
         return Ok(result);
     }

@@ -7,7 +7,11 @@ using Store.Shared.Middleware;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
+using Store.GatewayService.RateLimiting;
+using Store.Shared.Configuration;
 using System.Threading.RateLimiting;
 
 using Store.GatewayService.HealthChecks;
@@ -109,18 +113,39 @@ builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy("Gateway is running"))
     .AddCheck<RabbitMQHealthCheck>("rabbitmq");
 
-// Rate Limiting
+// Rate Limiting (SEC-06): sliding windows per client address on the identity route, attached in
+// appsettings.json via "RateLimiterPolicy": "auth"; credential endpoints get the stricter limit
+builder.Services.AddStoreOptions<AuthRateLimitOptions>(builder.Configuration, AuthRateLimitOptions.SectionName);
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("ApiPolicy", limiterOptions =>
+    options.AddPolicy(AuthRateLimitOptions.PolicyName, context =>
     {
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.PermitLimit = 100;
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 10;
+        var limits = context.RequestServices.GetRequiredService<IOptions<AuthRateLimitOptions>>().Value;
+        var client = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var path = context.Request.Path.Value ?? string.Empty;
+        var isCredentialEndpoint = AuthRateLimitOptions.CredentialPaths
+            .Any(p => path.Equals(p, StringComparison.OrdinalIgnoreCase));
+
+        var (bucket, permitLimit) = isCredentialEndpoint
+            ? ("auth-credentials", limits.CredentialPermitLimit)
+            : ("auth", limits.PermitLimit);
+
+        return RateLimitPartition.GetSlidingWindowLimiter($"{bucket}:{client}", _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromSeconds(limits.WindowSeconds),
+            SegmentsPerWindow = 6,
+            QueueLimit = 0
+        });
     });
-    
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = (context, _) =>
+    {
+        var limits = context.HttpContext.RequestServices.GetRequiredService<IOptions<AuthRateLimitOptions>>().Value;
+        context.HttpContext.Response.Headers.RetryAfter = limits.WindowSeconds.ToString();
+        return ValueTask.CompletedTask;
+    };
 });
 
 // Swagger with JWT support
@@ -184,6 +209,19 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
+// Behind the Container Apps ingress (or the UI's nginx) the client address arrives in
+// X-Forwarded-For; without this every user would share one rate-limit bucket. ForwardLimit = 1
+// trusts only the entry appended by the nearest proxy.
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    ForwardLimit = 1
+};
+// Defaults only trust loopback proxies; the ingress is not one
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
+
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
