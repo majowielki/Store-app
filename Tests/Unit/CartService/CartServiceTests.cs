@@ -1,13 +1,11 @@
-using System.Threading.Tasks;
-using Xunit;
-using Moq;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using Store.CartService.DTOs.Requests;
-using Store.Shared.Models;
-using Store.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Store.CartService.Data;
+using Store.Shared.Services;
+using Store.Tests.Unit.TestSupport;
+using Xunit;
 
 namespace Store.Tests.Unit.CartService;
 
@@ -22,13 +20,13 @@ public class CartServiceTests
     public CartServiceTests()
     {
         var options = new DbContextOptionsBuilder<CartDbContext>()
-            .UseInMemoryDatabase(databaseName: "CartServiceTests")
+            .UseInMemoryDatabase(databaseName: $"CartServiceTests-{Guid.NewGuid():N}") // one database per test class instance - xUnit creates one per test
             .Options;
         _dbContext = new CartDbContext(options);
         _cartService = new Store.CartService.Services.CartService(
             _dbContext,
             _loggerMock.Object,
-            new HttpClient(), // Use real HttpClient for now
+            NoNetworkHttpClient.Create(),
             _configMock.Object,
             _auditLogClientMock.Object
         );

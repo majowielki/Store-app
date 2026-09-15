@@ -1,16 +1,15 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.OpenApi.Models;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.OrderService.Data;
 using Store.OrderService.Services;
-using System.Text.Json.Serialization;
-using Store.Shared.Middleware;
-using Store.Shared.Extensions;
 using Store.Shared.Authorization;
-using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Store.Shared.Extensions;
 using Store.Shared.MessageBus;
-using FluentValidation;
-using FluentValidation.AspNetCore;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,11 +18,11 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    })
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<Store.OrderService.Validators.CreateOrderFromCartRequestValidator>();
     });
+
+// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+builder.Services.AddValidatorsFromAssemblyContaining<Store.OrderService.Validators.CreateOrderFromCartRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<OrderDbContext>(options =>
@@ -83,7 +82,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Store Order Service", Version = "v1" });
-    
+
     // JWT Bearer token support
     c.AddSecurityDefinition("Bearer", new()
     {
@@ -93,7 +92,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     c.AddSecurityRequirement(new()
     {
         {
@@ -147,7 +146,7 @@ try
     {
         var context = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        
+
         try
         {
             // Check if database exists and is accessible

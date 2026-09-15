@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Store.Shared.Authorization;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Services;
+using Store.Shared.Authorization;
 using Store.Shared.Models;
 using System.Security.Claims;
 

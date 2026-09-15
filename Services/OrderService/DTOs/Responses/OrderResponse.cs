@@ -1,5 +1,3 @@
-using Store.Shared.Utility;
-
 namespace Store.OrderService.DTOs.Responses;
 
 public class OrderResponse

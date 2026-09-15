@@ -59,7 +59,7 @@ public class CartController : ControllerBase
             var current = await _cartService.GetCartByUserIdAsync(userId);
             if (!current.IsSuccess)
                 return StatusCode((int)current.StatusCode, current);
-            return Ok(ApiResponse<CartResponse>.Success(current.Data));
+            return Ok(current);
         }
         var response = await _cartService.SyncCartAsync(userId, request);
         return StatusCode((int)response.StatusCode, response);

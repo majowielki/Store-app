@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
-using Store.Shared.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Services;
+using Store.Shared.Authorization;
 using Store.Shared.Models;
-using Store.Shared.Utility;
 using System.Net;
 using System.Security.Claims;
 
@@ -228,10 +227,10 @@ public class AuthController : ControllerBase
         }
         catch
         {
-            return StatusCode(500, new ApiResponse<UserResponse> 
-            { 
-                IsSuccess = false, 
-                Message = "An error occurred while retrieving user information" 
+            return StatusCode(500, new ApiResponse<UserResponse>
+            {
+                IsSuccess = false,
+                Message = "An error occurred while retrieving user information"
             });
         }
     }
@@ -253,10 +252,10 @@ public class AuthController : ControllerBase
         }
         catch
         {
-            return StatusCode(500, new ApiResponse<IEnumerable<UserResponse>> 
-            { 
-                IsSuccess = false, 
-                Message = "An error occurred while retrieving users" 
+            return StatusCode(500, new ApiResponse<IEnumerable<UserResponse>>
+            {
+                IsSuccess = false,
+                Message = "An error occurred while retrieving users"
             });
         }
     }

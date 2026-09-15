@@ -6,12 +6,10 @@ using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
 using Store.Shared.Models;
 using Store.Shared.Utility;
-using Store.Shared.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
 using System.Text;
-using System.Text.Json;
 
 namespace Store.IdentityService.Services;
 
@@ -232,7 +230,7 @@ public class AuthService : IAuthService
                     ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
             }
-            catch (Exception tokenEx)
+            catch (Exception)
             {
                 return ApiResponse<AuthResponse>.Error("Invalid token");
             }

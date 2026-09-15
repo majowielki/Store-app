@@ -1,7 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Store.AuditLogService.Data;
-using Store.Shared.Models;
-using Microsoft.Extensions.Logging;
 using Store.Shared.Models;
 
 namespace Store.AuditLogService.Services;
@@ -23,13 +21,13 @@ public class AuditLogService : IAuditLogService
         {
             _context.AuditLogs.Add(auditLog);
             await _context.SaveChangesAsync();
-            
+
             _logger.LogInformation("Audit log created successfully with ID: {AuditLogId}", auditLog.Id);
             return ApiResponse<long>.Success(auditLog.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating audit log for entity {EntityName} with ID {EntityId}", 
+            _logger.LogError(ex, "Error creating audit log for entity {EntityName} with ID {EntityId}",
                 auditLog.EntityName, auditLog.EntityId);
             return ApiResponse<long>.Error("An error occurred while creating audit log");
         }
@@ -64,7 +62,7 @@ public class AuditLogService : IAuditLogService
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
-            
+
             return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
@@ -93,7 +91,7 @@ public class AuditLogService : IAuditLogService
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
-            
+
             return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
@@ -115,7 +113,7 @@ public class AuditLogService : IAuditLogService
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
-            
+
             return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
@@ -137,7 +135,7 @@ public class AuditLogService : IAuditLogService
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
-            
+
             return ApiResponse<IEnumerable<AuditLog>>.Success(logs);
         }
         catch (Exception ex)
@@ -166,7 +164,7 @@ public class AuditLogService : IAuditLogService
         try
         {
             var query = _context.AuditLogs.Where(a => a.EntityName == entityName);
-            
+
             if (!string.IsNullOrEmpty(entityId))
             {
                 query = query.Where(a => a.EntityId == entityId);
@@ -189,7 +187,7 @@ public class AuditLogService : IAuditLogService
             var count = await _context.AuditLogs
                 .Where(a => a.UserId == userId)
                 .CountAsync();
-            
+
             return ApiResponse<int>.Success(count);
         }
         catch (Exception ex)

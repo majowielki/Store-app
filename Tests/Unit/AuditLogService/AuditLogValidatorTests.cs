@@ -1,7 +1,6 @@
-using FluentValidation;
-using Xunit;
 using Store.AuditLogService.Validators;
 using Store.Shared.Models;
+using Xunit;
 
 namespace Store.Tests.Unit.AuditLogService;
 

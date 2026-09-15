@@ -6,34 +6,34 @@ public class CreateOrderRequest
 {
     [Required]
     public string UserId { get; set; } = string.Empty;
-    
+
     [Required]
     [EmailAddress]
     public string UserEmail { get; set; } = string.Empty;
-    
+
     [Required]
     [StringLength(500, MinimumLength = 10)]
     public string ShippingAddress { get; set; } = string.Empty;
-    
+
     [Required]
     [StringLength(100, MinimumLength = 2)]
     public string CustomerName { get; set; } = string.Empty;
-    
+
     [Phone]
     [StringLength(20)]
     public string? PhoneNumber { get; set; }
-    
+
     [Required]
     [MinLength(1)]
     public List<CreateOrderItemRequest> OrderItems { get; set; } = new();
-    
+
     public decimal ShippingCost { get; set; }
-    
+
     public decimal Tax { get; set; }
-    
+
     [StringLength(100)]
     public string? PaymentIntentId { get; set; }
-    
+
     [StringLength(1000)]
     public string? Notes { get; set; }
 }
@@ -42,27 +42,27 @@ public class CreateOrderItemRequest
 {
     [Required]
     public int ProductId { get; set; }
-    
+
     [Required]
     [StringLength(200)]
     public string ProductTitle { get; set; } = string.Empty;
-    
+
     [Required]
     [Url]
     public string ProductImage { get; set; } = string.Empty;
-    
+
     [Required]
     [Range(0.01, 999999.99)]
     public decimal Price { get; set; }
-    
+
     [Required]
     [Range(1, 999)]
     public int Quantity { get; set; }
-    
+
     [Required]
     [StringLength(50)]
     public string Color { get; set; } = string.Empty;
-    
+
     [Required]
     [StringLength(100)]
     public string Company { get; set; } = string.Empty;

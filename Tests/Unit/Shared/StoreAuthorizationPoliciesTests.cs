@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Store.Shared.Authorization;
+using System.Security.Claims;
 using Xunit;
 
 namespace Store.Tests.Unit.Shared;

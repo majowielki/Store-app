@@ -1,15 +1,14 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.OpenApi.Models;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using StackExchange.Redis;
 using Store.CartService.Data;
 using Store.CartService.Services;
-using StackExchange.Redis;
-using System.Text.Json.Serialization;
-using Store.Shared.Middleware;
-using Store.Shared.Extensions;
 using Store.Shared.Authorization;
-using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using FluentValidation;
-using FluentValidation.AspNetCore;
+using Store.Shared.Extensions;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,10 +18,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
 
-// FluentValidation registration (new recommended approach)
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddFluentValidationClientsideAdapters();
+// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
 builder.Services.AddValidatorsFromAssemblyContaining<Store.CartService.Validators.AddCartItemRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<CartDbContext>(options =>
@@ -33,7 +31,7 @@ try
 {
     builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
     {
-        var connectionString = builder.Configuration.GetConnectionString("Redis") 
+        var connectionString = builder.Configuration.GetConnectionString("Redis")
             ?? builder.Configuration["Redis:ConnectionString"];
         return ConnectionMultiplexer.Connect(connectionString!);
     });
@@ -83,7 +81,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Store Cart Service", Version = "v1" });
-    
+
     // JWT Bearer token support
     c.AddSecurityDefinition("Bearer", new()
     {
@@ -93,7 +91,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     c.AddSecurityRequirement(new()
     {
         {
@@ -147,7 +145,7 @@ try
     {
         var context = scope.ServiceProvider.GetRequiredService<CartDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        
+
         try
         {
             // Check if database exists and is accessible

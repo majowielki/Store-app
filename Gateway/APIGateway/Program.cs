@@ -1,20 +1,18 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Store.Shared.Extensions;
+using Microsoft.OpenApi.Models;
+using Store.GatewayService.HealthChecks;
+using Store.GatewayService.RateLimiting;
 using Store.Shared.Authorization;
+using Store.Shared.Configuration;
+using Store.Shared.Extensions;
 using Store.Shared.MessageBus;
 using Store.Shared.Middleware;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json;
-using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Options;
-using Store.GatewayService.RateLimiting;
-using Store.Shared.Configuration;
 using System.Threading.RateLimiting;
-
-using Store.GatewayService.HealthChecks;
 using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -152,13 +150,13 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "Store Gateway API", 
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Store Gateway API",
         Version = "v1",
         Description = "API Gateway for Store microservices"
     });
-    
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme",
@@ -167,7 +165,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -198,7 +196,7 @@ builder.Services.AddCors(options =>
         {
             var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins")
                 .Get<string[]>() ?? new[] { "https://localhost:3000" };
-                
+
             policy.WithOrigins(allowedOrigins)
                   .AllowAnyMethod()
                   .AllowAnyHeader();

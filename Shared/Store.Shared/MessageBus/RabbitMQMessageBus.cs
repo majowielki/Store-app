@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Store.Shared.Serialization;
 using System.Text;
 using System.Text.Json;
 using IModel = RabbitMQ.Client.IModel;
@@ -38,7 +39,7 @@ public class RabbitMQMessageBus : IMessageBus, IDisposable
         }
 
         var eventName = typeof(T).Name;
-        
+
         if (string.IsNullOrEmpty(routingKey))
         {
             routingKey = eventName.ToLowerInvariant();
@@ -47,11 +48,8 @@ public class RabbitMQMessageBus : IMessageBus, IDisposable
         _logger.LogTrace("Publishing event to RabbitMQ: {EventName} with routing key: {RoutingKey}", eventName, routingKey);
 
         using var channel = (IModel)_connection.CreateModel();
-        
-        var body = JsonSerializer.SerializeToUtf8Bytes(message, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+
+        var body = JsonSerializer.SerializeToUtf8Bytes(message, StoreJson.CamelCase);
 
         var properties = channel.CreateBasicProperties();
         properties.DeliveryMode = 2; // persistent
@@ -68,7 +66,7 @@ public class RabbitMQMessageBus : IMessageBus, IDisposable
     public async Task SubscribeAsync<T>(Func<T, Task> handler, string queueName = "", CancellationToken cancellationToken = default) where T : IntegrationEvent
     {
         var eventName = typeof(T).Name;
-        
+
         if (string.IsNullOrEmpty(queueName))
         {
             queueName = $"{eventName.ToLowerInvariant()}_queue";
@@ -106,10 +104,7 @@ public class RabbitMQMessageBus : IMessageBus, IDisposable
             {
                 _logger.LogTrace("Processing RabbitMQ event: {EventName}", routingKey);
 
-                var integrationEvent = JsonSerializer.Deserialize<T>(message, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                });
+                var integrationEvent = JsonSerializer.Deserialize<T>(message, StoreJson.CamelCase);
 
                 if (integrationEvent != null)
                 {
@@ -121,7 +116,7 @@ public class RabbitMQMessageBus : IMessageBus, IDisposable
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error Processing message \"{Message}\"", message);
-                
+
                 // Reject and requeue the message
                 channel.BasicNack(ea.DeliveryTag, multiple: false, requeue: true);
             }
@@ -146,6 +141,7 @@ public class RabbitMQMessageBus : IMessageBus, IDisposable
         if (_disposed) return;
 
         _disposed = true;
+        GC.SuppressFinalize(this);
 
         foreach (var channel in _consumerChannels.Values)
         {

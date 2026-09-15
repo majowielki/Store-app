@@ -1,15 +1,13 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
-using Store.Shared.Models;
 using Store.Shared.MessageBus;
-using System.Text.Json;
+using Store.Shared.Models;
 using Store.Shared.Services;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using SharedOrderItemResponse = Store.Shared.Models.OrderItemResponse;
 
 #nullable enable
 
@@ -55,8 +53,8 @@ public class OrderService : IOrderService
         {
             // Get cart items from Cart Service
             var cartItems = await GetCartItemsAsync(request.UserId);
-            
-            if (cartItems == null || !cartItems.Any())
+
+            if (cartItems == null || cartItems.Count == 0)
             {
                 return ApiResponse<OrderResponse>.Error("Cart is empty or not found");
             }
@@ -249,7 +247,7 @@ public class OrderService : IOrderService
             // Check if user has access to this order (user can only see their own orders unless admin)
             if (order.UserId != userId)
             {
-                _logger.LogWarning("User {UserId} attempted to access order {OrderId} belonging to {OrderUserId}", 
+                _logger.LogWarning("User {UserId} attempted to access order {OrderId} belonging to {OrderUserId}",
                     userId, orderId, order.UserId);
                 return ApiResponse<OrderResponse?>.Error("Unauthorized");
             }
@@ -295,7 +293,7 @@ public class OrderService : IOrderService
                 .OrderByDescending(o => o.CreatedAt);
 
             var totalCount = await query.CountAsync();
-            
+
             var orders = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -333,7 +331,7 @@ public class OrderService : IOrderService
                 .OrderByDescending(o => o.CreatedAt);
 
             var totalCount = await query.CountAsync();
-            
+
             var orders = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -490,14 +488,11 @@ public class OrderService : IOrderService
                     return null;
                 }
                 _logger.LogError("Error retrieving cart from CartService. Status: {StatusCode}", response.StatusCode);
-                throw new Exception($"Failed to retrieve cart from CartService. Status: {response.StatusCode}");
+                throw new InvalidOperationException($"Failed to retrieve cart from CartService. Status: {response.StatusCode}");
             }
 
             var cartJson = await response.Content.ReadAsStringAsync();
-            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<CartServiceResponseDto>>(cartJson, new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<CartServiceResponseDto>>(cartJson, Store.Shared.Serialization.StoreJson.CaseInsensitive);
 
             if (apiResponse == null || !apiResponse.IsSuccess || apiResponse.Data == null)
             {
@@ -542,7 +537,7 @@ public class OrderService : IOrderService
             }
 
             var response = await _httpClient.SendAsync(request);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation("Cart cleared successfully for user: {UserId}", userId);

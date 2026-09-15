@@ -1,10 +1,10 @@
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
 using Store.Shared.Models;
 using Store.Shared.Services;
+using System.Text.Json.Serialization;
 
 namespace Store.CartService.Services;
 
@@ -438,7 +438,7 @@ public class CartService : ICartService
     {
         // First, check if product exists in local database
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
-        
+
         // If we have a product but it's incomplete (from older buggy inserts), try to refresh it
         if (product != null)
         {

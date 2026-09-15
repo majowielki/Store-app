@@ -1,16 +1,13 @@
-using System.Threading.Tasks;
-using Xunit;
-using Moq;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Http;
-using Store.IdentityService.Services;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Models;
-using Store.Shared.Models;
+using Store.IdentityService.Services;
 using Store.Shared.Services;
-using System.Collections.Generic;
+using Xunit;
 
 namespace Store.Tests.Unit.IdentityService;
 
@@ -70,7 +67,7 @@ public class AuthServiceTests
     public async Task RegisterAsync_ReturnsValidationError_WhenPasswordInvalid()
     {
         var request = new RegisterRequest { Email = "test2@example.com", Password = "short", ConfirmPassword = "short" };
-        _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser)null);
+        _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser?)null);
         _userManagerMock.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), request.Password))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Password too short" }));
         var result = await _authService.RegisterAsync(request);
@@ -82,31 +79,31 @@ public class AuthServiceTests
     public async Task RegisterAsync_ReturnsSuccess_WhenValid()
     {
         var request = new RegisterRequest { Email = "test3@example.com", Password = "Password123", ConfirmPassword = "Password123" };
-        _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser)null);
+        _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser?)null);
         _userManagerMock.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), request.Password))
             .ReturnsAsync(IdentityResult.Success);
         _roleManagerMock.Setup(x => x.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         _userManagerMock.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
         var result = await _authService.RegisterAsync(request);
         Assert.True(result.IsSuccess);
-        Assert.Equal("Registration successful", result.Data.Message);
+        Assert.Equal("Registration successful", result.Data!.Message);
     }
 
     // Helper mocks for UserManager/SignInManager/RoleManager
     private static Mock<UserManager<ApplicationUser>> MockUserManager()
     {
         var store = new Mock<IUserStore<ApplicationUser>>();
-        return new Mock<UserManager<ApplicationUser>>(store.Object, null, null, null, null, null, null, null, null);
+        return new Mock<UserManager<ApplicationUser>>(store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
     }
     private static Mock<SignInManager<ApplicationUser>> MockSignInManager(UserManager<ApplicationUser> userManager)
     {
         var context = new Mock<IHttpContextAccessor>();
         var claimsFactory = new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>();
-        return new Mock<SignInManager<ApplicationUser>>(userManager, context.Object, claimsFactory.Object, null, null, null, null);
+        return new Mock<SignInManager<ApplicationUser>>(userManager, context.Object, claimsFactory.Object, null!, null!, null!, null!);
     }
     private static Mock<RoleManager<IdentityRole>> MockRoleManager()
     {
         var store = new Mock<IRoleStore<IdentityRole>>();
-        return new Mock<RoleManager<IdentityRole>>(store.Object, null, null, null, null);
+        return new Mock<RoleManager<IdentityRole>>(store.Object, null!, null!, null!, null!);
     }
 }

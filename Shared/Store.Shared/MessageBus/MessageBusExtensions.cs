@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 
@@ -15,17 +15,17 @@ public static class MessageBusExtensions
     public static IServiceCollection AddRabbitMQ(this IServiceCollection services, IConfiguration configuration)
     {
         var rabbitMQSettings = configuration.GetSection("RabbitMQ");
-        
+
         services.AddSingleton<ConnectionFactory>(sp =>
         {
             var logger = sp.GetRequiredService<ILogger<ConnectionFactory>>();
-            
+
             var hostName = rabbitMQSettings["HostName"] ?? "localhost";
             var port = rabbitMQSettings.GetValue<int>("Port", 5672);
             var userName = rabbitMQSettings["UserName"] ?? "guest";
             var password = rabbitMQSettings["Password"] ?? "guest";
             var virtualHost = rabbitMQSettings["VirtualHost"] ?? "/";
-            
+
             logger.LogInformation("Configuring RabbitMQ ConnectionFactory: Host={HostName}, Port={Port}, VirtualHost={VirtualHost}, UserName={UserName}",
                 hostName, port, virtualHost, userName);
 
@@ -37,13 +37,13 @@ public static class MessageBusExtensions
                 Password = password,
                 VirtualHost = virtualHost,
                 DispatchConsumersAsync = true,
-                
+
                 // Enhanced configuration for production
                 RequestedHeartbeat = TimeSpan.FromSeconds(rabbitMQSettings.GetValue<int>("RequestedHeartbeat", 60)),
                 AutomaticRecoveryEnabled = rabbitMQSettings.GetValue<bool>("AutomaticRecoveryEnabled", true),
                 NetworkRecoveryInterval = TimeSpan.FromMilliseconds(rabbitMQSettings.GetValue<int>("NetworkRecoveryInterval", 5000)),
                 RequestedConnectionTimeout = TimeSpan.FromMilliseconds(rabbitMQSettings.GetValue<int>("ConnectionTimeout", 30000)),
-                
+
                 // Additional reliability settings
                 ContinuationTimeout = TimeSpan.FromMilliseconds(rabbitMQSettings.GetValue<int>("ContinuationTimeout", 20000)),
                 HandshakeContinuationTimeout = TimeSpan.FromMilliseconds(rabbitMQSettings.GetValue<int>("HandshakeContinuationTimeout", 10000)),
@@ -93,7 +93,7 @@ public static class MessageBusExtensions
 
         if (factory.RequestedConnectionTimeout.TotalMilliseconds < 1000)
         {
-            logger.LogWarning("RabbitMQ ConnectionTimeout {Timeout}ms is very low, consider increasing it", 
+            logger.LogWarning("RabbitMQ ConnectionTimeout {Timeout}ms is very low, consider increasing it",
                 factory.RequestedConnectionTimeout.TotalMilliseconds);
         }
 

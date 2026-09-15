@@ -1,12 +1,13 @@
-using System.Net;
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Store.Shared.Models;
+using Store.Shared.Serialization;
 using Store.Shared.Services;
+using System.Net;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace Store.Shared.Middleware;
 
@@ -34,10 +35,10 @@ public class GlobalExceptionMiddleware
         catch (Exception ex)
         {
             _logger.LogError(ex, "An unhandled exception occurred while processing the request");
-            
+
             // Log exception to audit service
             await LogExceptionToAuditAsync(context, ex);
-            
+
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -84,7 +85,7 @@ public class GlobalExceptionMiddleware
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            
+
             // Try to use the audit log client if available (for other services)
             var auditLogClient = scope.ServiceProvider.GetService<IAuditLogClient>();
             if (auditLogClient != null)
@@ -105,7 +106,7 @@ public class GlobalExceptionMiddleware
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        
+
         var response = new ErrorResponse();
 
         switch (exception)
@@ -150,11 +151,7 @@ public class GlobalExceptionMiddleware
 
         context.Response.StatusCode = response.StatusCode;
 
-        var jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = _environment.IsDevelopment()
-        };
+        var jsonOptions = _environment.IsDevelopment() ? StoreJson.CamelCaseIndented : StoreJson.CamelCase;
 
         var jsonResponse = JsonSerializer.Serialize(response, jsonOptions);
         await context.Response.WriteAsync(jsonResponse);
@@ -193,7 +190,7 @@ public class GlobalExceptionMiddleware
                lowerHeaderName.Contains("key");
     }
 
-    private class ErrorResponse
+    private sealed class ErrorResponse
     {
         public int StatusCode { get; set; }
         public string Message { get; set; } = string.Empty;

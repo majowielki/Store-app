@@ -12,12 +12,12 @@ public interface IAuthService
     Task<ApiResponse<AuthResponse>> DemoLoginAsync(DemoLoginRequest request);
     Task<ApiResponse<AuthResponse>> DemoAdminLoginAsync(DemoAdminLoginRequest request);
     Task<ApiResponse<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request);
-    
+
     // User operations
     Task<ApiResponse<UserResponse>> GetCurrentUserAsync(string userId);
     Task<ApiResponse<UserResponse>> GetUserAsync(string userId);
     Task<ApiResponse<UserResponse>> UpdateAddressAsync(string userId, string simpleAddress);
-    
+
     // Admin operations (Admin access required)
     Task<ApiResponse<IEnumerable<UserResponse>>> GetAllUsersAsync(int page = 1, int pageSize = 20);
 }

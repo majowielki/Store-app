@@ -144,7 +144,7 @@ public static class ServiceExtensions
         {
             options.AddPolicy(policyName, builder =>
             {
-                if (allowedOrigins?.Any() == true)
+                if (allowedOrigins is { Length: > 0 })
                 {
                     builder.WithOrigins(allowedOrigins);
                 }
@@ -156,7 +156,7 @@ public static class ServiceExtensions
                 builder.AllowAnyMethod()
                        .AllowAnyHeader();
 
-                if (allowedOrigins?.Any() == true)
+                if (allowedOrigins is { Length: > 0 })
                 {
                     builder.AllowCredentials();
                 }

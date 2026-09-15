@@ -1,5 +1,3 @@
-using System.Net;
-using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -8,6 +6,8 @@ using Moq;
 using Moq.Protected;
 using Store.Shared.Authentication;
 using Store.Shared.Configuration;
+using System.Net;
+using System.Text.Encodings.Web;
 using Xunit;
 
 namespace Store.Tests.Unit.Shared;

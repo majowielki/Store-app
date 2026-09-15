@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Store.Shared.Models;
+using Store.Shared.Serialization;
 using System.Net;
 using System.Text.Json;
 
@@ -39,7 +39,7 @@ public class GlobalExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
 
         ApiResponse<object> response;
-        
+
         switch (exception)
         {
             case ArgumentException argEx:
@@ -76,10 +76,7 @@ public class GlobalExceptionHandlingMiddleware
                 break;
         }
 
-        var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var jsonResponse = JsonSerializer.Serialize(response, StoreJson.CamelCase);
 
         await context.Response.WriteAsync(jsonResponse);
     }

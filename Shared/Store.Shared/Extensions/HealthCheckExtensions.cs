@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Store.Shared.Serialization;
 using System.Text.Json;
 
 namespace Store.Shared.Extensions;
@@ -20,8 +21,8 @@ public static class HealthCheckExtensions
     /// <param name="redisConnectionString">Redis connection string (optional)</param>
     /// <returns>Health checks builder</returns>
     public static IHealthChecksBuilder AddStandardHealthChecks(
-        this IServiceCollection services, 
-        string connectionString, 
+        this IServiceCollection services,
+        string connectionString,
         string? redisConnectionString = null)
     {
         var healthChecksBuilder = services.AddHealthChecks()
@@ -65,11 +66,7 @@ public static class HealthCheckExtensions
                     })
                 };
 
-                var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    WriteIndented = true
-                });
+                var jsonResponse = JsonSerializer.Serialize(response, StoreJson.CamelCaseIndented);
 
                 await context.Response.WriteAsync(jsonResponse);
             }
@@ -98,10 +95,7 @@ public static class HealthCheckExtensions
                 };
 
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                }));
+                await context.Response.WriteAsync(JsonSerializer.Serialize(response, StoreJson.CamelCase));
             }
         });
 

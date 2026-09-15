@@ -1,13 +1,13 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
-using Store.Shared.Middleware;
-using Store.Shared.Extensions;
 using Store.Shared.Authorization;
+using Store.Shared.Extensions;
+using Store.Shared.Middleware;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,11 +17,11 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    })
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<Store.AuditLogService.Validators.AuditLogValidator>();
     });
+
+// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+builder.Services.AddValidatorsFromAssemblyContaining<Store.AuditLogService.Validators.AuditLogValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<AuditLogDbContext>(options =>
@@ -53,7 +53,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Store AuditLog Service", Version = "v1" });
-    
+
     // JWT Bearer token support
     c.AddSecurityDefinition("Bearer", new()
     {
@@ -63,7 +63,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     c.AddSecurityRequirement(new()
     {
         {
@@ -117,7 +117,7 @@ try
     {
         var context = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        
+
         try
         {
             // Check if database exists and is accessible

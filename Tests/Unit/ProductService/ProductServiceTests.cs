@@ -1,12 +1,10 @@
-using System.Threading.Tasks;
-using Xunit;
-using Moq;
-using Microsoft.Extensions.Logging;
-using Store.ProductService.DTOs.Requests;
-using Store.Shared.Models;
-using Store.Shared.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Store.ProductService.Data;
+using Store.ProductService.DTOs.Requests;
+using Store.Shared.Services;
+using Xunit;
 
 namespace Store.Tests.Unit.ProductService;
 
@@ -20,7 +18,7 @@ public class ProductServiceTests
     public ProductServiceTests()
     {
         var options = new DbContextOptionsBuilder<ProductDbContext>()
-            .UseInMemoryDatabase(databaseName: "ProductServiceTests")
+            .UseInMemoryDatabase(databaseName: $"ProductServiceTests-{Guid.NewGuid():N}") // one database per test class instance - xUnit creates one per test
             .Options;
         _dbContext = new ProductDbContext(options);
         _productService = new Store.ProductService.Services.ProductService(

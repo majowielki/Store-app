@@ -102,8 +102,8 @@ public abstract class BaseApiController : ControllerBase
         _logger.LogError(ex, "API Error: {Message}", customMessage);
 
         // Don't expose internal error details in production
-        var message = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development" 
-            ? ex.Message 
+        var message = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development"
+            ? ex.Message
             : customMessage;
 
         return ErrorResponse(message, 500);

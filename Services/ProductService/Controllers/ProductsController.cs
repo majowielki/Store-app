@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Services;
@@ -13,7 +12,7 @@ public class ProductsController : BaseApiController
 {
     private readonly IProductService _productService;
 
-    public ProductsController(IProductService productService, ILogger<ProductsController> logger) 
+    public ProductsController(IProductService productService, ILogger<ProductsController> logger)
         : base(logger)
     {
         _productService = productService;
@@ -135,7 +134,7 @@ public class ProductsController : BaseApiController
         try
         {
             var product = await _productService.UpdateProductAsync(id, request);
-            
+
             if (product == null)
             {
                 return NotFound($"Product with ID {id} not found");
@@ -162,7 +161,7 @@ public class ProductsController : BaseApiController
         try
         {
             var success = await _productService.DeleteProductAsync(id);
-            
+
             if (!success)
             {
                 return NotFound($"Product with ID {id} not found");
@@ -207,9 +206,9 @@ public class ProductsController : BaseApiController
     // Returns inactive products too - admins only (SEC-04)
     [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ProductsResponse>> GetProductsAdmin(
-    [FromQuery] ProductQueryParams queryParams, 
-    [FromQuery] string sortBy = null, 
-    [FromQuery] string sortDir = null)
+    [FromQuery] ProductQueryParams queryParams,
+    [FromQuery] string? sortBy = null,
+    [FromQuery] string? sortDir = null)
     {
         try
         {

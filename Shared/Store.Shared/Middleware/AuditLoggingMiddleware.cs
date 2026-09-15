@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Store.Shared.Models;
 using Store.Shared.Services;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
 
 namespace Store.Shared.Middleware;
@@ -28,14 +27,14 @@ public class AuditLoggingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var originalBodyStream = context.Response.Body;
-        
+
         try
         {
             using var responseBody = new MemoryStream();
             context.Response.Body = responseBody;
 
             var startTime = DateTime.UtcNow;
-            
+
             // Log request
             await LogRequestAsync(context, startTime);
 
@@ -55,10 +54,10 @@ public class AuditLoggingMiddleware
         catch (Exception ex)
         {
             var endTime = DateTime.UtcNow;
-            
+
             // Log error
             await LogErrorAsync(context, ex, endTime);
-            
+
             // Re-throw the exception to let the global exception middleware handle it
             throw;
         }
@@ -220,7 +219,7 @@ public class AuditLoggingMiddleware
             // Try to use the audit log client if available (for other services)
             using var scope = _serviceProvider.CreateScope();
             var auditLogClient = scope.ServiceProvider.GetService<IAuditLogClient>();
-            
+
             if (auditLogClient != null)
             {
                 await auditLogClient.CreateAuditLogAsync(auditLog);
@@ -233,7 +232,7 @@ public class AuditLoggingMiddleware
         catch (Exception ex)
         {
             // Final fallback - just log the audit action
-            _logger.LogWarning(ex, "Failed to create audit log. Action: {Action}, Entity: {Entity}, User: {User}", 
+            _logger.LogWarning(ex, "Failed to create audit log. Action: {Action}, Entity: {Entity}, User: {User}",
                 auditLog.Action, auditLog.EntityName, auditLog.UserEmail ?? auditLog.UserId);
         }
     }
@@ -241,7 +240,7 @@ public class AuditLoggingMiddleware
     private static bool ShouldSkipLogging(PathString path)
     {
         var pathValue = path.Value?.ToLower() ?? "";
-        
+
         // Skip health checks, swagger, static files, and metrics endpoints
         return pathValue.Contains("/health") ||
                pathValue.Contains("/swagger") ||
@@ -260,7 +259,7 @@ public class AuditLoggingMiddleware
     private static bool ShouldSkipHeader(string headerName)
     {
         var lowerHeaderName = headerName.ToLower();
-        
+
         // Skip sensitive or noisy headers
         return lowerHeaderName == "authorization" ||
                lowerHeaderName == "cookie" ||

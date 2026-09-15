@@ -1,4 +1,4 @@
-﻿using Store.Shared.Utility;
+using Store.Shared.Utility;
 
 namespace Store.ProductService.DTOs.Responses;
 
@@ -14,7 +14,7 @@ public class ProductResponse
     public Company Company { get; set; }
     public bool NewArrival { get; set; }
     public string Image { get; set; } = string.Empty;
-    
+
     public List<string> Colors { get; set; } = new();
     public List<string> Groups { get; set; } = new();
 

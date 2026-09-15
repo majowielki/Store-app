@@ -1,18 +1,17 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.IdentityService.Data;
 using Store.IdentityService.Models;
 using Store.IdentityService.Services;
-using Store.Shared.Middleware;
-using Store.Shared.Extensions;
 using Store.Shared.Authorization;
+using Store.Shared.Extensions;
 using Store.Shared.Utility;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json.Serialization;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,11 +21,11 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    })
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<Store.IdentityService.Validators.RegisterRequestValidator>();
     });
+
+// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+builder.Services.AddValidatorsFromAssemblyContaining<Store.IdentityService.Validators.RegisterRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<IdentityDbContext>(options =>
@@ -126,7 +125,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new() { Title = "Store Identity Service", Version = "v1" });
-    
+
     // JWT Bearer token support
     c.AddSecurityDefinition("Bearer", new()
     {
@@ -136,7 +135,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     c.AddSecurityRequirement(new()
     {
         {
@@ -192,7 +191,7 @@ try
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        
+
         try
         {
             // Check if database exists and is accessible
@@ -201,11 +200,11 @@ try
                 // Apply migrations
                 context.Database.Migrate();
                 logger.LogInformation("Database migration completed successfully.");
-                
+
                 // Seed roles
                 await SeedRolesAsync(roleManager, logger);
                 logger.LogInformation("Role seeding completed successfully.");
-                
+
                 // Seed all users (True Admin, Demo Admin, Demo User)
                 await SeedUsersAsync(userManager, builder.Configuration, app.Environment, logger);
                 logger.LogInformation("User seeding completed successfully.");
@@ -234,7 +233,7 @@ app.Run();
 static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger logger)
 {
     var roles = new[] { Constants.Role_TrueAdmin, Constants.Role_DemoAdmin, Constants.Role_User };
-    
+
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
@@ -249,10 +248,10 @@ static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IConf
 {
     // 1. Seed True Admin - Use environment variables or secure configuration
     await SeedTrueAdminAsync(userManager, configuration, environment, logger);
-    
+
     // 2. Seed Demo Admin
     await SeedDemoAdminAsync(userManager, logger);
-    
+
     // 3. Seed Demo Store User
     await SeedDemoStoreUserAsync(userManager, logger);
 }
@@ -344,7 +343,7 @@ static async Task SeedDemoAdminAsync(UserManager<ApplicationUser> userManager, I
             UpdatedAt = DateTime.UtcNow,
             SimpleAddress = demoAdminAddress // Set address
         };
-        
+
         var result = await userManager.CreateAsync(demoAdminUser, demoAdminPassword);
         if (result.Succeeded)
         {
@@ -378,7 +377,7 @@ static async Task SeedDemoStoreUserAsync(UserManager<ApplicationUser> userManage
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        
+
         var result = await userManager.CreateAsync(demoUser, Constants.DemoUserPassword);
         if (result.Succeeded)
         {

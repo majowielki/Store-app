@@ -9,7 +9,7 @@ public class AuditLogDbContext : DbContext
     {
     }
 
-    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,7 +19,7 @@ public class AuditLogDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedOnAdd();
-            
+
             entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
             entity.Property(e => e.EntityName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.EntityId).HasMaxLength(50);
@@ -34,7 +34,7 @@ public class AuditLogDbContext : DbContext
             entity.Property(e => e.HttpMethod).HasMaxLength(10);
             entity.Property(e => e.Path).HasMaxLength(300);
             entity.Property(e => e.SessionId).HasMaxLength(100);
-            
+
             // Indexes for better query performance
             entity.HasIndex(e => e.EntityName);
             entity.HasIndex(e => e.EntityId);

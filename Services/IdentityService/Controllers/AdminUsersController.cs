@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
-using Store.Shared.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
-using Store.IdentityService.Models;
-using Store.IdentityService.DTOs.Responses;
-using System.Net.Http.Json;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Store.IdentityService.DTOs.Responses;
+using Store.IdentityService.Models;
+using Store.Shared.Authorization;
 
 namespace Store.IdentityService.Controllers;
 
@@ -181,7 +179,8 @@ public class AdminController : ControllerBase
             if (order == null)
                 return NotFound();
 
-            var sanitizedOrder = new {
+            var sanitizedOrder = new
+            {
                 id = order.Id,
                 userId = AnonymizedUserId,
                 userEmail = AnonymizedUserEmail,

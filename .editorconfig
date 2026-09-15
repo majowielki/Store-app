@@ -1,0 +1,97 @@
+# EditorConfig: https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,props,targets,csproj,editorconfig}]
+indent_size = 2
+
+[*.{ts,tsx,js,jsx,css,html}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# ---------------------------------------------------------------------------
+# C#
+# ---------------------------------------------------------------------------
+[*.cs]
+
+# Organisation
+dotnet_sort_system_directives_first = false
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+csharp_style_namespace_declarations = file_scoped:warning
+
+# Language / style preferences
+csharp_prefer_braces = true:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+csharp_style_prefer_primary_constructors = false
+csharp_style_var_for_built_in_types = true:silent
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_var_elsewhere = true:silent
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_qualification_for_field = false:silent
+dotnet_style_qualification_for_property = false:silent
+dotnet_style_qualification_for_method = false:silent
+
+# Naming: private fields _camelCase
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_rule.private_fields_underscore.severity = suggestion
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+# Formatting
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_space_after_keywords_in_control_flow_statements = true
+
+# Diagnostics enforced in build (EnforceCodeStyleInBuild + AnalysisLevel latest-recommended).
+# Rules that would only add noise for this code base are turned down explicitly.
+dotnet_diagnostic.IDE0005.severity = warning   # unused using (NIT-02)
+dotnet_diagnostic.IDE0055.severity = suggestion # formatting - handled by dotnet format
+dotnet_diagnostic.IDE0290.severity = none      # primary constructors
+dotnet_diagnostic.CA1848.severity = none       # LoggerMessage delegates - not worth it here
+dotnet_diagnostic.CA2007.severity = none       # ConfigureAwait in ASP.NET Core apps
+dotnet_diagnostic.CA1031.severity = none       # catch general exceptions (used deliberately in middleware/seeding)
+dotnet_diagnostic.CA1062.severity = none       # null checks on public arguments - nullable annotations cover it
+dotnet_diagnostic.CA1303.severity = none       # literals in exception messages
+dotnet_diagnostic.CA1305.severity = none       # IFormatProvider
+dotnet_diagnostic.CA1308.severity = none       # ToLowerInvariant vs ToUpperInvariant
+dotnet_diagnostic.CA1707.severity = none       # underscores in identifiers (test method names)
+dotnet_diagnostic.CA1812.severity = none       # internal classes instantiated via DI
+dotnet_diagnostic.CA1861.severity = none       # constant arrays as arguments
+dotnet_diagnostic.CA2254.severity = warning    # logging template must be static
+dotnet_diagnostic.CA1873.severity = none       # guard logging arguments with IsEnabled - noise at this scale
+dotnet_diagnostic.CA1716.severity = none       # identifiers vs. VB keywords ("Shared")
+dotnet_diagnostic.CA1000.severity = none       # static factory members on ApiResponse<T> / ServiceResult<T>
+dotnet_diagnostic.CA1051.severity = none       # protected fields in the controller base class
+# String comparisons inside EF Core queries: ToLower()/Contains() translate to SQL lower()/LIKE,
+# the culture-aware or StringComparison overloads do not translate at all.
+dotnet_diagnostic.CA1304.severity = none
+dotnet_diagnostic.CA1310.severity = none
+dotnet_diagnostic.CA1311.severity = none
+dotnet_diagnostic.CA1862.severity = none
+
+[**/Migrations/**.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
+
+[Tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA2000.severity = none
+dotnet_diagnostic.CA1001.severity = none       # xUnit disposes fixtures; DbContext fields in test classes
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CS1591.severity = none

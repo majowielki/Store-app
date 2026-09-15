@@ -1,7 +1,6 @@
-using FluentValidation;
-using Xunit;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.Validators;
+using Xunit;
 
 namespace Store.Tests.Unit.CartService;
 

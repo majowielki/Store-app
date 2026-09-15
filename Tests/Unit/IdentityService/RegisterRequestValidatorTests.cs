@@ -1,7 +1,6 @@
-using FluentValidation;
-using Xunit;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Validators;
+using Xunit;
 
 namespace Store.Tests.Unit.IdentityService;
 

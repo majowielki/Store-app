@@ -1,7 +1,6 @@
-using FluentValidation;
-using Xunit;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.Validators;
+using Xunit;
 
 namespace Store.Tests.Unit.OrderService;
 

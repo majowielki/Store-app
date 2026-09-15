@@ -1,10 +1,9 @@
-using System.Threading.Tasks;
-using Xunit;
-using Moq;
-using Microsoft.Extensions.Logging;
-using Store.Shared.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Store.AuditLogService.Data;
+using Store.Shared.Models;
+using Xunit;
 
 namespace Store.Tests.Unit.AuditLogService;
 
@@ -17,7 +16,7 @@ public class AuditLogServiceTests
     public AuditLogServiceTests()
     {
         var options = new DbContextOptionsBuilder<AuditLogDbContext>()
-            .UseInMemoryDatabase(databaseName: "AuditLogServiceTests")
+            .UseInMemoryDatabase(databaseName: $"AuditLogServiceTests-{Guid.NewGuid():N}") // one database per test class instance - xUnit creates one per test
             .Options;
         _dbContext = new AuditLogDbContext(options);
         _auditLogService = new Store.AuditLogService.Services.AuditLogService(
@@ -65,6 +64,6 @@ public class AuditLogServiceTests
         await _dbContext.SaveChangesAsync();
         var result = await _auditLogService.GetAuditLogsAsync(1, 3);
         Assert.True(result.IsSuccess);
-        Assert.True(result.Data.Count() <= 3);
+        Assert.True(result.Data!.Count() <= 3);
     }
 }

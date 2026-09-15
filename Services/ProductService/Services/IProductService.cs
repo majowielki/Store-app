@@ -9,12 +9,12 @@ public interface IProductService
     Task<ProductResponse> CreateProductAsync(CreateProductRequest request);
     Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request);
     Task<bool> DeleteProductAsync(int id);
-    
+
     // Frontend-compatible operations (public)
     Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams);
     Task<SingleProductResponse> GetProductForFrontendAsync(int id);
     Task<ProductsMeta> GetProductsMetaAsync();
-    
+
     // Admin advanced endpoint
     Task<ProductsResponse> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir);
 }

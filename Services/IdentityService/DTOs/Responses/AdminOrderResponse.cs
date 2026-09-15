@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Store.IdentityService.DTOs.Responses;
 
 public class AdminOrderResponse

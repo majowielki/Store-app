@@ -1,6 +1,5 @@
 // Enable nullable annotations in this file
 #nullable enable
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
@@ -8,6 +7,7 @@ using Store.ProductService.DTOs.Responses;
 using Store.Shared.Models;
 using Store.Shared.Services;
 using Store.Shared.Utility;
+using System.Text.Json.Serialization;
 
 namespace Store.ProductService.Services;
 
@@ -102,10 +102,10 @@ public class ProductService : IProductService
             // Update only provided fields
             if (!string.IsNullOrEmpty(request.Title))
                 product.Title = request.Title;
-            
+
             if (!string.IsNullOrEmpty(request.Description))
                 product.Description = request.Description;
-            
+
             if (request.Price.HasValue)
                 product.Price = request.Price.Value;
 
@@ -114,20 +114,20 @@ public class ProductService : IProductService
 
             if (request.DiscountPercent.HasValue)
                 product.DiscountPercent = request.DiscountPercent.Value;
-            
+
             if (request.Category.HasValue)
                 product.Category = request.Category.Value;
-            
+
             if (request.Company.HasValue)
                 product.Company = request.Company.Value;
-            
+
             if (request.NewArrival.HasValue)
                 product.NewArrival = request.NewArrival.Value;
-            
+
             if (!string.IsNullOrEmpty(request.Image))
                 product.Image = request.Image;
-            
-            if (request.Colors != null && request.Colors.Any())
+
+            if (request.Colors != null && request.Colors.Count > 0)
                 product.Colors = request.Colors;
 
             if (request.Groups != null)

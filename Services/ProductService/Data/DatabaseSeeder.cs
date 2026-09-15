@@ -527,7 +527,7 @@ public static class DatabaseSeeder
                 Materials = new List<string> { "engineered-wood", "moisture-resistant-coating" },
                 IsActive = true
             },
-            
+
             new Product
             {
                 Title = "Bathroom Wall Mirror Cabinet",

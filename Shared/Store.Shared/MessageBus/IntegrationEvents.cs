@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Store.Shared.MessageBus;
 
 public abstract class IntegrationEvent

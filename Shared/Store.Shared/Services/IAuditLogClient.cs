@@ -1,5 +1,5 @@
-using Store.Shared.Models;
 using Microsoft.Extensions.Logging;
+using Store.Shared.Models;
 
 namespace Store.Shared.Services;
 
@@ -15,7 +15,7 @@ public interface IAuditLogClient
     /// <param name="auditLog">The audit log entry to create</param>
     /// <returns>The ID of the created audit log entry</returns>
     Task<long?> CreateAuditLogAsync(AuditLog auditLog);
-    
+
     /// <summary>
     /// Creates an audit log entry locally if the service is unavailable
     /// </summary>
@@ -41,16 +41,13 @@ public class AuditLogClient : IAuditLogClient
     {
         try
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(auditLog, new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-            });
-            
+            var json = System.Text.Json.JsonSerializer.Serialize(auditLog, Store.Shared.Serialization.StoreJson.CamelCase);
+
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            
+
             // Internal endpoint: the InternalApiKeyMessageHandler attached to this client adds the service key (SEC-04)
             var response = await _httpClient.PostAsync("/api/auditlog/internal", content);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -61,9 +58,9 @@ public class AuditLogClient : IAuditLogClient
             }
             else
             {
-                _logger.LogWarning("Failed to create audit log via service. Status: {StatusCode}, Response: {Response}", 
+                _logger.LogWarning("Failed to create audit log via service. Status: {StatusCode}, Response: {Response}",
                     response.StatusCode, await response.Content.ReadAsStringAsync());
-                
+
                 // Fallback to local logging
                 await CreateLocalAuditLogAsync(auditLog);
             }
@@ -98,7 +95,7 @@ public class AuditLogClient : IAuditLogClient
                 auditLog.NewValues,
                 auditLog.Changes
             });
-            
+
             await Task.CompletedTask;
         }
         catch (Exception ex)

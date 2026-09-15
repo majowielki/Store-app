@@ -1,14 +1,11 @@
-using System.Threading.Tasks;
-using Xunit;
-using Moq;
-using Microsoft.Extensions.Logging;
-using Store.OrderService.DTOs.Requests;
-using Store.OrderService.DTOs.Responses;
-using Store.Shared.Models;
-using Store.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Store.OrderService.Data;
+using Store.Shared.Services;
+using Store.Tests.Unit.TestSupport;
+using Xunit;
 
 namespace Store.Tests.Unit.OrderService;
 
@@ -23,13 +20,13 @@ public class OrderServiceTests
     public OrderServiceTests()
     {
         var options = new DbContextOptionsBuilder<OrderDbContext>()
-            .UseInMemoryDatabase(databaseName: "OrderServiceTests")
+            .UseInMemoryDatabase(databaseName: $"OrderServiceTests-{Guid.NewGuid():N}") // one database per test class instance - xUnit creates one per test
             .Options;
         _dbContext = new OrderDbContext(options);
         _orderService = new Store.OrderService.Services.OrderService(
             _dbContext,
             _loggerMock.Object,
-            new HttpClient(),
+            NoNetworkHttpClient.Create(),
             _configMock.Object,
             null,
             null,

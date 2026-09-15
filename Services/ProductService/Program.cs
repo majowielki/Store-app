@@ -1,21 +1,20 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using StackExchange.Redis;
 using Store.ProductService.Data;
 using Store.ProductService.Services;
-using StackExchange.Redis;
-using Store.Shared.Middleware;
-using Store.Shared.Extensions;
 using Store.Shared.Authorization;
-using FluentValidation;
-using FluentValidation.AspNetCore;
+using Store.Shared.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add standard API controllers
-builder.Services.AddStandardApiControllers()
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<Store.ProductService.Validators.CreateProductRequestValidator>();
-    });
+builder.Services.AddStandardApiControllers();
+
+// FluentValidation: validators from DI, request models validated before the action runs (MAJ-17)
+builder.Services.AddValidatorsFromAssemblyContaining<Store.ProductService.Validators.CreateProductRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<ProductDbContext>(options =>
@@ -103,7 +102,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
         await context.Database.MigrateAsync();
-        
+
         await DatabaseSeeder.SeedAsync(context);
     }
     catch (Exception ex)

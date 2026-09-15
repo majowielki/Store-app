@@ -3,8 +3,6 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
 
 namespace Store.Shared.MessageBus;
 
@@ -15,7 +13,7 @@ public class RabbitMQConnection : IMessageBusConnection
     private IConnection? _connection;
     private bool _disposed;
     private readonly object _syncRoot = new object();
-    private int _retryCount = 0;
+    private int _retryCount;
     private const int MaxRetryAttempts = 5;
 
     public RabbitMQConnection(ConnectionFactory connectionFactory, ILogger<RabbitMQConnection> logger)
@@ -28,7 +26,7 @@ public class RabbitMQConnection : IMessageBusConnection
 
     public bool TryConnect()
     {
-        _logger.LogInformation("RabbitMQ Client is trying to connect to {HostName}:{Port}", 
+        _logger.LogInformation("RabbitMQ Client is trying to connect to {HostName}:{Port}",
             _connectionFactory.HostName, _connectionFactory.Port);
 
         lock (_syncRoot)
@@ -40,21 +38,21 @@ public class RabbitMQConnection : IMessageBusConnection
             }
 
             var retryDelay = CalculateRetryDelay(_retryCount);
-            
+
             try
             {
                 // Log connection attempt details
-                _logger.LogInformation("Attempting to connect to RabbitMQ: Host={HostName}, Port={Port}, VirtualHost={VirtualHost}, UserName={UserName}", 
-                    _connectionFactory.HostName, 
-                    _connectionFactory.Port, 
-                    _connectionFactory.VirtualHost, 
+                _logger.LogInformation("Attempting to connect to RabbitMQ: Host={HostName}, Port={Port}, VirtualHost={VirtualHost}, UserName={UserName}",
+                    _connectionFactory.HostName,
+                    _connectionFactory.Port,
+                    _connectionFactory.VirtualHost,
                     _connectionFactory.UserName);
 
                 _connection = _connectionFactory.CreateConnection();
-                
+
                 if (!IsConnected)
                 {
-                    _logger.LogCritical("FATAL ERROR: RabbitMQ connection was created but is not open. Connection state: {State}", 
+                    _logger.LogCritical("FATAL ERROR: RabbitMQ connection was created but is not open. Connection state: {State}",
                         _connection?.IsOpen);
                     return false;
                 }
@@ -65,40 +63,40 @@ public class RabbitMQConnection : IMessageBusConnection
                 _connection.ConnectionBlocked += OnConnectionBlocked;
                 _connection.ConnectionUnblocked += OnConnectionUnblocked;
 
-                _logger.LogInformation("RabbitMQ Client acquired a persistent connection to '{HostName}' and is subscribed to failure events", 
+                _logger.LogInformation("RabbitMQ Client acquired a persistent connection to '{HostName}' and is subscribed to failure events",
                     _connection.Endpoint.HostName);
-                
+
                 // Reset retry count on successful connection
                 _retryCount = 0;
                 return true;
             }
             catch (BrokerUnreachableException ex)
             {
-                _logger.LogCritical(ex, "FATAL ERROR: RabbitMQ broker is unreachable. Host={HostName}, Port={Port}. Retry attempt {RetryCount}/{MaxRetryAttempts}", 
+                _logger.LogCritical(ex, "FATAL ERROR: RabbitMQ broker is unreachable. Host={HostName}, Port={Port}. Retry attempt {RetryCount}/{MaxRetryAttempts}",
                     _connectionFactory.HostName, _connectionFactory.Port, _retryCount + 1, MaxRetryAttempts);
                 return HandleConnectionFailure(retryDelay);
             }
             catch (SocketException ex)
             {
-                _logger.LogCritical(ex, "FATAL ERROR: Socket error connecting to RabbitMQ. Host={HostName}, Port={Port}. Error: {ErrorCode}. Retry attempt {RetryCount}/{MaxRetryAttempts}", 
+                _logger.LogCritical(ex, "FATAL ERROR: Socket error connecting to RabbitMQ. Host={HostName}, Port={Port}. Error: {ErrorCode}. Retry attempt {RetryCount}/{MaxRetryAttempts}",
                     _connectionFactory.HostName, _connectionFactory.Port, ex.SocketErrorCode, _retryCount + 1, MaxRetryAttempts);
                 return HandleConnectionFailure(retryDelay);
             }
             catch (AuthenticationFailureException ex)
             {
-                _logger.LogCritical(ex, "FATAL ERROR: Authentication failed connecting to RabbitMQ. Username={UserName}. Check credentials.", 
+                _logger.LogCritical(ex, "FATAL ERROR: Authentication failed connecting to RabbitMQ. Username={UserName}. Check credentials.",
                     _connectionFactory.UserName);
                 return false; // Don't retry authentication failures
             }
             catch (TimeoutException ex)
             {
-                _logger.LogCritical(ex, "FATAL ERROR: Timeout connecting to RabbitMQ. Host={HostName}, Port={Port}, Timeout={Timeout}ms. Retry attempt {RetryCount}/{MaxRetryAttempts}", 
+                _logger.LogCritical(ex, "FATAL ERROR: Timeout connecting to RabbitMQ. Host={HostName}, Port={Port}, Timeout={Timeout}ms. Retry attempt {RetryCount}/{MaxRetryAttempts}",
                     _connectionFactory.HostName, _connectionFactory.Port, _connectionFactory.RequestedConnectionTimeout.TotalMilliseconds, _retryCount + 1, MaxRetryAttempts);
                 return HandleConnectionFailure(retryDelay);
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, "FATAL ERROR: Unexpected error connecting to RabbitMQ. Host={HostName}, Port={Port}. Retry attempt {RetryCount}/{MaxRetryAttempts}", 
+                _logger.LogCritical(ex, "FATAL ERROR: Unexpected error connecting to RabbitMQ. Host={HostName}, Port={Port}. Retry attempt {RetryCount}/{MaxRetryAttempts}",
                     _connectionFactory.HostName, _connectionFactory.Port, _retryCount + 1, MaxRetryAttempts);
                 return HandleConnectionFailure(retryDelay);
             }
@@ -108,16 +106,16 @@ public class RabbitMQConnection : IMessageBusConnection
     private bool HandleConnectionFailure(TimeSpan retryDelay)
     {
         _retryCount++;
-        
+
         if (_retryCount >= MaxRetryAttempts)
         {
             _logger.LogCritical("FATAL ERROR: Maximum retry attempts ({MaxRetryAttempts}) exceeded. Giving up on RabbitMQ connection.", MaxRetryAttempts);
             return false;
         }
 
-        _logger.LogWarning("Will retry RabbitMQ connection in {RetryDelay}ms. Attempt {RetryCount}/{MaxRetryAttempts}", 
+        _logger.LogWarning("Will retry RabbitMQ connection in {RetryDelay}ms. Attempt {RetryCount}/{MaxRetryAttempts}",
             retryDelay.TotalMilliseconds, _retryCount + 1, MaxRetryAttempts);
-        
+
         Task.Delay(retryDelay).Wait();
         return TryConnect();
     }
@@ -222,7 +220,7 @@ public class RabbitMQConnection : IMessageBusConnection
     {
         if (_disposed) return;
 
-        _logger.LogWarning("RabbitMQ connection is shutdown. Reason: {ReasonText} (Code: {ReplyCode}). Trying to re-connect...", 
+        _logger.LogWarning("RabbitMQ connection is shutdown. Reason: {ReasonText} (Code: {ReplyCode}). Trying to re-connect...",
             reason.ReplyText, reason.ReplyCode);
 
         Task.Run(() =>

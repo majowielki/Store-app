@@ -33,31 +33,31 @@ public class MessageBusSubscriptionService : BackgroundService
     private async Task HandleOrderCreatedEvent(OrderCreatedEvent orderEvent)
     {
         _logger.LogInformation("Gateway received OrderCreatedEvent for Order: {OrderId}", orderEvent.OrderId);
-        
+
         // Gateway can log, audit, or forward this event to other services
         // For example, you might want to notify audit service or send notifications
-        
+
         await Task.CompletedTask;
     }
 
     private async Task HandleUserRegisteredEvent(UserRegisteredEvent userEvent)
     {
         _logger.LogInformation("Gateway received UserRegisteredEvent for User: {UserId}", userEvent.UserId);
-        
+
         // Gateway can handle user registration events
         // For example, initialize user profile, send welcome notifications, etc.
-        
+
         await Task.CompletedTask;
     }
 
     private async Task HandleProductInventoryUpdatedEvent(ProductInventoryUpdatedEvent inventoryEvent)
     {
-        _logger.LogInformation("Gateway received ProductInventoryUpdatedEvent for Product: {ProductId}, New Stock: {NewStock}", 
+        _logger.LogInformation("Gateway received ProductInventoryUpdatedEvent for Product: {ProductId}, New Stock: {NewStock}",
             inventoryEvent.ProductId, inventoryEvent.NewStock);
-        
+
         // Gateway can handle inventory updates
         // For example, cache invalidation, notifications to subscribed clients, etc.
-        
+
         await Task.CompletedTask;
     }
 
@@ -65,5 +65,6 @@ public class MessageBusSubscriptionService : BackgroundService
     {
         _messageBus?.Dispose();
         base.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
