@@ -132,13 +132,16 @@ builder.Services.AddAuthorization(options =>
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Configure HttpClient for AuditLogClient with proper base address
+// Configure HttpClient for AuditLogClient with proper base address;
+// every call carries the shared service key required by POST /api/auditlog/internal (SEC-04)
 var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
+builder.Services.AddInternalApiKeyClient(builder.Configuration);
 builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
 {
     client.BaseAddress = new Uri(auditLogServiceUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddHttpMessageHandler<Store.Shared.Authentication.InternalApiKeyMessageHandler>();
 
 // Health Checks - Make them optional to prevent startup failures
 builder.Services.AddHealthChecks()

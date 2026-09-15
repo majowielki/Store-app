@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Store.AuditLogService.Services;
+using Store.Shared.Authentication;
 using Store.Shared.Models;
 using System.Security.Claims;
 
@@ -58,13 +59,14 @@ public class AuditLogController : ControllerBase
     }
 
     /// <summary>
-    /// Create audit log entry for internal services (no authentication required)
-    /// This endpoint is intended for inter-service communication for audit logging
+    /// Create audit log entry for internal services.
+    /// Intended for inter-service communication only: the caller must present the shared
+    /// service key in the X-Internal-Api-Key header (SEC-04).
     /// </summary>
     /// <param name="auditLog">Audit log data</param>
     /// <returns>Created audit log ID</returns>
     [HttpPost("internal")]
-    [AllowAnonymous]
+    [Authorize(Policy = InternalApiKeyDefaults.PolicyName)]
     public async Task<ActionResult<ApiResponse<long>>> CreateInternalAuditLog([FromBody] AuditLog auditLog)
     {
         // FluentValidation will handle validation automatically

@@ -222,7 +222,9 @@ public class ProductsController : BaseApiController
     /// <param name="sortDir">Sort direction (asc, desc)</param>
     /// <returns>Products response in frontend format</returns>
     [HttpGet("admin")]
-    //[Authorize(Policy = "AdminOnly")]
+    // Returns inactive products too - admins only (SEC-04). "AdminAccess" is the policy this
+    // service registers; the "AdminOnly" name used elsewhere in this controller is fixed in BLK-01.
+    [Authorize(Policy = "AdminAccess")]
     public async Task<ActionResult<ProductsResponse>> GetProductsAdmin(
     [FromQuery] ProductQueryParams queryParams, 
     [FromQuery] string sortBy = null, 

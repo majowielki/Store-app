@@ -48,7 +48,7 @@ public class AuditLogClient : IAuditLogClient
             
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             
-            // Use internal endpoint that doesn't require authentication
+            // Internal endpoint: the InternalApiKeyMessageHandler attached to this client adds the service key (SEC-04)
             var response = await _httpClient.PostAsync("/api/auditlog/internal", content);
             
             if (response.IsSuccessStatusCode)

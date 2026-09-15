@@ -13,7 +13,7 @@ public sealed class JwtOptions
 
     /// <summary>
     /// HMAC-SHA256 signing key. Never commit it: use <c>dotnet user-secrets</c> locally
-    /// (see <c>Scripts/Set-Local-Jwt-Secret.ps1</c>) and the <c>JwtSettings__SecretKey</c>
+    /// (see <c>Scripts/Set-Local-Secrets.ps1</c>) and the <c>JwtSettings__SecretKey</c>
     /// environment variable in containers.
     /// </summary>
     [Required(AllowEmptyStrings = false)]

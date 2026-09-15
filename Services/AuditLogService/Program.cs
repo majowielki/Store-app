@@ -43,6 +43,9 @@ builder.Services.AddAuthorization(options =>
         policy.RequireClaim("role", "user", "admin"));
 });
 
+// Service-to-service calls to POST /api/auditlog/internal must present the shared key (SEC-04)
+builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
+
 // Services
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
