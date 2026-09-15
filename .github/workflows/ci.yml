@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  secrets-scan:
+    name: Secrets scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  repo-hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if build or IDE artifacts are tracked (BLK-12)
+        run: |
+          if git ls-files | grep -E '(^|/)(bin|obj|\.vs|node_modules)/'; then
+            echo "::error::Build/IDE artifacts are tracked in git (see BLK-12)"
+            exit 1
+          fi
+      - name: Fail if environment-specific secrets files are tracked (SEC-01)
+        run: |
+          if git ls-files | grep -E 'Services/.*/appsettings\.Production\.json$|(^|/)\.env$|rabbitmq\.yaml$'; then
+            echo "::error::Secret-bearing configuration is tracked in git (see SEC-01)"
+            exit 1
+          fi
+
+  backend:
+    name: Backend build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore Store.Microservices.sln
+      - name: Format check
+        run: dotnet format Store.Microservices.sln --verify-no-changes --no-restore --severity warn
+      - name: Build (warnings are errors)
+        run: dotnet build Store.Microservices.sln --no-restore -c Release
+      - name: Unit tests
+        run: >
+          dotnet test Tests/Unit --no-build -c Release
+          --logger "trx;LogFileName=unit.trx"
+          --results-directory TestResults
+          --collect:"XPlat Code Coverage"
+      - name: Integration tests (Testcontainers)
+        run: >
+          dotnet test Tests/Integration --no-build -c Release
+          --logger "trx;LogFileName=integration.trx"
+          --results-directory TestResults
+          --collect:"XPlat Code Coverage"
+      - name: Coverage summary
+        if: always()
+        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        with:
+          reports: TestResults/**/coverage.cobertura.xml
+          targetdir: coveragereport
+          reporttypes: MarkdownSummaryGithub
+      - name: Publish coverage to the job summary
+        if: always()
+        run: cat coveragereport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+          retention-days: 14
+
+  frontend:
+    name: Frontend lint, types and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: UI/store-app.UI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: UI/store-app.UI/package-lock.json
+      - run: npm ci
+      - run: npx eslint . --max-warnings=0
+      - run: npx tsc -b
+      - run: npm run build
+
+  docker:
+    name: Docker image (${{ matrix.service.name }})
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - { name: gateway, dockerfile: Gateway/APIGateway/Dockerfile }
+          - { name: identity, dockerfile: Services/IdentityService/Dockerfile }
+          - { name: product, dockerfile: Services/ProductService/Dockerfile }
+          - { name: cart, dockerfile: Services/CartService/Dockerfile }
+          - { name: order, dockerfile: Services/OrderService/Dockerfile }
+          - { name: auditlog, dockerfile: Services/AuditLogService/Dockerfile }
+          - { name: ui, dockerfile: UI/store-app.UI/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service.name == 'ui' && 'UI/store-app.UI' || '.' }}
+          file: ${{ matrix.service.dockerfile }}
+          push: false
+          load: true
+          tags: store/${{ matrix.service.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,scope=${{ matrix.service.name }},mode=max
+      - name: Scan (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: store/${{ matrix.service.name }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      aspnetcore-efcore:
+        patterns: ["Microsoft.AspNetCore.*", "Microsoft.EntityFrameworkCore*", "Microsoft.Extensions.*", "Npgsql.*"]
+      tests:
+        patterns: ["xunit*", "Moq", "coverlet.*", "Microsoft.NET.Test.Sdk", "Testcontainers*"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /UI/store-app.UI
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      dev-tooling:
+        dependency-type: development
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: docker
+    directories: ["/Gateway/APIGateway", "/Services/*", "/UI/store-app.UI"]
+    schedule:
+      interval: monthly
