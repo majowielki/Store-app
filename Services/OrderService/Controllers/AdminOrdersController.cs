@@ -36,6 +36,19 @@ public class AdminOrdersController : ControllerBase
         return Ok(ToList(result.Data));
     }
 
+    /// <summary>Orders of one customer, newest first; an empty page when they have none.</summary>
+    [HttpGet("by-user/{userId}")]
+    public async Task<ActionResult<AdminOrderListResponse>> GetOrdersByUser(string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var result = await _orderService.GetOrdersByUserIdAsync(userId, page, pageSize);
+        if (!result.IsSuccess || result.Data is null)
+        {
+            return StatusCode((int)result.StatusCode, result);
+        }
+
+        return Ok(ToList(result.Data));
+    }
+
     /// <summary>One order; 404 when the id is unknown.</summary>
     [HttpGet("{id:int}")]
     public async Task<ActionResult<OrderResponse>> GetOrder(int id)

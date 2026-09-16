@@ -4,7 +4,7 @@ namespace Store.BuildingBlocks.Configuration;
 
 /// <summary>
 /// Shared secret used for service-to-service calls that must not be reachable by end users
-/// (today: <c>POST /api/auditlog/internal</c>). Bound from the <c>InternalApi</c> section and
+/// (the product and cart snapshot endpoints). Bound from the <c>InternalApi</c> section and
 /// validated on start. Interim solution until services get their own credentials.
 /// </summary>
 public sealed class InternalApiOptions

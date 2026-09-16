@@ -72,7 +72,6 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 // Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes
 builder.Services.AddStoreAuthorization();
 
-
 // HTTP Client
 builder.Services.AddHttpClient();
 

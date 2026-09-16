@@ -1,5 +1,3 @@
-// Enable nullable annotations in this file
-#nullable enable
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Messaging;
 using Store.Contracts.Catalog;

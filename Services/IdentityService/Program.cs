@@ -106,7 +106,6 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Message bus: a placed order may carry a delivery address to store in the profile; profile changes reach the audit service as events
 builder.Services.AddStoreMessaging<IdentityDbContext>(builder.Configuration, serviceName: "identity", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
-
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
@@ -223,18 +222,6 @@ static async Task SeedTrueAdminAsync(UserManager<ApplicationUser> userManager, I
     {
         await userManager.AddToRoleAsync(adminUser, Roles.TrueAdmin);
         logger.LogInformation("True Admin created successfully: {Email}", adminEmail);
-
-        // Log admin creation token information
-        var adminCreationToken = Environment.GetEnvironmentVariable("ADMIN_CREATION_TOKEN")
-                               ?? configuration[SeedAccounts.AdminCreationTokenKey];
-        if (!string.IsNullOrEmpty(adminCreationToken))
-        {
-            logger.LogInformation("Admin creation token is configured for additional true admin creation");
-        }
-        else
-        {
-            logger.LogWarning("Consider setting ADMIN_CREATION_TOKEN environment variable for secure additional admin creation");
-        }
     }
     else
     {

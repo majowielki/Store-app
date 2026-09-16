@@ -45,7 +45,6 @@ public sealed class FakeUpstreams : HttpMessageHandler
     private readonly ConcurrentDictionary<string, CartSnapshot> _carts = new();
     private readonly ConcurrentDictionary<int, ProductSnapshot> _products = new();
 
-
     public void AddProduct(int id, decimal effectivePrice, string title = "Fake product", bool isActive = true)
         => _products[id] = new ProductSnapshot(id, title, "https://example.test/fake.jpg", "Modenza", new[] { "black" }, effectivePrice, effectivePrice, isActive, DateTime.UtcNow);
 
@@ -76,7 +75,6 @@ public sealed class FakeUpstreams : HttpMessageHandler
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(product) }
                 : new HttpResponseMessage(HttpStatusCode.NotFound));
         }
-
 
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
     }

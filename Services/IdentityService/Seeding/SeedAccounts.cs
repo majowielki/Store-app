@@ -12,7 +12,4 @@ public static class SeedAccounts
 
     public const string DemoAdminEmail = "demo-admin@store.com";
     public const string DemoAdminPassword = "DemoAdmin123!";
-
-    /// <summary>Configuration key of the token that allows creating additional true admins.</summary>
-    public const string AdminCreationTokenKey = "AdminCreationToken";
 }

@@ -188,31 +188,10 @@ export const orderApi = {
     return data;
   },
 
-  // Admin: list orders by user id
-  getOrdersByUser: async (userId: string | number, page = 1, pageSize = 20): Promise<OrdersResponse> => {
-    type AdminOrdersApiResponse = {
-      orders?: Order[];
-      items?: Order[];
-      totalCount: number;
-      page: number;
-      pageSize: number;
-      totalPages?: number;
-      hasNextPage?: boolean;
-      hasPreviousPage?: boolean;
-    };
-    const { data } = await customFetch.get<AdminOrdersApiResponse>(`/orders/by-user/${userId}`, { params: { page, pageSize } });
-    const backend = data;
-    const items = backend.items || backend.orders || [];
-    const mapped: OrdersResponse = {
-      items,
-      totalCount: backend.totalCount ?? items.length,
-      page: backend.page ?? 1,
-      pageSize: backend.pageSize ?? 20,
-      totalPages: backend.totalPages ?? 1,
-      hasNextPage: backend.hasNextPage ?? false,
-      hasPreviousPage: backend.hasPreviousPage ?? false,
-    };
-    return mapped;
+  // Admin: orders of one customer, served by the order service like the other admin views
+  getOrdersByUser: async (userId: string, page = 1, pageSize = 20): Promise<OrdersResponse> => {
+    const { data } = await customFetch.get<OrdersResponse>(`/admin/orders/by-user/${encodeURIComponent(userId)}`, { params: { page, pageSize } });
+    return data;
   },
 
   // Admin stats endpoint
@@ -292,11 +271,5 @@ export const identityAdminApi = {
   getUser: async (id: string): Promise<UserResponse> => {
     const { data } = await customFetch.get<ApiResponse<UserResponse>>(`/admin/users/${id}`);
     return data.data;
-  },
-
-  // GET /api/admin/users/{id}/orders?page=&pageSize=
-  getUserOrders: async (id: string, page = 1, pageSize = 20): Promise<OrdersResponse> => {
-  const { data } = await customFetch.get<OrdersResponse>(`/admin/users/${id}/orders`, { params: { page, pageSize } });
-  return data;
   },
 };

@@ -30,5 +30,4 @@ public class InternalCartController : ControllerBase
         var snapshot = await _cartService.GetSnapshotAsync(userId);
         return snapshot is null ? NotFound() : Ok(snapshot);
     }
-
 }

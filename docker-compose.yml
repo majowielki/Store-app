@@ -91,7 +91,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5004
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_audit_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - ConnectionStrings__Redis=redis:6379
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
@@ -129,7 +128,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5001
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_identity_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - ConnectionStrings__Redis=redis:6379
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
@@ -170,12 +168,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5003
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_product_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - ConnectionStrings__Redis=redis:6379
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      - Services__IdentityService=http://identityservice:5001
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
       - RabbitMQ__VirtualHost=/
@@ -213,12 +209,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5005
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_cart_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - ConnectionStrings__Redis=redis:6379
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      - Services__IdentityService=http://identityservice:5001
       - Services__ProductService=http://productservice:5003
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
@@ -259,12 +253,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5006
       ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_order_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432"
-      ConnectionStrings__Redis: redis:6379
       JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       JwtSettings__Issuer: Store.API
       JwtSettings__Audience: Store.Client
       InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      Services__IdentityService: http://identityservice:5001
       Services__ProductService: http://productservice:5003
       Services__CartService: http://cartservice:5005
       RabbitMQ__Host: rabbitmq
@@ -307,7 +299,6 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5000
-      - ConnectionStrings__Redis=redis:6379
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client

@@ -396,7 +396,6 @@ public class OrderService : IOrderService
         return date.AddDays(-diff).Date;
     }
 
-
     private static OrderResponse MapToOrderResponse(Order order)
     {
         return new OrderResponse

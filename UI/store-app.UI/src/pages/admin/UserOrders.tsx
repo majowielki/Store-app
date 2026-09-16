@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { formatAsDollars } from '@/utils';
 import type { OrdersResponse, Order } from '@/utils/types';
-import { identityAdminApi } from '@/utils/api';
+import { orderApi } from '@/utils/api';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/components/ui/pagination';
 
 const UserOrders = () => {
@@ -20,7 +20,7 @@ const UserOrders = () => {
     (async () => {
       setLoading(true);
       try {
-        const res = await identityAdminApi.getUserOrders(id, page, pageSize);
+        const res = await orderApi.getOrdersByUser(id, page, pageSize);
         setData(res);
       } finally {
         setLoading(false);

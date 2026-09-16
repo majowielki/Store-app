@@ -9,7 +9,6 @@ public interface ICartClient
 {
     /// <summary>The customer's cart, or null when they have none.</summary>
     Task<CartSnapshot?> GetSnapshotAsync(string userId, CancellationToken cancellationToken = default);
-
 }
 
 /// <summary>

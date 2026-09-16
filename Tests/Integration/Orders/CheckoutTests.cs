@@ -216,12 +216,38 @@ public sealed class AdminOrdersTests : IClassFixture<OrderApiFactory>
             o => Assert.Equal("anonymized-user-email", o.GetProperty("userEmail").GetString()));
     }
 
+    // The admin panel's "orders of this user" page used to go through the identity service;
+    // it now asks the order service directly, with the same masking rules
+    [Fact]
+    public async Task Orders_of_one_customer_are_listed_for_admins()
+    {
+        const string customer = "admin-orders-by-user";
+        var id = await PlaceOrderAsync(customer);
+
+        using var trueAdmin = _factory.CreateClient().AsTrueAdmin();
+        var page = await ReadJson(await trueAdmin.GetAsync($"/api/admin/orders/by-user/{customer}?page=1&pageSize=10"));
+        var items = page.GetProperty("items").EnumerateArray().ToList();
+        Assert.Equal(1, page.GetProperty("totalCount").GetInt32());
+        Assert.Equal(id, items.Single().GetProperty("id").GetInt32());
+        Assert.Equal("Real Customer", items.Single().GetProperty("customerName").GetString());
+
+        using var demoAdmin = _factory.CreateClient().AsDemoAdmin();
+        var masked = await ReadJson(await demoAdmin.GetAsync($"/api/admin/orders/by-user/{customer}"));
+        Assert.All(masked.GetProperty("items").EnumerateArray(),
+            o => Assert.Equal("anonymized-customer-name", o.GetProperty("customerName").GetString()));
+
+        var nobody = await ReadJson(await trueAdmin.GetAsync("/api/admin/orders/by-user/no-such-user"));
+        Assert.Equal(0, nobody.GetProperty("totalCount").GetInt32());
+        Assert.Empty(nobody.GetProperty("items").EnumerateArray());
+    }
+
     [Fact]
     public async Task Admin_order_routes_need_an_admin_role()
     {
         using var user = _factory.CreateClient().AsUser("admin-orders-plain-user");
 
         Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/admin/orders")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/admin/orders/by-user/admin-orders-plain-user")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await _factory.CreateClient().AsTrueAdmin().GetAsync("/api/admin/orders/999999")).StatusCode);
     }
 }

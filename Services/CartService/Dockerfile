@@ -14,7 +14,8 @@ WORKDIR /src
 COPY ["global.json", "Directory.Build.props", "Directory.Packages.props", ".editorconfig", "./"]
 
 # Copy shared projects first for better layer caching
-COPY ["Shared/Store.Shared/Store.Shared.csproj", "Shared/Store.Shared/"]
+COPY ["Shared/Store.Contracts/Store.Contracts.csproj", "Shared/Store.Contracts/"]
+COPY ["Shared/Store.BuildingBlocks/Store.BuildingBlocks.csproj", "Shared/Store.BuildingBlocks/"]
 
 # Copy service project
 COPY ["Services/CartService/Store.CartService.csproj", "Services/CartService/"]
