@@ -1,5 +1,8 @@
 version: 2
 updates:
+  # NuGet: patch/minor updates only. The solution targets net9.0 on purpose - moving the
+  # Microsoft.* packages, the runtime image or RabbitMQ.Client (6 -> 7 changes the API) to the
+  # next major is a deliberate migration, not a bot PR.
   - package-ecosystem: nuget
     directory: /
     schedule:
@@ -8,26 +11,50 @@ updates:
     groups:
       aspnetcore-efcore:
         patterns: ["Microsoft.AspNetCore.*", "Microsoft.EntityFrameworkCore*", "Microsoft.Extensions.*", "Npgsql.*"]
+        update-types: ["minor", "patch"]
       tests:
         patterns: ["xunit*", "Moq", "coverlet.*", "Microsoft.NET.Test.Sdk", "Testcontainers*"]
-    open-pull-requests-limit: 5
+        update-types: ["minor", "patch"]
+      other:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 3
 
+  # npm: minor/patch only; React 19 / Vite 7 / Tailwind 4 are a planned upgrade task
   - package-ecosystem: npm
     directory: /UI/store-app.UI
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
     groups:
-      dev-tooling:
-        dependency-type: development
-    open-pull-requests-limit: 5
+      ui-dependencies:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 2
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 2
 
+  # Docker: base images follow the 9.0 line until the .NET 10 migration
   - package-ecosystem: docker
     directories: ["/Gateway/APIGateway", "/Services/*", "/UI/store-app.UI"]
     schedule:
       interval: monthly
+    groups:
+      base-images:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 2
