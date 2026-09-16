@@ -93,9 +93,6 @@ public class CartController : ControllerBase
     [HttpPut("items/{cartItemId}")]
     public async Task<ActionResult<ApiResponse<CartResponse?>>> UpdateCartItem(int cartItemId, [FromBody] UpdateCartItemRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ApiResponse<CartResponse?>.ValidationError(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
-
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(ApiResponse<CartResponse?>.Error("User not found"));

@@ -1,12 +1,9 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Store.CartService.DTOs.Requests;
 
+/// <summary>Body of PUT /api/cart/items/{id}; absent fields keep their value. Rules: <c>UpdateCartItemRequestValidator</c>.</summary>
 public class UpdateCartItemRequest
 {
-    [Range(1, 999)]
     public int? Quantity { get; set; }
 
-    [StringLength(50)]
     public string? Color { get; set; }
 }
