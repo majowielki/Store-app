@@ -12,8 +12,8 @@ using Store.CartService.Data;
 namespace Store.CartService.Migrations
 {
     [DbContext(typeof(CartDbContext))]
-    [Migration("20260916161938_MessageInboxAndOutbox")]
-    partial class MessageInboxAndOutbox
+    [Migration("20260916210519_InitialSchema")]
+    partial class InitialSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -12,8 +12,8 @@ using Store.IdentityService.Data;
 namespace Store.IdentityService.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    [Migration("20260916161944_MessageInboxAndOutbox")]
-    partial class MessageInboxAndOutbox
+    [Migration("20260916210514_InitialSchema")]
+    partial class InitialSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
