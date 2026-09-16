@@ -7,13 +7,13 @@ using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Http;
+using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.OpenApi;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
 using Store.OrderService.Services;
 using Store.Shared.Extensions;
-using Store.Shared.MessageBus;
 using Store.Shared.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,7 +40,6 @@ builder.Services.AddStoreAuthorization();
 
 // Addresses of the services this one calls; startup fails when any is missing
 builder.Services.AddServiceEndpoints(builder.Configuration,
-    nameof(ServiceEndpointsOptions.IdentityService),
     nameof(ServiceEndpointsOptions.ProductService),
     nameof(ServiceEndpointsOptions.CartService),
     nameof(ServiceEndpointsOptions.AuditLogService));
@@ -51,24 +50,14 @@ builder.Services.AddAuditLogClient(builder.Configuration);
 // Other services, through typed clients with timeouts, retries and a circuit breaker
 builder.Services.AddServiceClient<ICartClient, CartClient>(builder.Configuration, nameof(ServiceEndpointsOptions.CartService));
 builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
-builder.Services.AddServiceClient<IIdentityClient, IdentityClient>(builder.Configuration, nameof(ServiceEndpointsOptions.IdentityService));
-builder.Services.AddHttpContextAccessor();
 
-// Message Bus - Make it optional to prevent startup failures
-try
-{
-    builder.Services.AddRabbitMQ(builder.Configuration);
-    builder.Services.AddMessageBusSubscriptions();
-}
-catch (Exception ex)
-{
-    var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("Startup");
-    logger.LogWarning(ex, "Message bus setup failed, continuing without message bus");
-}
+// Message bus: OrderPlaced leaves through the outbox in the orders database
+builder.Services.AddStoreMessaging<OrderDbContext>(builder.Configuration, serviceName: "order");
 
 // Services
 builder.Services.AddStoreOptions<PricingOptions>(builder.Configuration, PricingOptions.SectionName);
 builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
+builder.Services.AddHostedService<IdempotencyKeyCleanupService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);

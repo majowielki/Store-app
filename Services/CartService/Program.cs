@@ -7,8 +7,10 @@ using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Http;
+using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.OpenApi;
 using Store.CartService.Clients;
+using Store.CartService.Consumers;
 using Store.CartService.Data;
 using Store.CartService.Services;
 using Store.Shared.Extensions;
@@ -49,6 +51,9 @@ builder.Services.AddAuditLogClient(builder.Configuration);
 
 // The catalogue, through a typed client with timeouts, retries and a circuit breaker
 builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
+
+// Message bus: the cart is emptied when the order service reports a placed order
+builder.Services.AddStoreMessaging<CartDbContext>(builder.Configuration, serviceName: "cart", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
 // Services
 builder.Services.AddStoreOptions<CartOptions>(builder.Configuration, CartOptions.SectionName);

@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { useState } from 'react';
 import { ActionFunction, Form, redirect } from 'react-router-dom';
 import FormInput from './FormInput';
 import SubmitBtn from './SubmitBtn';
@@ -16,7 +17,10 @@ export const action =
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const address = formData.get('address') as string;
-  const saveAddress = formData.get('saveAddress') === 'on';
+    const saveAddress = formData.get('saveAddress') === 'on';
+    // One key per visit of the checkout page: a retry after a timeout or a double click
+    // returns the order created the first time instead of charging twice
+    const idempotencyKey = formData.get('idempotencyKey') as string;
 
     if (!name || !address) {
       toast({ description: 'please fill out all fields' });
@@ -35,13 +39,17 @@ export const action =
     try {
   // Address saving is now handled by the order API using saveAddress
 
-      await customFetch.post('/orders/from-cart', {
-        userEmail,
-        deliveryAddress,
-        customerName,
-        notes: undefined,
-        saveAddress,
-      });
+      await customFetch.post(
+        '/orders/from-cart',
+        {
+          userEmail,
+          deliveryAddress,
+          customerName,
+          notes: undefined,
+          saveAddress,
+        },
+        { headers: { 'Idempotency-Key': idempotencyKey } }
+      );
 
       // If address was saved, fetch updated user data
       if (saveAddress) {
@@ -64,8 +72,10 @@ const CheckoutForm = () => {
   const hiddenCheckboxUsers = ["demo@store.com", "demo-admin@store.com"];
   const shouldShowCheckbox = user && !hiddenCheckboxUsers.includes(user.email);
   const isDemo = !!(user && hiddenCheckboxUsers.includes(user.email));
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   return (
     <Form method="post" className="flex flex-col gap-y-4">
+      <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <h4 className="font-medium text-xl mb-4">Delivery Information</h4>
       <FormInput label="user name" name="name" type="text" defaultValue={defaultUserName} disabled={isDemo} />
       {isDemo && (

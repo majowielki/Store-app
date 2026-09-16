@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Messaging;
 using Store.OrderService.Models;
 
 namespace Store.OrderService.Data;
@@ -12,6 +13,7 @@ public class OrderDbContext : DbContext
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -57,5 +59,18 @@ public class OrderDbContext : DbContext
             entity.HasKey(c => c.UserId);
             entity.Property(c => c.UserId).HasMaxLength(450);
         });
+
+        modelBuilder.Entity<IdempotencyKey>(entity =>
+        {
+            entity.HasKey(k => k.Key);
+            entity.Property(k => k.Key).HasMaxLength(128);
+            entity.Property(k => k.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(k => k.RequestHash).IsRequired().HasMaxLength(64);
+            // The cleanup job deletes by age
+            entity.HasIndex(k => k.CreatedAt);
+        });
+
+        // Outbox and inbox of the message bus, in the same database as the orders
+        modelBuilder.AddStoreMessagingTables();
     }
 }

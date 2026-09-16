@@ -1,15 +1,18 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
+using Store.Contracts.Orders.V1;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Models;
-using Store.Shared.MessageBus;
 using Store.Shared.Models;
 using Store.Shared.Services;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace Store.OrderService.Services;
@@ -24,39 +27,44 @@ public class OrderService : IOrderService
     private readonly OrderDbContext _context;
     private readonly ICartClient _cart;
     private readonly ICatalogClient _catalog;
-    private readonly IIdentityClient _identity;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly PricingOptions _pricing;
     private readonly ILogger<OrderService> _logger;
-    private readonly IMessageBus? _messageBus;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogClient _auditLogClient;
 
     public OrderService(
         OrderDbContext context,
         ICartClient cart,
         ICatalogClient catalog,
-        IIdentityClient identity,
+        IPublishEndpoint publishEndpoint,
         IOptions<PricingOptions> pricing,
         ILogger<OrderService> logger,
-        IHttpContextAccessor httpContextAccessor,
-        IAuditLogClient auditLogClient,
-        IMessageBus? messageBus = null)
+        IAuditLogClient auditLogClient)
     {
         _context = context;
         _cart = cart;
         _catalog = catalog;
-        _identity = identity;
+        _publishEndpoint = publishEndpoint;
         _pricing = pricing.Value;
         _logger = logger;
-        _httpContextAccessor = httpContextAccessor;
         _auditLogClient = auditLogClient;
-        _messageBus = messageBus;
     }
 
-    public async Task<ApiResponse<OrderResponse>> CreateOrderFromCartAsync(CreateOrderFromCartRequest request)
+    public async Task<ApiResponse<OrderResponse>> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null)
     {
         try
         {
+            var requestHash = idempotencyKey is null ? null : HashRequest(request);
+            if (idempotencyKey is not null)
+            {
+                // A retry of an answered checkout gets the same order back, before any work is done
+                var replayed = await FindAnsweredAsync(idempotencyKey, request.UserId, requestHash!);
+                if (replayed is not null)
+                {
+                    return replayed;
+                }
+            }
+
             var cart = await _cart.GetSnapshotAsync(request.UserId);
             if (cart is null || cart.Lines.Count == 0)
             {
@@ -87,14 +95,14 @@ public class OrderService : IOrderService
                 });
             }
 
-            var order = await PlaceOrderAsync(request, lines);
+            var (order, replayedAfterLock) = await PlaceOrderAsync(request, lines, idempotencyKey, requestHash);
+            if (replayedAfterLock is not null)
+            {
+                return replayedAfterLock;
+            }
 
             await AuditAsync("ORDER_CREATED", order.Id.ToString(), order.UserId,
                 new { order.Id, order.Subtotal, order.DiscountAmount, order.DeliveryFee, order.Total, Lines = order.Lines.Count });
-
-            await ClearCartAsync(request.UserId);
-            await PublishOrderCreatedEventAsync(order);
-            await SaveAddressAsync(request);
 
             return ApiResponse<OrderResponse>.Success(MapToOrderResponse(order));
         }
@@ -107,10 +115,13 @@ public class OrderService : IOrderService
     }
 
     /// <summary>
-    /// Writes the order in one transaction. The customer row is locked first, so concurrent
-    /// orders of the same customer are serialised and only one of them can be the first order.
+    /// Writes the order, the idempotency key and the order-placed event in one transaction.
+    /// The customer row is locked first, so concurrent checkouts of the same customer are
+    /// serialised: only one of them can be the first order, and a duplicate that waited on the
+    /// lock finds the key its twin stored and returns that order instead of creating another.
     /// </summary>
-    private async Task<Order> PlaceOrderAsync(CreateOrderFromCartRequest request, List<OrderLine> lines)
+    private async Task<(Order Order, ApiResponse<OrderResponse>? Replayed)> PlaceOrderAsync(
+        CreateOrderFromCartRequest request, List<OrderLine> lines, string? idempotencyKey, string? requestHash)
     {
         var now = DateTime.UtcNow;
 
@@ -121,6 +132,16 @@ public class OrderService : IOrderService
         var customer = await _context.Customers
             .FromSqlInterpolated($"""SELECT * FROM "Customers" WHERE "UserId" = {request.UserId} FOR UPDATE""")
             .SingleAsync();
+
+        if (idempotencyKey is not null)
+        {
+            var replayed = await FindAnsweredAsync(idempotencyKey, request.UserId, requestHash!);
+            if (replayed is not null)
+            {
+                await transaction.RollbackAsync();
+                return (null!, replayed);
+            }
+        }
 
         var totals = PricingPolicy.Calculate(lines.Sum(l => l.LineTotal), isFirstOrder: customer.OrdersPlaced == 0, _pricing);
 
@@ -147,9 +168,73 @@ public class OrderService : IOrderService
 
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
+
+        if (idempotencyKey is not null)
+        {
+            _context.IdempotencyKeys.Add(new IdempotencyKey
+            {
+                Key = idempotencyKey,
+                UserId = request.UserId,
+                RequestHash = requestHash!,
+                OrderId = order.Id,
+                CreatedAt = now
+            });
+        }
+
+        // Goes to the outbox table with this transaction; the cart, identity and audit
+        // services receive it once the transaction is committed
+        await _publishEndpoint.Publish(new OrderPlaced(
+            order.Id,
+            order.UserId,
+            order.UserEmail,
+            order.CustomerName,
+            order.DeliveryAddress,
+            request.SaveAddress,
+            order.Subtotal,
+            order.DiscountAmount,
+            order.DeliveryFee,
+            order.Total,
+            order.Lines.Select(l => new OrderPlacedLine(l.ProductId, l.ProductTitle, l.Quantity, l.UnitPrice)).ToList(),
+            order.CreatedAt));
+
+        await _context.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        return order;
+        return (order, null);
+    }
+
+    /// <summary>The response an earlier request with this key received, or null when the key is new.</summary>
+    private async Task<ApiResponse<OrderResponse>?> FindAnsweredAsync(string idempotencyKey, string userId, string requestHash)
+    {
+        var answered = await _context.IdempotencyKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == idempotencyKey);
+        if (answered is null)
+        {
+            return null;
+        }
+
+        if (answered.UserId != userId || answered.RequestHash != requestHash)
+        {
+            return ApiResponse<OrderResponse>.Error(
+                "Idempotency-Key was already used for a different request",
+                HttpStatusCode.UnprocessableEntity);
+        }
+
+        var order = await _context.Orders.AsNoTracking().Include(o => o.Lines).SingleAsync(o => o.Id == answered.OrderId);
+        _logger.LogInformation("Checkout with Idempotency-Key {Key} replayed order {OrderId}", idempotencyKey, order.Id);
+        return ApiResponse<OrderResponse>.Success(MapToOrderResponse(order));
+    }
+
+    private static string HashRequest(CreateOrderFromCartRequest request)
+    {
+        var canonical = JsonSerializer.Serialize(new
+        {
+            request.UserEmail,
+            request.CustomerName,
+            request.DeliveryAddress,
+            request.Notes,
+            request.SaveAddress
+        }, JsonOptions);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
     public async Task<ApiResponse<OrderResponse?>> GetOrderByIdAsync(int orderId, string userId)
@@ -317,68 +402,6 @@ public class OrderService : IOrderService
     {
         var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
         return date.AddDays(-diff).Date;
-    }
-
-    private async Task ClearCartAsync(string userId)
-    {
-        try
-        {
-            await _cart.ClearAsync(userId);
-        }
-        catch (Exception ex)
-        {
-            // The order exists; a cart that stays full is reported, not fatal
-            _logger.LogError(ex, "Error clearing cart for user: {UserId}", userId);
-        }
-    }
-
-    private async Task PublishOrderCreatedEventAsync(Order order)
-    {
-        if (_messageBus == null)
-        {
-            _logger.LogWarning("MessageBus is not configured, skipping event publishing");
-            return;
-        }
-
-        try
-        {
-            await _messageBus.PublishAsync(new OrderCreatedEvent
-            {
-                OrderId = Guid.NewGuid(),
-                UserId = Guid.TryParse(order.UserId, out var userGuid) ? userGuid : Guid.Empty,
-                TotalAmount = order.Total,
-                Items = order.Lines.Select(l => new OrderItemEvent { Quantity = l.Quantity, Price = l.UnitPrice }).ToList()
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error publishing OrderCreatedEvent for order: {OrderId}", order.Id);
-        }
-    }
-
-    private async Task SaveAddressAsync(CreateOrderFromCartRequest request)
-    {
-        if (!request.SaveAddress || string.IsNullOrWhiteSpace(request.DeliveryAddress))
-        {
-            return;
-        }
-
-        var authorization = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
-        if (string.IsNullOrWhiteSpace(authorization))
-        {
-            _logger.LogWarning("No Authorization header in the request; the address of user {UserId} is not saved", request.UserId);
-            return;
-        }
-
-        try
-        {
-            var token = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? authorization[7..] : authorization;
-            await _identity.SaveAddressAsync(request.DeliveryAddress, token);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving address to user profile for user: {UserId}", request.UserId);
-        }
     }
 
     private async Task AuditAsync(string action, string? entityId, string userId, object details)

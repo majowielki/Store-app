@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Messaging;
 using Store.Shared.Models;
 
 namespace Store.AuditLogService.Data;
@@ -42,5 +43,8 @@ public class AuditLogDbContext : DbContext
             entity.HasIndex(e => e.Timestamp);
             entity.HasIndex(e => new { e.EntityName, e.EntityId });
         });
+
+        // Inbox of the message bus: audit entries arrive as events
+        modelBuilder.AddStoreMessagingTables();
     }
 }

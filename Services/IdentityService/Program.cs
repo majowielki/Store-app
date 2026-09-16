@@ -9,7 +9,9 @@ using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
+using Store.BuildingBlocks.Messaging;
 using Store.Contracts.Authorization;
+using Store.IdentityService.Consumers;
 using Store.IdentityService.Data;
 using Store.IdentityService.Models;
 using Store.IdentityService.Seeding;
@@ -108,6 +110,9 @@ builder.Services.AddStoreAuthorization();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Message bus: a placed order may carry a delivery address to store in the profile
+builder.Services.AddStoreMessaging<IdentityDbContext>(builder.Configuration, serviceName: "identity", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
 // Addresses of the services this one calls; startup fails when any is missing
 builder.Services.AddServiceEndpoints(builder.Configuration,

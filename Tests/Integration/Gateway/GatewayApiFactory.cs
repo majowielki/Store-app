@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
-using Store.GatewayService.HealthChecks;
+using Store.GatewayService.RateLimiting;
 using Store.Tests.Integration.TestSupport;
 
 namespace Store.Tests.Integration.Gateway;
@@ -9,7 +9,7 @@ namespace Store.Tests.Integration.Gateway;
 /// downstream services are not running, so a proxied request ends in 502 - which proves the
 /// request passed the gateway's own checks.
 /// </summary>
-public sealed class GatewayApiFactory : StoreApiFactory<RabbitMQHealthCheck>
+public sealed class GatewayApiFactory : StoreApiFactory<AuthRateLimitOptions>
 {
     public const int CredentialPermitLimit = 5;
 

@@ -25,12 +25,16 @@ public class OrdersController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new order from user's cart
+    /// Create a new order from the user's cart. Send an Idempotency-Key header (a UUID per
+    /// checkout attempt): a retry with the same key returns the order created the first time.
     /// </summary>
     /// <param name="request">Order creation data</param>
+    /// <param name="idempotencyKey">Idempotency-Key header, optional</param>
     /// <returns>Created order</returns>
     [HttpPost("from-cart")]
-    public async Task<ActionResult<ApiResponse<OrderResponse>>> CreateOrderFromCart([FromBody] CreateOrderFromCartRequest request)
+    public async Task<ActionResult<ApiResponse<OrderResponse>>> CreateOrderFromCart(
+        [FromBody] CreateOrderFromCartRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
     {
         // FluentValidation will handle validation automatically
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -39,7 +43,11 @@ public class OrdersController : ControllerBase
             return Unauthorized(ApiResponse<OrderResponse>.Error("User not found"));
         }
         request.UserId = userId;
-        var response = await _orderService.CreateOrderFromCartAsync(request);
+        if (idempotencyKey is { Length: > 128 })
+        {
+            return BadRequest(ApiResponse<OrderResponse>.Error("Idempotency-Key must be at most 128 characters"));
+        }
+        var response = await _orderService.CreateOrderFromCartAsync(request, string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim());
         if (!response.IsSuccess)
             return StatusCode((int)response.StatusCode, response);
         return StatusCode(201, response);

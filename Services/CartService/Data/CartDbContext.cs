@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Messaging;
 using Store.CartService.Models;
 
 namespace Store.CartService.Data;
@@ -44,5 +45,8 @@ public class CartDbContext : DbContext
             entity.Property(ci => ci.Color).IsRequired().HasMaxLength(50);
             entity.HasIndex(ci => new { ci.CartId, ci.ProductId, ci.Color }).IsUnique();
         });
+
+        // Inbox of the message bus (the cart consumes OrderPlaced) and outbox for what it publishes
+        modelBuilder.AddStoreMessagingTables();
     }
 }

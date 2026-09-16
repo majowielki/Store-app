@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -9,9 +8,7 @@ using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
-using Store.GatewayService.HealthChecks;
 using Store.GatewayService.RateLimiting;
-using Store.Shared.MessageBus;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using Yarp.ReverseProxy.Transforms;
@@ -75,17 +72,6 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 // Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes
 builder.Services.AddStoreAuthorization();
 
-// RabbitMQ Message Bus with error handling
-try
-{
-    builder.Services.AddRabbitMQ(builder.Configuration);
-    builder.Services.AddMessageBusSubscriptions();
-}
-catch (Exception ex)
-{
-    var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger<Program>();
-    logger.LogWarning(ex, "RabbitMQ setup failed, continuing without message bus");
-}
 
 // HTTP Client
 builder.Services.AddHttpClient();
@@ -107,9 +93,8 @@ builder.Services.AddReverseProxy()
         });
     });
 
-// Health checks; the broker is reported but does not gate readiness - the proxy works without it
-builder.Services.AddStoreHealthChecks()
-    .AddCheck<RabbitMQHealthCheck>("rabbitmq", failureStatus: HealthStatus.Degraded);
+// Health checks: the gateway has no database and no broker of its own
+builder.Services.AddStoreHealthChecks();
 
 // Rate Limiting: sliding windows per client address on the identity route, attached in
 // appsettings.json via "RateLimiterPolicy": "auth"; credential endpoints get the stricter limit

@@ -1,12 +1,14 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using Store.AuditLogService.Consumers;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Health;
+using Store.BuildingBlocks.Messaging;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +44,9 @@ builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
 // Services
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
+// Message bus: business events become audit entries
+builder.Services.AddStoreMessaging<AuditLogDbContext>(builder.Configuration, serviceName: "audit", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);

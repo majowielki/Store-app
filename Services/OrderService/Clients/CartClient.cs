@@ -10,8 +10,6 @@ public interface ICartClient
     /// <summary>The customer's cart, or null when they have none.</summary>
     Task<CartSnapshot?> GetSnapshotAsync(string userId, CancellationToken cancellationToken = default);
 
-    /// <summary>Empties the cart after an order was placed from it.</summary>
-    Task ClearAsync(string userId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -37,11 +35,5 @@ public sealed class CartClient : ICartClient
 
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<CartSnapshot>(StoreJson.Web, cancellationToken);
-    }
-
-    public async Task ClearAsync(string userId, CancellationToken cancellationToken = default)
-    {
-        using var response = await _httpClient.DeleteAsync(new Uri($"api/cart/internal/{Uri.EscapeDataString(userId)}", UriKind.Relative), cancellationToken);
-        response.EnsureSuccessStatusCode();
     }
 }

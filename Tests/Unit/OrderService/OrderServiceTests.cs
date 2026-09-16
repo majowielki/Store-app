@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -28,10 +28,9 @@ public class OrderServiceTests
             _dbContext,
             Mock.Of<ICartClient>(),
             Mock.Of<ICatalogClient>(),
-            Mock.Of<IIdentityClient>(),
+            Mock.Of<IPublishEndpoint>(),
             Options.Create(new PricingOptions()),
             _loggerMock.Object,
-            new HttpContextAccessor(),
             _auditLogClientMock.Object
         );
     }

@@ -1,10 +1,10 @@
+using MassTransit;
+using MassTransit.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
-using Store.Shared.MessageBus;
 using Store.Shared.Services;
 using Xunit;
 
@@ -12,9 +12,11 @@ namespace Store.Tests.Integration.TestSupport;
 
 /// <summary>
 /// Hosts one service in-process against a real PostgreSQL database (migrated by the service's
-/// own startup code) with the network boundaries to other services replaced by recording fakes.
-/// <typeparamref name="TMarker"/> is any type from the service assembly; WebApplicationFactory
-/// uses it only to locate the entry point, which avoids six ambiguous "Program" classes.
+/// own startup code) with the network boundaries to other services replaced by recording fakes
+/// and the message bus running on MassTransit's in-memory transport (outbox, inbox and
+/// consumers are the real ones). <typeparamref name="TMarker"/> is any type from the service
+/// assembly; WebApplicationFactory uses it only to locate the entry point, which avoids six
+/// ambiguous "Program" classes.
 /// </summary>
 public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>, IAsyncLifetime
     where TMarker : class
@@ -33,8 +35,11 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
     /// <summary>What the service under test tried to send to AuditLogService.</summary>
     public RecordingAuditLogClient AuditLog { get; } = new();
 
-    /// <summary>What the service under test published to the message bus.</summary>
-    public RecordingMessageBus MessageBus { get; } = new();
+    /// <summary>
+    /// The bus of the service under test: publish events into it, observe what it published
+    /// and what its consumers handled. Only for services that register messaging.
+    /// </summary>
+    public ITestHarness Bus => Services.GetRequiredService<ITestHarness>();
 
     public async Task InitializeAsync()
     {
@@ -61,6 +66,10 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
         builder.UseSetting("JwtSettings:Audience", TestTokens.Audience);
         builder.UseSetting("InternalApi:ApiKey", TestTokens.InternalApiKey);
         builder.UseSetting("TrueAdmin:Password", TestUsers.TrueAdminPassword);
+        // Validated on start but unused: the harness swaps RabbitMQ for the in-memory transport
+        builder.UseSetting("RabbitMQ:Host", "broker.test");
+        builder.UseSetting("RabbitMQ:Username", "tests");
+        builder.UseSetting("RabbitMQ:Password", "tests");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
 
         ConfigureSettings(builder);
@@ -70,15 +79,10 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
             services.RemoveAll<IAuditLogClient>();
             services.AddSingleton<IAuditLogClient>(AuditLog);
 
-            // No broker in tests: swap the bus and drop the background subscriber that connects to it
-            services.RemoveAll<IMessageBus>();
-            services.AddSingleton<IMessageBus>(MessageBus);
-            services.RemoveAll<IMessageBusConnection>();
-            var subscriber = services.FirstOrDefault(d =>
-                d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(MessageBusSubscriptionService));
-            if (subscriber is not null)
+            // Keeps the service's consumers and outbox, replaces the transport with in-memory
+            if (services.Any(d => d.ServiceType == typeof(IBus)))
             {
-                services.Remove(subscriber);
+                services.AddMassTransitTestHarness();
             }
 
             ConfigureTestServices(services);

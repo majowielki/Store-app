@@ -1,3 +1,5 @@
+using MassTransit.Testing;
+using Store.Contracts.Orders.V1;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -55,7 +57,14 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         Assert.Equal(2, lines.Count);
         Assert.All(lines, line => Assert.NotEqual(0, line.GetProperty("productId").GetInt32()));
         Assert.Equal(80m, lines.Single(l => l.GetProperty("productId").GetInt32() == 1).GetProperty("price").GetDecimal());
-        Assert.Contains(user, _factory.Upstreams.ClearedCarts);
+
+        // The event left through the outbox after the commit, with the same amounts
+        var orderId = order.GetProperty("id").GetInt32();
+        Assert.True(await Eventually.BecomesTrueAsync(() => _factory.Bus.Published.Select<OrderPlaced>(p => p.Context.Message.OrderId == orderId).Any()));
+        var placed = _factory.Bus.Published.Select<OrderPlaced>(p => p.Context.Message.OrderId == orderId).Single().Context.Message;
+        Assert.Equal(user, placed.UserId);
+        Assert.Equal(162m, placed.Total);
+        Assert.Equal(2, placed.Lines.Count);
     }
 
     [Fact]
@@ -93,14 +102,11 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         var orders = new List<JsonElement>();
         foreach (var response in responses)
         {
-            // The fake cart is emptied by the first successful checkout; later requests may find it gone
-            if (response.StatusCode == HttpStatusCode.Created)
-            {
-                orders.Add((await ReadJson(response)).GetProperty("data"));
-            }
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            orders.Add((await ReadJson(response)).GetProperty("data"));
         }
 
-        Assert.NotEmpty(orders);
+        Assert.Equal(10, orders.Select(o => o.GetProperty("id").GetInt32()).Distinct().Count());
         Assert.Equal(1, orders.Count(o => o.GetProperty("discountAmount").GetDecimal() > 0));
     }
 
@@ -115,7 +121,8 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         var response = await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody());
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        Assert.DoesNotContain(user, _factory.Upstreams.ClearedCarts);
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        Assert.Empty(_factory.Bus.Published.Select<OrderPlaced>(p => p.Context.Message.UserId == user));
     }
 
     [Fact]

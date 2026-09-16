@@ -279,6 +279,26 @@ public class CartService : ICartService
                 cart.UpdatedAt);
     }
 
+    public async Task<int> ClearAfterOrderAsync(string userId, int orderId)
+    {
+        var cart = await _context.Carts
+            .Include(c => c.Items)
+            .FirstOrDefaultAsync(c => c.UserId == userId);
+
+        if (cart is null || cart.Items.Count == 0)
+        {
+            return 0;
+        }
+
+        var removed = cart.Items.Count;
+        _context.CartItems.RemoveRange(cart.Items);
+        cart.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        await AuditAsync("CART_CLEARED", "Cart", cart.Id.ToString(), userId, new { OrderId = orderId, Lines = removed });
+        return removed;
+    }
+
     private async Task<Cart> GetOrCreateCartAsync(string userId)
     {
         var cart = await _context.Carts

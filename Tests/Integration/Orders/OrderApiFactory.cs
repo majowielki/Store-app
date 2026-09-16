@@ -11,9 +11,9 @@ using System.Net.Http.Json;
 namespace Store.Tests.Integration.Orders;
 
 /// <summary>
-/// OrderService against its real database. The cart, the catalogue and the identity service
-/// are replaced at the HTTP boundary by <see cref="FakeUpstreams"/>; the resilience pipeline
-/// and the typed clients stay real.
+/// OrderService against its real database. The cart and the catalogue are replaced at the HTTP
+/// boundary by <see cref="FakeUpstreams"/>; the resilience pipeline, the typed clients and the
+/// outbox stay real, with the bus on the in-memory transport.
 /// </summary>
 public sealed class OrderApiFactory : StoreApiFactory<OrderDbContext>
 {
@@ -29,7 +29,6 @@ public sealed class OrderApiFactory : StoreApiFactory<OrderDbContext>
     {
         builder.UseSetting("Services:CartService", "http://cart.test");
         builder.UseSetting("Services:ProductService", "http://catalog.test");
-        builder.UseSetting("Services:IdentityService", "http://identity.test");
     }
 
     protected override void ConfigureTestServices(IServiceCollection services)
@@ -39,18 +38,13 @@ public sealed class OrderApiFactory : StoreApiFactory<OrderDbContext>
 }
 
 /// <summary>
-/// Plays the cart, the catalogue and the identity service for the order service under test.
+/// Plays the cart and the catalogue for the order service under test.
 /// </summary>
 public sealed class FakeUpstreams : HttpMessageHandler
 {
     private readonly ConcurrentDictionary<string, CartSnapshot> _carts = new();
     private readonly ConcurrentDictionary<int, ProductSnapshot> _products = new();
 
-    /// <summary>Users whose cart the order service asked to clear.</summary>
-    public ConcurrentQueue<string> ClearedCarts { get; } = new();
-
-    /// <summary>Addresses the order service asked the identity service to save.</summary>
-    public ConcurrentQueue<string> SavedAddresses { get; } = new();
 
     public void AddProduct(int id, decimal effectivePrice, string title = "Fake product", bool isActive = true)
         => _products[id] = new ProductSnapshot(id, title, "https://example.test/fake.jpg", "Modenza", new[] { "black" }, effectivePrice, effectivePrice, isActive, DateTime.UtcNow);
@@ -66,21 +60,12 @@ public sealed class FakeUpstreams : HttpMessageHandler
         var host = request.RequestUri?.Host ?? string.Empty;
         var path = request.RequestUri?.AbsolutePath ?? string.Empty;
 
-        if (host == "cart.test" && path.StartsWith("/api/cart/internal/", StringComparison.Ordinal))
+        if (host == "cart.test" && request.Method == HttpMethod.Get && path.StartsWith("/api/cart/internal/", StringComparison.Ordinal))
         {
             var userId = Uri.UnescapeDataString(path["/api/cart/internal/".Length..]);
-            if (request.Method == HttpMethod.Get)
-            {
-                return Task.FromResult(_carts.TryGetValue(userId, out var cart)
-                    ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(cart) }
-                    : new HttpResponseMessage(HttpStatusCode.NotFound));
-            }
-            if (request.Method == HttpMethod.Delete)
-            {
-                ClearedCarts.Enqueue(userId);
-                _carts.TryRemove(userId, out _);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
-            }
+            return Task.FromResult(_carts.TryGetValue(userId, out var cart)
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(cart) }
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
         }
 
         if (host == "catalog.test" && request.Method == HttpMethod.Get
@@ -92,11 +77,6 @@ public sealed class FakeUpstreams : HttpMessageHandler
                 : new HttpResponseMessage(HttpStatusCode.NotFound));
         }
 
-        if (host == "identity.test" && request.Method == HttpMethod.Put && path == "/api/auth/me/address")
-        {
-            SavedAddresses.Enqueue(request.Content?.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult() ?? string.Empty);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
-        }
 
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
     }

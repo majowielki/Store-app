@@ -96,12 +96,19 @@ services:
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__VirtualHost=/
+      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
     ports:
       - "5004:5004"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5004/health/ready"]
@@ -132,12 +139,19 @@ services:
       - Services__AuditLogService=http://auditlogservice:5004
       - TRUE_ADMIN_EMAIL=trueadmin@store.com
       - TRUE_ADMIN_PASSWORD=${TRUE_ADMIN_PASSWORD:-SecurePassword123!}
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__VirtualHost=/
+      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
     ports:
       - "5001:5001"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       auditlogservice:
         condition: service_healthy
@@ -168,12 +182,11 @@ services:
       - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
       - Services__AuditLogService=http://auditlogservice:5004
       - Services__IdentityService=http://identityservice:5001
-      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
       - RabbitMQ__VirtualHost=/
-      - RabbitMQ__ExchangeName=store_events
+      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
     ports:
       - "5003:5003"
     depends_on:
@@ -215,12 +228,11 @@ services:
       - Services__AuditLogService=http://auditlogservice:5004
       - Services__IdentityService=http://identityservice:5001
       - Services__ProductService=http://productservice:5003
-      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
       - RabbitMQ__VirtualHost=/
-      - RabbitMQ__ExchangeName=store_events
+      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
     ports:
       - "5005:5005"
     depends_on:
@@ -265,12 +277,11 @@ services:
       Services__IdentityService: http://identityservice:5001
       Services__ProductService: http://productservice:5003
       Services__CartService: http://cartservice:5005
-      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: 5672
-      RabbitMQ__UserName: ${RABBITMQ_USER:-store_user}
-      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-StrongPassword123!}
       RabbitMQ__VirtualHost: /
-      RabbitMQ__ExchangeName: store_events
+      RabbitMQ__Username: ${RABBITMQ_USER:-store_user}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-StrongPassword123!}
     ports:
       - "5006:5006"
     depends_on:
@@ -311,12 +322,6 @@ services:
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
-      - RabbitMQ__HostName=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__UserName=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__ExchangeName=store_events
     ports:
       - "5000:5000"
     depends_on:
@@ -331,8 +336,6 @@ services:
       auditlogservice:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
