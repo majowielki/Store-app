@@ -7,10 +7,10 @@ using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
-using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.OpenApi;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Authorization;
 using Store.IdentityService.Consumers;
 using Store.IdentityService.Data;
@@ -106,9 +106,6 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Message bus: a placed order may carry a delivery address to store in the profile; profile changes reach the audit service as events
 builder.Services.AddStoreMessaging<IdentityDbContext>(builder.Configuration, serviceName: "identity", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
-// Addresses of the services this one calls; startup fails when any is missing
-builder.Services.AddServiceEndpoints(builder.Configuration, nameof(ServiceEndpointsOptions.OrderService));
-builder.Services.AddHttpClient();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
@@ -137,49 +134,16 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapStoreHealthChecks();
 
-// Database migration and comprehensive user seeding
-try
-{
-    using (var scope = app.Services.CreateScope())
+// Migrations, roles and the seeded accounts: applied here in Development, by "--migrate" in a
+// deployment; pending migrations stop the start
+if (await app.PrepareDatabaseAsync<IdentityDbContext>(args, seed: async services =>
     {
-        var context = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
-        try
-        {
-            // Check if database exists and is accessible
-            if (context.Database.CanConnect())
-            {
-                // Apply migrations
-                context.Database.Migrate();
-                logger.LogInformation("Database migration completed successfully.");
-
-                // Seed roles
-                await SeedRolesAsync(roleManager, logger);
-                logger.LogInformation("Role seeding completed successfully.");
-
-                // Seed all users (True Admin, Demo Admin, Demo User)
-                await SeedUsersAsync(userManager, builder.Configuration, app.Environment, logger);
-                logger.LogInformation("User seeding completed successfully.");
-            }
-            else
-            {
-                logger.LogWarning("Database connection failed. Skipping migration and seeding.");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred while migrating or seeding the database. Continuing without database setup.");
-        }
-    }
-}
-catch (Exception ex)
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        await SeedRolesAsync(services.GetRequiredService<RoleManager<IdentityRole>>(), logger);
+        await SeedUsersAsync(services.GetRequiredService<UserManager<ApplicationUser>>(), builder.Configuration, app.Environment, logger);
+    }))
 {
-    // Log the error but don't stop the application
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Failed to initialize database. Application will continue without database setup.");
+    return;
 }
 
 app.Run();

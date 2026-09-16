@@ -69,6 +69,7 @@ public class OrdersController : ControllerBase
         if (User.IsStoreAdmin())
         {
             var adminOrder = await _orderService.GetOrderByIdForAdminAsync(id);
+            adminOrder.Data?.ForViewer(User);
             return StatusCode((int)adminOrder.StatusCode, adminOrder);
         }
         var response = await _orderService.GetOrderByIdAsync(id, userId);
@@ -104,6 +105,7 @@ public class OrdersController : ControllerBase
     public async Task<ActionResult<ApiResponse<OrderListResponse>>> GetAllOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var response = await _orderService.GetAllOrdersAsync(page, pageSize);
+        response.Data?.ForViewer(User);
         return StatusCode((int)response.StatusCode, response);
     }
 
@@ -115,6 +117,7 @@ public class OrdersController : ControllerBase
     public async Task<ActionResult<ApiResponse<OrderListResponse>>> GetOrdersByUserId([FromRoute] string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var response = await _orderService.GetOrdersByUserIdAsync(userId, page, pageSize);
+        response.Data?.ForViewer(User);
         return StatusCode((int)response.StatusCode, response);
     }
 

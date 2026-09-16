@@ -36,6 +36,8 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
     [InlineData("/api/admin/users", Roles.User, HttpStatusCode.Forbidden)]
     [InlineData("/api/admin/users", Roles.DemoAdmin, PassedTheGateway)]
     [InlineData("/api/admin/users", Roles.TrueAdmin, PassedTheGateway)]
+    [InlineData("/api/admin/orders", Roles.User, HttpStatusCode.Forbidden)]
+    [InlineData("/api/admin/orders/1", Roles.DemoAdmin, PassedTheGateway)]
     [InlineData("/api/auditlog", Roles.User, HttpStatusCode.Forbidden)]
     [InlineData("/api/auditlog", Roles.TrueAdmin, PassedTheGateway)]
     [InlineData("/api/products", "anonymous", PassedTheGateway)]

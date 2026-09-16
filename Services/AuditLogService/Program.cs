@@ -9,6 +9,7 @@ using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.OpenApi;
+using Store.BuildingBlocks.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,38 +70,11 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapStoreHealthChecks();
 
-// Database migration - Make this optional to prevent startup failures
-try
+// Migrations: applied here in Development, by "--migrate" in a deployment; pending ones stop the start
+if (await app.PrepareDatabaseAsync<AuditLogDbContext>(args))
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        var context = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
-        try
-        {
-            // Check if database exists and is accessible
-            if (context.Database.CanConnect())
-            {
-                context.Database.Migrate();
-                logger.LogInformation("Database migration completed successfully.");
-            }
-            else
-            {
-                logger.LogWarning("Database connection failed. Skipping migration.");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred while migrating the database. Continuing without database setup.");
-        }
-    }
-}
-catch (Exception ex)
-{
-    // Log the error but don't stop the application
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Failed to initialize database. Application will continue without database setup.");
+    return;
 }
 
 app.Run();
+

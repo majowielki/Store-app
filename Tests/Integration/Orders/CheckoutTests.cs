@@ -153,3 +153,75 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync($"/api/orders/{id}")).StatusCode);
     }
 }
+
+/// <summary>
+/// The admin views come from the order service itself now; the identity service used to
+/// proxy them. The demo administrator sees placeholders instead of customer data.
+/// </summary>
+[Collection(PostgresTests.Name)]
+public sealed class AdminOrdersTests : IClassFixture<OrderApiFactory>
+{
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    private readonly OrderApiFactory _factory;
+
+    public AdminOrdersTests(OrderApiFactory factory)
+    {
+        _factory = factory;
+    }
+
+    private static async Task<JsonElement> ReadJson(HttpResponseMessage response)
+        => JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json);
+
+    private async Task<int> PlaceOrderAsync(string user)
+    {
+        _factory.Upstreams.AddProduct(21, effectivePrice: 25m);
+        _factory.Upstreams.SetCart(user, (21, 1, 25m));
+        using var client = _factory.CreateClient().AsUser(user);
+        var response = await client.PostAsJsonAsync("/api/orders/from-cart", new
+        {
+            userEmail = $"{user}@test.local",
+            customerName = "Real Customer",
+            deliveryAddress = "5 Real Street",
+            saveAddress = false
+        });
+        return (await ReadJson(response)).GetProperty("data").GetProperty("id").GetInt32();
+    }
+
+    [Fact]
+    public async Task True_admin_sees_customer_data_and_demo_admin_sees_placeholders()
+    {
+        var id = await PlaceOrderAsync("admin-orders-customer");
+
+        using var trueAdmin = _factory.CreateClient().AsTrueAdmin();
+        var real = await ReadJson(await trueAdmin.GetAsync($"/api/admin/orders/{id}"));
+        Assert.Equal("Real Customer", real.GetProperty("customerName").GetString());
+        Assert.Equal("5 Real Street", real.GetProperty("deliveryAddress").GetString());
+
+        using var demoAdmin = _factory.CreateClient().AsDemoAdmin();
+        var masked = await ReadJson(await demoAdmin.GetAsync($"/api/admin/orders/{id}"));
+        Assert.Equal("anonymized-customer-name", masked.GetProperty("customerName").GetString());
+        Assert.Equal("anonymized-delivery-address", masked.GetProperty("deliveryAddress").GetString());
+        Assert.Equal("anonymized-user-email", masked.GetProperty("userEmail").GetString());
+        Assert.Equal(30m, masked.GetProperty("total").GetDecimal()); // 25 - 20 % first-order discount + 10 delivery
+
+        var list = await ReadJson(await demoAdmin.GetAsync("/api/admin/orders?page=1&pageSize=5"));
+        Assert.True(list.GetProperty("totalCount").GetInt32() >= 1);
+        Assert.All(list.GetProperty("items").EnumerateArray(),
+            o => Assert.Equal("anonymized-customer-name", o.GetProperty("customerName").GetString()));
+
+        // The older admin endpoints of the order service mask the same way
+        var byUser = await ReadJson(await demoAdmin.GetAsync("/api/orders/by-user/admin-orders-customer"));
+        Assert.All(byUser.GetProperty("data").GetProperty("orders").EnumerateArray(),
+            o => Assert.Equal("anonymized-user-email", o.GetProperty("userEmail").GetString()));
+    }
+
+    [Fact]
+    public async Task Admin_order_routes_need_an_admin_role()
+    {
+        using var user = _factory.CreateClient().AsUser("admin-orders-plain-user");
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/admin/orders")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _factory.CreateClient().AsTrueAdmin().GetAsync("/api/admin/orders/999999")).StatusCode);
+    }
+}

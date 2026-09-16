@@ -133,7 +133,6 @@ services:
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
-      - JwtSettings__Authority=https://localhost:5001
       - TRUE_ADMIN_EMAIL=trueadmin@store.com
       - TRUE_ADMIN_PASSWORD=${TRUE_ADMIN_PASSWORD:-SecurePassword123!}
       - RabbitMQ__Host=rabbitmq

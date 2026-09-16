@@ -7,6 +7,7 @@ using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.OpenApi;
+using Store.BuildingBlocks.Persistence;
 using Store.ProductService.Data;
 using Store.ProductService.Services;
 
@@ -72,21 +73,12 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapStoreHealthChecks();
 
-// Database migration and seeding
-using (var scope = app.Services.CreateScope())
+// Migrations and the demo catalogue: applied here in Development, by "--migrate" in a deployment;
+// pending migrations stop the start
+if (await app.PrepareDatabaseAsync<ProductDbContext>(args,
+        seed: services => DatabaseSeeder.SeedAsync(services.GetRequiredService<ProductDbContext>())))
 {
-    try
-    {
-        var context = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
-        await context.Database.MigrateAsync();
-
-        await DatabaseSeeder.SeedAsync(context);
-    }
-    catch (Exception ex)
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Error during database migration or seeding");
-    }
+    return;
 }
 
 app.Run();

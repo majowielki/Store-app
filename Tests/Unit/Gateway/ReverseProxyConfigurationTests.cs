@@ -19,7 +19,7 @@ public class ReverseProxyConfigurationTests
 
     private static readonly string[] ExpectedRoutes =
     {
-        "identity-route", "products-route", "cart-route", "orders-route", "audit-route", "admin-route"
+        "identity-route", "products-route", "cart-route", "orders-route", "audit-route", "admin-orders-route", "admin-route"
     };
 
     public static TheoryData<string> Environments => new() { "Development", "Production" };
@@ -91,6 +91,10 @@ public class ReverseProxyConfigurationTests
         Assert.Equal(Policies.User, routes["orders-route"].AuthorizationPolicy);
         Assert.Equal(Policies.Admin, routes["audit-route"].AuthorizationPolicy);
         Assert.Equal(Policies.Admin, routes["admin-route"].AuthorizationPolicy);
+        Assert.Equal(Policies.Admin, routes["admin-orders-route"].AuthorizationPolicy);
+        // The more specific admin route must win over the identity catch-all
+        Assert.Equal("orders-cluster", routes["admin-orders-route"].ClusterId);
+        Assert.True(routes["admin-orders-route"].Order < routes["admin-route"].Order);
     }
 
     [Theory]

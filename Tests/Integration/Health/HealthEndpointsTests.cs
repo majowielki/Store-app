@@ -2,18 +2,28 @@ using Microsoft.AspNetCore.Hosting;
 using Store.AuditLogService.Data;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
+using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Store.Tests.Integration.Health;
 
 /// <summary>
-/// AuditLogService pointed at a database that does not exist: the process is alive, but it must
-/// report itself as not ready. Before this, a controller answered "Healthy" on /health no matter
-/// what, so orchestrators never noticed a dead database.
+/// AuditLogService with a database of its own that is stopped once the service is up. The
+/// process stays alive, but it must report itself as not ready. Before this, a controller
+/// answered "Healthy" on /health no matter what, so orchestrators never noticed a dead database.
+/// (A database that is unreachable at start-up is a different case: the service does not start.)
 /// </summary>
-public sealed class UnreachableDatabaseFactory : StoreApiFactory<AuditLogDbContext>
+public sealed class DatabaseLostAfterStartFactory : StoreApiFactory<AuditLogDbContext>, IAsyncLifetime
 {
-    public UnreachableDatabaseFactory(PostgresFixture postgres) : base(postgres)
+    private readonly PostgreSqlContainer _ownDatabase = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .WithDatabase("store_audit_lost")
+        .WithUsername("store_test")
+        .WithPassword("store_test")
+        .WithCleanUp(true)
+        .Build();
+
+    public DatabaseLostAfterStartFactory(PostgresFixture postgres) : base(postgres)
     {
     }
 
@@ -21,17 +31,30 @@ public sealed class UnreachableDatabaseFactory : StoreApiFactory<AuditLogDbConte
 
     protected override void ConfigureSettings(IWebHostBuilder builder)
     {
-        builder.UseSetting("ConnectionStrings:DefaultConnection", "Host=127.0.0.1;Port=1;Database=nowhere;Username=x;Password=x;Timeout=1;Command Timeout=1");
+        builder.UseSetting("ConnectionStrings:DefaultConnection", _ownDatabase.GetConnectionString() + ";Timeout=2;Command Timeout=2");
+    }
+
+    async Task IAsyncLifetime.InitializeAsync()
+    {
+        await _ownDatabase.StartAsync();
+        _ = Server; // starts and migrates against the live database
+        await _ownDatabase.StopAsync();
+    }
+
+    async Task IAsyncLifetime.DisposeAsync()
+    {
+        await DisposeAsync();
+        await _ownDatabase.DisposeAsync();
     }
 }
 
 [Collection(PostgresTests.Name)]
-public sealed class HealthEndpointsTests : IClassFixture<Audit.AuditApiFactory>, IClassFixture<UnreachableDatabaseFactory>
+public sealed class HealthEndpointsTests : IClassFixture<Audit.AuditApiFactory>, IClassFixture<DatabaseLostAfterStartFactory>
 {
     private readonly Audit.AuditApiFactory _healthy;
-    private readonly UnreachableDatabaseFactory _withoutDatabase;
+    private readonly DatabaseLostAfterStartFactory _withoutDatabase;
 
-    public HealthEndpointsTests(Audit.AuditApiFactory healthy, UnreachableDatabaseFactory withoutDatabase)
+    public HealthEndpointsTests(Audit.AuditApiFactory healthy, DatabaseLostAfterStartFactory withoutDatabase)
     {
         _healthy = healthy;
         _withoutDatabase = withoutDatabase;
