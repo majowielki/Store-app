@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Store.BuildingBlocks.Api;
+using Store.Contracts.Authorization;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
+using Store.IdentityService.Seeding;
 using Store.Shared.Models;
-using Store.Shared.Utility;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
@@ -69,8 +71,8 @@ public class AuthService : IAuthService
                 var errors = result.Errors.Select(e => e.Description).ToList();
                 return ApiResponse<AuthResponse>.ValidationError(errors);
             }
-            await EnsureRoleExistsAsync(Constants.Role_User);
-            await _userManager.AddToRoleAsync(user, Constants.Role_User);
+            await EnsureRoleExistsAsync(Roles.User);
+            await _userManager.AddToRoleAsync(user, Roles.User);
             _logger.LogInformation("User registered successfully: {Email}", request.Email);
             var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
             var authResponse = new AuthResponse
@@ -145,7 +147,7 @@ public class AuthService : IAuthService
         var userAgent = GetUserAgent();
         try
         {
-            var demoUser = await _userManager.FindByEmailAsync(Constants.DemoUserEmail);
+            var demoUser = await _userManager.FindByEmailAsync(SeedAccounts.DemoUserEmail);
             if (demoUser == null)
             {
                 _logger.LogError("Demo user not found. Should be created during database initialization.");
@@ -180,7 +182,7 @@ public class AuthService : IAuthService
         var userAgent = GetUserAgent();
         try
         {
-            var demoAdmin = await _userManager.FindByEmailAsync(Constants.DemoAdminEmail);
+            var demoAdmin = await _userManager.FindByEmailAsync(SeedAccounts.DemoAdminEmail);
             if (demoAdmin == null)
             {
                 _logger.LogError("Demo admin not found. Should be created during database initialization.");

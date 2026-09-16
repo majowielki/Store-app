@@ -1,21 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Transitional package, emptied step by step during the architecture phase. What is still
+       here (shared EF entities, the HTTP audit client and middleware, the hand-written RabbitMQ
+       bus) moves into the owning service or is replaced; the project is deleted at the end. -->
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
-    <PackageReference Include="AspNetCore.HealthChecks.Redis" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
-    <PackageReference Include="RabbitMQ.Client" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="RabbitMQ.Client" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Store.Contracts\Store.Contracts.csproj" />
+    <ProjectReference Include="..\Store.BuildingBlocks\Store.BuildingBlocks.csproj" />
+  </ItemGroup>
 
 </Project>

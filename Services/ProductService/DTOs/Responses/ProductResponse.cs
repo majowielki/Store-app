@@ -1,4 +1,4 @@
-using Store.Shared.Utility;
+using Store.Contracts.Catalog;
 
 namespace Store.ProductService.DTOs.Responses;
 

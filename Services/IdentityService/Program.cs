@@ -4,13 +4,18 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authentication;
+using Store.BuildingBlocks.Authorization;
+using Store.BuildingBlocks.Configuration;
+using Store.BuildingBlocks.Health;
+using Store.Contracts.Authorization;
 using Store.IdentityService.Data;
 using Store.IdentityService.Models;
+using Store.IdentityService.Seeding;
 using Store.IdentityService.Services;
-using Store.Shared.Authorization;
-using Store.Shared.Configuration;
 using Store.Shared.Extensions;
-using Store.Shared.Utility;
+using Store.Shared.Middleware;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -227,7 +232,7 @@ app.Run();
 // Helper methods for comprehensive seeding
 static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger logger)
 {
-    var roles = new[] { Constants.Role_TrueAdmin, Constants.Role_DemoAdmin, Constants.Role_User };
+    var roles = new[] { Roles.TrueAdmin, Roles.DemoAdmin, Roles.User };
 
     foreach (var role in roles)
     {
@@ -297,12 +302,12 @@ static async Task SeedTrueAdminAsync(UserManager<ApplicationUser> userManager, I
     var result = await userManager.CreateAsync(adminUser, adminPassword);
     if (result.Succeeded)
     {
-        await userManager.AddToRoleAsync(adminUser, Constants.Role_TrueAdmin);
+        await userManager.AddToRoleAsync(adminUser, Roles.TrueAdmin);
         logger.LogInformation("True Admin created successfully: {Email}", adminEmail);
 
         // Log admin creation token information
         var adminCreationToken = Environment.GetEnvironmentVariable("ADMIN_CREATION_TOKEN")
-                               ?? configuration[Constants.AdminCreationTokenKey];
+                               ?? configuration[SeedAccounts.AdminCreationTokenKey];
         if (!string.IsNullOrEmpty(adminCreationToken))
         {
             logger.LogInformation("Admin creation token is configured for additional true admin creation");
@@ -320,8 +325,8 @@ static async Task SeedTrueAdminAsync(UserManager<ApplicationUser> userManager, I
 
 static async Task SeedDemoAdminAsync(UserManager<ApplicationUser> userManager, ILogger logger)
 {
-    var demoAdminEmail = Constants.DemoAdminEmail;
-    var demoAdminPassword = Constants.DemoAdminPassword;
+    var demoAdminEmail = SeedAccounts.DemoAdminEmail;
+    var demoAdminPassword = SeedAccounts.DemoAdminPassword;
     const string demoAdminAddress = "123 Demo Street, Demo City, DC 12345"; // Match demo user address
 
     if (await userManager.FindByEmailAsync(demoAdminEmail) == null)
@@ -342,7 +347,7 @@ static async Task SeedDemoAdminAsync(UserManager<ApplicationUser> userManager, I
         var result = await userManager.CreateAsync(demoAdminUser, demoAdminPassword);
         if (result.Succeeded)
         {
-            await userManager.AddToRoleAsync(demoAdminUser, Constants.Role_DemoAdmin);
+            await userManager.AddToRoleAsync(demoAdminUser, Roles.DemoAdmin);
             logger.LogInformation("Demo Admin created: {Email}", demoAdminEmail);
         }
         else
@@ -358,12 +363,12 @@ static async Task SeedDemoAdminAsync(UserManager<ApplicationUser> userManager, I
 
 static async Task SeedDemoStoreUserAsync(UserManager<ApplicationUser> userManager, ILogger logger)
 {
-    if (await userManager.FindByEmailAsync(Constants.DemoUserEmail) == null)
+    if (await userManager.FindByEmailAsync(SeedAccounts.DemoUserEmail) == null)
     {
         var demoUser = new ApplicationUser
         {
-            UserName = Constants.DemoUserEmail,
-            Email = Constants.DemoUserEmail,
+            UserName = SeedAccounts.DemoUserEmail,
+            Email = SeedAccounts.DemoUserEmail,
             EmailConfirmed = true,
             FirstName = "Demo",
             LastName = "User",
@@ -373,11 +378,11 @@ static async Task SeedDemoStoreUserAsync(UserManager<ApplicationUser> userManage
             UpdatedAt = DateTime.UtcNow
         };
 
-        var result = await userManager.CreateAsync(demoUser, Constants.DemoUserPassword);
+        var result = await userManager.CreateAsync(demoUser, SeedAccounts.DemoUserPassword);
         if (result.Succeeded)
         {
-            await userManager.AddToRoleAsync(demoUser, Constants.Role_User);
-            logger.LogInformation("Demo Store User created: {Email} (Use demo login endpoint - no password required)", Constants.DemoUserEmail);
+            await userManager.AddToRoleAsync(demoUser, Roles.User);
+            logger.LogInformation("Demo Store User created: {Email} (Use demo login endpoint - no password required)", SeedAccounts.DemoUserEmail);
         }
         else
         {
@@ -386,6 +391,6 @@ static async Task SeedDemoStoreUserAsync(UserManager<ApplicationUser> userManage
     }
     else
     {
-        logger.LogInformation("Demo Store User already exists: {Email}", Constants.DemoUserEmail);
+        logger.LogInformation("Demo Store User already exists: {Email}", SeedAccounts.DemoUserEmail);
     }
 }

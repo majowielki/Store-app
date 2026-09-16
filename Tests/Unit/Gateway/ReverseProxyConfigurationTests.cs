@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Store.Shared.Authorization;
+using Store.Contracts.Authorization;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
 

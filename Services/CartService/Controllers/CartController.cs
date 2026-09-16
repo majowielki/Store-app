@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Store.BuildingBlocks.Api;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
 using Store.CartService.Services;
-using Store.Shared.Models;
 using System.Security.Claims;
 
 namespace Store.CartService.Controllers;

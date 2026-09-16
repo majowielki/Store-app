@@ -3,12 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.OpenApi.Models;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authentication;
+using Store.BuildingBlocks.Authorization;
+using Store.BuildingBlocks.Configuration;
+using Store.BuildingBlocks.Health;
 using Store.OrderService.Data;
 using Store.OrderService.Services;
-using Store.Shared.Authorization;
-using Store.Shared.Configuration;
 using Store.Shared.Extensions;
 using Store.Shared.MessageBus;
+using Store.Shared.Middleware;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);

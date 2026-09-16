@@ -1,4 +1,4 @@
-using Store.Shared.Utility;
+using Store.Contracts.Catalog;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 

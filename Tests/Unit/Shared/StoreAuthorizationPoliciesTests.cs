@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
-using Store.Shared.Authorization;
+using Store.BuildingBlocks.Authorization;
+using Store.Contracts.Authorization;
 using System.Security.Claims;
 using Xunit;
 

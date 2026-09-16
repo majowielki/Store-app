@@ -3,9 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
-using Store.Shared.Authorization;
-using Store.Shared.Extensions;
-using Store.Shared.Middleware;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authentication;
+using Store.BuildingBlocks.Authorization;
+using Store.BuildingBlocks.Health;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);

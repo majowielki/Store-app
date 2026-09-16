@@ -1,4 +1,4 @@
-using Store.Shared.Utility;
+using Store.Contracts.Catalog;
 using System.ComponentModel.DataAnnotations;
 
 namespace Store.ProductService.DTOs.Requests;

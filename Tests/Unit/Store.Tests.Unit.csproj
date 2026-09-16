@@ -34,6 +34,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Shared\Store.Contracts\Store.Contracts.csproj" />
+    <ProjectReference Include="..\..\Shared\Store.BuildingBlocks\Store.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\Shared\Store.Shared\Store.Shared.csproj" />
     <ProjectReference Include="..\..\Services\IdentityService\Store.IdentityService.csproj" />
     <ProjectReference Include="..\..\Services\CartService\Store.CartService.csproj" />

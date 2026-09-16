@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Configuration;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
-using Store.Shared.Configuration;
 using Store.Shared.MessageBus;
 using Store.Shared.Models;
 using Store.Shared.Services;
@@ -488,7 +489,7 @@ public class OrderService : IOrderService
             }
 
             var cartJson = await response.Content.ReadAsStringAsync();
-            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<CartServiceResponseDto>>(cartJson, Store.Shared.Serialization.StoreJson.CaseInsensitive);
+            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<CartServiceResponseDto>>(cartJson, Store.BuildingBlocks.Serialization.StoreJson.CaseInsensitive);
 
             if (apiResponse == null || !apiResponse.IsSuccess || apiResponse.Data == null)
             {

@@ -1,6 +1,6 @@
+using Store.BuildingBlocks.Api;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
-using Store.Shared.Models;
 
 namespace Store.CartService.Services;
 

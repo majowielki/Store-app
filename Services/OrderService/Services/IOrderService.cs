@@ -1,6 +1,6 @@
+using Store.BuildingBlocks.Api;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
-using Store.Shared.Models;
 
 namespace Store.OrderService.Services;
 

@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Store.BuildingBlocks.Api;
+using Store.Contracts.Authorization;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Services;
-using Store.Shared.Authorization;
-using Store.Shared.Models;
 using System.Net;
 using System.Security.Claims;
 

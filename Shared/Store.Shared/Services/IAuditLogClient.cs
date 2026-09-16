@@ -41,7 +41,7 @@ public class AuditLogClient : IAuditLogClient
     {
         try
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(auditLog, Store.Shared.Serialization.StoreJson.CamelCase);
+            var json = System.Text.Json.JsonSerializer.Serialize(auditLog, Store.BuildingBlocks.Serialization.StoreJson.CamelCase);
 
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 

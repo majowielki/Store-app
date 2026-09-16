@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -324,4 +325,14 @@ public class AuditLoggingMiddleware
             _ => "Unknown"
         };
     }
+}
+
+public static class AuditLoggingMiddlewareExtensions
+{
+    /// <summary>
+    /// Adds the HTTP audit middleware. Transitional: replaced by business audit events later in
+    /// the architecture phase. Never use it in AuditLogService itself.
+    /// </summary>
+    public static IApplicationBuilder UseAuditLogging(this IApplicationBuilder app)
+        => app.UseMiddleware<AuditLoggingMiddleware>();
 }

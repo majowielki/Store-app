@@ -1,5 +1,5 @@
 using Microsoft.IdentityModel.Tokens;
-using Store.Shared.Authorization;
+using Store.Contracts.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Security.Claims;

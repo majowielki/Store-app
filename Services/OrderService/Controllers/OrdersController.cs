@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authorization;
+using Store.Contracts.Authorization;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Services;
-using Store.Shared.Authorization;
-using Store.Shared.Models;
 using System.Security.Claims;
 
 namespace Store.OrderService.Controllers;

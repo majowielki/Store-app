@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Configuration;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
-using Store.Shared.Configuration;
 using Store.Shared.Models;
 using Store.Shared.Services;
 using System.Text.Json.Serialization;
@@ -503,11 +504,11 @@ public class CartService : ICartService
         var price = ParsePrice(attr.Price) ?? 0m;
         var salePrice = ParsePrice(attr.SalePrice);
 
-        var category = Store.Shared.Utility.Category.All;
+        var category = Store.Contracts.Catalog.Category.All;
         if (!string.IsNullOrWhiteSpace(attr.Category))
             Enum.TryParse(attr.Category, true, out category);
 
-        var company = Store.Shared.Utility.Company.All;
+        var company = Store.Contracts.Catalog.Company.All;
         if (!string.IsNullOrWhiteSpace(attr.Company))
             Enum.TryParse(attr.Company, true, out company);
 
@@ -579,8 +580,8 @@ public class ProductDto
     public string? Description { get; set; }
     public string Image { get; set; } = string.Empty;
     public decimal Price { get; set; }
-    public Store.Shared.Utility.Category Category { get; set; }
-    public Store.Shared.Utility.Company Company { get; set; }
+    public Store.Contracts.Catalog.Category Category { get; set; }
+    public Store.Contracts.Catalog.Company Company { get; set; }
     public List<string>? Colors { get; set; }
 }
 

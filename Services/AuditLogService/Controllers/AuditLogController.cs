@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Store.AuditLogService.Services;
-using Store.Shared.Authentication;
-using Store.Shared.Authorization;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authentication;
+using Store.Contracts.Authorization;
 using Store.Shared.Models;
 using System.Security.Claims;
 

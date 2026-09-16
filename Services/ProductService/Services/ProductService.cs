@@ -1,12 +1,12 @@
 // Enable nullable annotations in this file
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using Store.Contracts.Catalog;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.Shared.Models;
 using Store.Shared.Services;
-using Store.Shared.Utility;
 using System.Text.Json.Serialization;
 
 namespace Store.ProductService.Services;

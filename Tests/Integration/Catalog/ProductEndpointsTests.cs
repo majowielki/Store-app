@@ -1,4 +1,4 @@
-using Store.Shared.Authorization;
+using Store.Contracts.Authorization;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;

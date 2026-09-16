@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Store.Shared.Authentication;
-using Store.Shared.Configuration;
+using Store.BuildingBlocks.Authentication;
+using Store.BuildingBlocks.Configuration;
 using Store.Shared.Services;
 
 namespace Store.Shared.Extensions;

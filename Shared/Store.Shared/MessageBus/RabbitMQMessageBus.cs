@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using Store.Shared.Serialization;
+using Store.BuildingBlocks.Serialization;
 using System.Text;
 using System.Text.Json;
 using IModel = RabbitMQ.Client.IModel;

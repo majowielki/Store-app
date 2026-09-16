@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- What crosses a service boundary: integration events, DTOs one service returns to
+       another, public enums and role names. Data only - no ASP.NET, EF or broker packages,
+       so any service (or a future contract test project) can reference it. -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Store.Contracts.Catalog;
 using Store.Shared.Models;
-using Store.Shared.Utility;
 
 namespace Store.ProductService.Data;
 

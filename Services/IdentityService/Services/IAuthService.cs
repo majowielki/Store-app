@@ -1,6 +1,6 @@
+using Store.BuildingBlocks.Api;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
-using Store.Shared.Models;
 
 namespace Store.IdentityService.Services;
 

@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authorization;
+using Store.BuildingBlocks.Configuration;
+using Store.Contracts.Authorization;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
 using Store.IdentityService.Services;
-using Store.Shared.Authorization;
-using Store.Shared.Configuration;
-using Store.Shared.Models;
 
 namespace Store.IdentityService.Controllers;
 
