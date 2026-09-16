@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Store.Shared.Serialization;
@@ -9,96 +10,100 @@ using System.Text.Json;
 namespace Store.Shared.Extensions;
 
 /// <summary>
-/// Health check extensions for standardized health monitoring
+/// Health endpoints every service exposes the same way:
+/// <list type="bullet">
+/// <item><c>/health/live</c> - the process answers; never looks at dependencies</item>
+/// <item><c>/health/ready</c> - checks tagged <see cref="ReadyTag"/> (the database); 503 when any is Unhealthy</item>
+/// <item><c>/health</c> - every check with details, for humans and dashboards</item>
+/// </list>
+/// Orchestrators (compose, YARP active checks, Container Apps probes) use <c>/health/ready</c>.
 /// </summary>
 public static class HealthCheckExtensions
 {
+    /// <summary>Tag for checks that gate readiness.</summary>
+    public const string ReadyTag = "ready";
+
     /// <summary>
-    /// Adds standard health checks for the application
+    /// Registers the self check and the PostgreSQL check. A database the service cannot reach
+    /// makes it Unhealthy - the service cannot serve requests without it.
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <param name="connectionString">Database connection string</param>
-    /// <param name="redisConnectionString">Redis connection string (optional)</param>
-    /// <returns>Health checks builder</returns>
-    public static IHealthChecksBuilder AddStandardHealthChecks(
-        this IServiceCollection services,
-        string connectionString,
-        string? redisConnectionString = null)
+    /// <returns>Health checks builder to attach more checks to</returns>
+    public static IHealthChecksBuilder AddStoreHealthChecks(this IServiceCollection services, string connectionString)
     {
-        var healthChecksBuilder = services.AddHealthChecks()
+        return services.AddHealthChecks()
             .AddCheck("self", () => HealthCheckResult.Healthy("API is running"))
-            .AddNpgSql(connectionString, name: "database", tags: new[] { "database" });
-
-        if (!string.IsNullOrEmpty(redisConnectionString))
-        {
-            healthChecksBuilder.AddRedis(redisConnectionString, name: "redis", tags: new[] { "cache" });
-        }
-
-        return healthChecksBuilder;
+            .AddNpgSql(connectionString, name: "database", failureStatus: HealthStatus.Unhealthy, tags: new[] { ReadyTag });
     }
 
     /// <summary>
-    /// Maps health check endpoints with detailed JSON responses
+    /// Registers only the self check, for hosts without a database of their own (the gateway).
     /// </summary>
-    /// <param name="app">Application builder</param>
-    /// <returns>Application builder</returns>
-    public static IApplicationBuilder UseStandardHealthChecks(this IApplicationBuilder app)
+    public static IHealthChecksBuilder AddStoreHealthChecks(this IServiceCollection services)
     {
-        app.UseHealthChecks("/health", new HealthCheckOptions
+        return services.AddHealthChecks()
+            .AddCheck("self", () => HealthCheckResult.Healthy("API is running"));
+    }
+
+    /// <summary>
+    /// Maps <c>/health</c>, <c>/health/live</c> and <c>/health/ready</c>.
+    /// </summary>
+    public static IEndpointRouteBuilder MapStoreHealthChecks(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapHealthChecks("/health", new HealthCheckOptions
         {
-            ResponseWriter = async (context, report) =>
-            {
-                context.Response.ContentType = "application/json";
-
-                var response = new
-                {
-                    status = report.Status.ToString(),
-                    timestamp = DateTime.UtcNow,
-                    duration = report.TotalDuration,
-                    checks = report.Entries.Select(entry => new
-                    {
-                        name = entry.Key,
-                        status = entry.Value.Status.ToString(),
-                        description = entry.Value.Description,
-                        duration = entry.Value.Duration,
-                        data = entry.Value.Data,
-                        tags = entry.Value.Tags
-                    })
-                };
-
-                var jsonResponse = JsonSerializer.Serialize(response, StoreJson.CamelCaseIndented);
-
-                await context.Response.WriteAsync(jsonResponse);
-            }
+            ResponseWriter = WriteDetailedReport
         });
 
-        // Liveness probe - simple check
-        app.UseHealthChecks("/health/live", new HealthCheckOptions
+        endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
         {
             Predicate = _ => false,
-            ResponseWriter = async (context, report) =>
-            {
-                await context.Response.WriteAsync("Healthy");
-            }
+            ResponseWriter = (context, _) => context.Response.WriteAsync("Healthy")
         });
 
-        // Readiness probe - includes dependencies
-        app.UseHealthChecks("/health/ready", new HealthCheckOptions
+        endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
-            Predicate = check => check.Tags.Contains("database") || check.Tags.Contains("cache"),
-            ResponseWriter = async (context, report) =>
-            {
-                var response = new
-                {
-                    status = report.Status.ToString(),
-                    timestamp = DateTime.UtcNow
-                };
-
-                context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response, StoreJson.CamelCase));
-            }
+            Predicate = check => check.Tags.Contains(ReadyTag),
+            ResponseWriter = WriteSummary
         });
 
-        return app;
+        return endpoints;
+    }
+
+    private static Task WriteDetailedReport(HttpContext context, HealthReport report)
+    {
+        context.Response.ContentType = "application/json";
+
+        var response = new
+        {
+            status = report.Status.ToString(),
+            timestamp = DateTime.UtcNow,
+            duration = report.TotalDuration,
+            checks = report.Entries.Select(entry => new
+            {
+                name = entry.Key,
+                status = entry.Value.Status.ToString(),
+                description = entry.Value.Description,
+                duration = entry.Value.Duration,
+                tags = entry.Value.Tags
+            })
+        };
+
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, StoreJson.CamelCaseIndented));
+    }
+
+    private static Task WriteSummary(HttpContext context, HealthReport report)
+    {
+        context.Response.ContentType = "application/json";
+
+        var response = new
+        {
+            status = report.Status.ToString(),
+            timestamp = DateTime.UtcNow,
+            checks = report.Entries.ToDictionary(entry => entry.Key, entry => entry.Value.Status.ToString())
+        };
+
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response, StoreJson.CamelCase));
     }
 }

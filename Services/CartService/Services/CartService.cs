@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
+using Store.Shared.Configuration;
 using Store.Shared.Models;
 using Store.Shared.Services;
 using System.Text.Json.Serialization;
@@ -15,7 +17,7 @@ public class CartService : ICartService
     private readonly CartDbContext _context;
     private readonly ILogger<CartService> _logger;
     private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
+    private readonly ServiceEndpointsOptions _endpoints;
     private readonly IAuditLogClient _auditLogClient;
 
     private static readonly System.Text.Json.JsonSerializerOptions AuditJsonOptions = new()
@@ -28,13 +30,13 @@ public class CartService : ICartService
         CartDbContext context,
         ILogger<CartService> logger,
         HttpClient httpClient,
-        IConfiguration configuration,
+        IOptions<ServiceEndpointsOptions> endpoints,
         IAuditLogClient auditLogClient)
     {
         _context = context;
         _logger = logger;
         _httpClient = httpClient;
-        _configuration = configuration;
+        _endpoints = endpoints.Value;
         _auditLogClient = auditLogClient;
     }
 
@@ -481,14 +483,10 @@ public class CartService : ICartService
 
     private async Task<Product?> FetchProductFromProductServiceAsync(int productId)
     {
-        // Read base URL from config supporting both nested and flat keys. Defaults to Docker service DNS name.
-        var productServiceUrl =
-            _configuration["Services:ProductService:BaseUrl"] // e.g., Services:ProductService:BaseUrl=http://productservice:5003
-            ?? _configuration["Services:ProductService"]      // e.g., Services:ProductService=http://productservice:5003
-            ?? "http://productservice:5003";                  // sensible default for container network
+        var productServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.ProductService));
 
         _logger.LogDebug("Fetching product {ProductId} from ProductService at {BaseUrl}", productId, productServiceUrl);
-        var response = await _httpClient.GetAsync($"{productServiceUrl.TrimEnd('/')}/api/products/{productId}");
+        var response = await _httpClient.GetAsync(new Uri(productServiceUrl, $"api/products/{productId}"));
         if (!response.IsSuccessStatusCode)
         {
             return null;

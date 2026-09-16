@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
 using Store.Shared.Authorization;
+using Store.Shared.Configuration;
 
 namespace Store.IdentityService.Controllers;
 
@@ -16,7 +18,7 @@ public class AdminController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<AdminController> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
+    private readonly ServiceEndpointsOptions _endpoints;
 
     // Anonymized value constants
     private const string AnonymizedUserId = "anonymized-user-id";
@@ -31,12 +33,12 @@ public class AdminController : ControllerBase
         UserManager<ApplicationUser> userManager,
         ILogger<AdminController> logger,
         IHttpClientFactory httpClientFactory,
-        IConfiguration configuration)
+        IOptions<ServiceEndpointsOptions> endpoints)
     {
         _userManager = userManager;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
+        _endpoints = endpoints.Value;
     }
 
     // Helper method to create HttpClient with Authorization header if present
@@ -96,7 +98,7 @@ public class AdminController : ControllerBase
     {
         try
         {
-            var orderServiceUrl = _configuration["Services:OrderService"] ?? "http://orderservice:5006";
+            var orderServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.OrderService)).ToString();
             var client = CreateAuthorizedClient();
 
             var url = $"{orderServiceUrl.TrimEnd('/')}/api/orders?page={page}&pageSize={pageSize}";
@@ -161,7 +163,7 @@ public class AdminController : ControllerBase
     {
         try
         {
-            var orderServiceUrl = _configuration["Services:OrderService"] ?? "http://orderservice:5006";
+            var orderServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.OrderService)).ToString();
             var client = CreateAuthorizedClient();
 
             var url = $"{orderServiceUrl.TrimEnd('/')}/api/orders/{id}";
@@ -213,7 +215,7 @@ public class AdminController : ControllerBase
     {
         try
         {
-            var orderServiceUrl = _configuration["Services:OrderService"] ?? "http://orderservice:5006";
+            var orderServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.OrderService)).ToString();
             var client = CreateAuthorizedClient();
 
             var url = $"{orderServiceUrl.TrimEnd('/')}/api/orders/by-user/{userId}?page={page}&pageSize={pageSize}";

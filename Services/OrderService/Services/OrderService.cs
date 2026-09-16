@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
+using Store.Shared.Configuration;
 using Store.Shared.MessageBus;
 using Store.Shared.Models;
 using Store.Shared.Services;
@@ -18,7 +20,7 @@ public class OrderService : IOrderService
     private readonly OrderDbContext _context;
     private readonly ILogger<OrderService> _logger;
     private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
+    private readonly ServiceEndpointsOptions _endpoints;
     private readonly IMessageBus? _messageBus;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogClient _auditLogClient;
@@ -33,7 +35,7 @@ public class OrderService : IOrderService
         OrderDbContext context,
         ILogger<OrderService> logger,
         HttpClient httpClient,
-        IConfiguration configuration,
+        IOptions<ServiceEndpointsOptions> endpoints,
         IMessageBus? messageBus = null,
         IHttpContextAccessor? httpContextAccessor = null,
         IAuditLogClient? auditLogClient = null)
@@ -41,7 +43,7 @@ public class OrderService : IOrderService
         _context = context;
         _logger = logger;
         _httpClient = httpClient;
-        _configuration = configuration;
+        _endpoints = endpoints.Value;
         _messageBus = messageBus;
         _httpContextAccessor = httpContextAccessor ?? new HttpContextAccessor();
         _auditLogClient = auditLogClient ?? throw new ArgumentNullException(nameof(auditLogClient));
@@ -149,10 +151,7 @@ public class OrderService : IOrderService
                         var headerValue = authHeader.StartsWith("Bearer ") ? authHeader : $"Bearer {authHeader}";
                         var handler = new JwtSecurityTokenHandler();
                         var jwt = handler.ReadJwtToken(headerValue.Replace("Bearer ", ""));
-                        var identityServiceUrl =
-                            _configuration["Services:IdentityService:BaseUrl"]
-                            ?? _configuration["Services:IdentityService"];
-                        if (!string.IsNullOrWhiteSpace(identityServiceUrl))
+                        var identityServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.IdentityService)).ToString();
                         {
                             var updateAddressRequest = new
                             {
@@ -466,10 +465,7 @@ public class OrderService : IOrderService
     {
         try
         {
-            var cartServiceUrl =
-                _configuration["Services:CartService:BaseUrl"]
-                ?? _configuration["Services:CartService"]
-                ?? "http://cartservice:5005";
+            var cartServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.CartService)).ToString();
 
             // Forward the bearer token so CartService can authorize the user
             var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
@@ -524,10 +520,7 @@ public class OrderService : IOrderService
     {
         try
         {
-            var cartServiceUrl =
-                _configuration["Services:CartService:BaseUrl"]
-                ?? _configuration["Services:CartService"]
-                ?? "http://cartservice:5005";
+            var cartServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.CartService)).ToString();
 
             var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
             var request = new HttpRequestMessage(HttpMethod.Delete, $"{cartServiceUrl.TrimEnd('/')}/api/cart");

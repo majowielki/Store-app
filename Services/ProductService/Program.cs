@@ -1,10 +1,10 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
-using StackExchange.Redis;
 using Store.ProductService.Data;
 using Store.ProductService.Services;
 using Store.Shared.Authorization;
+using Store.Shared.Configuration;
 using Store.Shared.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,47 +20,23 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<ProductDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Redis - Make Redis optional to prevent startup failures
-try
-{
-    builder.Services.AddSingleton<IConnectionMultiplexer>(provider =>
-    {
-        var connectionString = builder.Configuration.GetConnectionString("Redis")
-            ?? builder.Configuration["Redis:ConnectionString"];
-        return ConnectionMultiplexer.Connect(connectionString!);
-    });
-}
-catch (Exception ex)
-{
-    // Log Redis connection failure but don't stop the app
-    var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("Startup");
-    logger.LogWarning(ex, "Redis connection failed, continuing without Redis");
-}
-
 // JWT Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
-// Configure HttpClient for AuditLogClient with proper base address;
-// every call carries the shared service key required by POST /api/auditlog/internal
-var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
-builder.Services.AddInternalApiKeyClient(builder.Configuration);
-builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
-{
-    client.BaseAddress = new Uri(auditLogServiceUrl);
-    client.Timeout = TimeSpan.FromSeconds(30);
-})
-.AddHttpMessageHandler<Store.Shared.Authentication.InternalApiKeyMessageHandler>();
+// Addresses of the services this one calls; startup fails when any is missing
+builder.Services.AddServiceEndpoints(builder.Configuration, nameof(ServiceEndpointsOptions.AuditLogService));
+
+// Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
+builder.Services.AddAuditLogClient(builder.Configuration);
 
 // Business Services
 builder.Services.AddScoped<IProductService, Store.ProductService.Services.ProductService>();
 
-// Health Checks
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
-builder.Services.AddStandardHealthChecks(connectionString, redisConnectionString);
+// Health checks: /health/live, /health/ready (database), /health (details)
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 // Swagger
 builder.Services.AddSwaggerWithJwt("Product Service API");
@@ -93,7 +69,7 @@ app.UseAuthorization();
 
 // Controllers
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapStoreHealthChecks();
 
 // Database migration and seeding
 using (var scope = app.Services.CreateScope())

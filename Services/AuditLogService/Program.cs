@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
@@ -43,10 +42,8 @@ builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 // Services
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
-// Health Checks - Make them optional to prevent startup failures
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy())
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database", failureStatus: HealthStatus.Degraded);
+// Health checks: /health/live, /health/ready (database), /health (details)
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 // Swagger with JWT support
 builder.Services.AddEndpointsApiExplorer();
@@ -108,7 +105,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapStoreHealthChecks();
 
 // Database migration - Make this optional to prevent startup failures
 try

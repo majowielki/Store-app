@@ -2,13 +2,13 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.IdentityService.Data;
 using Store.IdentityService.Models;
 using Store.IdentityService.Services;
 using Store.Shared.Authorization;
+using Store.Shared.Configuration;
 using Store.Shared.Extensions;
 using Store.Shared.Utility;
 using System.Text.Json.Serialization;
@@ -104,21 +104,16 @@ builder.Services.AddStoreAuthorization();
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Configure HttpClient for AuditLogClient with proper base address;
-// every call carries the shared service key required by POST /api/auditlog/internal
-var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
-builder.Services.AddInternalApiKeyClient(builder.Configuration);
-builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
-{
-    client.BaseAddress = new Uri(auditLogServiceUrl);
-    client.Timeout = TimeSpan.FromSeconds(30);
-})
-.AddHttpMessageHandler<Store.Shared.Authentication.InternalApiKeyMessageHandler>();
+// Addresses of the services this one calls; startup fails when any is missing
+builder.Services.AddServiceEndpoints(builder.Configuration,
+    nameof(ServiceEndpointsOptions.OrderService),
+    nameof(ServiceEndpointsOptions.AuditLogService));
 
-// Health Checks - Make them optional to prevent startup failures
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy())
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database", failureStatus: HealthStatus.Degraded);
+// Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
+builder.Services.AddAuditLogClient(builder.Configuration);
+
+// Health checks: /health/live, /health/ready (database), /health (details)
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -180,7 +175,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapStoreHealthChecks();
 
 // Database migration and comprehensive user seeding
 try

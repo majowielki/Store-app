@@ -106,10 +106,9 @@ builder.Services.AddReverseProxy()
         });
     });
 
-// Health Checks
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy("Gateway is running"))
-    .AddCheck<RabbitMQHealthCheck>("rabbitmq");
+// Health checks; the broker is reported but does not gate readiness - the proxy works without it
+builder.Services.AddStoreHealthChecks()
+    .AddCheck<RabbitMQHealthCheck>("rabbitmq", failureStatus: HealthStatus.Degraded);
 
 // Rate Limiting: sliding windows per client address on the identity route, attached in
 // appsettings.json via "RateLimiterPolicy": "auth"; credential endpoints get the stricter limit
@@ -242,28 +241,8 @@ app.UseCors(corsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Health checks
-app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-{
-    ResponseWriter = async (context, report) =>
-    {
-        context.Response.ContentType = "application/json";
-        var response = new
-        {
-            status = report.Status.ToString(),
-            checks = report.Entries.Select(entry => new
-            {
-                name = entry.Key,
-                status = entry.Value.Status.ToString(),
-                description = entry.Value.Description
-            })
-        };
-        await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        }));
-    }
-});
+// Health checks: /health/live, /health/ready, /health (details)
+app.MapStoreHealthChecks();
 
 app.MapReverseProxy();
 app.MapControllers();

@@ -1,12 +1,12 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.OrderService.Data;
 using Store.OrderService.Services;
 using Store.Shared.Authorization;
+using Store.Shared.Configuration;
 using Store.Shared.Extensions;
 using Store.Shared.MessageBus;
 using System.Text.Json.Serialization;
@@ -42,16 +42,14 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
-// Configure HttpClient for AuditLogClient with proper base address;
-// every call carries the shared service key required by POST /api/auditlog/internal
-var auditLogServiceUrl = builder.Configuration["Services:AuditLogService"] ?? "http://localhost:5004";
-builder.Services.AddInternalApiKeyClient(builder.Configuration);
-builder.Services.AddHttpClient<Store.Shared.Services.IAuditLogClient, Store.Shared.Services.AuditLogClient>(client =>
-{
-    client.BaseAddress = new Uri(auditLogServiceUrl);
-    client.Timeout = TimeSpan.FromSeconds(30);
-})
-.AddHttpMessageHandler<Store.Shared.Authentication.InternalApiKeyMessageHandler>();
+// Addresses of the services this one calls; startup fails when any is missing
+builder.Services.AddServiceEndpoints(builder.Configuration,
+    nameof(ServiceEndpointsOptions.IdentityService),
+    nameof(ServiceEndpointsOptions.CartService),
+    nameof(ServiceEndpointsOptions.AuditLogService));
+
+// Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
+builder.Services.AddAuditLogClient(builder.Configuration);
 
 // HTTP Client
 builder.Services.AddHttpClient();
@@ -72,10 +70,8 @@ catch (Exception ex)
 // Services
 builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
 
-// Health Checks - Make them optional to prevent startup failures
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy())
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "database", failureStatus: HealthStatus.Degraded);
+// Health checks: /health/live, /health/ready (database), /health (details)
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 // Swagger with JWT support
 builder.Services.AddEndpointsApiExplorer();
@@ -137,7 +133,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapStoreHealthChecks();
 
 // Database migration - Make this optional to prevent startup failures
 try

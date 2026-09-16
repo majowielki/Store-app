@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Store.OrderService.Data;
+using Store.Shared.Configuration;
 using Store.Shared.Services;
 using Store.Tests.Unit.TestSupport;
 using Xunit;
@@ -12,7 +13,14 @@ namespace Store.Tests.Unit.OrderService;
 public class OrderServiceTests
 {
     private readonly Mock<ILogger<Store.OrderService.Services.OrderService>> _loggerMock = new();
-    private readonly Mock<IConfiguration> _configMock = new();
+    private static readonly IOptions<ServiceEndpointsOptions> Endpoints = Options.Create(new ServiceEndpointsOptions
+    {
+        IdentityService = "http://identity.test",
+        ProductService = "http://product.test",
+        CartService = "http://cart.test",
+        OrderService = "http://order.test",
+        AuditLogService = "http://audit.test"
+    });
     private readonly Mock<IAuditLogClient> _auditLogClientMock = new();
     private readonly OrderDbContext _dbContext;
     private readonly Store.OrderService.Services.OrderService _orderService;
@@ -27,7 +35,7 @@ public class OrderServiceTests
             _dbContext,
             _loggerMock.Object,
             NoNetworkHttpClient.Create(),
-            _configMock.Object,
+            Endpoints,
             null,
             null,
             _auditLogClientMock.Object
