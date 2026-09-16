@@ -21,9 +21,6 @@ const OrderDetail = () => {
 
   if (!order) return <div>Loading...</div>;
 
-  // Extract delivery and discount from orderItems
-  const deliveryItem = order.orderItems.find((it) => it.deliveryCost != null);
-  const discountItem = order.orderItems.find((it) => it.orderDiscount != null);
 
   return (
     <div className="space-y-4">
@@ -40,20 +37,13 @@ const OrderDetail = () => {
               <div>Date: {new Date(order.createdAt).toLocaleString()}</div>
             </div>
             <div>
-              <div>
-                Total Items: {
-                  order.orderItems
-                    ? order.orderItems.filter(it => it.deliveryCost == null && it.orderDiscount == null).reduce((sum, it) => sum + (it.quantity ?? 0), 0)
-                    : order.totalItems
-                }
-              </div>
-              <div>Order Total: {formatAsDollars(order.orderTotal)}</div>
-              {deliveryItem && (
-                <div>Delivery: {formatAsDollars(deliveryItem.deliveryCost ?? 0)}</div>
+              <div>Total Items: {order.totalItems}</div>
+              <div>Subtotal: {formatAsDollars(order.subtotal)}</div>
+              {order.discountAmount > 0 && (
+                <div>Order Discount: -{formatAsDollars(order.discountAmount)}</div>
               )}
-              {discountItem && (
-                <div>Order Discount: -{formatAsDollars(discountItem.orderDiscount ?? 0)}</div>
-              )}
+              <div>Delivery: {formatAsDollars(order.deliveryFee)}</div>
+              <div>Order Total: {formatAsDollars(order.total)}</div>
             </div>
           </div>
         </CardContent>
@@ -75,9 +65,7 @@ const OrderDetail = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {order.orderItems
-                .filter((it) => it.deliveryCost == null && it.orderDiscount == null)
-                .map((it) => (
+              {order.orderItems.map((it) => (
                   <TableRow key={it.id}>
                     <TableCell className="flex items-center gap-2">
                       {it.productImage ? (

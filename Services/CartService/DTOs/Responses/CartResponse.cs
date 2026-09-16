@@ -9,4 +9,7 @@ public class CartResponse
     public decimal Total { get; set; } // Simplified total without shipping/tax
     public DateTime UpdatedAt { get; set; }
     public bool IsEmpty { get; set; }
+
+    /// <summary>True when reading the cart refreshed a line to a different catalogue price.</summary>
+    public bool PriceChanged { get; set; }
 }

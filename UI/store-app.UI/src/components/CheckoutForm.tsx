@@ -36,8 +36,6 @@ export const action =
   // Address saving is now handled by the order API using saveAddress
 
       await customFetch.post('/orders/from-cart', {
-        // userId is set on the server from JWT; still include for DTO validation
-        userId: user.id,
         userEmail,
         deliveryAddress,
         customerName,

@@ -41,14 +41,8 @@ const OrdersList = () => {
               <TableRow key={order.id}>
                 <TableCell>{order.customerName}</TableCell>
                 <TableCell>{order.deliveryAddress}</TableCell>
-                <TableCell className='text-center'>
-                  {order.orderItems
-                    ? order.orderItems.filter(
-                        (item) => item.orderDiscount == null && item.deliveryCost == null
-                      ).length
-                    : order.totalItems}
-                </TableCell>
-                <TableCell>{formatAsDollars(order.orderTotal)}</TableCell>
+                <TableCell className='text-center'>{order.totalItems}</TableCell>
+                <TableCell>{formatAsDollars(order.total)}</TableCell>
                 <TableCell>{new Date(order.createdAt).toDateString()}</TableCell>
                 <TableCell className='text-right'>
                   <DropdownMenu>

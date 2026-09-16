@@ -1,25 +1,22 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
+using Store.BuildingBlocks.Http;
+using Store.BuildingBlocks.OpenApi;
+using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.Services;
 using Store.Shared.Extensions;
 using Store.Shared.Middleware;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
+builder.Services.AddStandardApiControllers();
 
 // FluentValidation: validators from DI, request models validated before the action runs
 builder.Services.AddValidatorsFromAssemblyContaining<Store.CartService.Validators.AddCartItemRequestValidator>();
@@ -39,6 +36,9 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
+// /api/cart/internal/* is for the order service: callers present the shared internal key
+builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
+
 // Addresses of the services this one calls; startup fails when any is missing
 builder.Services.AddServiceEndpoints(builder.Configuration,
     nameof(ServiceEndpointsOptions.ProductService),
@@ -47,54 +47,18 @@ builder.Services.AddServiceEndpoints(builder.Configuration,
 // Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
 builder.Services.AddAuditLogClient(builder.Configuration);
 
-// HTTP Client
-builder.Services.AddHttpClient();
+// The catalogue, through a typed client with timeouts, retries and a circuit breaker
+builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
 
 // Services
+builder.Services.AddStoreOptions<CartOptions>(builder.Configuration, CartOptions.SectionName);
 builder.Services.AddScoped<ICartService, CartService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
-// Swagger with JWT support
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "Store Cart Service", Version = "v1" });
-
-    // JWT Bearer token support
-    c.AddSecurityDefinition("Bearer", new()
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new()
-    {
-        {
-            new()
-            {
-                Reference = new() { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-});
+builder.Services.AddSwaggerWithJwt("Store Cart Service");
+builder.Services.AddStandardCors();
 
 var app = builder.Build();
 
@@ -108,11 +72,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store Cart Service V1");
-        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+        c.RoutePrefix = "swagger";
     });
 }
 
-app.UseCors("AllowAll");
+app.UseCors("DefaultCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

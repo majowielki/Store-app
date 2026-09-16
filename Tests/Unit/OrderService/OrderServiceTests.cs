@@ -1,11 +1,12 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Store.BuildingBlocks.Configuration;
+using Store.OrderService.Clients;
 using Store.OrderService.Data;
+using Store.OrderService.Models;
 using Store.Shared.Services;
-using Store.Tests.Unit.TestSupport;
 using Xunit;
 
 namespace Store.Tests.Unit.OrderService;
@@ -13,14 +14,6 @@ namespace Store.Tests.Unit.OrderService;
 public class OrderServiceTests
 {
     private readonly Mock<ILogger<Store.OrderService.Services.OrderService>> _loggerMock = new();
-    private static readonly IOptions<ServiceEndpointsOptions> Endpoints = Options.Create(new ServiceEndpointsOptions
-    {
-        IdentityService = "http://identity.test",
-        ProductService = "http://product.test",
-        CartService = "http://cart.test",
-        OrderService = "http://order.test",
-        AuditLogService = "http://audit.test"
-    });
     private readonly Mock<IAuditLogClient> _auditLogClientMock = new();
     private readonly OrderDbContext _dbContext;
     private readonly Store.OrderService.Services.OrderService _orderService;
@@ -33,11 +26,12 @@ public class OrderServiceTests
         _dbContext = new OrderDbContext(options);
         _orderService = new Store.OrderService.Services.OrderService(
             _dbContext,
+            Mock.Of<ICartClient>(),
+            Mock.Of<ICatalogClient>(),
+            Mock.Of<IIdentityClient>(),
+            Options.Create(new PricingOptions()),
             _loggerMock.Object,
-            NoNetworkHttpClient.Create(),
-            Endpoints,
-            null,
-            null,
+            new HttpContextAccessor(),
             _auditLogClientMock.Object
         );
     }
@@ -54,7 +48,7 @@ public class OrderServiceTests
     public async Task GetOrderByIdAsync_Returns_Error_When_Unauthorized()
     {
         // Arrange: Add order for user2
-        var order = new Store.Shared.Models.Order { UserId = "user2", UserEmail = "user2@email.com", CreatedAt = System.DateTime.UtcNow };
+        var order = new Order { UserId = "user2", UserEmail = "user2@email.com", CreatedAt = DateTime.UtcNow };
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
         // Act
@@ -67,7 +61,7 @@ public class OrderServiceTests
     public async Task GetOrderByIdAsync_Returns_Success_When_Authorized()
     {
         // Arrange: Add order for user1
-        var order = new Store.Shared.Models.Order { UserId = "user1", UserEmail = "user1@email.com", CreatedAt = System.DateTime.UtcNow };
+        var order = new Order { UserId = "user1", UserEmail = "user1@email.com", CreatedAt = DateTime.UtcNow };
         _dbContext.Orders.Add(order);
         await _dbContext.SaveChangesAsync();
         // Act

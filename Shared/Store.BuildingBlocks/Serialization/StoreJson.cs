@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Store.BuildingBlocks.Serialization;
 
@@ -26,4 +27,17 @@ public static class StoreJson
     {
         PropertyNameCaseInsensitive = true
     };
+
+    /// <summary>
+    /// What a typed client uses to read another service's responses: the web defaults
+    /// (camelCase, case-insensitive, numbers may arrive as strings) plus enums by name.
+    /// </summary>
+    public static readonly JsonSerializerOptions Web = CreateWeb();
+
+    private static JsonSerializerOptions CreateWeb()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
+    }
 }

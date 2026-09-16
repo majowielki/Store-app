@@ -1,3 +1,4 @@
+using Store.Contracts.Catalog;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 
@@ -14,6 +15,9 @@ public interface IProductService
     Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams);
     Task<SingleProductResponse> GetProductForFrontendAsync(int id);
     Task<ProductsMeta> GetProductsMetaAsync();
+
+    // What other services may know about a product
+    Task<ProductSnapshot?> GetSnapshotAsync(int id);
 
     // Admin advanced endpoint
     Task<ProductsResponse> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir);

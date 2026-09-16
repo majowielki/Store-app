@@ -132,6 +132,8 @@ export interface ApiCartResponse {
   total: number;
   updatedAt: string;
   isEmpty: boolean;
+  /** True when reading the cart refreshed a line to a different catalogue price. */
+  priceChanged?: boolean;
 }
 
 export interface AddCartItemRequest {
@@ -230,8 +232,6 @@ export interface OrderItemResponse {
   color: string;
   company: string;
   lineTotal: number;
-  deliveryCost?: number | null;
-  orderDiscount?: number | null;
 }
 
 export interface Order {
@@ -242,7 +242,14 @@ export interface Order {
   customerName: string;
   orderItems: OrderItemResponse[];
   totalItems: number;
-  orderTotal: number;
+  /** Sum of the lines before discount and delivery. */
+  subtotal: number;
+  discountAmount: number;
+  discountReason?: string | null;
+  deliveryFee: number;
+  /** What the customer paid. */
+  total: number;
+  status: string;
   createdAt: string;
   notes?: string;
 }
@@ -259,10 +266,11 @@ export interface OrdersResponse {
 }
 
 export interface CreateOrderFromCartRequest {
-  userId: string;
+  userEmail: string;
   deliveryAddress?: string;
   customerName: string;
   notes?: string;
+  saveAddress?: boolean;
 }
 
 // CHECKOUT TYPES - NEEDS IMPLEMENTATION IN API

@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Store.Shared.Models;
+using Store.ProductService.Models;
 
 namespace Store.ProductService.Data;
 
@@ -11,20 +11,28 @@ public class ProductDbContext : DbContext
 
     public DbSet<Product> Products => Set<Product>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Money and dimensions: two decimal places everywhere unless a property says otherwise
+        configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure Product entity
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-            entity.Property(e => e.Description).IsRequired().HasMaxLength(4000);
-            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.SalePrice).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(ProductConstraints.TitleMaxLength);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(ProductConstraints.DescriptionMaxLength);
+            entity.Property(e => e.DiscountPercent).HasPrecision(5, 2);
             entity.Property(e => e.Image).IsRequired();
+
+            // Enums are stored by name: adding a value in the middle of the enum then changes
+            // nothing in the database, which it would with the integer mapping
+            entity.Property(e => e.Category).HasConversion<string>().HasMaxLength(ProductConstraints.EnumMaxLength);
+            entity.Property(e => e.Company).HasConversion<string>().HasMaxLength(ProductConstraints.EnumMaxLength);
 
             // Colors, Groups and Materials are native PostgreSQL text[] columns (EF primitive
             // collections), so filters such as p.Colors.Any(...) translate to SQL instead of throwing.
@@ -42,15 +50,9 @@ public class ProductDbContext : DbContext
             entity.HasIndex(e => e.Company);
             entity.HasIndex(e => e.Title);
 
-            // New fields mapping
-            entity.Property(e => e.WidthCm).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.HeightCm).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.DepthCm).HasColumnType("decimal(18,2)");
-            entity.Property(e => e.WeightKg).HasColumnType("decimal(18,2)");
-
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()"); // PostgreSQL syntax
-            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()"); // PostgreSQL syntax
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
         });
     }
 }

@@ -7,12 +7,10 @@ public class CreateOrderFromCartRequestValidator : AbstractValidator<CreateOrder
 {
     public CreateOrderFromCartRequestValidator()
     {
-        RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("UserId is required.");
-
         RuleFor(x => x.UserEmail)
             .NotEmpty().WithMessage("UserEmail is required.")
-            .EmailAddress().WithMessage("UserEmail must be a valid email address.");
+            .EmailAddress().WithMessage("UserEmail must be a valid email address.")
+            .MaximumLength(256).WithMessage("UserEmail must be at most 256 characters.");
 
         RuleFor(x => x.DeliveryAddress)
             .MaximumLength(300).WithMessage("DeliveryAddress must be at most 300 characters.");

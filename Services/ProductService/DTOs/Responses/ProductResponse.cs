@@ -26,6 +26,7 @@ public class ProductResponse
     public decimal? DepthCm { get; set; }
     public decimal? WeightKg { get; set; }
     public List<string> Materials { get; set; } = new();
+    public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

@@ -1,6 +1,7 @@
 using Store.BuildingBlocks.Api;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
+using Store.Contracts.Cart;
 
 namespace Store.CartService.Services;
 
@@ -16,4 +17,7 @@ public interface ICartService
     Task<ApiResponse<int>> GetCartItemCountAsync(string userId);
     Task<ApiResponse<decimal>> GetCartTotalAsync(string userId);
     Task<ApiResponse<CartResponse>> SyncCartAsync(string userId, SyncCartRequest request);
+
+    // What the order service reads at checkout
+    Task<CartSnapshot?> GetSnapshotAsync(string userId);
 }

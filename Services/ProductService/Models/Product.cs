@@ -1,75 +1,64 @@
 using Store.Contracts.Catalog;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Store.Shared.Models;
+namespace Store.ProductService.Models;
 
+/// <summary>
+/// A catalogue product as ProductService owns it. Other services never see this type: they
+/// get a <see cref="ProductSnapshot"/> and keep whatever they need of it themselves.
+/// Column lengths and precision live in <c>ProductDbContext</c>, request rules in the validators;
+/// both read <see cref="ProductConstraints"/>.
+/// </summary>
 public class Product
 {
     public int Id { get; set; }
 
-    [Required]
-    [StringLength(200, MinimumLength = 3)]
     public string Title { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(4000, MinimumLength = 10)]
     public string Description { get; set; } = string.Empty;
 
-    [Required]
-    [Range(0.01, 999999.99)]
+    /// <summary>List price.</summary>
     public decimal Price { get; set; }
 
-    // Optional sale price; when set it represents the current price during a sale
-    [Range(0.01, 999999.99)]
+    /// <summary>Promotional price; when set it is what the customer pays.</summary>
     public decimal? SalePrice { get; set; }
 
-    // Optional discount percent (0-100)
-    [Range(0, 100)]
+    /// <summary>Percentage discount applied to the list price when no sale price is set.</summary>
     public decimal? DiscountPercent { get; set; }
 
-    [Required]
     public Category Category { get; set; }
 
-    [Required]
     public Company Company { get; set; }
 
     public bool NewArrival { get; set; }
 
-    [Required]
-    [Url]
     public string Image { get; set; } = string.Empty;
 
-    [Required]
-    [MinLength(1)]
     public List<string> Colors { get; set; } = new();
 
-    // Optional groups (e.g., furniture, kids, bathroom, garden). Lowercase preferred.
+    /// <summary>Navigation groups (furniture, kids, bathroom, garden), lowercase.</summary>
     public List<string> Groups { get; set; } = new();
 
-    // New fields: dimensions and weight
-    [Range(0, 100000)]
     public decimal? WidthCm { get; set; }
 
-    [Range(0, 100000)]
     public decimal? HeightCm { get; set; }
 
-    [Range(0, 100000)]
     public decimal? DepthCm { get; set; }
 
-    [Range(0, 100000)]
     public decimal? WeightKg { get; set; }
 
-    // Materials list (simple strings like wood, steel, glass)
+    /// <summary>Materials (wood, steel, glass), lowercase.</summary>
     public List<string> Materials { get; set; } = new();
 
+    /// <summary>
+    /// Deleting a product only clears this flag: orders keep referencing it, the public
+    /// catalogue hides it and the admin panel can bring it back.
+    /// </summary>
     public bool IsActive { get; set; } = true;
 
     /// <summary>
     /// The price a customer actually pays: the sale price when one is set, otherwise the list
     /// price reduced by the discount percent. Cart and order snapshots must use this value.
     /// </summary>
-    [NotMapped]
     public decimal EffectivePrice => SalePrice is > 0
         ? SalePrice.Value
         : DiscountPercent is > 0
@@ -79,4 +68,15 @@ public class Product
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public ProductSnapshot ToSnapshot() => new(
+        Id,
+        Title,
+        Image,
+        Company.ToString(),
+        Colors,
+        Price,
+        EffectivePrice,
+        IsActive,
+        UpdatedAt);
 }

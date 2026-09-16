@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Store.Contracts.Authorization;
+using Store.Contracts.Catalog;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Services;
@@ -128,11 +129,7 @@ public class ProductsController : ControllerBase
     [Authorize(Policy = Policies.AdminWrite)]
     public async Task<ActionResult<ProductResponse>> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
+        // FluentValidation rejects invalid fields before the action runs; absent fields keep their value
         try
         {
             var product = await _productService.UpdateProductAsync(id, request);
@@ -152,7 +149,8 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a product
+    /// Delete a product: it disappears from the public catalogue but stays in the database, so
+    /// past orders keep a valid reference and an admin can reactivate it with an update.
     /// </summary>
     /// <param name="id">Product ID</param>
     /// <returns>Success status</returns>
@@ -176,6 +174,18 @@ public class ProductsController : ControllerBase
             _logger.LogError(ex, "Error deleting product with ID: {ProductId}", id);
             return StatusCode(500, "An error occurred while deleting the product");
         }
+    }
+
+    /// <summary>
+    /// What another service needs to know about a product (title, image, colours, the price the
+    /// customer pays right now). Service-to-service only: callers present the internal API key.
+    /// </summary>
+    [HttpGet("{id}/snapshot")]
+    [Authorize(Policy = Policies.InternalService)]
+    public async Task<ActionResult<ProductSnapshot>> GetSnapshot(int id)
+    {
+        var snapshot = await _productService.GetSnapshotAsync(id);
+        return snapshot is null ? NotFound() : Ok(snapshot);
     }
 
     /// <summary>

@@ -28,53 +28,43 @@ public sealed class CartApiFactory : StoreApiFactory<CartDbContext>
 
     protected override void ConfigureTestServices(IServiceCollection services)
     {
-        // The cart resolves a plain HttpClient from the factory; route every request through the fake
+        // Typed clients keep their resilience pipeline; only the network is replaced by the fake
         services.ConfigureHttpClientDefaults(client => client.ConfigurePrimaryHttpMessageHandler(() => Catalog));
     }
 }
 
 /// <summary>
-/// Answers GET /api/products/{id} in the catalogue's public JSON shape for the products a test registers.
+/// Answers GET /api/products/{id}/snapshot the way the catalogue does, for the products a test
+/// registers. Unknown ids get 404, like a product that was never created.
 /// </summary>
 public sealed class FakeCatalog : HttpMessageHandler
 {
     private readonly Dictionary<int, object> _products = new();
 
-    public void Add(int id, decimal price, decimal? salePrice = null, decimal? discountPercent = null, string title = "Fake product")
+    public void Add(int id, decimal price, decimal? salePrice = null, decimal? discountPercent = null, string title = "Fake product", bool isActive = true)
     {
         var effective = salePrice ?? (discountPercent is > 0 ? Math.Round(price * (1 - discountPercent.Value / 100m), 2) : price);
         _products[id] = new
         {
-            data = new
-            {
-                id,
-                attributes = new
-                {
-                    title,
-                    description = "fake",
-                    image = "https://example.test/fake.jpg",
-                    category = "sofas",
-                    company = "modenza",
-                    price = price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                    salePrice = salePrice?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                    discountPercent,
-                    effectivePrice = effective.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                    colors = new[] { "black" },
-                    createdAt = "2026-01-01T00:00:00.000Z",
-                    updatedAt = "2026-01-01T00:00:00.000Z",
-                    publishedAt = "2026-01-01T00:00:00.000Z"
-                }
-            },
-            meta = new { }
+            id,
+            title,
+            image = "https://example.test/fake.jpg",
+            company = "Modenza",
+            colors = new[] { "black" },
+            price,
+            effectivePrice = effective,
+            isActive,
+            updatedAt = DateTime.UtcNow
         };
     }
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri?.AbsolutePath ?? string.Empty;
-        var prefix = "/api/products/";
-        if (request.Method == HttpMethod.Get && path.StartsWith(prefix, StringComparison.Ordinal)
-            && int.TryParse(path[prefix.Length..], out var id) && _products.TryGetValue(id, out var product))
+        const string prefix = "/api/products/";
+        const string suffix = "/snapshot";
+        if (request.Method == HttpMethod.Get && path.StartsWith(prefix, StringComparison.Ordinal) && path.EndsWith(suffix, StringComparison.Ordinal)
+            && int.TryParse(path[prefix.Length..^suffix.Length], out var id) && _products.TryGetValue(id, out var product))
         {
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(product) });
         }

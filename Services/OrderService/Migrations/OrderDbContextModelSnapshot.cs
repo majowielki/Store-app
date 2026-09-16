@@ -22,7 +22,27 @@ namespace Store.OrderService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Store.Shared.Models.Order", b =>
+            modelBuilder.Entity("Store.OrderService.Models.Customer", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime?>("FirstOrderAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastOrderAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("OrdersPlaced")
+                        .HasColumnType("integer");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("Store.OrderService.Models.Order", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -42,27 +62,55 @@ namespace Store.OrderService.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<decimal>("DeliveryFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("DiscountReason")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("UserEmail")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("Store.Shared.Models.OrderItem", b =>
+            modelBuilder.Entity("Store.OrderService.Models.OrderLine", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -80,17 +128,8 @@ namespace Store.OrderService.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<decimal?>("DeliveryCost")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("OrderDiscount")
-                        .HasColumnType("numeric");
-
                     b.Property<int>("OrderId")
                         .HasColumnType("integer");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("numeric");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
@@ -107,17 +146,21 @@ namespace Store.OrderService.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderItem");
+                    b.ToTable("OrderLines");
                 });
 
-            modelBuilder.Entity("Store.Shared.Models.OrderItem", b =>
+            modelBuilder.Entity("Store.OrderService.Models.OrderLine", b =>
                 {
-                    b.HasOne("Store.Shared.Models.Order", "Order")
-                        .WithMany("OrderItems")
+                    b.HasOne("Store.OrderService.Models.Order", "Order")
+                        .WithMany("Lines")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -125,9 +168,9 @@ namespace Store.OrderService.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("Store.Shared.Models.Order", b =>
+            modelBuilder.Entity("Store.OrderService.Models.Order", b =>
                 {
-                    b.Navigation("OrderItems");
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }

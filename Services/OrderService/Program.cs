@@ -1,40 +1,32 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.OpenApi.Models;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
+using Store.BuildingBlocks.Http;
+using Store.BuildingBlocks.OpenApi;
+using Store.OrderService.Clients;
 using Store.OrderService.Data;
+using Store.OrderService.Models;
 using Store.OrderService.Services;
 using Store.Shared.Extensions;
 using Store.Shared.MessageBus;
 using Store.Shared.Middleware;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
+builder.Services.AddStandardApiControllers();
 
 // FluentValidation: validators from DI, request models validated before the action runs
 builder.Services.AddValidatorsFromAssemblyContaining<Store.OrderService.Validators.CreateOrderFromCartRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
-// Database
+// Database - the model and the migrations must agree; a drift is an error, not a warning to silence
 builder.Services.AddDbContext<OrderDbContext>(options =>
-{
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
-    // Allow applying existing migrations even if there are pending model changes (e.g., new properties not yet migrated)
-    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
-});
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // JWT Authentication - key, issuer and audience come from validated JwtOptions;
 // the shared setup already adds the Token-Expired header on expired tokens
@@ -49,14 +41,17 @@ builder.Services.AddStoreAuthorization();
 // Addresses of the services this one calls; startup fails when any is missing
 builder.Services.AddServiceEndpoints(builder.Configuration,
     nameof(ServiceEndpointsOptions.IdentityService),
+    nameof(ServiceEndpointsOptions.ProductService),
     nameof(ServiceEndpointsOptions.CartService),
     nameof(ServiceEndpointsOptions.AuditLogService));
 
 // Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
 builder.Services.AddAuditLogClient(builder.Configuration);
 
-// HTTP Client
-builder.Services.AddHttpClient();
+// Other services, through typed clients with timeouts, retries and a circuit breaker
+builder.Services.AddServiceClient<ICartClient, CartClient>(builder.Configuration, nameof(ServiceEndpointsOptions.CartService));
+builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
+builder.Services.AddServiceClient<IIdentityClient, IdentityClient>(builder.Configuration, nameof(ServiceEndpointsOptions.IdentityService));
 builder.Services.AddHttpContextAccessor();
 
 // Message Bus - Make it optional to prevent startup failures
@@ -72,50 +67,14 @@ catch (Exception ex)
 }
 
 // Services
+builder.Services.AddStoreOptions<PricingOptions>(builder.Configuration, PricingOptions.SectionName);
 builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
-// Swagger with JWT support
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "Store Order Service", Version = "v1" });
-
-    // JWT Bearer token support
-    c.AddSecurityDefinition("Bearer", new()
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new()
-    {
-        {
-            new()
-            {
-                Reference = new() { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-});
+builder.Services.AddSwaggerWithJwt("Store Order Service");
+builder.Services.AddStandardCors();
 
 var app = builder.Build();
 
@@ -129,11 +88,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store Order Service V1");
-        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+        c.RoutePrefix = "swagger";
     });
 }
 
-app.UseCors("AllowAll");
+app.UseCors("DefaultCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -154,39 +113,6 @@ try
             {
                 context.Database.Migrate();
                 logger.LogInformation("Database migration completed successfully.");
-
-                // Cleanup cross-service FK if it exists: OrderItem -> Product and Product table
-                try
-                {
-                    var cleanupSql = """
-DO $$
-BEGIN
-    -- Drop FK constraint if present
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.table_constraints tc
-        WHERE tc.constraint_name = 'FK_OrderItem_Product_ProductId'
-          AND tc.table_name = 'OrderItem'
-    ) THEN
-        ALTER TABLE "OrderItem" DROP CONSTRAINT "FK_OrderItem_Product_ProductId";
-    END IF;
-
-    -- Drop Product table if present (OrderService should not own it)
-    IF EXISTS (
-        SELECT 1 FROM information_schema.tables t
-        WHERE t.table_name = 'Product'
-    ) THEN
-        DROP TABLE "Product";
-    END IF;
-END $$;
-""";
-                    context.Database.ExecuteSqlRaw(cleanupSql);
-                    logger.LogInformation("OrderService DB cleanup completed (removed Product FK/table if existed).");
-                }
-                catch (Exception exCleanup)
-                {
-                    logger.LogWarning(exCleanup, "OrderService DB cleanup step failed (safe to ignore if already clean).");
-                }
             }
             else
             {

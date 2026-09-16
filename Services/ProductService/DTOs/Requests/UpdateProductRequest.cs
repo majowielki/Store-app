@@ -1,24 +1,25 @@
+using Store.BuildingBlocks.Api;
 using Store.Contracts.Catalog;
-using System.ComponentModel.DataAnnotations;
 
 namespace Store.ProductService.DTOs.Requests;
 
+/// <summary>
+/// Body of PUT /api/products/{id}: a partial update. A property that is absent keeps the
+/// current value. Fields that can be empty use <see cref="Optional{T}"/>, so sending them as
+/// null clears them - that is how a promotion is taken off a product.
+/// Rules: <c>UpdateProductRequestValidator</c>.
+/// </summary>
 public class UpdateProductRequest
 {
-    [StringLength(200, MinimumLength = 3)]
     public string? Title { get; set; }
 
-    [StringLength(4000, MinimumLength = 10)]
     public string? Description { get; set; }
 
-    [Range(0.01, 999999.99)]
     public decimal? Price { get; set; }
 
-    [Range(0.01, 999999.99)]
-    public decimal? SalePrice { get; set; }
+    public Optional<decimal?> SalePrice { get; set; }
 
-    [Range(0, 100)]
-    public decimal? DiscountPercent { get; set; }
+    public Optional<decimal?> DiscountPercent { get; set; }
 
     public Category? Category { get; set; }
 
@@ -26,25 +27,24 @@ public class UpdateProductRequest
 
     public bool? NewArrival { get; set; }
 
-    [Url]
     public string? Image { get; set; }
 
-    [MinLength(1)]
     public List<string>? Colors { get; set; }
 
-    // Replace Groups completely if provided
+    /// <summary>Replaces the whole list when present; an empty list removes every group.</summary>
     public List<string>? Groups { get; set; }
 
-    // Dimensions and weight (optional)
-    [Range(0, 100000)]
-    public decimal? WidthCm { get; set; }
-    [Range(0, 100000)]
-    public decimal? HeightCm { get; set; }
-    [Range(0, 100000)]
-    public decimal? DepthCm { get; set; }
-    [Range(0, 100000)]
-    public decimal? WeightKg { get; set; }
+    public Optional<decimal?> WidthCm { get; set; }
 
-    // Materials list (replaces completely if provided)
+    public Optional<decimal?> HeightCm { get; set; }
+
+    public Optional<decimal?> DepthCm { get; set; }
+
+    public Optional<decimal?> WeightKg { get; set; }
+
+    /// <summary>Replaces the whole list when present; an empty list removes every material.</summary>
     public List<string>? Materials { get; set; }
+
+    /// <summary>False hides the product from the public catalogue, true brings a deleted one back.</summary>
+    public bool? IsActive { get; set; }
 }

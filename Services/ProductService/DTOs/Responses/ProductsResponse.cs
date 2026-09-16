@@ -37,6 +37,9 @@ public class ProductAttributes
     public decimal? DepthCm { get; set; }
     public decimal? WeightKg { get; set; }
     public List<string> Materials { get; set; } = new();
+
+    /// <summary>False for products deleted from the catalogue; only the admin listing returns those.</summary>
+    public bool IsActive { get; set; } = true;
 }
 
 // Generic option item for UI dropdowns

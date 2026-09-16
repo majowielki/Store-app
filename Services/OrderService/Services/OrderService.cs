@@ -1,234 +1,155 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
-using Store.BuildingBlocks.Configuration;
+using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
+using Store.OrderService.Models;
 using Store.Shared.MessageBus;
 using Store.Shared.Models;
 using Store.Shared.Services;
-using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-
-#nullable enable
 
 namespace Store.OrderService.Services;
 
 public class OrderService : IOrderService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly OrderDbContext _context;
+    private readonly ICartClient _cart;
+    private readonly ICatalogClient _catalog;
+    private readonly IIdentityClient _identity;
+    private readonly PricingOptions _pricing;
     private readonly ILogger<OrderService> _logger;
-    private readonly HttpClient _httpClient;
-    private readonly ServiceEndpointsOptions _endpoints;
     private readonly IMessageBus? _messageBus;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IAuditLogClient _auditLogClient;
 
-    private static readonly JsonSerializerOptions AuditJsonOptions = new()
-    {
-        ReferenceHandler = ReferenceHandler.IgnoreCycles,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     public OrderService(
         OrderDbContext context,
+        ICartClient cart,
+        ICatalogClient catalog,
+        IIdentityClient identity,
+        IOptions<PricingOptions> pricing,
         ILogger<OrderService> logger,
-        HttpClient httpClient,
-        IOptions<ServiceEndpointsOptions> endpoints,
-        IMessageBus? messageBus = null,
-        IHttpContextAccessor? httpContextAccessor = null,
-        IAuditLogClient? auditLogClient = null)
+        IHttpContextAccessor httpContextAccessor,
+        IAuditLogClient auditLogClient,
+        IMessageBus? messageBus = null)
     {
         _context = context;
+        _cart = cart;
+        _catalog = catalog;
+        _identity = identity;
+        _pricing = pricing.Value;
         _logger = logger;
-        _httpClient = httpClient;
-        _endpoints = endpoints.Value;
+        _httpContextAccessor = httpContextAccessor;
+        _auditLogClient = auditLogClient;
         _messageBus = messageBus;
-        _httpContextAccessor = httpContextAccessor ?? new HttpContextAccessor();
-        _auditLogClient = auditLogClient ?? throw new ArgumentNullException(nameof(auditLogClient));
     }
 
     public async Task<ApiResponse<OrderResponse>> CreateOrderFromCartAsync(CreateOrderFromCartRequest request)
     {
         try
         {
-            // Get cart items from Cart Service
-            var cartItems = await GetCartItemsAsync(request.UserId);
-
-            if (cartItems == null || cartItems.Count == 0)
+            var cart = await _cart.GetSnapshotAsync(request.UserId);
+            if (cart is null || cart.Lines.Count == 0)
             {
                 return ApiResponse<OrderResponse>.Error("Cart is empty or not found");
             }
 
-            // Check if this is the user's first order
-            var hasPlacedFirstOrder = await _context.Orders.AnyAsync(o => o.UserId == request.UserId);
-
-            // Create the order
-            var order = new Order
+            // Price the lines from the catalogue as it is now; the cart's prices may be stale
+            var lines = new List<OrderLine>(cart.Lines.Count);
+            foreach (var line in cart.Lines)
             {
-                UserId = request.UserId,
-                UserEmail = request.UserEmail,
-                DeliveryAddress = request.DeliveryAddress,
-                CustomerName = request.CustomerName,
-                Notes = request.Notes,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            // Create order items from cart items
-            order.OrderItems = cartItems.Select(ci => new OrderItem
-            {
-                ProductId = ci.ProductId,
-                ProductTitle = ci.ProductTitle,
-                ProductImage = ci.ProductImage,
-                Price = (ci.Price > 0 ? ci.Price : 0.01m),
-                Quantity = ci.Quantity,
-                Color = ci.Color
-            }).ToList();
-
-            // Apply first-order discount
-            if (!hasPlacedFirstOrder)
-            {
-                var discount = order.OrderTotal * 0.20m;
-                order.OrderItems.Add(new OrderItem
+                var product = await _catalog.GetSnapshotAsync(line.ProductId);
+                if (product is null || !product.IsActive)
                 {
-                    ProductId = 0, // Placeholder for discount
-                    ProductTitle = "First Order Discount",
-                    Price = -discount,
-                    Quantity = 1,
-                    Color = "N/A",
-                    OrderDiscount = discount // Map the discount amount
+                    return ApiResponse<OrderResponse>.Error(
+                        $"\"{line.Title}\" is no longer available. Remove it from the cart to continue.",
+                        HttpStatusCode.Conflict);
+                }
+
+                lines.Add(new OrderLine
+                {
+                    ProductId = product.Id,
+                    ProductTitle = product.Title,
+                    ProductImage = product.Image,
+                    Company = product.Company,
+                    Color = line.Color,
+                    UnitPrice = product.EffectivePrice,
+                    Quantity = line.Quantity
                 });
             }
 
-            // Add delivery fee
-            var deliveryFee = order.DeliveryFee;
-            if (deliveryFee > 0)
-            {
-                order.OrderItems.Add(new OrderItem
-                {
-                    ProductId = 0, // Placeholder for delivery fee
-                    ProductTitle = "Delivery Fee",
-                    Price = deliveryFee,
-                    Quantity = 1,
-                    Color = "N/A",
-                    DeliveryCost = deliveryFee // Map the delivery fee
-                });
-            }
+            var order = await PlaceOrderAsync(request, lines);
 
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
+            await AuditAsync("ORDER_CREATED", order.Id.ToString(), order.UserId,
+                new { order.Id, order.Subtotal, order.DiscountAmount, order.DeliveryFee, order.Total, Lines = order.Lines.Count });
 
-            // Audit log: order created
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "ORDER_CREATED",
-                EntityName = nameof(Order),
-                EntityId = order.Id.ToString(),
-                UserId = order.UserId,
-                UserEmail = order.UserEmail,
-                Timestamp = DateTime.UtcNow,
-                NewValues = JsonSerializer.Serialize(order, AuditJsonOptions),
-                AdditionalInfo = JsonSerializer.Serialize(new { Source = "OrderService" }, AuditJsonOptions)
-            });
-
-            // Clear the cart after successful order creation
             await ClearCartAsync(request.UserId);
-
-            // Publish order created event
             await PublishOrderCreatedEventAsync(order);
+            await SaveAddressAsync(request);
 
-            // Save address to user profile if requested and not demo user
-            if (request.SaveAddress && !string.IsNullOrWhiteSpace(request.DeliveryAddress))
-            {
-                try
-                {
-                    var httpContext = _httpContextAccessor.HttpContext;
-                    var authHeader = httpContext?.Request.Headers["Authorization"].FirstOrDefault();
-                    if (!string.IsNullOrWhiteSpace(authHeader))
-                    {
-                        // Always ensure 'Bearer ' prefix
-                        var headerValue = authHeader.StartsWith("Bearer ") ? authHeader : $"Bearer {authHeader}";
-                        var handler = new JwtSecurityTokenHandler();
-                        var jwt = handler.ReadJwtToken(headerValue.Replace("Bearer ", ""));
-                        var identityServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.IdentityService)).ToString();
-                        {
-                            var updateAddressRequest = new
-                            {
-                                SimpleAddress = request.DeliveryAddress
-                            };
-                            var url = $"{identityServiceUrl.TrimEnd('/')}/api/auth/me/address";
-                            var httpRequest = new HttpRequestMessage(HttpMethod.Put, url)
-                            {
-                                Content = new StringContent(JsonSerializer.Serialize(updateAddressRequest), System.Text.Encoding.UTF8, "application/json")
-                            };
-                            httpRequest.Headers.Remove("Authorization"); // Remove any existing
-                            httpRequest.Headers.TryAddWithoutValidation("Authorization", headerValue);
-
-                            // No token, address or response body in logs
-                            _logger.LogInformation("Sending address update to IdentityService for user {UserId}", request.UserId);
-                            var response = await _httpClient.SendAsync(httpRequest);
-                            var responseBody = await response.Content.ReadAsStringAsync();
-                            _logger.LogInformation("IdentityService address update response: {StatusCode}", response.StatusCode);
-                            if (!response.IsSuccessStatusCode)
-                            {
-                                _logger.LogWarning("Failed to save address to user profile for user: {UserId}. Status: {StatusCode}, Body: {Body}", request.UserId, response.StatusCode, responseBody);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("No Authorization header found in HttpContext for address update!");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error saving address to user profile for user: {UserId}", request.UserId);
-                }
-            }
-
-            var orderResponse = new Store.OrderService.DTOs.Responses.OrderResponse
-            {
-                Id = order.Id,
-                UserId = order.UserId,
-                UserEmail = order.UserEmail,
-                DeliveryAddress = order.DeliveryAddress,
-                CustomerName = order.CustomerName,
-                OrderItems = order.OrderItems.Select(oi => new Store.OrderService.DTOs.Responses.OrderItemResponse
-                {
-                    Id = oi.Id,
-                    ProductId = oi.ProductId,
-                    ProductTitle = oi.ProductTitle,
-                    ProductImage = oi.ProductImage,
-                    Price = oi.Price,
-                    Quantity = oi.Quantity,
-                    Color = oi.Color,
-                    DeliveryCost = oi.DeliveryCost, // Map delivery cost
-                    OrderDiscount = oi.OrderDiscount // Map order discount
-                }).ToList(),
-                TotalItems = order.TotalItems,
-                OrderTotal = order.OrderTotal,
-                CreatedAt = order.CreatedAt,
-                Notes = order.Notes
-            };
-            return ApiResponse<OrderResponse>.Success(orderResponse);
+            return ApiResponse<OrderResponse>.Success(MapToOrderResponse(order));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating order from cart for user: {UserId}", request.UserId);
-            // Audit log: order creation failed
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "ORDER_CREATION_FAILED",
-                EntityName = nameof(Order),
-                UserId = request.UserId,
-                UserEmail = request.UserEmail,
-                Timestamp = DateTime.UtcNow,
-                AdditionalInfo = JsonSerializer.Serialize(new { Exception = ex.Message, Source = "OrderService" }, AuditJsonOptions)
-            });
-            return ApiResponse<OrderResponse>.Error("An error occurred while creating the order.");
+            await AuditAsync("ORDER_CREATION_FAILED", null, request.UserId, new { Exception = ex.Message });
+            return ApiResponse<OrderResponse>.Error("An error occurred while creating the order.", HttpStatusCode.InternalServerError);
         }
+    }
+
+    /// <summary>
+    /// Writes the order in one transaction. The customer row is locked first, so concurrent
+    /// orders of the same customer are serialised and only one of them can be the first order.
+    /// </summary>
+    private async Task<Order> PlaceOrderAsync(CreateOrderFromCartRequest request, List<OrderLine> lines)
+    {
+        var now = DateTime.UtcNow;
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"""INSERT INTO "Customers" ("UserId", "OrdersPlaced") VALUES ({request.UserId}, 0) ON CONFLICT ("UserId") DO NOTHING""");
+        var customer = await _context.Customers
+            .FromSqlInterpolated($"""SELECT * FROM "Customers" WHERE "UserId" = {request.UserId} FOR UPDATE""")
+            .SingleAsync();
+
+        var totals = PricingPolicy.Calculate(lines.Sum(l => l.LineTotal), isFirstOrder: customer.OrdersPlaced == 0, _pricing);
+
+        var order = new Order
+        {
+            UserId = request.UserId,
+            UserEmail = request.UserEmail,
+            DeliveryAddress = request.DeliveryAddress,
+            CustomerName = request.CustomerName,
+            Notes = request.Notes,
+            Lines = lines,
+            Subtotal = totals.Subtotal,
+            DiscountAmount = totals.DiscountAmount,
+            DiscountReason = totals.DiscountReason,
+            DeliveryFee = totals.DeliveryFee,
+            Total = totals.Total,
+            Status = OrderStatus.Placed,
+            CreatedAt = now
+        };
+
+        customer.OrdersPlaced++;
+        customer.FirstOrderAt ??= now;
+        customer.LastOrderAt = now;
+
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return order;
     }
 
     public async Task<ApiResponse<OrderResponse?>> GetOrderByIdAsync(int orderId, string userId)
@@ -236,20 +157,21 @@ public class OrderService : IOrderService
         try
         {
             var order = await _context.Orders
-                .Include(o => o.OrderItems)
+                .AsNoTracking()
+                .Include(o => o.Lines)
                 .FirstOrDefaultAsync(o => o.Id == orderId);
 
             if (order == null)
             {
-                return ApiResponse<OrderResponse?>.Error("Order not found");
+                return ApiResponse<OrderResponse?>.Error("Order not found", HttpStatusCode.NotFound);
             }
 
-            // Check if user has access to this order (user can only see their own orders unless admin)
+            // Users only see their own orders; admins go through GetOrderByIdForAdminAsync
             if (order.UserId != userId)
             {
                 _logger.LogWarning("User {UserId} attempted to access order {OrderId} belonging to {OrderUserId}",
                     userId, orderId, order.UserId);
-                return ApiResponse<OrderResponse?>.Error("Unauthorized");
+                return ApiResponse<OrderResponse?>.Error("Unauthorized", HttpStatusCode.Forbidden);
             }
 
             return ApiResponse<OrderResponse?>.Success(MapToOrderResponse(order));
@@ -257,7 +179,7 @@ public class OrderService : IOrderService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving order: {OrderId}", orderId);
-            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.");
+            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.", HttpStatusCode.InternalServerError);
         }
     }
 
@@ -266,12 +188,13 @@ public class OrderService : IOrderService
         try
         {
             var order = await _context.Orders
-                .Include(o => o.OrderItems)
+                .AsNoTracking()
+                .Include(o => o.Lines)
                 .FirstOrDefaultAsync(o => o.Id == orderId);
 
             if (order == null)
             {
-                return ApiResponse<OrderResponse?>.Error("Order not found");
+                return ApiResponse<OrderResponse?>.Error("Order not found", HttpStatusCode.NotFound);
             }
 
             return ApiResponse<OrderResponse?>.Success(MapToOrderResponse(order));
@@ -279,78 +202,48 @@ public class OrderService : IOrderService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving order for admin: {OrderId}", orderId);
-            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.");
+            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.", HttpStatusCode.InternalServerError);
         }
     }
 
-    public async Task<ApiResponse<OrderListResponse>> GetUserOrdersAsync(string userId, int page = 1, int pageSize = 20)
+    public Task<ApiResponse<OrderListResponse>> GetUserOrdersAsync(string userId, int page = 1, int pageSize = 20)
+        => ListOrdersAsync(_context.Orders.Where(o => o.UserId == userId), page, pageSize);
+
+    public Task<ApiResponse<OrderListResponse>> GetOrdersByUserIdAsync(string userId, int page = 1, int pageSize = 20)
+        => GetUserOrdersAsync(userId, page, pageSize);
+
+    public Task<ApiResponse<OrderListResponse>> GetAllOrdersAsync(int page = 1, int pageSize = 20)
+        => ListOrdersAsync(_context.Orders, page, pageSize);
+
+    private async Task<ApiResponse<OrderListResponse>> ListOrdersAsync(IQueryable<Order> query, int page, int pageSize)
     {
         try
         {
-            var query = _context.Orders
-                .Include(o => o.OrderItems)
-                .Where(o => o.UserId == userId)
-                .OrderByDescending(o => o.CreatedAt);
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 100);
 
             var totalCount = await query.CountAsync();
 
             var orders = await query
+                .AsNoTracking()
+                .Include(o => o.Lines)
+                .OrderByDescending(o => o.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            var response = new OrderListResponse
+            return ApiResponse<OrderListResponse>.Success(new OrderListResponse
             {
-                Orders = orders.Select(MapToOrderResponse),
+                Orders = orders.Select(MapToOrderResponse).ToList(),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
-            };
-
-            return ApiResponse<OrderListResponse>.Success(response);
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving orders for user: {UserId}", userId);
-            return ApiResponse<OrderListResponse>.Error("An error occurred while retrieving user orders.");
-        }
-    }
-
-    public async Task<ApiResponse<OrderListResponse>> GetOrdersByUserIdAsync(string userId, int page = 1, int pageSize = 20)
-    {
-        // Same as GetUserOrdersAsync but intended for admin queries without caller restriction
-        return await GetUserOrdersAsync(userId, page, pageSize);
-    }
-
-    public async Task<ApiResponse<OrderListResponse>> GetAllOrdersAsync(int page = 1, int pageSize = 20)
-    {
-        try
-        {
-            var query = _context.Orders
-                .Include(o => o.OrderItems)
-                .OrderByDescending(o => o.CreatedAt);
-
-            var totalCount = await query.CountAsync();
-
-            var orders = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var response = new OrderListResponse
-            {
-                Orders = orders.Select(MapToOrderResponse),
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
-            };
-
-            return ApiResponse<OrderListResponse>.Success(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving all orders");
-            return ApiResponse<OrderListResponse>.Error("An error occurred while retrieving all orders.");
+            _logger.LogError(ex, "Error listing orders");
+            return ApiResponse<OrderListResponse>.Error("An error occurred while retrieving orders.", HttpStatusCode.InternalServerError);
         }
     }
 
@@ -358,13 +251,13 @@ public class OrderService : IOrderService
     {
         try
         {
-            var count = await _context.Orders.Where(o => o.UserId == userId).CountAsync();
+            var count = await _context.Orders.CountAsync(o => o.UserId == userId);
             return ApiResponse<int>.Success(count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting order count for user: {UserId}", userId);
-            return ApiResponse<int>.Error("An error occurred while getting order count.");
+            return ApiResponse<int>.Error("An error occurred while getting order count.", HttpStatusCode.InternalServerError);
         }
     }
 
@@ -373,178 +266,69 @@ public class OrderService : IOrderService
         try
         {
             var since = DateTime.UtcNow.Date.AddDays(-Math.Abs(daysWindow));
+            var window = _context.Orders.AsNoTracking().Where(o => o.CreatedAt >= since);
 
-            // Preload needed data
-            var ordersQuery = _context.Orders
-                .AsNoTracking()
-                .Include(o => o.OrderItems)
-                .Where(o => o.CreatedAt >= since);
-
-            var orders = await ordersQuery.ToListAsync();
-
-            if (orders.Count == 0)
-            {
-                // Always return a valid, empty stats object
-                return ApiResponse<OrderStatsResponse>.Success(new OrderStatsResponse
-                {
-                    TotalOrders = 0,
-                    TotalRevenue = 0,
-                    Daily = new List<TimeBucketStats>(),
-                    Weekly = new List<TimeBucketStats>(),
-                    TopProducts = new List<TopProductStats>()
-                });
-            }
-
-            var response = new OrderStatsResponse
-            {
-                TotalOrders = orders.Count,
-                TotalRevenue = orders.Sum(o => o.OrderTotal)
-            };
-
-            // Daily buckets
-            var daily = orders
+            // Aggregates run in SQL; only one row per day and per product comes back
+            var daily = await window
                 .GroupBy(o => o.CreatedAt.Date)
+                .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Count(), Revenue = g.Sum(o => o.Total) })
+                .OrderBy(b => b.BucketStart)
+                .ToListAsync();
+
+            var weekly = daily
+                .GroupBy(d => WeekStart(d.BucketStart))
                 .OrderBy(g => g.Key)
-                .Select(g => new TimeBucketStats
-                {
-                    BucketStart = g.Key,
-                    Orders = g.Count(),
-                    Revenue = g.Sum(o => o.OrderTotal)
-                })
+                .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Sum(d => d.Orders), Revenue = g.Sum(d => d.Revenue) })
                 .ToList();
 
-            response.Daily = daily;
-
-            // Weekly buckets (ISO week by Monday start)
-            static DateTime WeekStart(DateTime date)
-            {
-                int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
-                return date.AddDays(-diff).Date;
-            }
-
-            var weekly = orders
-                .GroupBy(o => WeekStart(o.CreatedAt))
-                .OrderBy(g => g.Key)
-                .Select(g => new TimeBucketStats
-                {
-                    BucketStart = g.Key,
-                    Orders = g.Count(),
-                    Revenue = g.Sum(o => o.OrderTotal)
-                })
-                .ToList();
-
-            response.Weekly = weekly;
-
-            // Top products by quantity and revenue in window
-            var topProducts = orders
-                .SelectMany(o => o.OrderItems)
-                .GroupBy(i => new { i.ProductId, i.ProductTitle })
+            var topProducts = await _context.OrderLines.AsNoTracking()
+                .Where(l => l.Order.CreatedAt >= since)
+                .GroupBy(l => new { l.ProductId, l.ProductTitle })
                 .Select(g => new TopProductStats
                 {
                     ProductId = g.Key.ProductId,
                     ProductTitle = g.Key.ProductTitle,
-                    Quantity = g.Sum(i => i.Quantity),
-                    Revenue = g.Sum(i => i.LineTotal)
+                    Quantity = g.Sum(l => l.Quantity),
+                    Revenue = g.Sum(l => l.UnitPrice * l.Quantity)
                 })
-                .OrderByDescending(x => x.Quantity)
-                .ThenByDescending(x => x.Revenue)
+                .OrderByDescending(p => p.Quantity)
+                .ThenByDescending(p => p.Revenue)
                 .Take(10)
-                .ToList();
+                .ToListAsync();
 
-            response.TopProducts = topProducts;
-
-            return ApiResponse<OrderStatsResponse>.Success(response);
+            return ApiResponse<OrderStatsResponse>.Success(new OrderStatsResponse
+            {
+                TotalOrders = daily.Sum(d => d.Orders),
+                TotalRevenue = daily.Sum(d => d.Revenue),
+                Daily = daily,
+                Weekly = weekly,
+                TopProducts = topProducts
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting order stats");
-            return ApiResponse<OrderStatsResponse>.Error("An error occurred while getting order stats.");
+            return ApiResponse<OrderStatsResponse>.Error("An error occurred while getting order stats.", HttpStatusCode.InternalServerError);
         }
     }
 
-    private async Task<List<CartItemDto>?> GetCartItemsAsync(string userId)
+    /// <summary>Monday of the ISO week the date falls in.</summary>
+    private static DateTime WeekStart(DateTime date)
     {
-        try
-        {
-            var cartServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.CartService)).ToString();
-
-            // Forward the bearer token so CartService can authorize the user
-            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{cartServiceUrl.TrimEnd('/')}/api/cart");
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                request.Headers.TryAddWithoutValidation("Authorization", token);
-            }
-
-            var response = await _httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    _logger.LogWarning("Cart not found for user: {UserId}", userId);
-                    return null;
-                }
-                _logger.LogError("Error retrieving cart from CartService. Status: {StatusCode}", response.StatusCode);
-                throw new InvalidOperationException($"Failed to retrieve cart from CartService. Status: {response.StatusCode}");
-            }
-
-            var cartJson = await response.Content.ReadAsStringAsync();
-            var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<CartServiceResponseDto>>(cartJson, Store.BuildingBlocks.Serialization.StoreJson.CaseInsensitive);
-
-            if (apiResponse == null || !apiResponse.IsSuccess || apiResponse.Data == null)
-            {
-                _logger.LogWarning("CartService returned error or empty data for user: {UserId}. Message: {Message}", userId, apiResponse?.Message);
-                return null;
-            }
-
-            return apiResponse.Data.Items?.Select(i => new CartItemDto
-            {
-                Id = i.Id,
-                ProductId = i.ProductId,
-                ProductTitle = i.Title,
-                ProductImage = i.Image,
-                Price = i.Price,
-                Quantity = i.Quantity,
-                Color = i.Color,
-                Company = i.Company,
-                LineTotal = i.LineTotal
-            }).ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error calling CartService for user: {UserId}", userId);
-            throw;
-        }
+        var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        return date.AddDays(-diff).Date;
     }
 
     private async Task ClearCartAsync(string userId)
     {
         try
         {
-            var cartServiceUrl = _endpoints.Require(nameof(ServiceEndpointsOptions.CartService)).ToString();
-
-            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
-            var request = new HttpRequestMessage(HttpMethod.Delete, $"{cartServiceUrl.TrimEnd('/')}/api/cart");
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                request.Headers.TryAddWithoutValidation("Authorization", token);
-            }
-
-            var response = await _httpClient.SendAsync(request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("Cart cleared successfully for user: {UserId}", userId);
-            }
-            else
-            {
-                _logger.LogWarning("Failed to clear cart for user: {UserId}. Status: {StatusCode}", userId, response.StatusCode);
-            }
+            await _cart.ClearAsync(userId);
         }
         catch (Exception ex)
         {
+            // The order exists; a cart that stays full is reported, not fatal
             _logger.LogError(ex, "Error clearing cart for user: {UserId}", userId);
-            // Don't throw here as order was already created successfully
         }
     }
 
@@ -558,92 +342,88 @@ public class OrderService : IOrderService
 
         try
         {
-            var orderCreatedEvent = new OrderCreatedEvent
+            await _messageBus.PublishAsync(new OrderCreatedEvent
             {
-                OrderId = Guid.NewGuid(), // Create a Guid representation for the event
-                UserId = Guid.Parse(order.UserId),
-                TotalAmount = order.OrderTotal,
-                Items = order.OrderItems.Select(oi => new OrderItemEvent
-                {
-                    ProductId = Guid.NewGuid(), // This should ideally be the actual product Guid if available
-                    Quantity = oi.Quantity,
-                    Price = oi.Price
-                }).ToList()
-            };
-
-            await _messageBus.PublishAsync(orderCreatedEvent);
-            _logger.LogInformation("Published OrderCreatedEvent for order: {OrderId}", order.Id);
+                OrderId = Guid.NewGuid(),
+                UserId = Guid.TryParse(order.UserId, out var userGuid) ? userGuid : Guid.Empty,
+                TotalAmount = order.Total,
+                Items = order.Lines.Select(l => new OrderItemEvent { Quantity = l.Quantity, Price = l.UnitPrice }).ToList()
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error publishing OrderCreatedEvent for order: {OrderId}", order.Id);
-            // Don't throw here as order was already created successfully
         }
     }
 
-    private OrderResponse MapToOrderResponse(Order order)
+    private async Task SaveAddressAsync(CreateOrderFromCartRequest request)
     {
-        return new Store.OrderService.DTOs.Responses.OrderResponse
+        if (!request.SaveAddress || string.IsNullOrWhiteSpace(request.DeliveryAddress))
+        {
+            return;
+        }
+
+        var authorization = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+        if (string.IsNullOrWhiteSpace(authorization))
+        {
+            _logger.LogWarning("No Authorization header in the request; the address of user {UserId} is not saved", request.UserId);
+            return;
+        }
+
+        try
+        {
+            var token = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? authorization[7..] : authorization;
+            await _identity.SaveAddressAsync(request.DeliveryAddress, token);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving address to user profile for user: {UserId}", request.UserId);
+        }
+    }
+
+    private async Task AuditAsync(string action, string? entityId, string userId, object details)
+    {
+        await _auditLogClient.CreateAuditLogAsync(new AuditLog
+        {
+            Action = action,
+            EntityName = nameof(Order),
+            EntityId = entityId,
+            UserId = userId,
+            Timestamp = DateTime.UtcNow,
+            AdditionalInfo = JsonSerializer.Serialize(new { Source = "OrderService", Details = details }, JsonOptions)
+        });
+    }
+
+    private static OrderResponse MapToOrderResponse(Order order)
+    {
+        return new OrderResponse
         {
             Id = order.Id,
             UserId = order.UserId,
             UserEmail = order.UserEmail,
             DeliveryAddress = order.DeliveryAddress,
             CustomerName = order.CustomerName,
-            OrderItems = order.OrderItems.Select(oi => new Store.OrderService.DTOs.Responses.OrderItemResponse
+            OrderItems = order.Lines.Select(l => new OrderItemResponse
             {
-                Id = oi.Id,
-                ProductId = oi.ProductId,
-                ProductTitle = oi.ProductTitle,
-                ProductImage = oi.ProductImage,
-                Price = oi.Price,
-                Quantity = oi.Quantity,
-                Color = oi.Color,
-                DeliveryCost = oi.DeliveryCost, // Map delivery cost
-                OrderDiscount = oi.OrderDiscount // Map order discount
+                Id = l.Id,
+                ProductId = l.ProductId,
+                ProductTitle = l.ProductTitle,
+                ProductImage = l.ProductImage,
+                Price = l.UnitPrice,
+                Quantity = l.Quantity,
+                Color = l.Color,
+                Company = l.Company,
+                LineTotal = l.LineTotal
             }).ToList(),
             TotalItems = order.TotalItems,
-            OrderTotal = order.OrderTotal,
+            Subtotal = order.Subtotal,
+            DiscountAmount = order.DiscountAmount,
+            DiscountReason = order.DiscountReason,
+            DeliveryFee = order.DeliveryFee,
+            Total = order.Total,
+            Status = order.Status.ToString(),
             CreatedAt = order.CreatedAt,
             Notes = order.Notes
         };
     }
-}
-
-// DTOs for CartService communication
-public class CartServiceResponseDto
-{
-    public int Id { get; set; }
-    public string UserId { get; set; } = string.Empty;
-    public List<CartServiceCartItemDto> Items { get; set; } = new();
-    public int TotalItems { get; set; }
-    public decimal Total { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-}
-
-public class CartServiceCartItemDto
-{
-    public int Id { get; set; }
-    public int ProductId { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Image { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public int Quantity { get; set; }
-    public string Color { get; set; } = string.Empty;
-    public string Company { get; set; } = string.Empty;
-    public decimal LineTotal { get; set; }
-}
-
-public class CartItemDto
-{
-    public int Id { get; set; }
-    public int ProductId { get; set; }
-    public string ProductTitle { get; set; } = string.Empty;
-    public string ProductImage { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public int Quantity { get; set; }
-    public string Color { get; set; } = string.Empty;
-    public string Company { get; set; } = string.Empty;
-    public decimal LineTotal { get; set; }
 }

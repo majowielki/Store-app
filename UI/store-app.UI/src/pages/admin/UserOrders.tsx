@@ -60,16 +60,8 @@ const UserOrders = () => {
                   <TableCell>{o.id}</TableCell>
                   <TableCell>{o.customerName}</TableCell>
                   <TableCell>{o.userEmail}</TableCell>
-                  <TableCell>{
-                    o.orderItems
-                      ? o.orderItems.filter(it => {
-                          const isDelivery = it.deliveryCost != null || (it.productTitle && it.productTitle.toLowerCase().includes('delivery'));
-                          const isDiscount = it.orderDiscount != null || (it.productTitle && it.productTitle.toLowerCase().includes('discount'));
-                          return !isDelivery && !isDiscount;
-                        }).reduce((sum, it) => sum + (it.quantity ?? 0), 0)
-                      : o.totalItems
-                  }</TableCell>
-                  <TableCell>{formatAsDollars(o.orderTotal)}</TableCell>
+                  <TableCell>{o.totalItems}</TableCell>
+                  <TableCell>{formatAsDollars(o.total)}</TableCell>
                   <TableCell>{new Date(o.createdAt).toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm">

@@ -58,7 +58,7 @@ public class ProductServiceTests
     public async Task UpdateProductAsync_Updates_Fields()
     {
         // Arrange
-        var product = new Store.Shared.Models.Product
+        var product = new Store.ProductService.Models.Product
         {
             Title = "Old Title",
             Description = "Old Desc",
@@ -91,7 +91,7 @@ public class ProductServiceTests
     [Fact]
     public async Task DeleteProductAsync_Deletes_Product()
     {
-        var product = new Store.Shared.Models.Product
+        var product = new Store.ProductService.Models.Product
         {
             Title = "To Delete",
             Description = "desc",

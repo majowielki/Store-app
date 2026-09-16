@@ -13,7 +13,7 @@ interface ProductPayload {
   title: string;
   description: string;
   price: number;
-  salePrice?: number;
+  salePrice?: number | null;
   category: string;
   company: string;
   newArrival: boolean;
@@ -21,10 +21,10 @@ interface ProductPayload {
   colors: string[];
   groups?: string[];
   materials?: string[];
-  widthCm?: number;
-  heightCm?: number;
-  depthCm?: number;
-  weightKg?: number;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  depthCm?: number | null;
+  weightKg?: number | null;
 }
 
 const splitList = (value: FormDataEntryValue | null): string[] =>
@@ -33,11 +33,12 @@ const splitList = (value: FormDataEntryValue | null): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-const optionalNumber = (value: FormDataEntryValue | null): number | undefined => {
+/** An empty field is sent as null: on update that clears the value instead of keeping the old one. */
+const optionalNumber = (value: FormDataEntryValue | null): number | null => {
   const text = String(value ?? '').trim();
-  if (!text) return undefined;
+  if (!text) return null;
   const parsed = Number(text);
-  return Number.isFinite(parsed) ? parsed : undefined;
+  return Number.isFinite(parsed) ? parsed : null;
 };
 
 /** Turns the form fields (all strings) into the typed payload the API validates. */

@@ -23,7 +23,7 @@ namespace Store.ProductService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Store.Shared.Models.Product", b =>
+            modelBuilder.Entity("Store.ProductService.Models.Product", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -31,15 +31,19 @@ namespace Store.ProductService.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Category")
-                        .HasColumnType("integer");
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.PrimitiveCollection<List<string>>("Colors")
                         .IsRequired()
                         .HasColumnType("text[]");
 
-                    b.Property<int>("Company")
-                        .HasColumnType("integer");
+                    b.Property<string>("Company")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -47,7 +51,8 @@ namespace Store.ProductService.Migrations
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<decimal?>("DepthCm")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -55,14 +60,16 @@ namespace Store.ProductService.Migrations
                         .HasColumnType("character varying(4000)");
 
                     b.Property<decimal?>("DiscountPercent")
-                        .HasColumnType("decimal(5,2)");
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.PrimitiveCollection<List<string>>("Groups")
                         .IsRequired()
                         .HasColumnType("text[]");
 
                     b.Property<decimal?>("HeightCm")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("Image")
                         .IsRequired()
@@ -81,10 +88,12 @@ namespace Store.ProductService.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal?>("SalePrice")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -97,10 +106,12 @@ namespace Store.ProductService.Migrations
                         .HasDefaultValueSql("NOW()");
 
                     b.Property<decimal?>("WeightKg")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal?>("WidthCm")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
 

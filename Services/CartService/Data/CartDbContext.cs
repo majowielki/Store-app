@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Store.Shared.Models;
+using Store.CartService.Models;
 
 namespace Store.CartService.Data;
 
@@ -11,48 +11,38 @@ public class CartDbContext : DbContext
 
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
-    public DbSet<Product> Products => Set<Product>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Cart configuration
         modelBuilder.Entity<Cart>(entity =>
         {
             entity.HasKey(c => c.Id);
             entity.Property(c => c.UserId).IsRequired().HasMaxLength(450);
-            entity.HasIndex(c => c.UserId);
+            entity.HasIndex(c => c.UserId).IsUnique();
 
-            // One-to-many relationship with CartItems
-            entity.HasMany(c => c.CartItems)
+            entity.HasMany(c => c.Items)
                   .WithOne(ci => ci.Cart)
                   .HasForeignKey(ci => ci.CartId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // CartItem configuration
+        // The product columns are a snapshot taken from the catalogue - there is no Products
+        // table in this database and no foreign key to another service's data
         modelBuilder.Entity<CartItem>(entity =>
         {
             entity.HasKey(ci => ci.Id);
             entity.Property(ci => ci.Title).IsRequired().HasMaxLength(200);
-            entity.Property(ci => ci.Price).HasColumnType("decimal(18,2)");
-            entity.Property(ci => ci.ProductColor).IsRequired().HasMaxLength(50);
+            entity.Property(ci => ci.Image).IsRequired();
             entity.Property(ci => ci.Company).IsRequired().HasMaxLength(100);
-
-            // Relationship with Product
-            entity.HasOne(ci => ci.Product)
-                  .WithMany()
-                  .HasForeignKey(ci => ci.ProductId)
-                  .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        // Product configuration (read-only for cart service)
-        modelBuilder.Entity<Product>(entity =>
-        {
-            entity.HasKey(p => p.Id);
-            entity.Property(p => p.Title).IsRequired().HasMaxLength(200);
-            entity.Property(p => p.Price).HasColumnType("decimal(18,2)");
+            entity.Property(ci => ci.Color).IsRequired().HasMaxLength(50);
+            entity.HasIndex(ci => new { ci.CartId, ci.ProductId, ci.Color }).IsUnique();
         });
     }
 }

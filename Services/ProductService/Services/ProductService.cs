@@ -5,7 +5,7 @@ using Store.Contracts.Catalog;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
-using Store.Shared.Models;
+using Store.ProductService.Models;
 using Store.Shared.Services;
 using System.Text.Json.Serialization;
 
@@ -46,12 +46,12 @@ public class ProductService : IProductService
                 NewArrival = request.NewArrival,
                 Image = request.Image,
                 Colors = request.Colors,
-                Groups = request.Groups?.Select(g => g.ToLower()).Distinct().ToList() ?? new(),
+                Groups = NormalizeList(request.Groups),
                 WidthCm = request.WidthCm,
                 HeightCm = request.HeightCm,
                 DepthCm = request.DepthCm,
                 WeightKg = request.WeightKg,
-                Materials = request.Materials?.Select(m => m.ToLower()).Distinct().ToList() ?? new(),
+                Materials = NormalizeList(request.Materials),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -99,46 +99,24 @@ public class ProductService : IProductService
 
             var oldValues = System.Text.Json.JsonSerializer.Serialize(product, AuditJsonOptions);
 
-            // Update only provided fields
-            if (!string.IsNullOrEmpty(request.Title))
-                product.Title = request.Title;
-
-            if (!string.IsNullOrEmpty(request.Description))
-                product.Description = request.Description;
-
-            if (request.Price.HasValue)
-                product.Price = request.Price.Value;
-
-            if (request.SalePrice.HasValue)
-                product.SalePrice = request.SalePrice.Value;
-
-            if (request.DiscountPercent.HasValue)
-                product.DiscountPercent = request.DiscountPercent.Value;
-
-            if (request.Category.HasValue)
-                product.Category = request.Category.Value;
-
-            if (request.Company.HasValue)
-                product.Company = request.Company.Value;
-
-            if (request.NewArrival.HasValue)
-                product.NewArrival = request.NewArrival.Value;
-
-            if (!string.IsNullOrEmpty(request.Image))
-                product.Image = request.Image;
-
-            if (request.Colors != null && request.Colors.Count > 0)
-                product.Colors = request.Colors;
-
-            if (request.Groups != null)
-                product.Groups = request.Groups.Select(g => g.ToLower()).Distinct().ToList();
-
-            // New fields
-            if (request.WidthCm.HasValue) product.WidthCm = request.WidthCm.Value;
-            if (request.HeightCm.HasValue) product.HeightCm = request.HeightCm.Value;
-            if (request.DepthCm.HasValue) product.DepthCm = request.DepthCm.Value;
-            if (request.WeightKg.HasValue) product.WeightKg = request.WeightKg.Value;
-            if (request.Materials != null) product.Materials = request.Materials.Select(m => m.ToLower()).Distinct().ToList();
+            // Absent fields keep their value; the Optional ones can also be cleared by sending null
+            if (request.Title is not null) product.Title = request.Title;
+            if (request.Description is not null) product.Description = request.Description;
+            if (request.Price.HasValue) product.Price = request.Price.Value;
+            if (request.SalePrice.IsSet) product.SalePrice = request.SalePrice.Value;
+            if (request.DiscountPercent.IsSet) product.DiscountPercent = request.DiscountPercent.Value;
+            if (request.Category.HasValue) product.Category = request.Category.Value;
+            if (request.Company.HasValue) product.Company = request.Company.Value;
+            if (request.NewArrival.HasValue) product.NewArrival = request.NewArrival.Value;
+            if (request.Image is not null) product.Image = request.Image;
+            if (request.Colors is not null) product.Colors = request.Colors;
+            if (request.Groups is not null) product.Groups = NormalizeList(request.Groups);
+            if (request.WidthCm.IsSet) product.WidthCm = request.WidthCm.Value;
+            if (request.HeightCm.IsSet) product.HeightCm = request.HeightCm.Value;
+            if (request.DepthCm.IsSet) product.DepthCm = request.DepthCm.Value;
+            if (request.WeightKg.IsSet) product.WeightKg = request.WeightKg.Value;
+            if (request.Materials is not null) product.Materials = NormalizeList(request.Materials);
+            if (request.IsActive.HasValue) product.IsActive = request.IsActive.Value;
 
             product.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -185,10 +163,12 @@ public class ProductService : IProductService
 
             var oldValues = System.Text.Json.JsonSerializer.Serialize(product, AuditJsonOptions);
 
-            _context.Products.Remove(product);
+            // Soft delete: past orders keep a valid product id and the admin panel can restore it
+            product.IsActive = false;
+            product.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Product deleted successfully with ID: {ProductId}", id);
+            _logger.LogInformation("Product deactivated with ID: {ProductId}", id);
             // Audit log: product deleted
             await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
             {
@@ -531,7 +511,16 @@ public class ProductService : IProductService
         }
     }
 
+    public async Task<ProductSnapshot?> GetSnapshotAsync(int id)
+    {
+        var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+        return product?.ToSnapshot();
+    }
+
     // Helper methods
+    private static List<string> NormalizeList(IEnumerable<string>? values)
+        => values?.Select(v => v.Trim().ToLowerInvariant()).Where(v => v.Length > 0).Distinct().ToList() ?? new List<string>();
+
     private static ProductResponse MapToProductResponse(Product product)
     {
         return new ProductResponse
@@ -554,6 +543,7 @@ public class ProductService : IProductService
             DepthCm = product.DepthCm,
             WeightKg = product.WeightKg,
             Materials = product.Materials,
+            IsActive = product.IsActive,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
         };
@@ -598,7 +588,8 @@ public class ProductService : IProductService
                 HeightCm = product.HeightCm,
                 DepthCm = product.DepthCm,
                 WeightKg = product.WeightKg,
-                Materials = product.Materials.Select(m => m.ToLower()).ToList()
+                Materials = product.Materials.Select(m => m.ToLower()).ToList(),
+                IsActive = product.IsActive
             }
         };
     }

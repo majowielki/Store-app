@@ -31,6 +31,9 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
+// GET /api/products/{id}/snapshot is for other services: they present the shared internal key
+builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
+
 // Addresses of the services this one calls; startup fails when any is missing
 builder.Services.AddServiceEndpoints(builder.Configuration, nameof(ServiceEndpointsOptions.AuditLogService));
 
