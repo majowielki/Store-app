@@ -5,8 +5,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
+using Store.IdentityService.Services;
 using Store.Shared.Authorization;
 using Store.Shared.Configuration;
+using Store.Shared.Models;
 
 namespace Store.IdentityService.Controllers;
 
@@ -17,6 +19,7 @@ public class AdminController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<AdminController> _logger;
+    private readonly IAuthService _authService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ServiceEndpointsOptions _endpoints;
 
@@ -32,11 +35,13 @@ public class AdminController : ControllerBase
     public AdminController(
         UserManager<ApplicationUser> userManager,
         ILogger<AdminController> logger,
+        IAuthService authService,
         IHttpClientFactory httpClientFactory,
         IOptions<ServiceEndpointsOptions> endpoints)
     {
         _userManager = userManager;
         _logger = logger;
+        _authService = authService;
         _httpClientFactory = httpClientFactory;
         _endpoints = endpoints.Value;
     }
@@ -52,34 +57,65 @@ public class AdminController : ControllerBase
         return client;
     }
 
+    /// <summary>
+    /// The demo administrator sees the panel but not personal data; true-admin sees real values.
+    /// </summary>
+    private bool Anonymize => User.IsDemoAdmin();
+
+    private string Mask(string? value, string placeholder) => Anonymize ? placeholder : value ?? string.Empty;
+
     [HttpGet("users")]
     public async Task<ActionResult> GetUsersForAdmin(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        [FromQuery] string? search = null,
+        [FromQuery] bool? isActive = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
         try
         {
-            var users = await _userManager.Users
+            var query = _userManager.Users.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var pattern = $"%{search.Trim()}%";
+                query = query.Where(u =>
+                    EF.Functions.ILike(u.Email!, pattern) ||
+                    EF.Functions.ILike(u.FirstName ?? string.Empty, pattern) ||
+                    EF.Functions.ILike(u.LastName ?? string.Empty, pattern));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(u => u.IsActive == isActive.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+            var page1 = await query
                 .OrderByDescending(u => u.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new AdminUserResponse
-                {
-                    Id = u.Id,
-                    Email = AnonymizedUserEmail,
-                    UserName = AnonymizedUserName,
-                    FirstName = AnonymizedFirstName,
-                    LastName = AnonymizedLastName,
-                    IsActive = u.IsActive,
-                    CreatedAt = u.CreatedAt,
-                    UpdatedAt = u.UpdatedAt,
-                    LastLoginAt = u.LastLoginAt
-                })
                 .ToListAsync();
+
+            var users = page1.Select(u => new AdminUserResponse
+            {
+                Id = u.Id,
+                Email = Mask(u.Email, AnonymizedUserEmail),
+                UserName = Mask(u.UserName, AnonymizedUserName),
+                FirstName = Mask(u.FirstName, AnonymizedFirstName),
+                LastName = Mask(u.LastName, AnonymizedLastName),
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt,
+                LastLoginAt = u.LastLoginAt
+            }).ToList();
 
             var response = new PaginatedResponse<AdminUserResponse>
             {
                 Items = users,
-                TotalCount = await _userManager.Users.CountAsync(),
+                TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
             };
@@ -90,6 +126,33 @@ public class AdminController : ControllerBase
             _logger.LogError(ex, "Unexpected error in GetUsersForAdmin");
             return StatusCode(500, "An unexpected error occurred while fetching users.");
         }
+    }
+
+    /// <summary>
+    /// One user's profile for the admin panel. 404 when the id is unknown; the demo
+    /// administrator gets masked personal data.
+    /// </summary>
+    [HttpGet("users/{userId}")]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> GetUserForAdmin(string userId)
+    {
+        var result = await _authService.GetUserAsync(userId);
+        if (!result.IsSuccess || result.Data is null)
+        {
+            return NotFound(result);
+        }
+
+        if (Anonymize)
+        {
+            var user = result.Data;
+            user.Email = AnonymizedUserEmail;
+            user.UserName = AnonymizedUserName;
+            user.FirstName = AnonymizedFirstName;
+            user.LastName = AnonymizedLastName;
+            user.DisplayName = AnonymizedUserName;
+            user.SimpleAddress = AnonymizedDeliveryAddress;
+        }
+
+        return Ok(result);
     }
 
     [HttpGet("orders")]
@@ -113,10 +176,10 @@ public class AdminController : ControllerBase
             var sanitizedOrders = orders.Select(o => new AdminOrderResponse
             {
                 Id = o.Id,
-                UserId = AnonymizedUserId,
-                UserEmail = AnonymizedUserEmail,
-                DeliveryAddress = AnonymizedDeliveryAddress,
-                CustomerName = AnonymizedCustomerName,
+                UserId = Mask(o.UserId, AnonymizedUserId),
+                UserEmail = Mask(o.UserEmail, AnonymizedUserEmail),
+                DeliveryAddress = Mask(o.DeliveryAddress, AnonymizedDeliveryAddress),
+                CustomerName = Mask(o.CustomerName, AnonymizedCustomerName),
                 TotalItems = o.TotalItems,
                 OrderTotal = o.OrderTotal,
                 CreatedAt = o.CreatedAt,
@@ -184,10 +247,10 @@ public class AdminController : ControllerBase
             var sanitizedOrder = new
             {
                 id = order.Id,
-                userId = AnonymizedUserId,
-                userEmail = AnonymizedUserEmail,
-                deliveryAddress = AnonymizedDeliveryAddress,
-                customerName = AnonymizedCustomerName,
+                userId = Mask(order.UserId, AnonymizedUserId),
+                userEmail = Mask(order.UserEmail, AnonymizedUserEmail),
+                deliveryAddress = Mask(order.DeliveryAddress, AnonymizedDeliveryAddress),
+                customerName = Mask(order.CustomerName, AnonymizedCustomerName),
                 totalItems = order.TotalItems,
                 orderTotal = order.OrderTotal,
                 createdAt = order.CreatedAt,
@@ -237,9 +300,9 @@ public class AdminController : ControllerBase
             {
                 Id = o.Id,
                 UserId = userId, // Preserve the userId for filtering
-                UserEmail = AnonymizedUserEmail,
-                DeliveryAddress = AnonymizedDeliveryAddress,
-                CustomerName = AnonymizedCustomerName,
+                UserEmail = Mask(o.UserEmail, AnonymizedUserEmail),
+                DeliveryAddress = Mask(o.DeliveryAddress, AnonymizedDeliveryAddress),
+                CustomerName = Mask(o.CustomerName, AnonymizedCustomerName),
                 TotalItems = o.TotalItems,
                 OrderTotal = o.OrderTotal,
                 CreatedAt = o.CreatedAt,

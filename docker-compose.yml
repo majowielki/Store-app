@@ -1,11 +1,21 @@
 services:
   # UI Service
   ui:
+    build:
+      context: ./UI/store-app.UI
+      dockerfile: Dockerfile
     image: store-app-ui:latest
     container_name: store-ui
     restart: unless-stopped
+    environment:
+      # The SPA calls /api on its own origin; nginx proxies it to the gateway
+      - GATEWAY_UPSTREAM=http://gateway:5000
+      - API_BASE_URL=/api
+      - USE_AUTH_ME=true
     ports:
-      - "8081:80"
+      - "${FRONTEND_PORT:-8081}:80"
+    depends_on:
+      - gateway
     networks:
       - store-network
   postgres:

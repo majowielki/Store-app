@@ -13,7 +13,7 @@ const CartItemsList = () => {
   return (
     <div>
       {cartItems.map((cartItem) => {
-        const { cartID, title, price, image, amount, company, productColor } =
+        const { cartID, title, price, image, amount, company, productColor, serverItemId } =
           cartItem;
         return (
           <Card
@@ -27,7 +27,7 @@ const CartItemsList = () => {
               productColor={productColor}
               price={price}
             />
-            <ThirdColumn amount={amount} cartID={cartID} />
+            <ThirdColumn amount={amount} cartID={cartID} serverItemId={serverItemId} />
             <FourthColumn price={price} amount={amount} />
           </Card>
         );

@@ -1,3 +1,4 @@
+import { useAuthMe } from '@/config';
 import { useAppDispatch } from '@/hooks';
 /* eslint-disable react-refresh/only-export-components */
 import { Form, Link, redirect, type ActionFunction } from 'react-router-dom';
@@ -25,7 +26,7 @@ export const action =
       const result = await store.dispatch(loginUserAsync(credentials));
       if (loginUserAsync.fulfilled.match(result)) {
         // Optionally fetch real user profile using /auth/me if enabled
-        if (import.meta.env.VITE_USE_AUTH_ME === 'true') {
+        if (useAuthMe) {
           await store.dispatch(getCurrentUserAsync());
         }
   // Sync guest cart to server and use the merged result as the source of truth

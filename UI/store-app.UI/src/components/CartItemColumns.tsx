@@ -1,7 +1,7 @@
 import { formatAsDollars } from "@/utils";
 import { useAppDispatch, useAppSelector } from "@/hooks";
 import { Button } from "./ui/button";
-import { editItem, removeItem } from "@/features/cart/cartSlice";
+import { editItem, removeItem, removeItemFromServer, updateItemOnServer } from "@/features/cart/cartSlice";
 import SelectProductAmount from "./SelectProductAmount";
 import { Mode } from "./SelectProductAmount";
 
@@ -20,6 +20,8 @@ interface SecondColumnProps {
 interface ThirdColumnProps {
   amount: number;
   cartID: string;
+  /** Id of the line in the server cart; present once the cart has been synced for a signed-in user */
+  serverItemId?: number;
 }
 
 interface FourthColumnProps {
@@ -68,24 +70,24 @@ export const SecondColumn = ({
   );
 };
 
-export const ThirdColumn = ({ amount, cartID }: ThirdColumnProps) => {
+export const ThirdColumn = ({ amount, cartID, serverItemId }: ThirdColumnProps) => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.userState.user);
+  // A signed-in user's cart lives on the server: every change goes there, otherwise the order
+  // (built from the server cart) would contain lines the customer already removed or changed
+  const syncedWithServer = !!user && serverItemId !== undefined;
 
   const removeItemFromCart = async () => {
-    if (user) {
-      // With server sync, we need the backend item id; for now rely on removing by product/color not implemented, so keep local fallback
-      // If mapping to server item id is stored, you can call removeItemFromServer(serverItemId)
-      dispatch(removeItem(cartID));
+    if (syncedWithServer) {
+      await dispatch(removeItemFromServer(serverItemId));
     } else {
       dispatch(removeItem(cartID));
     }
   };
 
   const setAmount = async (value: number) => {
-    if (user) {
-      // As above, without server item id mapping, update locally
-      dispatch(editItem({ cartID, amount: value }));
+    if (syncedWithServer) {
+      await dispatch(updateItemOnServer({ itemId: serverItemId, quantity: value }));
     } else {
       dispatch(editItem({ cartID, amount: value }));
     }

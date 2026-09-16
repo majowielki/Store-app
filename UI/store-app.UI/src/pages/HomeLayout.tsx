@@ -1,3 +1,4 @@
+import { useAuthMe } from '@/config';
 import { Outlet, useNavigation, useLocation } from "react-router-dom";
 import React, { useEffect } from 'react';
 import { Header, Loading, Navbar } from "@/components";
@@ -9,7 +10,7 @@ import { useRef } from 'react';
 import { getCurrentUserAsync } from '@/features/user/userSlice';
 
 const HomeLayout = () => {
-  const useAuthMe = import.meta.env.VITE_USE_AUTH_ME === 'true';
+  const authMeEnabled = useAuthMe;
   const navigation = useNavigation();
   const isPageLoading = navigation.state === "loading";
   const dispatch = useAppDispatch();
@@ -28,7 +29,7 @@ const HomeLayout = () => {
   useEffect(() => {
     if (
       typeof window !== 'undefined' &&
-      useAuthMe &&
+      authMeEnabled &&
       token &&
       !user &&
       !userLoading &&
@@ -36,7 +37,7 @@ const HomeLayout = () => {
     ) {
       dispatch(getCurrentUserAsync());
     }
-  }, [useAuthMe, token, user, userLoading, meAttempted, dispatch]);
+  }, [authMeEnabled, token, user, userLoading, meAttempted, dispatch]);
 
 
   // On first app load, always initialize Redux cart state from localStorage

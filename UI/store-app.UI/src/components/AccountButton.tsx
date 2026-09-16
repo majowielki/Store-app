@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { clearCart, clearCartOnServer } from '@/features/cart/cartSlice';
+import { clearCart } from '@/features/cart/cartSlice';
 import { logoutUser } from '@/features/user/userSlice';
 
 const AccountButton = () => {
@@ -69,9 +69,8 @@ const AccountButton = () => {
   }, [open]);
 
   const handleLogout = async () => {
-    if (user) {
-      await dispatch(clearCartOnServer());
-    }
+    // Only the local copy is dropped; the server cart belongs to the account and must survive
+    // signing out (and be there on the next device)
     dispatch(clearCart());
     dispatch(logoutUser());
     toast({ description: 'Logged Out' });

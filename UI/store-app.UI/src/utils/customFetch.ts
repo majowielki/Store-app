@@ -2,15 +2,10 @@
 import { toast } from '@/hooks/use-toast';
 import { extractApiErrorMessage } from './errorHandling';
 import axios, { AxiosRequestConfig } from "axios";
-
-// Use environment variable configured in .env files (required)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-if (!API_BASE_URL) {
-  throw new Error('VITE_API_BASE_URL is not set. Please define it in your .env file.');
-}
+import { apiBaseUrl } from '@/config';
 
 export const customFetch = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: apiBaseUrl,
   timeout: 10000, // 10 second timeout
   headers: {
     'Content-Type': 'application/json',

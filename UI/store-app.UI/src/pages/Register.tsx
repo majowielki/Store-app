@@ -1,3 +1,4 @@
+import { useAuthMe } from '@/config';
 /* eslint-disable react-refresh/only-export-components */
 import { Form, Link, redirect } from 'react-router-dom';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
@@ -25,7 +26,7 @@ export const action = async ({ request }: { request: Request }): Promise<Respons
     // Use async thunk for real registration
     const result = await store.dispatch(registerUserAsync(userData));
     if (registerUserAsync.fulfilled.match(result)) {
-      if (import.meta.env.VITE_USE_AUTH_ME === 'true') {
+      if (useAuthMe) {
         await store.dispatch(getCurrentUserAsync());
       }
       await store.dispatch(mergeLocalCartToServer());
