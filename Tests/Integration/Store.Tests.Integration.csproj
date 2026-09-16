@@ -20,12 +20,12 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="MassTransit" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\Store.Contracts\Store.Contracts.csproj" />
     <ProjectReference Include="..\..\Shared\Store.BuildingBlocks\Store.BuildingBlocks.csproj" />
-    <ProjectReference Include="..\..\Shared\Store.Shared\Store.Shared.csproj" />
     <ProjectReference Include="..\..\Services\IdentityService\Store.IdentityService.csproj" />
     <ProjectReference Include="..\..\Services\ProductService\Store.ProductService.csproj" />
     <ProjectReference Include="..\..\Services\CartService\Store.CartService.csproj" />

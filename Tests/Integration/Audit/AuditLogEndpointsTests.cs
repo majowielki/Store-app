@@ -1,8 +1,10 @@
-using Store.BuildingBlocks.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Store.Contracts.Audit.V1;
 using Store.Contracts.Authorization;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Xunit;
 
 namespace Store.Tests.Integration.Audit;
@@ -10,6 +12,8 @@ namespace Store.Tests.Integration.Audit;
 [Collection(PostgresTests.Name)]
 public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
     private readonly AuditApiFactory _factory;
 
     public AuditLogEndpointsTests(AuditApiFactory factory)
@@ -17,15 +21,9 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
         _factory = factory;
     }
 
-    private static object Entry(string action = "INTEGRATION_TEST") => new
-    {
-        action,
-        entityName = "Probe",
-        entityId = Guid.NewGuid().ToString(),
-        userId = "user-1",
-        userEmail = "user-1@test.local",
-        timestamp = DateTime.UtcNow
-    };
+    private static AuditEvent Entry(string action, string entityId) => new(
+        action, "Probe", entityId, "user-1", "tests", DateTime.UtcNow,
+        Details: """{"probe":true}""", OldValues: null, NewValues: """{"title":"after"}""");
 
     // Regression: reads required a role nobody has, so every admin got 403
     [Theory]
@@ -42,62 +40,95 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
         Assert.Equal(expected, response.StatusCode);
     }
 
-    // Regression: the internal endpoint accepts the shared service key only
+    // Entries arrive as events; there is no endpoint that accepts them from anyone
     [Fact]
-    public async Task Internal_endpoint_rejects_requests_without_the_service_key()
+    public async Task Audit_entries_cannot_be_written_over_http()
     {
-        using var client = _factory.CreateClient();
+        using var admin = _factory.CreateClient().AsTrueAdmin();
 
-        var response = await client.PostAsJsonAsync("/api/auditlog/internal", Entry());
+        var direct = await admin.PostAsJsonAsync("/api/auditlog", new { action = "FORGED", entityName = "Probe" });
+        var internalRoute = await admin.PostAsJsonAsync("/api/auditlog/internal", new { action = "FORGED", entityName = "Probe" });
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, direct.StatusCode);
+        Assert.Contains(internalRoute.StatusCode, new[] { HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed });
     }
 
     [Fact]
-    public async Task Internal_endpoint_rejects_a_wrong_service_key()
+    public async Task Published_event_becomes_an_entry_readable_by_admins()
     {
-        using var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add(InternalApiOptions.HeaderName, "definitely-not-the-configured-key-but-long");
-
-        var response = await client.PostAsJsonAsync("/api/auditlog/internal", Entry());
-
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Internal_endpoint_accepts_the_service_key_and_stores_the_entry()
-    {
-        using var writer = _factory.CreateClient();
-        writer.DefaultRequestHeaders.Add(InternalApiOptions.HeaderName, TestTokens.InternalApiKey);
-        var action = $"INTERNAL_{Guid.NewGuid():N}";
-
-        var created = await writer.PostAsJsonAsync("/api/auditlog/internal", Entry(action));
-
-        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var entityId = Guid.NewGuid().ToString("N");
+        await _factory.Bus.Bus.Publish(Entry("PROBE_RECORDED", entityId));
 
         using var reader = _factory.CreateClient().AsTrueAdmin();
-        var list = await reader.GetStringAsync("/api/auditlog?page=1&pageSize=100");
-        Assert.Contains(action, list, StringComparison.Ordinal);
+        JsonElement entry = default;
+        await Eventually.AssertAsync(async () =>
+        {
+            var page = JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/auditlog/entity/Probe?entityId={entityId}"), Json);
+            entry = Assert.Single(page.GetProperty("auditLogs").EnumerateArray());
+        });
+
+        Assert.Equal("PROBE_RECORDED", entry.GetProperty("action").GetString());
+        Assert.Equal("user-1", entry.GetProperty("userId").GetString());
+        Assert.Equal("tests", entry.GetProperty("serviceName").GetString());
+        Assert.Equal("""{"title":"after"}""", entry.GetProperty("newValues").GetString());
+        Assert.False(entry.TryGetProperty("ipAddress", out _), "request data is not part of the trail any more");
     }
 
     [Fact]
-    public async Task Service_key_does_not_grant_admin_reads()
+    public async Task Oversized_identifiers_are_trimmed_instead_of_rejected()
     {
-        using var client = _factory.CreateClient();
-        client.DefaultRequestHeaders.Add(InternalApiOptions.HeaderName, TestTokens.InternalApiKey);
+        var longAction = new string('X', 500);
+        var entityId = Guid.NewGuid().ToString("N");
+        await _factory.Bus.Bus.Publish(Entry(longAction, entityId));
 
-        var response = await client.GetAsync("/api/auditlog");
+        using var reader = _factory.CreateClient().AsTrueAdmin();
+        JsonElement entry = default;
+        await Eventually.AssertAsync(async () =>
+        {
+            var page = JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/auditlog/entity/Probe?entityId={entityId}"), Json);
+            entry = Assert.Single(page.GetProperty("auditLogs").EnumerateArray());
+        });
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(50, entry.GetProperty("action").GetString()!.Length);
+    }
+}
+
+[Collection(PostgresTests.Name)]
+public sealed class AuditRetentionTests : IClassFixture<AuditApiFactory>
+{
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    private readonly AuditApiFactory _factory;
+
+    public AuditRetentionTests(AuditApiFactory factory)
+    {
+        _factory = factory;
     }
 
+    private static async Task<int> CountAsync(HttpClient reader, string entityId)
+        => JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/auditlog/entity/Retention?entityId={entityId}"), Json)
+            .GetProperty("totalCount").GetInt32();
+
+    // Regression: the trail grew without limit
     [Fact]
-    public async Task Signed_in_users_can_write_their_own_entries()
+    public async Task Entries_older_than_the_retention_period_are_purged()
     {
-        using var client = _factory.CreateClient().AsUser();
+        var old = Guid.NewGuid().ToString("N");
+        var recent = Guid.NewGuid().ToString("N");
+        await _factory.Bus.Bus.Publish(new AuditEvent("OLD", "Retention", old, null, "tests", DateTime.UtcNow.AddDays(-400)));
+        await _factory.Bus.Bus.Publish(new AuditEvent("RECENT", "Retention", recent, null, "tests", DateTime.UtcNow));
+        using var reader = _factory.CreateClient().AsTrueAdmin();
+        await Eventually.AssertAsync(async () =>
+        {
+            Assert.Equal(1, await CountAsync(reader, old));
+            Assert.Equal(1, await CountAsync(reader, recent));
+        });
 
-        var response = await client.PostAsJsonAsync("/api/auditlog", Entry("USER_ACTION"));
+        var retention = _factory.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<Store.AuditLogService.Services.AuditRetentionService>().Single();
+        var deleted = await retention.PurgeAsync(CancellationToken.None);
 
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.True(deleted >= 1);
+        Assert.Equal(0, await CountAsync(reader, old));
+        Assert.Equal(1, await CountAsync(reader, recent));
     }
 }

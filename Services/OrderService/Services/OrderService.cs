@@ -8,8 +8,6 @@ using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Models;
-using Store.Shared.Models;
-using Store.Shared.Services;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -30,7 +28,6 @@ public class OrderService : IOrderService
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly PricingOptions _pricing;
     private readonly ILogger<OrderService> _logger;
-    private readonly IAuditLogClient _auditLogClient;
 
     public OrderService(
         OrderDbContext context,
@@ -38,8 +35,7 @@ public class OrderService : IOrderService
         ICatalogClient catalog,
         IPublishEndpoint publishEndpoint,
         IOptions<PricingOptions> pricing,
-        ILogger<OrderService> logger,
-        IAuditLogClient auditLogClient)
+        ILogger<OrderService> logger)
     {
         _context = context;
         _cart = cart;
@@ -47,7 +43,6 @@ public class OrderService : IOrderService
         _publishEndpoint = publishEndpoint;
         _pricing = pricing.Value;
         _logger = logger;
-        _auditLogClient = auditLogClient;
     }
 
     public async Task<ApiResponse<OrderResponse>> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null)
@@ -101,15 +96,12 @@ public class OrderService : IOrderService
                 return replayedAfterLock;
             }
 
-            await AuditAsync("ORDER_CREATED", order.Id.ToString(), order.UserId,
-                new { order.Id, order.Subtotal, order.DiscountAmount, order.DeliveryFee, order.Total, Lines = order.Lines.Count });
-
+            // The audit service records the order from the OrderPlaced event
             return ApiResponse<OrderResponse>.Success(MapToOrderResponse(order));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating order from cart for user: {UserId}", request.UserId);
-            await AuditAsync("ORDER_CREATION_FAILED", null, request.UserId, new { Exception = ex.Message });
             return ApiResponse<OrderResponse>.Error("An error occurred while creating the order.", HttpStatusCode.InternalServerError);
         }
     }
@@ -404,18 +396,6 @@ public class OrderService : IOrderService
         return date.AddDays(-diff).Date;
     }
 
-    private async Task AuditAsync(string action, string? entityId, string userId, object details)
-    {
-        await _auditLogClient.CreateAuditLogAsync(new AuditLog
-        {
-            Action = action,
-            EntityName = nameof(Order),
-            EntityId = entityId,
-            UserId = userId,
-            Timestamp = DateTime.UtcNow,
-            AdditionalInfo = JsonSerializer.Serialize(new { Source = "OrderService", Details = details }, JsonOptions)
-        });
-    }
 
     private static OrderResponse MapToOrderResponse(Order order)
     {

@@ -2,11 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Store.BuildingBlocks.Messaging;
 using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.Services;
 using Store.Contracts.Catalog;
-using Store.Shared.Services;
 using Xunit;
 
 namespace Store.Tests.Unit.CartService;
@@ -14,7 +14,7 @@ namespace Store.Tests.Unit.CartService;
 public class CartServiceTests
 {
     private readonly Mock<ILogger<Store.CartService.Services.CartService>> _loggerMock = new();
-    private readonly Mock<IAuditLogClient> _auditLogClientMock = new();
+    private readonly Mock<IAuditTrail> _auditTrailMock = new();
     private readonly Mock<ICatalogClient> _catalogMock = new();
     private readonly CartDbContext _dbContext;
     private readonly Store.CartService.Services.CartService _cartService;
@@ -30,7 +30,7 @@ public class CartServiceTests
             _catalogMock.Object,
             Options.Create(new CartOptions()),
             _loggerMock.Object,
-            _auditLogClientMock.Object
+            _auditTrailMock.Object
         );
     }
 

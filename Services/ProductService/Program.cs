@@ -4,13 +4,11 @@ using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
-using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
+using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.OpenApi;
 using Store.ProductService.Data;
 using Store.ProductService.Services;
-using Store.Shared.Extensions;
-using Store.Shared.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,11 +32,8 @@ builder.Services.AddStoreAuthorization();
 // GET /api/products/{id}/snapshot is for other services: they present the shared internal key
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
-// Addresses of the services this one calls; startup fails when any is missing
-builder.Services.AddServiceEndpoints(builder.Configuration, nameof(ServiceEndpointsOptions.AuditLogService));
-
-// Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
-builder.Services.AddAuditLogClient(builder.Configuration);
+// Message bus: catalogue changes reach the audit service as events, through the outbox
+builder.Services.AddStoreMessaging<ProductDbContext>(builder.Configuration, serviceName: "catalog");
 
 // Business Services
 builder.Services.AddScoped<IProductService, Store.ProductService.Services.ProductService>();
@@ -64,8 +59,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Add audit logging and global exception handling
-app.UseAuditLogging();
 app.UseGlobalExceptionHandling();
 
 // CORS

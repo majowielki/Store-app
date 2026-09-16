@@ -7,9 +7,10 @@ namespace Store.ProductService.Services;
 public interface IProductService
 {
     // Core product operations (admin only)
-    Task<ProductResponse> CreateProductAsync(CreateProductRequest request);
-    Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request);
-    Task<bool> DeleteProductAsync(int id);
+    // actorId: the administrator performing the change, recorded in the audit trail
+    Task<ProductResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null);
+    Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null);
+    Task<bool> DeleteProductAsync(int id, string? actorId = null);
 
     // Frontend-compatible operations (public)
     Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams);

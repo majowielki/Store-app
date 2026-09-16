@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Messaging;
 using Store.Contracts.Authorization;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
 using Store.IdentityService.Seeding;
-using Store.Shared.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
@@ -22,8 +22,7 @@ public class AuthService : IAuthService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly Store.Shared.Services.IAuditLogClient _auditLogClient;
+    private readonly IAuditTrail _auditTrail;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -31,22 +30,18 @@ public class AuthService : IAuthService
         RoleManager<IdentityRole> roleManager,
         IConfiguration configuration,
         ILogger<AuthService> logger,
-        IHttpContextAccessor httpContextAccessor,
-        Store.Shared.Services.IAuditLogClient auditLogClient)
+        IAuditTrail auditTrail)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
         _configuration = configuration;
         _logger = logger;
-        _httpContextAccessor = httpContextAccessor;
-        _auditLogClient = auditLogClient;
+        _auditTrail = auditTrail;
     }
 
     public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request)
     {
-        var ipAddress = GetClientIpAddress();
-        var userAgent = GetUserAgent();
         try
         {
             var existingUser = await _userManager.FindByEmailAsync(request.Email);
@@ -94,8 +89,6 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request)
     {
-        var ipAddress = GetClientIpAddress();
-        var userAgent = GetUserAgent();
         try
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
@@ -118,7 +111,6 @@ public class AuthService : IAuthService
             {
                 return ApiResponse<AuthResponse>.Error("Invalid email or password");
             }
-            var oldLastLoginAt = user.LastLoginAt;
             user.LastLoginAt = DateTime.UtcNow;
             user.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
@@ -143,8 +135,6 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponse>> DemoLoginAsync(DemoLoginRequest request)
     {
-        var ipAddress = GetClientIpAddress();
-        var userAgent = GetUserAgent();
         try
         {
             var demoUser = await _userManager.FindByEmailAsync(SeedAccounts.DemoUserEmail);
@@ -153,7 +143,6 @@ public class AuthService : IAuthService
                 _logger.LogError("Demo user not found. Should be created during database initialization.");
                 return ApiResponse<AuthResponse>.Error("Demo user not available");
             }
-            var oldLastLoginAt = demoUser.LastLoginAt;
             demoUser.LastLoginAt = DateTime.UtcNow;
             demoUser.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(demoUser);
@@ -178,8 +167,6 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponse>> DemoAdminLoginAsync(DemoAdminLoginRequest request)
     {
-        var ipAddress = GetClientIpAddress();
-        var userAgent = GetUserAgent();
         try
         {
             var demoAdmin = await _userManager.FindByEmailAsync(SeedAccounts.DemoAdminEmail);
@@ -188,7 +175,6 @@ public class AuthService : IAuthService
                 _logger.LogError("Demo admin not found. Should be created during database initialization.");
                 return ApiResponse<AuthResponse>.Error("Demo admin not available");
             }
-            var oldLastLoginAt = demoAdmin.LastLoginAt;
             demoAdmin.LastLoginAt = DateTime.UtcNow;
             demoAdmin.UpdatedAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(demoAdmin);
@@ -213,8 +199,6 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request)
     {
-        var ipAddress = GetClientIpAddress();
-        var userAgent = GetUserAgent();
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -325,18 +309,9 @@ public class AuthService : IAuthService
                 return ApiResponse<UserResponse>.ValidationError(errors);
             }
 
-            // Audit log for address update
-            await LogAuthenticationEventAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "USER_ADDRESS_UPDATED",
-                EntityName = nameof(ApplicationUser),
-                EntityId = user.Id,
-                UserId = user.Id,
-                UserEmail = user.Email,
-                OldValues = System.Text.Json.JsonSerializer.Serialize(new { SimpleAddress = oldAddress }),
-                NewValues = System.Text.Json.JsonSerializer.Serialize(new { SimpleAddress = user.SimpleAddress }),
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Event = "ProfileUpdate" })
-            });
+            await _auditTrail.RecordAsync("USER_ADDRESS_UPDATED", nameof(ApplicationUser), user.Id, user.Id,
+                oldValues: new { SimpleAddress = oldAddress is null ? null : "(set)" },
+                newValues: new { SimpleAddress = user.SimpleAddress is null ? null : "(set)" });
 
             var mapped = await MapToUserResponseAsync(user);
             return ApiResponse<UserResponse>.Success(mapped);
@@ -440,76 +415,4 @@ public class AuthService : IAuthService
         }
     }
 
-    /// <summary>
-    /// Helper method to log authentication events to the audit service
-    /// </summary>
-    private async Task LogAuthenticationEventAsync(AuditLog auditLog)
-    {
-        try
-        {
-            // Ensure timestamp is set
-            if (auditLog.Timestamp == default)
-            {
-                auditLog.Timestamp = DateTime.UtcNow;
-            }
-
-            await _auditLogClient.CreateAuditLogAsync(auditLog);
-        }
-        catch (Exception ex)
-        {
-            // Don't let audit logging failures break the main operation
-            _logger.LogError(ex, "Failed to create audit log for action: {Action}", auditLog.Action);
-        }
-    }
-
-    /// <summary>
-    /// Get client IP address from HTTP context
-    /// </summary>
-    private string? GetClientIpAddress()
-    {
-        try
-        {
-            var context = _httpContextAccessor.HttpContext;
-            if (context == null) return null;
-
-            // Check for forwarded headers (useful when behind proxy/load balancer)
-            var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(forwardedFor))
-            {
-                // X-Forwarded-For can contain multiple IPs, take the first one
-                return forwardedFor.Split(',')[0].Trim();
-            }
-
-            var realIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(realIp))
-            {
-                return realIp;
-            }
-
-            // Fallback to connection remote IP
-            return context.Connection.RemoteIpAddress?.ToString();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to get client IP address");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Get user agent from HTTP context
-    /// </summary>
-    private string? GetUserAgent()
-    {
-        try
-        {
-            var context = _httpContextAccessor.HttpContext;
-            return context?.Request.Headers.UserAgent.ToString();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to get user agent");
-            return null;
-        }
-    }
 }

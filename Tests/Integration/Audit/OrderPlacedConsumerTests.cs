@@ -38,8 +38,8 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<AuditApiFactory>
         });
         Assert.Equal("ORDER_PLACED", entry.GetProperty("action").GetString());
         Assert.Equal(user, entry.GetProperty("userId").GetString());
-        Assert.Equal("OrderService", entry.GetProperty("serviceName").GetString());
-        var details = entry.GetProperty("additionalInfo").GetString()!;
+        Assert.Equal("order", entry.GetProperty("serviceName").GetString());
+        var details = entry.GetProperty("details").GetString()!;
         Assert.Contains("160", details);
         Assert.DoesNotContain("Private Street", details);
         Assert.DoesNotContain("buyer@test.local", details);

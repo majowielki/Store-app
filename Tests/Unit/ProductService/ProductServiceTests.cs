@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Store.BuildingBlocks.Messaging;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
-using Store.Shared.Services;
 using Xunit;
 
 namespace Store.Tests.Unit.ProductService;
@@ -11,7 +11,7 @@ namespace Store.Tests.Unit.ProductService;
 public class ProductServiceTests
 {
     private readonly Mock<ILogger<Store.ProductService.Services.ProductService>> _loggerMock = new();
-    private readonly Mock<IAuditLogClient> _auditLogClientMock = new();
+    private readonly Mock<IAuditTrail> _auditTrailMock = new();
     private readonly ProductDbContext _dbContext;
     private readonly Store.ProductService.Services.ProductService _productService;
 
@@ -24,7 +24,7 @@ public class ProductServiceTests
         _productService = new Store.ProductService.Services.ProductService(
             _dbContext,
             _loggerMock.Object,
-            _auditLogClientMock.Object
+            _auditTrailMock.Object
         );
     }
 

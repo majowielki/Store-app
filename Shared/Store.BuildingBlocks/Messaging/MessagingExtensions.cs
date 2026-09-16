@@ -42,6 +42,10 @@ public static class MessagingExtensions
     {
         services.AddStoreOptions<RabbitMqOptions>(configuration, RabbitMqOptions.SectionName);
 
+        // Business actions go to the audit service as events, signed with the service name
+        services.AddSingleton(new AuditTrailOptions(serviceName));
+        services.AddScoped<IAuditTrail, BusAuditTrail<TDbContext>>();
+
         services.AddMassTransit(bus =>
         {
             // e.g. "cart-order-placed" for the cart's OrderPlacedConsumer

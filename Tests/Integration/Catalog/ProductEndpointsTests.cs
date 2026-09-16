@@ -1,3 +1,4 @@
+using Store.Contracts.Audit.V1;
 using Store.Contracts.Authorization;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
@@ -109,14 +110,22 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
         Assert.True(errors.TryGetProperty("Colors", out _));
     }
 
+    // Regression: the audit used to be two synchronous HTTP calls per request; now the write
+    // publishes one business event through the outbox, signed by the acting administrator
     [Fact]
-    public async Task Writes_are_audited_through_the_audit_client()
+    public async Task Writes_are_audited_as_events()
     {
         using var client = _factory.CreateClient().AsTrueAdmin();
 
-        await client.PostAsJsonAsync("/api/products", ValidProduct("Audited product"));
+        var created = await client.PostAsJsonAsync("/api/products", ValidProduct("Audited product"));
+        var id = JsonSerializer.Deserialize<JsonElement>(await created.Content.ReadAsStringAsync(), Json).GetProperty("id").GetInt32();
 
-        Assert.Contains(_factory.AuditLog.Entries, e => e.Action == "PRODUCT_CREATED");
+        Assert.True(await Eventually.BecomesTrueAsync(() => _factory.Bus.Consumed
+            .Select<AuditEvent>(e => e.Context.Message.Action == "PRODUCT_CREATED" && e.Context.Message.EntityId == id.ToString()).Any()));
+        var audit = _factory.Bus.Consumed.Select<AuditEvent>(e => e.Context.Message.EntityId == id.ToString()).Single().Context.Message;
+        Assert.Equal("catalog", audit.ServiceName);
+        Assert.Equal("true-admin-1", audit.UserId);
+        Assert.Contains("Audited product", audit.NewValues);
     }
 }
 

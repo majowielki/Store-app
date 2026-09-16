@@ -5,7 +5,7 @@
 .DESCRIPTION
   Services refuse to start without:
     - JwtSettings:SecretKey  (gateway + all services, min. 32 characters)
-    - InternalApi:ApiKey     (identity, product, cart, order, auditlog; min. 32 characters)
+    - InternalApi:ApiKey     (product, cart, order; min. 32 characters)
   and neither value is kept in appsettings*.json. When running the projects outside Docker
   (Visual Studio, dotnet run) this script writes the same values into each project's
   `dotnet user-secrets` store, which lives in the user profile and never reaches the repository.

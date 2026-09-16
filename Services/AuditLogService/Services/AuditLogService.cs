@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.AuditLogService.Data;
+using Store.AuditLogService.Models;
 using Store.BuildingBlocks.Api;
-using Store.Shared.Models;
 
 namespace Store.AuditLogService.Services;
 

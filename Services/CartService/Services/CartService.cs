@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Messaging;
 using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
@@ -8,9 +9,6 @@ using Store.CartService.DTOs.Responses;
 using Store.CartService.Models;
 using Store.Contracts.Cart;
 using Store.Contracts.Catalog;
-using Store.Shared.Models;
-using Store.Shared.Services;
-using System.Text.Json;
 
 namespace Store.CartService.Services;
 
@@ -28,29 +26,24 @@ public sealed class CartOptions
 
 public class CartService : ICartService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     private readonly CartDbContext _context;
     private readonly ICatalogClient _catalog;
     private readonly CartOptions _options;
     private readonly ILogger<CartService> _logger;
-    private readonly IAuditLogClient _auditLogClient;
+    private readonly IAuditTrail _auditTrail;
 
     public CartService(
         CartDbContext context,
         ICatalogClient catalog,
         IOptions<CartOptions> options,
         ILogger<CartService> logger,
-        IAuditLogClient auditLogClient)
+        IAuditTrail auditTrail)
     {
         _context = context;
         _catalog = catalog;
         _options = options.Value;
         _logger = logger;
-        _auditLogClient = auditLogClient;
+        _auditTrail = auditTrail;
     }
 
     public async Task<ApiResponse<CartResponse?>> GetCartByUserIdAsync(string userId)
@@ -70,7 +63,6 @@ public class CartService : ICartService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving cart for user: {UserId}", userId);
-            await AuditAsync("CART_RETRIEVE_FAILED", "Cart", null, userId, new { Exception = ex.Message });
             return ApiResponse<CartResponse?>.Error("An error occurred while retrieving the cart.");
         }
     }
@@ -86,7 +78,6 @@ public class CartService : ICartService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating cart for user: {UserId}", userId);
-            await AuditAsync("CART_CREATION_FAILED", "Cart", null, userId, new { Exception = ex.Message });
             return ApiResponse<CartResponse>.Error("An error occurred while creating the cart.");
         }
     }
@@ -112,7 +103,6 @@ public class CartService : ICartService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding item to cart for user: {UserId}, Product: {ProductId}", userId, request.ProductId);
-            await AuditAsync("CART_ITEM_ADD_FAILED", "CartItem", null, userId, new { request.ProductId, Exception = ex.Message });
             return ApiResponse<CartItemResponse>.Error("An error occurred while adding item to cart.");
         }
     }
@@ -147,7 +137,6 @@ public class CartService : ICartService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating cart item: {CartItemId} for user: {UserId}", cartItemId, userId);
-            await AuditAsync("CART_ITEM_UPDATE_FAILED", "CartItem", cartItemId.ToString(), userId, new { Exception = ex.Message });
             return ApiResponse<CartItemResponse?>.Error("An error occurred while updating cart item.");
         }
     }
@@ -172,7 +161,6 @@ public class CartService : ICartService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error removing cart item: {CartItemId} for user: {UserId}", cartItemId, userId);
-            await AuditAsync("CART_ITEM_REMOVE_FAILED", "CartItem", cartItemId.ToString(), userId, new { Exception = ex.Message });
             return ApiResponse<bool>.Error("An error occurred while removing cart item.");
         }
     }
@@ -197,7 +185,6 @@ public class CartService : ICartService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error clearing cart for user: {UserId}", userId);
-            await AuditAsync("CART_CLEAR_FAILED", "Cart", null, userId, new { Exception = ex.Message });
             return ApiResponse<bool>.Error("An error occurred while clearing cart.");
         }
     }
@@ -389,18 +376,8 @@ public class CartService : ICartService
         return priceChanged;
     }
 
-    private async Task AuditAsync(string action, string entityName, string? entityId, string userId, object? details)
-    {
-        await _auditLogClient.CreateAuditLogAsync(new AuditLog
-        {
-            Action = action,
-            EntityName = entityName,
-            EntityId = entityId,
-            UserId = userId,
-            Timestamp = DateTime.UtcNow,
-            AdditionalInfo = JsonSerializer.Serialize(new { Source = "CartService", Details = details }, JsonOptions)
-        });
-    }
+    private Task AuditAsync(string action, string entityName, string? entityId, string userId, object? details)
+        => _auditTrail.RecordAsync(action, entityName, entityId, userId, details);
 
     private static CartResponse MapToCartResponse(Cart cart, bool priceChanged)
     {

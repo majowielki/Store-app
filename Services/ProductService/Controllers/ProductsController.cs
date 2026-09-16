@@ -21,6 +21,9 @@ public class ProductsController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>Id of the signed-in administrator, for the audit trail.</summary>
+    private string? ActorId => User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
     /// <summary>
     /// Get all products with filtering and pagination (Frontend compatible)
     /// Returns: ProductsResponse = { data: Product[]; meta: ProductsMeta; }
@@ -109,7 +112,7 @@ public class ProductsController : ControllerBase
         // FluentValidation will handle validation automatically; demo-admin is rejected by the policy (403)
         try
         {
-            var product = await _productService.CreateProductAsync(request);
+            var product = await _productService.CreateProductAsync(request, ActorId);
             return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
         }
         catch (Exception ex)
@@ -132,7 +135,7 @@ public class ProductsController : ControllerBase
         // FluentValidation rejects invalid fields before the action runs; absent fields keep their value
         try
         {
-            var product = await _productService.UpdateProductAsync(id, request);
+            var product = await _productService.UpdateProductAsync(id, request, ActorId);
 
             if (product == null)
             {
@@ -160,7 +163,7 @@ public class ProductsController : ControllerBase
     {
         try
         {
-            var success = await _productService.DeleteProductAsync(id);
+            var success = await _productService.DeleteProductAsync(id, ActorId);
 
             if (!success)
             {

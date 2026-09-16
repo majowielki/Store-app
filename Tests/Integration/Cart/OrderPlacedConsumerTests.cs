@@ -1,4 +1,5 @@
 using MassTransit;
+using Store.Contracts.Audit.V1;
 using Store.Contracts.Orders.V1;
 using Store.Tests.Integration.TestSupport;
 using System.Net.Http.Json;
@@ -45,7 +46,8 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<CartApiFactory>
         await _factory.Bus.Bus.Publish(OrderFor(user, orderId: 501));
 
         await Eventually.AssertAsync(async () => Assert.Equal(0, await LineCount(client)));
-        Assert.Contains(_factory.AuditLog.Entries, e => e.Action == "CART_CLEARED" && e.UserId == user);
+        Assert.True(await Eventually.BecomesTrueAsync(() => _factory.Bus.Consumed
+            .Select<AuditEvent>(e => e.Context.Message.Action == "CART_CLEARED" && e.Context.Message.UserId == user).Any()));
     }
 
     [Fact]

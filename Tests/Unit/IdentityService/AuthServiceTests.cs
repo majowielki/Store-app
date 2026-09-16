@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Store.BuildingBlocks.Messaging;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Models;
 using Store.IdentityService.Services;
-using Store.Shared.Services;
 using Xunit;
 
 namespace Store.Tests.Unit.IdentityService;
@@ -18,8 +18,7 @@ public class AuthServiceTests
     private readonly Mock<RoleManager<IdentityRole>> _roleManagerMock;
     private readonly Mock<IConfiguration> _configurationMock;
     private readonly Mock<ILogger<AuthService>> _loggerMock;
-    private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
-    private readonly Mock<IAuditLogClient> _auditLogClientMock;
+    private readonly Mock<IAuditTrail> _auditTrailMock;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
@@ -29,8 +28,7 @@ public class AuthServiceTests
         _roleManagerMock = MockRoleManager();
         _configurationMock = new Mock<IConfiguration>();
         _loggerMock = new Mock<ILogger<AuthService>>();
-        _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-        _auditLogClientMock = new Mock<IAuditLogClient>();
+        _auditTrailMock = new Mock<IAuditTrail>();
 
         // Setup configuration for JWT
         _configurationMock.Setup(c => c["JwtSettings:SecretKey"]).Returns("test-secret-key-12345678901234567890123456789012");
@@ -48,8 +46,7 @@ public class AuthServiceTests
             _roleManagerMock.Object,
             _configurationMock.Object,
             _loggerMock.Object,
-            _httpContextAccessorMock.Object,
-            _auditLogClientMock.Object
+            _auditTrailMock.Object
         );
     }
 

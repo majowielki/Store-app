@@ -10,25 +10,17 @@ using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.OpenApi;
 using Store.Contracts.Authorization;
 using Store.IdentityService.Consumers;
 using Store.IdentityService.Data;
 using Store.IdentityService.Models;
 using Store.IdentityService.Seeding;
 using Store.IdentityService.Services;
-using Store.Shared.Extensions;
-using Store.Shared.Middleware;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    });
+builder.Services.AddStandardApiControllers();
 
 // FluentValidation: validators from DI, request models validated before the action runs
 builder.Services.AddValidatorsFromAssemblyContaining<Store.IdentityService.Validators.RegisterRequestValidator>();
@@ -111,64 +103,22 @@ builder.Services.AddStoreAuthorization();
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Message bus: a placed order may carry a delivery address to store in the profile
+// Message bus: a placed order may carry a delivery address to store in the profile; profile changes reach the audit service as events
 builder.Services.AddStoreMessaging<IdentityDbContext>(builder.Configuration, serviceName: "identity", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
 // Addresses of the services this one calls; startup fails when any is missing
-builder.Services.AddServiceEndpoints(builder.Configuration,
-    nameof(ServiceEndpointsOptions.OrderService),
-    nameof(ServiceEndpointsOptions.AuditLogService));
-
-// Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
-builder.Services.AddAuditLogClient(builder.Configuration);
+builder.Services.AddServiceEndpoints(builder.Configuration, nameof(ServiceEndpointsOptions.OrderService));
+builder.Services.AddHttpClient();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
-// Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "Store Identity Service", Version = "v1" });
-
-    // JWT Bearer token support
-    c.AddSecurityDefinition("Bearer", new()
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
-        Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new()
-    {
-        {
-            new()
-            {
-                Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-});
+builder.Services.AddSwaggerWithJwt("Store Identity Service");
+builder.Services.AddStandardCors();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseAuditLogging();
 app.UseGlobalExceptionHandling();
 
 if (app.Environment.IsDevelopment())
@@ -177,11 +127,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store Identity Service V1");
-        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+        c.RoutePrefix = "swagger";
     });
 }
 
-app.UseCors("AllowAll");
+app.UseCors("DefaultCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Store.AuditLogService.Data;
@@ -11,9 +12,11 @@ using Store.AuditLogService.Data;
 namespace Store.AuditLogService.Migrations
 {
     [DbContext(typeof(AuditLogDbContext))]
-    partial class AuditLogDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916165538_AuditEntriesFromEvents")]
+    partial class AuditEntriesFromEvents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Messaging;
 using Store.ProductService.Models;
 
 namespace Store.ProductService.Data;
@@ -54,5 +55,8 @@ public class ProductDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
         });
+
+        // Outbox of the message bus: catalogue changes leave as audit events
+        modelBuilder.AddStoreMessagingTables();
     }
 }

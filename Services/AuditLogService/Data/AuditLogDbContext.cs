@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Store.AuditLogService.Models;
 using Store.BuildingBlocks.Messaging;
-using Store.Shared.Models;
 
 namespace Store.AuditLogService.Data;
 
@@ -21,22 +21,14 @@ public class AuditLogDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedOnAdd();
 
-            entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.EntityName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.EntityId).HasMaxLength(50);
-            entity.Property(e => e.UserId).HasMaxLength(50);
-            entity.Property(e => e.UserEmail).HasMaxLength(256);
-            entity.Property(e => e.IpAddress).HasMaxLength(45); // IPv6 max length
-            entity.Property(e => e.UserAgent).HasMaxLength(500);
-            // New fields
-            entity.Property(e => e.Severity).HasMaxLength(20);
-            entity.Property(e => e.ServiceName).HasMaxLength(100);
-            entity.Property(e => e.CorrelationId).HasMaxLength(100);
-            entity.Property(e => e.HttpMethod).HasMaxLength(10);
-            entity.Property(e => e.Path).HasMaxLength(300);
-            entity.Property(e => e.SessionId).HasMaxLength(100);
+            entity.Property(e => e.Action).IsRequired().HasMaxLength(AuditLogConstraints.ActionMaxLength);
+            entity.Property(e => e.EntityName).IsRequired().HasMaxLength(AuditLogConstraints.EntityNameMaxLength);
+            entity.Property(e => e.EntityId).HasMaxLength(AuditLogConstraints.EntityIdMaxLength);
+            entity.Property(e => e.UserId).HasMaxLength(AuditLogConstraints.UserIdMaxLength);
+            entity.Property(e => e.ServiceName).HasMaxLength(AuditLogConstraints.ServiceNameMaxLength);
+            entity.Property(e => e.CorrelationId).HasMaxLength(AuditLogConstraints.CorrelationIdMaxLength);
 
-            // Indexes for better query performance
+            // The queries the admin API offers, plus Timestamp for the retention job
             entity.HasIndex(e => e.EntityName);
             entity.HasIndex(e => e.EntityId);
             entity.HasIndex(e => e.UserId);

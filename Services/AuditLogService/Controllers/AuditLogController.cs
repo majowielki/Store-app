@@ -1,101 +1,26 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Store.AuditLogService.Models;
 using Store.AuditLogService.Services;
 using Store.BuildingBlocks.Api;
-using Store.BuildingBlocks.Authentication;
 using Store.Contracts.Authorization;
-using Store.Shared.Models;
-using System.Security.Claims;
 
 namespace Store.AuditLogService.Controllers;
 
+/// <summary>
+/// Read API of the audit trail for administrators. Entries are written by the event
+/// consumers only; there is no HTTP endpoint that accepts them.
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Policy = Policies.Admin)]
 public class AuditLogController : ControllerBase
 {
     private readonly IAuditLogService _auditLogService;
-    private readonly ILogger<AuditLogController> _logger;
 
-    public AuditLogController(IAuditLogService auditLogService, ILogger<AuditLogController> logger)
+    public AuditLogController(IAuditLogService auditLogService)
     {
         _auditLogService = auditLogService;
-        _logger = logger;
-    }
-
-    /// <summary>
-    /// Create a new audit log entry
-    /// </summary>
-    /// <param name="auditLog">Audit log data</param>
-    /// <returns>Created audit log ID</returns>
-    [HttpPost]
-    [Authorize(Policy = Policies.User)]
-    public async Task<ActionResult<ApiResponse<long>>> CreateAuditLog([FromBody] AuditLog auditLog)
-    {
-        // FluentValidation will handle validation automatically
-        try
-        {
-            // Set the timestamp if not provided
-            if (auditLog.Timestamp == default) auditLog.Timestamp = DateTime.UtcNow;
-
-            // Set user information from JWT token if not provided
-            if (string.IsNullOrEmpty(auditLog.UserId)) auditLog.UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(auditLog.UserEmail)) auditLog.UserEmail = User.FindFirst(ClaimTypes.Email)?.Value;
-
-            // Set IP address from request context
-            if (string.IsNullOrEmpty(auditLog.IpAddress)) auditLog.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-
-            // Set User-Agent from request headers
-            if (string.IsNullOrEmpty(auditLog.UserAgent)) auditLog.UserAgent = Request.Headers.UserAgent.ToString();
-
-            var result = await _auditLogService.CreateAuditLogAsync(auditLog);
-            if (!result.IsSuccess) return StatusCode((int)result.StatusCode, result);
-
-            return CreatedAtAction(nameof(GetAuditLog), new { id = result.Data }, result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating audit log");
-            return StatusCode(500, "An error occurred while creating the audit log");
-        }
-    }
-
-    /// <summary>
-    /// Create audit log entry for internal services.
-    /// Intended for inter-service communication only: the caller must present the shared
-    /// service key in the X-Internal-Api-Key header.
-    /// </summary>
-    /// <param name="auditLog">Audit log data</param>
-    /// <returns>Created audit log ID</returns>
-    [HttpPost("internal")]
-    [Authorize(Policy = InternalApiKeyDefaults.PolicyName)]
-    public async Task<ActionResult<ApiResponse<long>>> CreateInternalAuditLog([FromBody] AuditLog auditLog)
-    {
-        // FluentValidation will handle validation automatically
-        try
-        {
-            // Set the timestamp if not provided
-            if (auditLog.Timestamp == default) auditLog.Timestamp = DateTime.UtcNow;
-
-            // For internal audit logs, accept the provided user information as-is
-            // since it comes from other authenticated services
-
-            // Set IP address from request context if not provided
-            if (string.IsNullOrEmpty(auditLog.IpAddress)) auditLog.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-
-            // Set User-Agent from request headers if not provided
-            if (string.IsNullOrEmpty(auditLog.UserAgent)) auditLog.UserAgent = Request.Headers.UserAgent.ToString();
-
-            var result = await _auditLogService.CreateAuditLogAsync(auditLog);
-            if (!result.IsSuccess) return StatusCode((int)result.StatusCode, result);
-
-            return CreatedAtAction(nameof(GetAuditLog), new { id = result.Data }, result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating internal audit log");
-            return StatusCode(500, "An error occurred while creating the audit log");
-        }
     }
 
     /// <summary>
@@ -104,7 +29,6 @@ public class AuditLogController : ControllerBase
     /// <param name="id">Audit log ID</param>
     /// <returns>Audit log details</returns>
     [HttpGet("{id}")]
-    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<ApiResponse<AuditLog?>>> GetAuditLog(long id)
     {
         var result = await _auditLogService.GetAuditLogAsync(id);
@@ -121,7 +45,6 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs</returns>
     [HttpGet]
-    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (page < 1) page = 1;
@@ -156,7 +79,6 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs for the entity</returns>
     [HttpGet("entity/{entityName}")]
-    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogsByEntity(string entityName, [FromQuery] string? entityId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (page < 1) page = 1;
@@ -192,7 +114,6 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs for the user</returns>
     [HttpGet("user/{userId}")]
-    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogsByUser(string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (page < 1) page = 1;
@@ -228,7 +149,6 @@ public class AuditLogController : ControllerBase
     /// <param name="pageSize">Page size (default: 50, max: 100)</param>
     /// <returns>Paginated list of audit logs within the date range</returns>
     [HttpGet("daterange")]
-    [Authorize(Policy = Policies.Admin)]
     public async Task<ActionResult<object>> GetAuditLogsByDateRange([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         if (fromDate > toDate)

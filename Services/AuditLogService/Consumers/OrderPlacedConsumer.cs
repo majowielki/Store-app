@@ -1,7 +1,7 @@
 using MassTransit;
+using Store.AuditLogService.Models;
 using Store.AuditLogService.Services;
 using Store.Contracts.Orders.V1;
-using Store.Shared.Models;
 using System.Text.Json;
 
 namespace Store.AuditLogService.Consumers;
@@ -33,10 +33,10 @@ public sealed class OrderPlacedConsumer : IConsumer<OrderPlaced>
             EntityName = "Order",
             EntityId = order.OrderId.ToString(),
             UserId = order.UserId,
-            ServiceName = "OrderService",
+            ServiceName = "order",
             CorrelationId = context.MessageId?.ToString(),
             Timestamp = order.PlacedAt,
-            AdditionalInfo = JsonSerializer.Serialize(new
+            Details = JsonSerializer.Serialize(new
             {
                 order.Subtotal,
                 order.DiscountAmount,

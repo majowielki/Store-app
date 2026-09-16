@@ -1,29 +1,18 @@
-using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.AuditLogService.Consumers;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
+using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
-using System.Text.Json.Serialization;
+using Store.BuildingBlocks.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    });
-
-// FluentValidation: validators from DI, request models validated before the action runs
-builder.Services.AddValidatorsFromAssemblyContaining<Store.AuditLogService.Validators.AuditLogValidator>();
-builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddStandardApiControllers();
 
 // Database
 builder.Services.AddDbContext<AuditLogDbContext>(options =>
@@ -39,63 +28,30 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
-// Service-to-service calls to POST /api/auditlog/internal must present the shared key
-builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
-
 // Services
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
-// Message bus: business events become audit entries
-builder.Services.AddStoreMessaging<AuditLogDbContext>(builder.Configuration, serviceName: "audit", bus => bus.AddConsumer<OrderPlacedConsumer>());
+// Message bus: every audit entry arrives as an event from the service that performed the action
+builder.Services.AddStoreMessaging<AuditLogDbContext>(builder.Configuration, serviceName: "audit", bus =>
+{
+    bus.AddConsumer<AuditEventConsumer>();
+    bus.AddConsumer<OrderPlacedConsumer>();
+});
+
+// Entries older than AuditRetention:RetentionDays are deleted once a day
+builder.Services.AddStoreOptions<AuditRetentionOptions>(builder.Configuration, AuditRetentionOptions.SectionName);
+builder.Services.AddHostedService<AuditRetentionService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
-// Swagger with JWT support
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "Store AuditLog Service", Version = "v1" });
-
-    // JWT Bearer token support
-    c.AddSecurityDefinition("Bearer", new()
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
-        Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new()
-    {
-        {
-            new()
-            {
-                Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-});
+builder.Services.AddSwaggerWithJwt("Store AuditLog Service");
+builder.Services.AddStandardCors();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-// NOTE: Do NOT use AuditLoggingMiddleware in AuditLogService to avoid recursion
-app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseGlobalExceptionHandling();
 
 if (app.Environment.IsDevelopment())
 {
@@ -103,11 +59,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store AuditLog Service V1");
-        c.RoutePrefix = "swagger"; // This ensures Swagger UI is available at /swagger
+        c.RoutePrefix = "swagger";
     });
 }
 
-app.UseCors("AllowAll");
+app.UseCors("DefaultCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

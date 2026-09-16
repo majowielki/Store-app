@@ -6,7 +6,6 @@ using Moq;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
-using Store.Shared.Services;
 using Xunit;
 
 namespace Store.Tests.Unit.OrderService;
@@ -14,7 +13,7 @@ namespace Store.Tests.Unit.OrderService;
 public class OrderServiceTests
 {
     private readonly Mock<ILogger<Store.OrderService.Services.OrderService>> _loggerMock = new();
-    private readonly Mock<IAuditLogClient> _auditLogClientMock = new();
+
     private readonly OrderDbContext _dbContext;
     private readonly Store.OrderService.Services.OrderService _orderService;
 
@@ -30,8 +29,7 @@ public class OrderServiceTests
             Mock.Of<ICatalogClient>(),
             Mock.Of<IPublishEndpoint>(),
             Options.Create(new PricingOptions()),
-            _loggerMock.Object,
-            _auditLogClientMock.Object
+            _loggerMock.Object
         );
     }
 

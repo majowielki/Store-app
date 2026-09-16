@@ -80,7 +80,7 @@ services:
     networks:
       - store-network
 
-  # AuditLog Service - MUST be started first before other services
+  # AuditLog Service - stores the audit events the other services publish
   auditlogservice:
     build:
       context: .
@@ -95,7 +95,6 @@ services:
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
-      - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
       - RabbitMQ__VirtualHost=/
@@ -134,9 +133,7 @@ services:
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
-      - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Authority=https://localhost:5001
-      - Services__AuditLogService=http://auditlogservice:5004
       - TRUE_ADMIN_EMAIL=trueadmin@store.com
       - TRUE_ADMIN_PASSWORD=${TRUE_ADMIN_PASSWORD:-SecurePassword123!}
       - RabbitMQ__Host=rabbitmq
@@ -153,8 +150,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      auditlogservice:
-        condition: service_healthy
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/health/ready"]
       interval: 30s
@@ -180,7 +176,6 @@ services:
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      - Services__AuditLogService=http://auditlogservice:5004
       - Services__IdentityService=http://identityservice:5001
       - RabbitMQ__Host=rabbitmq
       - RabbitMQ__Port=5672
@@ -196,8 +191,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      auditlogservice:
-        condition: service_healthy
+
       identityservice:
         condition: service_healthy
     healthcheck:
@@ -225,7 +219,6 @@ services:
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
       - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      - Services__AuditLogService=http://auditlogservice:5004
       - Services__IdentityService=http://identityservice:5001
       - Services__ProductService=http://productservice:5003
       - RabbitMQ__Host=rabbitmq
@@ -242,8 +235,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      auditlogservice:
-        condition: service_healthy
+
       identityservice:
         condition: service_healthy
       productservice:
@@ -273,7 +265,6 @@ services:
       JwtSettings__Issuer: Store.API
       JwtSettings__Audience: Store.Client
       InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      Services__AuditLogService: http://auditlogservice:5004
       Services__IdentityService: http://identityservice:5001
       Services__ProductService: http://productservice:5003
       Services__CartService: http://cartservice:5005
@@ -291,8 +282,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      auditlogservice:
-        condition: service_healthy
+
       identityservice:
         condition: service_healthy
       productservice:
@@ -333,8 +323,7 @@ services:
         condition: service_healthy
       orderservice:
         condition: service_healthy
-      auditlogservice:
-        condition: service_healthy
+
       redis:
         condition: service_healthy
     healthcheck:

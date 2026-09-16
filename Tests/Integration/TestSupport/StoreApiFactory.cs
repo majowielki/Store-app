@@ -4,18 +4,16 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Store.Shared.Services;
 using Xunit;
 
 namespace Store.Tests.Integration.TestSupport;
 
 /// <summary>
 /// Hosts one service in-process against a real PostgreSQL database (migrated by the service's
-/// own startup code) with the network boundaries to other services replaced by recording fakes
-/// and the message bus running on MassTransit's in-memory transport (outbox, inbox and
-/// consumers are the real ones). <typeparamref name="TMarker"/> is any type from the service
-/// assembly; WebApplicationFactory uses it only to locate the entry point, which avoids six
+/// own startup code) with the HTTP boundaries to other services replaced by fakes and the
+/// message bus running on MassTransit's in-memory transport (outbox, inbox and consumers are
+/// the real ones; published events are observable through <see cref="Bus"/>).
+/// <typeparamref name="TMarker"/> is any type from the service assembly; WebApplicationFactory uses it only to locate the entry point, which avoids six
 /// ambiguous "Program" classes.
 /// </summary>
 public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>, IAsyncLifetime
@@ -31,9 +29,6 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
 
     /// <summary>Database name inside the shared container, unique per service; null for services without a database.</summary>
     protected abstract string? DatabaseName { get; }
-
-    /// <summary>What the service under test tried to send to AuditLogService.</summary>
-    public RecordingAuditLogClient AuditLog { get; } = new();
 
     /// <summary>
     /// The bus of the service under test: publish events into it, observe what it published
@@ -76,13 +71,10 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
 
         builder.ConfigureTestServices(services =>
         {
-            services.RemoveAll<IAuditLogClient>();
-            services.AddSingleton<IAuditLogClient>(AuditLog);
-
             // Keeps the service's consumers and outbox, replaces the transport with in-memory
             if (services.Any(d => d.ServiceType == typeof(IBus)))
             {
-                services.AddMassTransitTestHarness();
+                services.AddMassTransitTestHarness(bus => bus.AddConsumer<AuditEventProbe>());
             }
 
             ConfigureTestServices(services);

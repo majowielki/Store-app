@@ -1,12 +1,12 @@
 // Enable nullable annotations in this file
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Messaging;
 using Store.Contracts.Catalog;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Models;
-using Store.Shared.Services;
 using System.Text.Json.Serialization;
 
 namespace Store.ProductService.Services;
@@ -15,7 +15,7 @@ public class ProductService : IProductService
 {
     private readonly ProductDbContext _context;
     private readonly ILogger<ProductService> _logger;
-    private readonly IAuditLogClient _auditLogClient;
+    private readonly IAuditTrail _auditTrail;
 
     private static readonly System.Text.Json.JsonSerializerOptions AuditJsonOptions = new()
     {
@@ -23,14 +23,14 @@ public class ProductService : IProductService
         PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
     };
 
-    public ProductService(ProductDbContext context, ILogger<ProductService> logger, IAuditLogClient auditLogClient)
+    public ProductService(ProductDbContext context, ILogger<ProductService> logger, IAuditTrail auditTrail)
     {
         _context = context;
         _logger = logger;
-        _auditLogClient = auditLogClient;
+        _auditTrail = auditTrail;
     }
 
-    public async Task<ProductResponse> CreateProductAsync(CreateProductRequest request)
+    public async Task<ProductResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null)
     {
         try
         {
@@ -60,34 +60,17 @@ public class ProductService : IProductService
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Product created successfully with ID: {ProductId}", product.Id);
-            // Audit log: product created
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "PRODUCT_CREATED",
-                EntityName = nameof(Product),
-                EntityId = product.Id.ToString(),
-                Timestamp = DateTime.UtcNow,
-                NewValues = System.Text.Json.JsonSerializer.Serialize(product, AuditJsonOptions),
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "ProductService" }, AuditJsonOptions)
-            });
+            await _auditTrail.RecordAsync("PRODUCT_CREATED", nameof(Product), product.Id.ToString(), actorId, newValues: product);
             return MapToProductResponse(product);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating product: {ProductTitle}", request.Title);
-            // Audit log: product creation failed
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "PRODUCT_CREATION_FAILED",
-                EntityName = nameof(Product),
-                Timestamp = DateTime.UtcNow,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "ProductService" }, AuditJsonOptions)
-            });
             throw;
         }
     }
 
-    public async Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request)
+    public async Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null)
     {
         try
         {
@@ -122,36 +105,17 @@ public class ProductService : IProductService
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
-            // Audit log: product updated
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "PRODUCT_UPDATED",
-                EntityName = nameof(Product),
-                EntityId = product.Id.ToString(),
-                Timestamp = DateTime.UtcNow,
-                OldValues = oldValues,
-                NewValues = System.Text.Json.JsonSerializer.Serialize(product, AuditJsonOptions),
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "ProductService" }, AuditJsonOptions)
-            });
+            await _auditTrail.RecordAsync("PRODUCT_UPDATED", nameof(Product), product.Id.ToString(), actorId, oldValues: oldValues, newValues: product);
             return MapToProductResponse(product);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating product with ID: {ProductId}", id);
-            // Audit log: product update failed
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "PRODUCT_UPDATE_FAILED",
-                EntityName = nameof(Product),
-                EntityId = id.ToString(),
-                Timestamp = DateTime.UtcNow,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "ProductService" }, AuditJsonOptions)
-            });
             throw;
         }
     }
 
-    public async Task<bool> DeleteProductAsync(int id)
+    public async Task<bool> DeleteProductAsync(int id, string? actorId = null)
     {
         try
         {
@@ -169,30 +133,12 @@ public class ProductService : IProductService
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Product deactivated with ID: {ProductId}", id);
-            // Audit log: product deleted
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "PRODUCT_DELETED",
-                EntityName = nameof(Product),
-                EntityId = id.ToString(),
-                Timestamp = DateTime.UtcNow,
-                OldValues = oldValues,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Source = "ProductService" }, AuditJsonOptions)
-            });
+            await _auditTrail.RecordAsync("PRODUCT_DELETED", nameof(Product), id.ToString(), actorId, oldValues: oldValues);
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting product with ID: {ProductId}", id);
-            // Audit log: product deletion failed
-            await _auditLogClient.CreateAuditLogAsync(new Store.Shared.Models.AuditLog
-            {
-                Action = "PRODUCT_DELETION_FAILED",
-                EntityName = nameof(Product),
-                EntityId = id.ToString(),
-                Timestamp = DateTime.UtcNow,
-                AdditionalInfo = System.Text.Json.JsonSerializer.Serialize(new { Exception = ex.Message, Source = "ProductService" }, AuditJsonOptions)
-            });
             throw;
         }
     }

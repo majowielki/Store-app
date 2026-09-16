@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Store.AuditLogService.Data;
-using Store.Shared.Models;
+using Store.AuditLogService.Models;
 using Xunit;
 
 namespace Store.Tests.Unit.AuditLogService;

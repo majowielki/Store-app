@@ -13,8 +13,6 @@ using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
 using Store.OrderService.Services;
-using Store.Shared.Extensions;
-using Store.Shared.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,17 +39,13 @@ builder.Services.AddStoreAuthorization();
 // Addresses of the services this one calls; startup fails when any is missing
 builder.Services.AddServiceEndpoints(builder.Configuration,
     nameof(ServiceEndpointsOptions.ProductService),
-    nameof(ServiceEndpointsOptions.CartService),
-    nameof(ServiceEndpointsOptions.AuditLogService));
-
-// Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
-builder.Services.AddAuditLogClient(builder.Configuration);
+    nameof(ServiceEndpointsOptions.CartService));
 
 // Other services, through typed clients with timeouts, retries and a circuit breaker
 builder.Services.AddServiceClient<ICartClient, CartClient>(builder.Configuration, nameof(ServiceEndpointsOptions.CartService));
 builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
 
-// Message bus: OrderPlaced leaves through the outbox in the orders database
+// Message bus: OrderPlaced leaves through the outbox in the orders database; the audit service consumes it
 builder.Services.AddStoreMessaging<OrderDbContext>(builder.Configuration, serviceName: "order");
 
 // Services
@@ -68,7 +62,6 @@ builder.Services.AddStandardCors();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseAuditLogging();
 app.UseGlobalExceptionHandling();
 
 if (app.Environment.IsDevelopment())

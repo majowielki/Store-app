@@ -13,8 +13,6 @@ using Store.CartService.Clients;
 using Store.CartService.Consumers;
 using Store.CartService.Data;
 using Store.CartService.Services;
-using Store.Shared.Extensions;
-using Store.Shared.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,17 +40,13 @@ builder.Services.AddStoreAuthorization();
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
 // Addresses of the services this one calls; startup fails when any is missing
-builder.Services.AddServiceEndpoints(builder.Configuration,
-    nameof(ServiceEndpointsOptions.ProductService),
-    nameof(ServiceEndpointsOptions.AuditLogService));
-
-// Audit entries go to AuditLogService (address from Services:AuditLogService, validated at startup)
-builder.Services.AddAuditLogClient(builder.Configuration);
+builder.Services.AddServiceEndpoints(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
 
 // The catalogue, through a typed client with timeouts, retries and a circuit breaker
 builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
 
-// Message bus: the cart is emptied when the order service reports a placed order
+// Message bus: the cart is emptied when the order service reports a placed order; cart
+// changes reach the audit service as events, through the outbox
 builder.Services.AddStoreMessaging<CartDbContext>(builder.Configuration, serviceName: "cart", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
 // Services
@@ -68,7 +62,6 @@ builder.Services.AddStandardCors();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseAuditLogging();
 app.UseGlobalExceptionHandling();
 
 if (app.Environment.IsDevelopment())

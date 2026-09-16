@@ -7,9 +7,6 @@
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
-    <PackageReference Include="FluentValidation" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
-    <PackageReference Include="SharpGrip.FluentValidation.AutoValidation.Mvc" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
@@ -25,7 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\Store.Contracts\Store.Contracts.csproj" />
     <ProjectReference Include="..\..\Shared\Store.BuildingBlocks\Store.BuildingBlocks.csproj" />
-    <ProjectReference Include="..\..\Shared\Store.Shared\Store.Shared.csproj" />
   </ItemGroup>
 
 </Project>
