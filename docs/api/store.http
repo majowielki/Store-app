@@ -1,0 +1,253 @@
+# The public API of the store as the gateway exposes it (VS Code REST Client / Rider .http).
+# Every request goes through the gateway; the services are not reachable from outside.
+# Errors are RFC 9457 problems (application/problem+json): 401/403 for the caller, 404 for a
+# missing resource, 409 for a state conflict, 422 for request content a rule rejects.
+#
+# Environment: local compose or "dotnet run" of the gateway on port 5000. Sign in first
+# (login or a demo login), then paste the accessToken into @token.
+
+@gateway = http://localhost:5000
+@api = {{gateway}}/api/v1
+@token = paste-an-access-token-here
+@idempotencyKey = {{$guid}}
+
+### ---------------------------------------------------------------- auth
+
+### Register (409 when the e-mail is taken, 422 when the password is too weak)
+POST {{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "buyer@example.test",
+  "password": "Buyer-Password-1!",
+  "confirmPassword": "Buyer-Password-1!",
+  "firstName": "Test",
+  "lastName": "Buyer"
+}
+
+### Login (401 for wrong credentials, 423 while the account is locked)
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "buyer@example.test",
+  "password": "Buyer-Password-1!"
+}
+
+### Demo customer, no password
+POST {{api}}/auth/demo-login
+
+### Demo administrator (read-only admin panel), no password
+POST {{api}}/auth/demo-admin-login
+
+### The signed-in user's profile (204 without a token)
+GET {{api}}/auth/me
+Authorization: Bearer {{token}}
+
+### Store the delivery address in the profile (an empty value clears it)
+PUT {{api}}/auth/me/address
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "simpleAddress": "1 Example Street, Example City"
+}
+
+### A new access token for one that only expired
+POST {{api}}/auth/refresh
+Content-Type: application/json
+
+{
+  "token": "{{token}}"
+}
+
+### Logout (the client discards its token)
+POST {{api}}/auth/logout
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------- catalogue (public)
+
+### A page of active products; every filter is optional
+GET {{api}}/products?page=1&pageSize=12&search=&group=all&category=all&company=all&colors=black&order=low&price=100,900&sale=true
+
+### One product (404 for an unknown or deleted id)
+GET {{api}}/products/1
+
+### The values the catalogue can be filtered by
+GET {{api}}/products/meta
+
+### ---------------------------------------------------------------- catalogue (administrators)
+
+### Every product, inactive ones included (any admin)
+GET {{api}}/products/admin?page=1&pageSize=50&sortBy=price&sortDir=desc
+Authorization: Bearer {{token}}
+
+### Create a product (true-admin only; demo-admin gets 403)
+POST {{api}}/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Example armchair",
+  "description": "An armchair created from the .http file to exercise the write path.",
+  "price": 499.99,
+  "salePrice": 449.99,
+  "category": "chairs",
+  "company": "luxora",
+  "newArrival": true,
+  "image": "https://example.test/armchair.jpg",
+  "colors": ["black", "gray"],
+  "groups": ["furniture"],
+  "materials": ["oak", "linen"],
+  "widthCm": 80
+}
+
+### Partial update: absent fields keep their value, null clears an optional one; isActive:true restores a deleted product
+PUT {{api}}/products/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "salePrice": null,
+  "isActive": true
+}
+
+### Delete = hide from the public catalogue (the row stays for past orders)
+DELETE {{api}}/products/1
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------- cart (signed-in customer)
+
+### The cart with today's prices (priceChanged tells whether a line was refreshed)
+GET {{api}}/cart
+Authorization: Bearer {{token}}
+
+### Add a line; the same product and colour again raises the quantity (422 for an unknown product)
+POST {{api}}/cart/items
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": 1,
+  "quantity": 2,
+  "color": "black"
+}
+
+### Change a line (404 for a line that is not in this cart)
+PUT {{api}}/cart/items/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "quantity": 3
+}
+
+### Remove a line
+DELETE {{api}}/cart/items/1
+Authorization: Bearer {{token}}
+
+### Merge a guest cart into the server cart at sign-in
+POST {{api}}/cart/sync
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    { "productId": 2, "quantity": 1, "color": "white" }
+  ]
+}
+
+### Pieces in the cart / sum of the lines
+GET {{api}}/cart/count
+Authorization: Bearer {{token}}
+
+###
+GET {{api}}/cart/total
+Authorization: Bearer {{token}}
+
+### Empty the cart
+DELETE {{api}}/cart
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------- orders (signed-in customer)
+
+### Place an order from the cart. Re-send with the same Idempotency-Key to get the same order back
+### (422 for an empty cart or a reused key with a different body, 409 for a product that left the catalogue)
+POST {{api}}/orders/from-cart
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: {{idempotencyKey}}
+
+{
+  "userEmail": "buyer@example.test",
+  "customerName": "Test Buyer",
+  "deliveryAddress": "1 Example Street, Example City",
+  "notes": null,
+  "saveAddress": true
+}
+
+### One order: the customer's own (403 for somebody else's), any order for an administrator
+GET {{api}}/orders/1
+Authorization: Bearer {{token}}
+
+### The customer's orders, newest first
+GET {{api}}/orders/my-orders?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Whether the customer ordered before (the first order is discounted)
+GET {{api}}/orders/has-orders
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------- admin panel (demo-admin sees masked customer data)
+
+### All orders
+GET {{api}}/admin/orders?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Orders of one customer
+GET {{api}}/admin/orders/by-user/{{userId}}?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### One order
+GET {{api}}/admin/orders/1
+Authorization: Bearer {{token}}
+
+### Orders and revenue per day, week and product over the last N days
+GET {{api}}/admin/orders/stats?days=30
+Authorization: Bearer {{token}}
+
+### Accounts, filtered by a fragment of the e-mail or name and by activity
+GET {{api}}/admin/users?search=&isActive=true&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### One account
+GET {{api}}/admin/users/{{userId}}
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------- audit trail (administrators)
+
+### Entries newest first; every filter is optional, from/to are ISO 8601 instants
+GET {{api}}/auditlog?entityName=Order&entityId=1&userId=&from=2026-09-01T00:00:00Z&to=2026-12-31T23:59:59Z&page=1&pageSize=50
+Authorization: Bearer {{token}}
+
+### One entry
+GET {{api}}/auditlog/1
+Authorization: Bearer {{token}}
+
+### ---------------------------------------------------------------- newsletter
+
+### Subscribe (204; 422 for an invalid e-mail)
+POST {{api}}/newsletter/subscribe
+Content-Type: application/json
+
+{
+  "email": "reader@example.test"
+}
+
+### ---------------------------------------------------------------- health (each host)
+
+### Liveness / readiness of the gateway; the services answer the same paths on their own ports
+GET {{gateway}}/health/live
+
+###
+GET {{gateway}}/health/ready
