@@ -252,6 +252,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/pricing-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The rules an order is priced by (delivery fee and its free-delivery threshold, first-order
+         *     discount), for the cart page to preview the amounts the way the checkout will compute them.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PricingRulesResponse"];
+                    };
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/from-cart": {
         parameters: {
             query?: never;
@@ -590,6 +638,28 @@ export interface components {
             daily: components["schemas"]["TimeBucketStats"][];
             weekly: components["schemas"]["TimeBucketStats"][];
             topProducts: components["schemas"]["TopProductStats"][];
+        };
+        /**
+         * @description The rules the order service prices an order by, so the cart page can preview the amounts
+         *     the same way instead of keeping its own copy of the numbers. The order itself is always
+         *     priced here, at checkout.
+         */
+        PricingRulesResponse: {
+            /**
+             * Format: double
+             * @description Orders with a subtotal (before the discount) at or above this amount ship for free.
+             */
+            freeDeliveryThreshold: number;
+            /**
+             * Format: double
+             * @description Charged below the threshold.
+             */
+            deliveryFee: number;
+            /**
+             * Format: double
+             * @description Percentage taken off the subtotal of a customer's first order.
+             */
+            firstOrderDiscountPercent: number;
         };
         /**
          * @description The error response as this store fills it, for the document only: the RFC 9457 members

@@ -1,4 +1,4 @@
-import type { ApiCartResponse, AuthResponse, Order, Product, ProblemDetails, ProductsMeta, UserResponse } from '@/api/types';
+import type { ApiCartResponse, AuthResponse, Order, PricingRules, Product, ProblemDetails, ProductsMeta, UserResponse } from '@/api/types';
 
 // Fixtures are typed with the generated contract, so a change of a response shape on the
 // server (after "npm run api:generate") fails here before it fails on a page.
@@ -97,6 +97,9 @@ export const meta: ProductsMeta = {
   colors: ['brown', 'black'],
   groupCategoryMap: [{ key: 'furniture', name: 'Furniture', categories: [{ key: 'tables', name: 'Tables' }] }],
 };
+
+/** The store's pricing as the order service publishes it. */
+export const pricingRules: PricingRules = { freeDeliveryThreshold: 299, deliveryFee: 10, firstOrderDiscountPercent: 20 };
 
 export const order = (overrides: Partial<Order> = {}): Order => ({
   id: 100,

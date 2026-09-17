@@ -1,4 +1,4 @@
-import { useGetHasOrdersQuery } from '@/api/orders';
+import { useGetHasOrdersQuery, useGetPricingRulesQuery } from '@/api/orders';
 import { Card, CardTitle } from '@/components/ui/card';
 import { previewTotals } from '@/features/cart/pricing';
 import { useCart } from '@/features/cart/useCart';
@@ -26,15 +26,30 @@ const CartTotalRow = ({ label, amount, lastRow, isDiscount }: CartTotalRowProps)
   </>
 );
 
-/** A preview of the order's amounts; the order service prices the order itself when it is placed. */
+/**
+ * A preview of the order's amounts, computed the way the order service will compute them,
+ * with the rules it publishes; the order itself is priced by the server when it is placed.
+ */
 const CartTotals = () => {
   const user = useAppSelector((state) => state.session.user);
   const { subtotal } = useCart();
+  const { data: rules, isError } = useGetPricingRulesQuery();
   // Only a signed-in customer can be on their first order; a visitor sees the plain total
   const { data: orders } = useGetHasOrdersQuery(undefined, { skip: !user });
   const firstOrder = !!user && orders?.ordersCount === 0;
-  const totals = previewTotals(subtotal, firstOrder);
 
+  if (!rules) {
+    return (
+      <Card className="p-8 bg-muted">
+        <CartTotalRow label="Subtotal" amount={subtotal} />
+        <p className="text-sm text-muted-foreground">
+          {isError ? 'Delivery and discounts will be shown at checkout.' : 'Calculating delivery and discounts…'}
+        </p>
+      </Card>
+    );
+  }
+
+  const totals = previewTotals(subtotal, firstOrder, rules);
   return (
     <Card className="p-8 bg-muted">
       <CartTotalRow label="Subtotal" amount={totals.subtotal} />

@@ -194,6 +194,9 @@ Authorization: Bearer {{token}}
 GET {{api}}/orders/has-orders
 Authorization: Bearer {{token}}
 
+### The rules an order is priced by, for the cart page (public)
+GET {{api}}/orders/pricing-rules
+
 ### ---------------------------------------------------------------- admin panel (demo-admin sees masked customer data)
 
 ### All orders

@@ -50,6 +50,7 @@ export type OrderItemResponse = Orders['schemas']['OrderItemResponse'];
 export type CreateOrderFromCartRequest = Orders['schemas']['CreateOrderFromCartRequest'];
 export type OrderStatsResponse = Orders['schemas']['OrderStatsResponse'];
 export type HasOrdersResponse = Orders['schemas']['HasOrdersResponse'];
+export type PricingRules = Orders['schemas']['PricingRulesResponse'];
 
 // Audit trail
 export type AuditLog = Audit['schemas']['AuditLog'];

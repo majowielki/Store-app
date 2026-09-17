@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authorization;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
+using Store.OrderService.Models;
 using Store.OrderService.Services;
 using System.Security.Claims;
 
@@ -18,11 +20,26 @@ public class OrdersController : ControllerBase
     private const int IdempotencyKeyMaxLength = 128;
 
     private readonly IOrderService _orderService;
+    private readonly PricingOptions _pricing;
 
-    public OrdersController(IOrderService orderService)
+    public OrdersController(IOrderService orderService, IOptions<PricingOptions> pricing)
     {
         _orderService = orderService;
+        _pricing = pricing.Value;
     }
+
+    /// <summary>
+    /// The rules an order is priced by (delivery fee and its free-delivery threshold, first-order
+    /// discount), for the cart page to preview the amounts the way the checkout will compute them.
+    /// </summary>
+    [HttpGet("pricing-rules")]
+    [AllowAnonymous]
+    public PricingRulesResponse GetPricingRules() => new()
+    {
+        FreeDeliveryThreshold = _pricing.FreeDeliveryThreshold,
+        DeliveryFee = _pricing.DeliveryFee,
+        FirstOrderDiscountPercent = _pricing.FirstOrderDiscountPercent
+    };
 
     private string UserId => User.GetRequiredUserId();
 

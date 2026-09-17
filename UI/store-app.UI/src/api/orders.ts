@@ -1,6 +1,6 @@
 import { api, unlessFailed } from './api';
 import { cartApi, emptyCart } from './cart';
-import type { CreateOrderFromCartRequest, HasOrdersResponse, Order, OrderStatsResponse, OrdersResponse } from './types';
+import type { CreateOrderFromCartRequest, HasOrdersResponse, Order, OrderStatsResponse, OrdersResponse, PricingRules } from './types';
 
 export type PageQuery = {
   page?: number;
@@ -39,6 +39,12 @@ export const ordersApi = api.injectEndpoints({
       query: (params) => ({ url: '/orders/my-orders', params }),
       providesTags: ['Orders'],
     }),
+    /** The rules the order service prices by; the cart page previews the amounts with them. */
+    getPricingRules: build.query<PricingRules, void>({
+      query: () => '/orders/pricing-rules',
+      // Configuration of the store, not data of a user: kept for the whole visit
+      keepUnusedDataFor: 24 * 60 * 60,
+    }),
     /** Whether the customer has ordered before: the first order is discounted. */
     getHasOrders: build.query<HasOrdersResponse, void>({
       query: () => '/orders/has-orders',
@@ -70,6 +76,7 @@ export const {
   usePlaceOrderMutation,
   useGetOrderQuery,
   useGetMyOrdersQuery,
+  useGetPricingRulesQuery,
   useGetHasOrdersQuery,
   useGetAdminOrdersQuery,
   useGetAdminOrderQuery,

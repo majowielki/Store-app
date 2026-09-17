@@ -19,7 +19,7 @@ public class ReverseProxyConfigurationTests
 
     private static readonly string[] ExpectedRoutes =
     {
-        "identity-route", "products-route", "cart-route", "orders-route", "audit-route", "admin-orders-route", "admin-route"
+        "identity-route", "products-route", "cart-route", "pricing-rules-route", "orders-route", "audit-route", "admin-orders-route", "admin-route"
     };
 
     public static TheoryData<string> Environments => new() { "Development", "Production" };
@@ -87,6 +87,9 @@ public class ReverseProxyConfigurationTests
         var routes = LoadProxyConfig(environment).Routes.ToDictionary(r => r.RouteId);
 
         Assert.Equal("auth", routes["identity-route"].RateLimiterPolicy);
+        // The public pricing rules must win over the orders catch-all, which requires a user
+        Assert.Null(routes["pricing-rules-route"].AuthorizationPolicy);
+        Assert.True(routes["pricing-rules-route"].Order < routes["orders-route"].Order);
         Assert.Equal(Policies.User, routes["cart-route"].AuthorizationPolicy);
         Assert.Equal(Policies.User, routes["orders-route"].AuthorizationPolicy);
         Assert.Equal(Policies.Admin, routes["audit-route"].AuthorizationPolicy);

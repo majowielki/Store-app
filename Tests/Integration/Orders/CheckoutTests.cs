@@ -32,6 +32,21 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
     private static async Task<JsonElement> ReadJson(HttpResponseMessage response)
         => JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json);
 
+    // The cart page previews the amounts with these rules; the order above is what they produce
+    [Fact]
+    public async Task Pricing_rules_are_public_and_match_what_the_checkout_charges()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/v1/orders/pricing-rules");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var rules = await ReadJson(response);
+        Assert.Equal(299m, rules.GetProperty("freeDeliveryThreshold").GetDecimal());
+        Assert.Equal(10m, rules.GetProperty("deliveryFee").GetDecimal());
+        Assert.Equal(20m, rules.GetProperty("firstOrderDiscountPercent").GetDecimal());
+    }
+
     // Regression: the order copied the cart's prices; a promotion that ended (or started)
     // after the item was added was not reflected in what the customer paid
     [Fact]

@@ -236,6 +236,36 @@
         ]
       }
     },
+    "/api/v1/orders/pricing-rules": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "The rules an order is priced by (delivery fee and its free-delivery threshold, first-order\r\ndiscount), for the cart page to preview the amounts the way the checkout will compute them.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingRulesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/orders/from-cart": {
       "post": {
         "tags": [
@@ -708,6 +738,33 @@
           }
         },
         "additionalProperties": false
+      },
+      "PricingRulesResponse": {
+        "required": [
+          "deliveryFee",
+          "firstOrderDiscountPercent",
+          "freeDeliveryThreshold"
+        ],
+        "type": "object",
+        "properties": {
+          "freeDeliveryThreshold": {
+            "type": "number",
+            "description": "Orders with a subtotal (before the discount) at or above this amount ship for free.",
+            "format": "double"
+          },
+          "deliveryFee": {
+            "type": "number",
+            "description": "Charged below the threshold.",
+            "format": "double"
+          },
+          "firstOrderDiscountPercent": {
+            "type": "number",
+            "description": "Percentage taken off the subtotal of a customer's first order.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The rules the order service prices an order by, so the cart page can preview the amounts\r\nthe same way instead of keeping its own copy of the numbers. The order itself is always\r\npriced here, at checkout."
       },
       "StoreProblemDetails": {
         "type": "object",

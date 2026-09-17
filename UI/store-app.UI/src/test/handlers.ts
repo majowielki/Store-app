@@ -1,7 +1,7 @@
 import { HttpResponse, http, type DefaultBodyType, type HttpResponseInit } from 'msw';
 import { apiBaseUrl } from '@/config';
 import type { ProblemDetails } from '@/api/types';
-import { cartWithTable, emptyCart, meta, order, problem, product, session, user } from './fixtures';
+import { cartWithTable, emptyCart, meta, order, pricingRules, problem, product, session, user } from './fixtures';
 
 // Node's fetch needs absolute URLs, so vitest.config.ts sets VITE_API_BASE_URL and the app and the
 // handlers read the same value
@@ -46,6 +46,7 @@ export const handlers = [
   http.delete(api('/cart/items/:id'), () => json(emptyCart)),
   http.post(api('/cart/sync'), () => json(cartWithTable())),
 
+  http.get(api('/orders/pricing-rules'), () => json(pricingRules)),
   http.get(api('/orders/has-orders'), () => json({ hasOrders: false, ordersCount: 0 })),
   http.get(api('/orders/my-orders'), () => json(page([order()]))),
   http.post(api('/orders/from-cart'), () => json(order(), { status: 201 })),
