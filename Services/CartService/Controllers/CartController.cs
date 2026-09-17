@@ -51,6 +51,7 @@ public class CartController : ControllerBase
 
     /// <summary>Removes every line; a cart that is already empty stays that way.</summary>
     [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> ClearCart()
     {
         await _cartService.ClearCartAsync(UserId);

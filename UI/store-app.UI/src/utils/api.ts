@@ -12,6 +12,9 @@ import type {
   ProductsMeta,
   Product,
   ProductPayload,
+  ProductUpdatePayload,
+  ProductQuery,
+  AdminProductQuery,
   OrdersResponse,
   Order,
   OrderStatsResponse,
@@ -99,20 +102,6 @@ export const cartApi = {
   },
 };
 
-export interface ProductQuery {
-  search?: string;
-  category?: string;
-  company?: string;
-  page?: number;
-  pageSize?: number;
-  group?: string;
-  sale?: boolean | string;
-  price?: string; // "100,500" or "100-500"
-  order?: string;
-  colors?: string;
-  materials?: string;
-}
-
 export const productApi = {
   getProducts: async (params?: ProductQuery): Promise<ProductsResponse> => {
     const { data } = await customFetch.get<ProductsResponse>('/products', { params });
@@ -131,7 +120,7 @@ export const productApi = {
   },
 
   /** Admin listing: inactive products too, sortable by id, price, title or company. */
-  getProductsAdmin: async (params: ProductQuery & { sortBy?: string; sortDir?: 'asc' | 'desc' }): Promise<ProductsResponse> => {
+  getProductsAdmin: async (params: AdminProductQuery): Promise<ProductsResponse> => {
     const { data } = await customFetch.get<ProductsResponse>('/products/admin', { params });
     return data;
   },
@@ -141,7 +130,7 @@ export const productApi = {
     return data;
   },
 
-  updateProduct: async (id: number, payload: Partial<ProductPayload>): Promise<Product> => {
+  updateProduct: async (id: number, payload: ProductUpdatePayload): Promise<Product> => {
     const { data } = await customFetch.put<Product>(`/products/${id}`, payload);
     return data;
   },

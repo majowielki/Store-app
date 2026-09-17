@@ -1,0 +1,755 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Store Cart Service",
+    "description": "Store Cart Service API documentation",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/cart": {
+      "get": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "The cart with today's prices; empty for a customer who has not added anything yet.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Removes every line; a cart that is already empty stays that way.",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/cart/sync": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Merges the lines of a guest cart into the server cart, in one request.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncCartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/cart/items": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Adds a line, or raises the quantity of the line with the same product and colour.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/cart/items/{cartItemId}": {
+      "put": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Changes the quantity or colour of a line; 404 for a line that is not in this cart.",
+        "parameters": [
+          {
+            "name": "cartItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Removes a line; 404 for a line that is not in this cart.",
+        "parameters": [
+          {
+            "name": "cartItemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/cart/count": {
+      "get": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Number of pieces in the cart (quantities summed).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/cart/total": {
+      "get": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Sum of the lines, before discount and delivery.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/cart/internal/{userId}": {
+      "get": {
+        "tags": [
+          "InternalCart"
+        ],
+        "summary": "The cart of a user as a snapshot; 404 when the user has no cart yet.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartSnapshot"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddCartItemRequest": {
+        "required": [
+          "color",
+          "productId",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/cart/items. Rules: `AddCartItemRequestValidator`."
+      },
+      "CartItemResponse": {
+        "required": [
+          "color",
+          "company",
+          "createdAt",
+          "id",
+          "image",
+          "lineTotal",
+          "price",
+          "productId",
+          "quantity",
+          "title",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "lineTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CartLineSnapshot": {
+        "required": [
+          "color",
+          "company",
+          "image",
+          "productId",
+          "quantity",
+          "title",
+          "unitPrice"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "description": "Catalogue product id",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "description": "Product title at snapshot time"
+          },
+          "image": {
+            "type": "string",
+            "description": "Product image at snapshot time"
+          },
+          "company": {
+            "type": "string",
+            "description": "Brand"
+          },
+          "color": {
+            "type": "string",
+            "description": "Colour variant chosen by the customer"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Price per unit the cart last saw",
+            "format": "double"
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Units",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One line of a Store.Contracts.Cart.CartSnapshot."
+      },
+      "CartResponse": {
+        "required": [
+          "id",
+          "isEmpty",
+          "items",
+          "priceChanged",
+          "total",
+          "totalItems",
+          "updatedAt",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemResponse"
+            }
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isEmpty": {
+            "type": "boolean"
+          },
+          "priceChanged": {
+            "type": "boolean",
+            "description": "True when reading the cart refreshed a line to a different catalogue price."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CartSnapshot": {
+        "required": [
+          "lines",
+          "updatedAt",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Owner of the cart"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartLineSnapshot"
+            },
+            "description": "Product lines; empty for an empty cart"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last change to the cart",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A customer's cart as another service (the order service) reads it through\r\n`GET /api/v1/cart/internal/{userId}`. Prices are what the cart last took from the\r\ncatalogue; the order service re-prices the lines before it charges anything."
+      },
+      "StoreProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "description": "W3C trace id of the request, to find it in the logs.",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Messages per field of a 422 problem.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { },
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\r\nplus the trace id every problem carries and the field messages of a validation problem."
+      },
+      "SyncCartItemRequest": {
+        "required": [
+          "color",
+          "productId",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One line of a guest cart merged into the server cart at sign-in."
+      },
+      "SyncCartRequest": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncCartItemRequest"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/cart/sync. Rules: `SyncCartRequestValidator`."
+      },
+      "UpdateCartItemRequest": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of PUT /api/v1/cart/items/{id}; absent fields keep their value. Rules: `UpdateCartItemRequestValidator`."
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Access token issued by the identity service",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Cart",
+      "description": "The signed-in customer's cart. Every change answers with the whole cart afterwards."
+    },
+    {
+      "name": "InternalCart",
+      "description": "Endpoints for other services, authenticated with the shared internal key instead of a\r\nuser token: the order service reads a cart at checkout without carrying the customer's\r\ncredentials around. Emptying the cart afterwards happens through the order-placed event."
+    }
+  ]
+}

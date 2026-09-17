@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using System.Text.Json.Serialization;
+
 namespace Store.BuildingBlocks.Api;
 
 /// <summary>
@@ -22,6 +25,8 @@ public sealed class PagedQuery
     };
 
     /// <summary>Rows to skip for this page.</summary>
+    [BindNever]
+    [JsonIgnore]
     public int Skip => (Page - 1) * PageSize;
 }
 

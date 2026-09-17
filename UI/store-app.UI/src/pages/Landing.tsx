@@ -8,7 +8,7 @@ import { type ProductsResponse } from "@/utils";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const loader: LoaderFunction = async (): Promise<ProductsResponse> =>
-  productApi.getProducts({ sale: true });
+  productApi.getProducts({ sale: 'true' });
 
 const Landing = () => {
   return (

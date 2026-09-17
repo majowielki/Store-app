@@ -75,12 +75,15 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
         using var client = _factory.CreateClient();
 
         var byColour = await GetJson(client, "/api/v1/products?colors=turquoise");
+        var byShopFilter = await GetJson(client, "/api/v1/products?color=turquoise");
         var byMaterial = await GetJson(client, "/api/v1/products?materials=rattan");
         var byOther = await GetJson(client, "/api/v1/products?colors=turquoise&materials=steel");
 
         Assert.Contains(byColour.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
         Assert.All(byColour.GetProperty("items").EnumerateArray(), p =>
             Assert.Contains("turquoise", p.GetProperty("colors").EnumerateArray().Select(c => c.GetString())));
+        // The shop's filter form sends a single "color"
+        Assert.Contains(byShopFilter.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
         Assert.Contains(byMaterial.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
         Assert.DoesNotContain(byOther.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
     }

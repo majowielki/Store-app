@@ -1,5 +1,3 @@
-// Enable nullable annotations in this file
-#nullable enable
 namespace Store.ProductService.DTOs.Requests;
 
 public class ProductQueryParams
@@ -8,6 +6,8 @@ public class ProductQueryParams
     public string? Category { get; set; }
     public string? Group { get; set; }
     public string? Company { get; set; }
+
+    /// <summary>One colour, as the shop's filter form sends it; the same as colors with a single value.</summary>
     public string? Color { get; set; }
     public string? Order { get; set; }
     public string? Price { get; set; }

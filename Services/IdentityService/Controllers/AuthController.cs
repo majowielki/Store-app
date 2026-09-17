@@ -52,6 +52,8 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("me")]
     [AllowAnonymous]
+    [ProducesResponseType<UserResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<ActionResult<UserResponse>> GetCurrentUser()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -72,5 +74,6 @@ public class AuthController : ControllerBase
     /// <summary>Ends the session. Tokens are stateless for now, so the client discards its token; server-side revocation comes with refresh tokens.</summary>
     [HttpPost("logout")]
     [Authorize(Policy = Policies.User)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public IActionResult Logout() => NoContent();
 }

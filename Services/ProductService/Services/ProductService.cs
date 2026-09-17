@@ -247,9 +247,11 @@ public class ProductService : IProductService
             query = query.Where(p => p.Materials.Any(m => materialsFilter.Contains(m.ToLower())));
         }
 
-        if (!string.IsNullOrEmpty(queryParams.Colors))
+        // "colors=black,white" from the API, "color=black" from the shop's filter form
+        var colors = queryParams.Colors ?? queryParams.Color;
+        if (!string.IsNullOrEmpty(colors) && !IsAll(colors))
         {
-            var colorsFilter = queryParams.Colors.ToLower().Split(',');
+            var colorsFilter = colors.ToLower().Split(',');
             query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
         }
 

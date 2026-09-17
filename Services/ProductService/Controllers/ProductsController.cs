@@ -57,6 +57,7 @@ public class ProductsController : ControllerBase
     /// <summary>Creates a product; the body is validated before the action runs.</summary>
     [HttpPost]
     [Authorize(Policy = Policies.AdminWrite)]
+    [ProducesResponseType<ProductResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<ProductResponse>> CreateProduct([FromBody] CreateProductRequest request)
     {
         var product = await _productService.CreateProductAsync(request, ActorId);
@@ -75,6 +76,7 @@ public class ProductsController : ControllerBase
     /// </summary>
     [HttpDelete("{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteProduct(int id)
     {
         await _productService.DeleteProductAsync(id, ActorId);

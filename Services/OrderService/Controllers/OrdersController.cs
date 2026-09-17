@@ -30,6 +30,7 @@ public class OrdersController : ControllerBase
     /// attempt): a retry with the same key returns the order created the first time.
     /// </summary>
     [HttpPost("from-cart")]
+    [ProducesResponseType<OrderResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<OrderResponse>> CreateOrderFromCart(
         [FromBody] CreateOrderFromCartRequest request,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)

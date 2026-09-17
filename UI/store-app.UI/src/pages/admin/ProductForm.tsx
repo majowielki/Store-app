@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { productApi } from '@/utils/api';
 import { getProblem, getStatus } from '@/utils/errorHandling';
-import type { Product, ProductPayload, ProductsMeta } from '@/utils/types';
+import type { Product, ProductCategory, ProductCompany, ProductPayload, ProductsMeta } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast, toast } from '@/hooks/use-toast';
@@ -29,8 +29,9 @@ const toPayload = (fd: FormData): ProductPayload => ({
   description: String(fd.get('description') ?? '').trim(),
   price: optionalNumber(fd.get('price')) ?? 0,
   salePrice: optionalNumber(fd.get('salePrice')),
-  category: String(fd.get('category') ?? '').trim(),
-  company: String(fd.get('company') ?? '').trim(),
+  // Free text on the form; the API answers 422 for a value outside its enum
+  category: String(fd.get('category') ?? '').trim() as ProductCategory,
+  company: String(fd.get('company') ?? '').trim() as ProductCompany,
   newArrival: fd.get('newArrival') === 'on',
   image: String(fd.get('image') ?? '').trim(),
   colors: splitList(fd.get('colors')),
