@@ -1,6 +1,6 @@
 namespace Store.OrderService.DTOs.Requests;
 
-/// <summary>Body of POST /api/orders/from-cart. Rules: <c>CreateOrderFromCartRequestValidator</c>.</summary>
+/// <summary>Body of POST /api/v1/orders/from-cart. Rules: <c>CreateOrderFromCartRequestValidator</c>.</summary>
 public class CreateOrderFromCartRequest
 {
     /// <summary>Ignored on input: the server takes the user from the token.</summary>

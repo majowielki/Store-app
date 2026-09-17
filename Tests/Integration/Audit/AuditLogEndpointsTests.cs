@@ -35,7 +35,7 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
     {
         using var client = _factory.CreateClient().As(who);
 
-        var response = await client.GetAsync("/api/auditlog?page=1&pageSize=10");
+        var response = await client.GetAsync("/api/v1/auditlog?page=1&pageSize=10");
 
         Assert.Equal(expected, response.StatusCode);
     }
@@ -46,8 +46,8 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
     {
         using var admin = _factory.CreateClient().AsTrueAdmin();
 
-        var direct = await admin.PostAsJsonAsync("/api/auditlog", new { action = "FORGED", entityName = "Probe" });
-        var internalRoute = await admin.PostAsJsonAsync("/api/auditlog/internal", new { action = "FORGED", entityName = "Probe" });
+        var direct = await admin.PostAsJsonAsync("/api/v1/auditlog", new { action = "FORGED", entityName = "Probe" });
+        var internalRoute = await admin.PostAsJsonAsync("/api/v1/auditlog/internal", new { action = "FORGED", entityName = "Probe" });
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, direct.StatusCode);
         Assert.Contains(internalRoute.StatusCode, new[] { HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed });
@@ -63,8 +63,8 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
         JsonElement entry = default;
         await Eventually.AssertAsync(async () =>
         {
-            var page = JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/auditlog/entity/Probe?entityId={entityId}"), Json);
-            entry = Assert.Single(page.GetProperty("auditLogs").EnumerateArray());
+            var page = JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/v1/auditlog?entityName=Probe&entityId={entityId}"), Json);
+            entry = Assert.Single(page.GetProperty("items").EnumerateArray());
         });
 
         Assert.Equal("PROBE_RECORDED", entry.GetProperty("action").GetString());
@@ -85,11 +85,56 @@ public sealed class AuditLogEndpointsTests : IClassFixture<AuditApiFactory>
         JsonElement entry = default;
         await Eventually.AssertAsync(async () =>
         {
-            var page = JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/auditlog/entity/Probe?entityId={entityId}"), Json);
-            entry = Assert.Single(page.GetProperty("auditLogs").EnumerateArray());
+            var page = JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/v1/auditlog?entityName=Probe&entityId={entityId}"), Json);
+            entry = Assert.Single(page.GetProperty("items").EnumerateArray());
         });
 
         Assert.Equal(50, entry.GetProperty("action").GetString()!.Length);
+    }
+
+    // Regression: the date-range listing reported the page length as the total, and a bound
+    // without an offset reached Npgsql with Kind=Unspecified and failed against timestamptz
+    [Fact]
+    public async Task Date_bounds_filter_in_the_database_and_count_the_whole_range()
+    {
+        var entityId = Guid.NewGuid().ToString("N");
+        var now = DateTime.UtcNow;
+        await _factory.Bus.Bus.Publish(new AuditEvent("OLD", "Range", entityId, null, "tests", now.AddDays(-10)));
+        await _factory.Bus.Bus.Publish(new AuditEvent("RECENT", "Range", entityId, null, "tests", now.AddMinutes(-1)));
+        await _factory.Bus.Bus.Publish(new AuditEvent("RECENT", "Range", entityId, null, "tests", now));
+
+        using var reader = _factory.CreateClient().AsTrueAdmin();
+        var from = Uri.EscapeDataString(now.AddDays(-1).ToString("yyyy-MM-ddTHH:mm:ss"));
+        var to = Uri.EscapeDataString(now.AddDays(1).ToString("yyyy-MM-ddTHH:mm:ssZ"));
+        JsonElement page = default;
+        await Eventually.AssertAsync(async () =>
+        {
+            page = JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/v1/auditlog?entityName=Range&entityId={entityId}&from={from}&to={to}&pageSize=1"), Json);
+            Assert.Equal(2, page.GetProperty("totalCount").GetInt32());
+        });
+        Assert.Single(page.GetProperty("items").EnumerateArray());
+        Assert.Equal(2, page.GetProperty("totalPages").GetInt32());
+
+        var reversed = await reader.GetAsync($"/api/v1/auditlog?from={to}&to={from}");
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, reversed.StatusCode);
+    }
+
+    // Every error is a problem response, including the ones the framework produces on its own
+    [Fact]
+    public async Task Errors_are_problem_responses()
+    {
+        using var anonymous = _factory.CreateClient();
+        using var admin = _factory.CreateClient().AsTrueAdmin();
+
+        var unauthorized = await anonymous.GetAsync("/api/v1/auditlog");
+        var notFound = await admin.GetAsync("/api/v1/auditlog/999999999");
+
+        Assert.Equal("application/problem+json", unauthorized.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(401, JsonSerializer.Deserialize<JsonElement>(await unauthorized.Content.ReadAsStringAsync(), Json).GetProperty("status").GetInt32());
+        Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
+        var problem = JsonSerializer.Deserialize<JsonElement>(await notFound.Content.ReadAsStringAsync(), Json);
+        Assert.Equal("Not Found", problem.GetProperty("title").GetString());
+        Assert.Equal("Audit log 999999999 was not found", problem.GetProperty("detail").GetString());
     }
 }
 
@@ -106,7 +151,7 @@ public sealed class AuditRetentionTests : IClassFixture<AuditApiFactory>
     }
 
     private static async Task<int> CountAsync(HttpClient reader, string entityId)
-        => JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/auditlog/entity/Retention?entityId={entityId}"), Json)
+        => JsonSerializer.Deserialize<JsonElement>(await reader.GetStringAsync($"/api/v1/auditlog?entityName=Retention&entityId={entityId}"), Json)
             .GetProperty("totalCount").GetInt32();
 
     // Regression: the trail grew without limit

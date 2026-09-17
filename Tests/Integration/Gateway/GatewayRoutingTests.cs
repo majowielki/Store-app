@@ -28,20 +28,20 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
     private const HttpStatusCode PassedTheGateway = HttpStatusCode.BadGateway;
 
     [Theory]
-    [InlineData("/api/cart", "anonymous", HttpStatusCode.Unauthorized)]
-    [InlineData("/api/cart", Roles.User, PassedTheGateway)]
-    [InlineData("/api/orders", "anonymous", HttpStatusCode.Unauthorized)]
-    [InlineData("/api/orders", Roles.User, PassedTheGateway)]
-    [InlineData("/api/admin/users", "anonymous", HttpStatusCode.Unauthorized)]
-    [InlineData("/api/admin/users", Roles.User, HttpStatusCode.Forbidden)]
-    [InlineData("/api/admin/users", Roles.DemoAdmin, PassedTheGateway)]
-    [InlineData("/api/admin/users", Roles.TrueAdmin, PassedTheGateway)]
-    [InlineData("/api/admin/orders", Roles.User, HttpStatusCode.Forbidden)]
-    [InlineData("/api/admin/orders/1", Roles.DemoAdmin, PassedTheGateway)]
-    [InlineData("/api/auditlog", Roles.User, HttpStatusCode.Forbidden)]
-    [InlineData("/api/auditlog", Roles.TrueAdmin, PassedTheGateway)]
-    [InlineData("/api/products", "anonymous", PassedTheGateway)]
-    [InlineData("/api/auth/me", "anonymous", PassedTheGateway)]
+    [InlineData("/api/v1/cart", "anonymous", HttpStatusCode.Unauthorized)]
+    [InlineData("/api/v1/cart", Roles.User, PassedTheGateway)]
+    [InlineData("/api/v1/orders", "anonymous", HttpStatusCode.Unauthorized)]
+    [InlineData("/api/v1/orders", Roles.User, PassedTheGateway)]
+    [InlineData("/api/v1/admin/users", "anonymous", HttpStatusCode.Unauthorized)]
+    [InlineData("/api/v1/admin/users", Roles.User, HttpStatusCode.Forbidden)]
+    [InlineData("/api/v1/admin/users", Roles.DemoAdmin, PassedTheGateway)]
+    [InlineData("/api/v1/admin/users", Roles.TrueAdmin, PassedTheGateway)]
+    [InlineData("/api/v1/admin/orders", Roles.User, HttpStatusCode.Forbidden)]
+    [InlineData("/api/v1/admin/orders/1", Roles.DemoAdmin, PassedTheGateway)]
+    [InlineData("/api/v1/auditlog", Roles.User, HttpStatusCode.Forbidden)]
+    [InlineData("/api/v1/auditlog", Roles.TrueAdmin, PassedTheGateway)]
+    [InlineData("/api/v1/products", "anonymous", PassedTheGateway)]
+    [InlineData("/api/v1/auth/me", "anonymous", PassedTheGateway)]
     public async Task Routes_enforce_the_shared_policies_before_proxying(string path, string who, HttpStatusCode expected)
     {
         using var client = ClientFrom($"10.0.0.{Random.Shared.Next(1, 250)}").As(who);
@@ -56,7 +56,7 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
     {
         using var client = ClientFrom("10.0.1.1");
 
-        var response = await client.GetAsync("/api/does-not-exist");
+        var response = await client.GetAsync("/api/v1/does-not-exist");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -70,11 +70,11 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
 
         for (var i = 0; i < GatewayApiFactory.CredentialPermitLimit; i++)
         {
-            var allowed = await client.PostAsJsonAsync("/api/auth/login", payload);
+            var allowed = await client.PostAsJsonAsync("/api/v1/auth/login", payload);
             Assert.Equal(PassedTheGateway, allowed.StatusCode);
         }
 
-        var throttled = await client.PostAsJsonAsync("/api/auth/login", payload);
+        var throttled = await client.PostAsJsonAsync("/api/v1/auth/login", payload);
 
         Assert.Equal(HttpStatusCode.TooManyRequests, throttled.StatusCode);
         Assert.NotNull(throttled.Headers.RetryAfter);
@@ -89,10 +89,10 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
 
         for (var i = 0; i <= GatewayApiFactory.CredentialPermitLimit; i++)
         {
-            await first.PostAsJsonAsync("/api/auth/login", payload);
+            await first.PostAsJsonAsync("/api/v1/auth/login", payload);
         }
 
-        var otherClient = await second.PostAsJsonAsync("/api/auth/login", payload);
+        var otherClient = await second.PostAsJsonAsync("/api/v1/auth/login", payload);
 
         Assert.Equal(PassedTheGateway, otherClient.StatusCode);
     }
@@ -104,7 +104,7 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
 
         for (var i = 0; i < GatewayApiFactory.CredentialPermitLimit * 2; i++)
         {
-            var response = await client.GetAsync("/api/auth/me");
+            var response = await client.GetAsync("/api/v1/auth/me");
             Assert.Equal(PassedTheGateway, response.StatusCode);
         }
     }

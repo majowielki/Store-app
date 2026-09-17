@@ -10,7 +10,7 @@ public class SyncCartItemRequest
     public string Color { get; set; } = string.Empty;
 }
 
-/// <summary>Body of POST /api/cart/sync. Rules: <c>SyncCartRequestValidator</c>.</summary>
+/// <summary>Body of POST /api/v1/cart/sync. Rules: <c>SyncCartRequestValidator</c>.</summary>
 public class SyncCartRequest
 {
     public List<SyncCartItemRequest> Items { get; set; } = new();

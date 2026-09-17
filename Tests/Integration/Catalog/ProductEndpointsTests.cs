@@ -36,11 +36,11 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient();
 
-        var response = await client.GetAsync("/api/products");
+        var response = await client.GetAsync("/api/v1/products");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json);
-        Assert.True(body.GetProperty("data").GetArrayLength() > 0, "the seeder should have populated the catalogue");
+        Assert.True(body.GetProperty("items").GetArrayLength() > 0, "the seeder should have populated the catalogue");
     }
 
     // Regression: the create/update/delete endpoints used a policy the service never registered,
@@ -54,7 +54,7 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient().As(who);
 
-        var response = await client.PostAsJsonAsync("/api/products", ValidProduct($"Created by {who}"));
+        var response = await client.PostAsJsonAsync("/api/v1/products", ValidProduct($"Created by {who}"));
 
         Assert.Equal(expected, response.StatusCode);
     }
@@ -68,7 +68,7 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient().As(who);
 
-        var response = await client.GetAsync("/api/products/admin");
+        var response = await client.GetAsync("/api/v1/products/admin");
 
         Assert.Equal(expected, response.StatusCode);
     }
@@ -77,14 +77,14 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
     public async Task Demo_admin_cannot_delete_products()
     {
         using var trueAdmin = _factory.CreateClient().AsTrueAdmin();
-        var created = await trueAdmin.PostAsJsonAsync("/api/products", ValidProduct("To be deleted"));
+        var created = await trueAdmin.PostAsJsonAsync("/api/v1/products", ValidProduct("To be deleted"));
         var id = JsonSerializer.Deserialize<JsonElement>(await created.Content.ReadAsStringAsync(), Json).GetProperty("id").GetInt32();
 
         using var demoAdmin = _factory.CreateClient().AsDemoAdmin();
-        var forbidden = await demoAdmin.DeleteAsync($"/api/products/{id}");
+        var forbidden = await demoAdmin.DeleteAsync($"/api/v1/products/{id}");
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
-        var deleted = await trueAdmin.DeleteAsync($"/api/products/{id}");
+        var deleted = await trueAdmin.DeleteAsync($"/api/v1/products/{id}");
         Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
     }
 
@@ -93,7 +93,7 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient().AsTrueAdmin();
 
-        var response = await client.PostAsJsonAsync("/api/products", new
+        var response = await client.PostAsJsonAsync("/api/v1/products", new
         {
             title = "",
             description = "too short",
@@ -102,8 +102,10 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
             colors = Array.Empty<string>()
         });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         var body = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json);
+        Assert.Equal(422, body.GetProperty("status").GetInt32());
         var errors = body.GetProperty("errors");
         Assert.True(errors.TryGetProperty("Title", out _));
         Assert.True(errors.TryGetProperty("Price", out _));
@@ -117,7 +119,7 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient().AsTrueAdmin();
 
-        var created = await client.PostAsJsonAsync("/api/products", ValidProduct("Audited product"));
+        var created = await client.PostAsJsonAsync("/api/v1/products", ValidProduct("Audited product"));
         var id = JsonSerializer.Deserialize<JsonElement>(await created.Content.ReadAsStringAsync(), Json).GetProperty("id").GetInt32();
 
         Assert.True(await Eventually.BecomesTrueAsync(() => _factory.Bus.Consumed
@@ -146,7 +148,7 @@ public sealed class ProductLifecycleTests : IClassFixture<CatalogApiFactory>
 
     private static async Task<int> CreateAsync(HttpClient trueAdmin, string title, decimal price, decimal? salePrice = null)
     {
-        var created = await trueAdmin.PostAsJsonAsync("/api/products", new
+        var created = await trueAdmin.PostAsJsonAsync("/api/v1/products", new
         {
             title,
             description = "A product created by the integration tests to exercise the lifecycle.",
@@ -169,16 +171,16 @@ public sealed class ProductLifecycleTests : IClassFixture<CatalogApiFactory>
         using var anyone = _factory.CreateClient();
         var id = await CreateAsync(trueAdmin, "Soft deleted sofa", 500m);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await trueAdmin.DeleteAsync($"/api/products/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await trueAdmin.DeleteAsync($"/api/v1/products/{id}")).StatusCode);
 
-        Assert.Equal(HttpStatusCode.NotFound, (await anyone.GetAsync($"/api/products/{id}")).StatusCode);
-        var adminList = await ReadJson(await trueAdmin.GetAsync("/api/products/admin?search=Soft%20deleted%20sofa"));
-        var row = adminList.GetProperty("data").EnumerateArray().Single(p => p.GetProperty("id").GetInt32() == id);
-        Assert.False(row.GetProperty("attributes").GetProperty("isActive").GetBoolean());
+        Assert.Equal(HttpStatusCode.NotFound, (await anyone.GetAsync($"/api/v1/products/{id}")).StatusCode);
+        var adminList = await ReadJson(await trueAdmin.GetAsync("/api/v1/products/admin?search=Soft%20deleted%20sofa"));
+        var row = adminList.GetProperty("items").EnumerateArray().Single(p => p.GetProperty("id").GetInt32() == id);
+        Assert.False(row.GetProperty("isActive").GetBoolean());
 
-        var restored = await trueAdmin.PutAsJsonAsync($"/api/products/{id}", new { isActive = true });
+        var restored = await trueAdmin.PutAsJsonAsync($"/api/v1/products/{id}", new { isActive = true });
         Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await anyone.GetAsync($"/api/products/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await anyone.GetAsync($"/api/v1/products/{id}")).StatusCode);
     }
 
     // Regression: a promotion could be changed but never removed, because null meant "not sent"
@@ -188,11 +190,11 @@ public sealed class ProductLifecycleTests : IClassFixture<CatalogApiFactory>
         using var trueAdmin = _factory.CreateClient().AsTrueAdmin();
         var id = await CreateAsync(trueAdmin, "Promoted lamp", 100m, salePrice: 80m);
 
-        var untouched = await ReadJson(await trueAdmin.PutAsJsonAsync($"/api/products/{id}", new { title = "Promoted lamp (renamed)" }));
+        var untouched = await ReadJson(await trueAdmin.PutAsJsonAsync($"/api/v1/products/{id}", new { title = "Promoted lamp (renamed)" }));
         Assert.Equal(80m, untouched.GetProperty("salePrice").GetDecimal());
         Assert.Equal(80m, untouched.GetProperty("effectivePrice").GetDecimal());
 
-        var cleared = await ReadJson(await trueAdmin.PutAsJsonAsync($"/api/products/{id}", new { salePrice = (decimal?)null }));
+        var cleared = await ReadJson(await trueAdmin.PutAsJsonAsync($"/api/v1/products/{id}", new { salePrice = (decimal?)null }));
         Assert.False(cleared.TryGetProperty("salePrice", out _), "a cleared sale price is not serialised");
         Assert.Equal(100m, cleared.GetProperty("effectivePrice").GetDecimal());
     }
@@ -203,16 +205,16 @@ public sealed class ProductLifecycleTests : IClassFixture<CatalogApiFactory>
         using var trueAdmin = _factory.CreateClient().AsTrueAdmin();
         var id = await CreateAsync(trueAdmin, "Snapshot chair", 200m, salePrice: 150m);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync($"/api/products/{id}/snapshot")).StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await trueAdmin.GetAsync($"/api/products/{id}/snapshot")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync($"/api/v1/products/{id}/snapshot")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await trueAdmin.GetAsync($"/api/v1/products/{id}/snapshot")).StatusCode);
 
         using var service = _factory.CreateClient();
         service.DefaultRequestHeaders.Add("X-Internal-Api-Key", TestTokens.InternalApiKey);
-        var snapshot = await ReadJson(await service.GetAsync($"/api/products/{id}/snapshot"));
+        var snapshot = await ReadJson(await service.GetAsync($"/api/v1/products/{id}/snapshot"));
         Assert.Equal("Snapshot chair", snapshot.GetProperty("title").GetString());
         Assert.Equal(200m, snapshot.GetProperty("price").GetDecimal());
         Assert.Equal(150m, snapshot.GetProperty("effectivePrice").GetDecimal());
         Assert.True(snapshot.GetProperty("isActive").GetBoolean());
-        Assert.Equal(HttpStatusCode.NotFound, (await service.GetAsync("/api/products/999999/snapshot")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await service.GetAsync("/api/v1/products/999999/snapshot")).StatusCode);
     }
 }

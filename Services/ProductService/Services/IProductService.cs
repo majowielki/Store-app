@@ -1,25 +1,29 @@
+using Store.BuildingBlocks.Api;
 using Store.Contracts.Catalog;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 
 namespace Store.ProductService.Services;
 
+/// <summary>
+/// The catalogue. Methods return the product as the API shows it or throw an
+/// <see cref="ApiException"/> (a missing product is <see cref="NotFoundException"/>).
+/// </summary>
 public interface IProductService
 {
-    // Core product operations (admin only)
-    // actorId: the administrator performing the change, recorded in the audit trail
+    // Changes (true-admin only); actorId is the administrator recorded in the audit trail
     Task<ProductResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null);
-    Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null);
-    Task<bool> DeleteProductAsync(int id, string? actorId = null);
+    Task<ProductResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null);
+    Task DeleteProductAsync(int id, string? actorId = null);
 
-    // Frontend-compatible operations (public)
-    Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams);
-    Task<SingleProductResponse> GetProductForFrontendAsync(int id);
-    Task<ProductsMeta> GetProductsMetaAsync();
+    // The public catalogue: active products only
+    Task<PagedResponse<ProductResponse>> GetProductsAsync(ProductQueryParams queryParams);
+    Task<ProductResponse> GetProductAsync(int id);
+    ProductsMeta GetProductsMeta();
 
     // What other services may know about a product
     Task<ProductSnapshot?> GetSnapshotAsync(int id);
 
-    // Admin advanced endpoint
-    Task<ProductsResponse> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir);
+    // The admin listing: inactive products too, sortable
+    Task<PagedResponse<ProductResponse>> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir);
 }

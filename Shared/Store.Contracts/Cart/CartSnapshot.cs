@@ -2,7 +2,7 @@ namespace Store.Contracts.Cart;
 
 /// <summary>
 /// A customer's cart as another service (the order service) reads it through
-/// <c>GET /api/cart/internal/{userId}</c>. Prices are what the cart last took from the
+/// <c>GET /api/v1/cart/internal/{userId}</c>. Prices are what the cart last took from the
 /// catalogue; the order service re-prices the lines before it charges anything.
 /// </summary>
 /// <param name="UserId">Owner of the cart</param>

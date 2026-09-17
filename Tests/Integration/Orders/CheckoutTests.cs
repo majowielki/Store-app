@@ -43,10 +43,10 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         _factory.Upstreams.SetCart(user, (1, 2, 100m), (2, 1, 30m));
         using var client = _factory.CreateClient().AsUser(user);
 
-        var response = await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody());
+        var response = await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody());
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var order = (await ReadJson(response)).GetProperty("data");
+        var order = await ReadJson(response);
         Assert.Equal(190m, order.GetProperty("subtotal").GetDecimal());
         Assert.Equal(38m, order.GetProperty("discountAmount").GetDecimal());
         Assert.Equal("first-order", order.GetProperty("discountReason").GetString());
@@ -75,9 +75,9 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         using var client = _factory.CreateClient().AsUser(user);
 
         _factory.Upstreams.SetCart(user, (3, 1, 400m));
-        var first = (await ReadJson(await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody()))).GetProperty("data");
+        var first = await ReadJson(await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody()));
         _factory.Upstreams.SetCart(user, (3, 1, 400m));
-        var second = (await ReadJson(await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody()))).GetProperty("data");
+        var second = await ReadJson(await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody()));
 
         Assert.Equal(80m, first.GetProperty("discountAmount").GetDecimal());
         Assert.Equal(320m, first.GetProperty("total").GetDecimal());
@@ -97,13 +97,13 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         using var client = _factory.CreateClient().AsUser(user);
 
         var responses = await Task.WhenAll(Enumerable.Range(0, 10)
-            .Select(_ => client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody())));
+            .Select(_ => client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody())));
 
         var orders = new List<JsonElement>();
         foreach (var response in responses)
         {
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-            orders.Add((await ReadJson(response)).GetProperty("data"));
+            orders.Add(await ReadJson(response));
         }
 
         Assert.Equal(10, orders.Select(o => o.GetProperty("id").GetInt32()).Distinct().Count());
@@ -118,7 +118,7 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         _factory.Upstreams.SetCart(user, (5, 1, 50m));
         using var client = _factory.CreateClient().AsUser(user);
 
-        var response = await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody());
+        var response = await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody());
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         await Task.Delay(TimeSpan.FromSeconds(2));
@@ -130,9 +130,13 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
     {
         using var client = _factory.CreateClient().AsUser("checkout-empty");
 
-        var response = await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody());
+        var response = await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody());
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var problem = await ReadJson(response);
+        Assert.Equal("The cart is empty", problem.GetProperty("detail").GetString());
+        Assert.Equal("/api/v1/orders/from-cart", problem.GetProperty("instance").GetString());
+        Assert.False(string.IsNullOrEmpty(problem.GetProperty("traceId").GetString()));
     }
 
     [Fact]
@@ -142,15 +146,15 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         _factory.Upstreams.AddProduct(6, effectivePrice: 20m);
         _factory.Upstreams.SetCart(owner, (6, 1, 20m));
         using var ownerClient = _factory.CreateClient().AsUser(owner);
-        var id = (await ReadJson(await ownerClient.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody()))).GetProperty("data").GetProperty("id").GetInt32();
+        var id = (await ReadJson(await ownerClient.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody()))).GetProperty("id").GetInt32();
 
         using var other = _factory.CreateClient().AsUser("checkout-other");
-        Assert.Equal(HttpStatusCode.Forbidden, (await other.GetAsync($"/api/orders/{id}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync("/api/orders/999999")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await ownerClient.GetAsync($"/api/orders/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.GetAsync($"/api/v1/orders/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync("/api/v1/orders/999999")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ownerClient.GetAsync($"/api/v1/orders/{id}")).StatusCode);
 
         using var admin = _factory.CreateClient().AsDemoAdmin();
-        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync($"/api/orders/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync($"/api/v1/orders/{id}")).StatusCode);
     }
 }
 
@@ -178,14 +182,14 @@ public sealed class AdminOrdersTests : IClassFixture<OrderApiFactory>
         _factory.Upstreams.AddProduct(21, effectivePrice: 25m);
         _factory.Upstreams.SetCart(user, (21, 1, 25m));
         using var client = _factory.CreateClient().AsUser(user);
-        var response = await client.PostAsJsonAsync("/api/orders/from-cart", new
+        var response = await client.PostAsJsonAsync("/api/v1/orders/from-cart", new
         {
             userEmail = $"{user}@test.local",
             customerName = "Real Customer",
             deliveryAddress = "5 Real Street",
             saveAddress = false
         });
-        return (await ReadJson(response)).GetProperty("data").GetProperty("id").GetInt32();
+        return (await ReadJson(response)).GetProperty("id").GetInt32();
     }
 
     [Fact]
@@ -194,26 +198,22 @@ public sealed class AdminOrdersTests : IClassFixture<OrderApiFactory>
         var id = await PlaceOrderAsync("admin-orders-customer");
 
         using var trueAdmin = _factory.CreateClient().AsTrueAdmin();
-        var real = await ReadJson(await trueAdmin.GetAsync($"/api/admin/orders/{id}"));
+        var real = await ReadJson(await trueAdmin.GetAsync($"/api/v1/admin/orders/{id}"));
         Assert.Equal("Real Customer", real.GetProperty("customerName").GetString());
         Assert.Equal("5 Real Street", real.GetProperty("deliveryAddress").GetString());
 
         using var demoAdmin = _factory.CreateClient().AsDemoAdmin();
-        var masked = await ReadJson(await demoAdmin.GetAsync($"/api/admin/orders/{id}"));
+        var masked = await ReadJson(await demoAdmin.GetAsync($"/api/v1/admin/orders/{id}"));
         Assert.Equal("anonymized-customer-name", masked.GetProperty("customerName").GetString());
         Assert.Equal("anonymized-delivery-address", masked.GetProperty("deliveryAddress").GetString());
         Assert.Equal("anonymized-user-email", masked.GetProperty("userEmail").GetString());
         Assert.Equal(30m, masked.GetProperty("total").GetDecimal()); // 25 - 20 % first-order discount + 10 delivery
 
-        var list = await ReadJson(await demoAdmin.GetAsync("/api/admin/orders?page=1&pageSize=5"));
+        var list = await ReadJson(await demoAdmin.GetAsync("/api/v1/admin/orders?page=1&pageSize=5"));
         Assert.True(list.GetProperty("totalCount").GetInt32() >= 1);
         Assert.All(list.GetProperty("items").EnumerateArray(),
             o => Assert.Equal("anonymized-customer-name", o.GetProperty("customerName").GetString()));
 
-        // The older admin endpoints of the order service mask the same way
-        var byUser = await ReadJson(await demoAdmin.GetAsync("/api/orders/by-user/admin-orders-customer"));
-        Assert.All(byUser.GetProperty("data").GetProperty("orders").EnumerateArray(),
-            o => Assert.Equal("anonymized-user-email", o.GetProperty("userEmail").GetString()));
     }
 
     // The admin panel's "orders of this user" page used to go through the identity service;
@@ -225,18 +225,18 @@ public sealed class AdminOrdersTests : IClassFixture<OrderApiFactory>
         var id = await PlaceOrderAsync(customer);
 
         using var trueAdmin = _factory.CreateClient().AsTrueAdmin();
-        var page = await ReadJson(await trueAdmin.GetAsync($"/api/admin/orders/by-user/{customer}?page=1&pageSize=10"));
+        var page = await ReadJson(await trueAdmin.GetAsync($"/api/v1/admin/orders/by-user/{customer}?page=1&pageSize=10"));
         var items = page.GetProperty("items").EnumerateArray().ToList();
         Assert.Equal(1, page.GetProperty("totalCount").GetInt32());
         Assert.Equal(id, items.Single().GetProperty("id").GetInt32());
         Assert.Equal("Real Customer", items.Single().GetProperty("customerName").GetString());
 
         using var demoAdmin = _factory.CreateClient().AsDemoAdmin();
-        var masked = await ReadJson(await demoAdmin.GetAsync($"/api/admin/orders/by-user/{customer}"));
+        var masked = await ReadJson(await demoAdmin.GetAsync($"/api/v1/admin/orders/by-user/{customer}"));
         Assert.All(masked.GetProperty("items").EnumerateArray(),
             o => Assert.Equal("anonymized-customer-name", o.GetProperty("customerName").GetString()));
 
-        var nobody = await ReadJson(await trueAdmin.GetAsync("/api/admin/orders/by-user/no-such-user"));
+        var nobody = await ReadJson(await trueAdmin.GetAsync("/api/v1/admin/orders/by-user/no-such-user"));
         Assert.Equal(0, nobody.GetProperty("totalCount").GetInt32());
         Assert.Empty(nobody.GetProperty("items").EnumerateArray());
     }
@@ -246,8 +246,8 @@ public sealed class AdminOrdersTests : IClassFixture<OrderApiFactory>
     {
         using var user = _factory.CreateClient().AsUser("admin-orders-plain-user");
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/admin/orders")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/admin/orders/by-user/admin-orders-plain-user")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await _factory.CreateClient().AsTrueAdmin().GetAsync("/api/admin/orders/999999")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/v1/admin/orders")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/v1/admin/orders/by-user/admin-orders-plain-user")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _factory.CreateClient().AsTrueAdmin().GetAsync("/api/v1/admin/orders/999999")).StatusCode);
     }
 }

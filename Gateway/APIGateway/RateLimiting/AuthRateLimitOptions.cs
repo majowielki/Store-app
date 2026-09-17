@@ -5,7 +5,7 @@ namespace Store.GatewayService.RateLimiting;
 /// <summary>
 /// Limits applied per client address to the identity route. Bound from
 /// <c>RateLimiting:Auth</c>. Credential endpoints (login, register, refresh, demo logins) get the
-/// stricter <see cref="CredentialPermitLimit"/>; every other /api/auth/* call the general one.
+/// stricter <see cref="CredentialPermitLimit"/>; every other /api/v1/auth/* call the general one.
 /// </summary>
 public sealed class AuthRateLimitOptions
 {
@@ -17,17 +17,17 @@ public sealed class AuthRateLimitOptions
     /// <summary>Endpoints that accept or renew credentials - brute-force targets.</summary>
     public static readonly string[] CredentialPaths =
     {
-        "/api/auth/login",
-        "/api/auth/register",
-        "/api/auth/refresh",
-        "/api/auth/demo-login",
-        "/api/auth/demo-admin-login"
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/demo-login",
+        "/api/v1/auth/demo-admin-login"
     };
 
     [Range(1, 3600)]
     public int WindowSeconds { get; init; } = 60;
 
-    /// <summary>Requests per window per client for /api/auth/* in general (profile, logout, ...).</summary>
+    /// <summary>Requests per window per client for /api/v1/auth/* in general (profile, logout, ...).</summary>
     [Range(1, 100_000)]
     public int PermitLimit { get; init; } = 60;
 

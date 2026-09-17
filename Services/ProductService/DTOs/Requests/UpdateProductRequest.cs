@@ -4,7 +4,7 @@ using Store.Contracts.Catalog;
 namespace Store.ProductService.DTOs.Requests;
 
 /// <summary>
-/// Body of PUT /api/products/{id}: a partial update. A property that is absent keeps the
+/// Body of PUT /api/v1/products/{id}: a partial update. A property that is absent keeps the
 /// current value. Fields that can be empty use <see cref="Optional{T}"/>, so sending them as
 /// null clears them - that is how a promotion is taken off a product.
 /// Rules: <c>UpdateProductRequestValidator</c>.

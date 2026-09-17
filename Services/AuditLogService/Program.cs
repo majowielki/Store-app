@@ -52,7 +52,7 @@ builder.Services.AddStandardCors();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseGlobalExceptionHandling();
+app.UseStoreProblemDetails();
 
 if (app.Environment.IsDevelopment())
 {

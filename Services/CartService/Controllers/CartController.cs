@@ -1,173 +1,69 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authorization;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
 using Store.CartService.Services;
-using System.Security.Claims;
 
 namespace Store.CartService.Controllers;
 
+/// <summary>
+/// The signed-in customer's cart. Every change answers with the whole cart afterwards.
+/// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/cart")]
 [Authorize]
 public class CartController : ControllerBase
 {
     private readonly ICartService _cartService;
-    private readonly ILogger<CartController> _logger;
 
-    public CartController(ICartService cartService, ILogger<CartController> logger)
+    public CartController(ICartService cartService)
     {
         _cartService = cartService;
-        _logger = logger;
     }
 
-    /// <summary>
-    /// Get user's cart
-    /// </summary>
-    /// <returns>User's cart with items</returns>
+    private string UserId => User.GetRequiredUserId();
+
+    /// <summary>The cart with today's prices; empty for a customer who has not added anything yet.</summary>
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<CartResponse?>>> GetCart()
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<CartResponse?>.Error("User not found"));
+    public Task<CartResponse> GetCart()
+        => _cartService.GetCartAsync(UserId);
 
-        var response = await _cartService.GetCartByUserIdAsync(userId);
-        if (!response.IsSuccess && response.Message == "Cart not found")
-        {
-            var createResponse = await _cartService.CreateCartAsync(userId);
-            return StatusCode((int)createResponse.StatusCode, createResponse);
-        }
-        return StatusCode((int)response.StatusCode, response);
-    }
-
-    /// <summary>
-    /// Sync local cart with server in a single request
-    /// </summary>
-    /// <param name="request">Items to merge into the server cart</param>
-    /// <returns>Updated server cart</returns>
+    /// <summary>Merges the lines of a guest cart into the server cart, in one request.</summary>
     [HttpPost("sync")]
-    public async Task<ActionResult<ApiResponse<CartResponse>>> SyncCart([FromBody] SyncCartRequest request)
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<CartResponse>.Error("User not found"));
+    public Task<CartResponse> SyncCart([FromBody] SyncCartRequest request)
+        => _cartService.SyncCartAsync(UserId, request);
 
-        if (request?.Items == null || request.Items.Count == 0)
-        {
-            var current = await _cartService.GetCartByUserIdAsync(userId);
-            if (!current.IsSuccess)
-                return StatusCode((int)current.StatusCode, current);
-            return Ok(current);
-        }
-        var response = await _cartService.SyncCartAsync(userId, request);
-        return StatusCode((int)response.StatusCode, response);
-    }
-
-    /// <summary>
-    /// Add item to cart
-    /// </summary>
-    /// <param name="request">Item to add to cart</param>
-    /// <returns>Added cart item</returns>
+    /// <summary>Adds a line, or raises the quantity of the line with the same product and colour.</summary>
     [HttpPost("items")]
-    public async Task<ActionResult<ApiResponse<CartResponse?>>> AddItemToCart([FromBody] AddCartItemRequest request)
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<CartResponse?>.Error("User not found"));
+    public Task<CartResponse> AddItem([FromBody] AddCartItemRequest request)
+        => _cartService.AddItemAsync(UserId, request);
 
-        var addResponse = await _cartService.AddItemToCartAsync(userId, request);
-        if (!addResponse.IsSuccess)
-            return StatusCode((int)addResponse.StatusCode, addResponse);
-        var cartResponse = await _cartService.GetCartByUserIdAsync(userId);
-        return StatusCode((int)cartResponse.StatusCode, cartResponse);
-    }
+    /// <summary>Changes the quantity or colour of a line; 404 for a line that is not in this cart.</summary>
+    [HttpPut("items/{cartItemId:int}")]
+    public Task<CartResponse> UpdateItem(int cartItemId, [FromBody] UpdateCartItemRequest request)
+        => _cartService.UpdateItemAsync(UserId, cartItemId, request);
 
-    /// <summary>
-    /// Update cart item quantity or color
-    /// </summary>
-    /// <param name="cartItemId">Cart item ID</param>
-    /// <param name="request">Update data</param>
-    /// <returns>Updated cart item</returns>
-    [HttpPut("items/{cartItemId}")]
-    public async Task<ActionResult<ApiResponse<CartResponse?>>> UpdateCartItem(int cartItemId, [FromBody] UpdateCartItemRequest request)
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<CartResponse?>.Error("User not found"));
+    /// <summary>Removes a line; 404 for a line that is not in this cart.</summary>
+    [HttpDelete("items/{cartItemId:int}")]
+    public Task<CartResponse> RemoveItem(int cartItemId)
+        => _cartService.RemoveItemAsync(UserId, cartItemId);
 
-        var updateResponse = await _cartService.UpdateCartItemAsync(userId, cartItemId, request);
-        if (!updateResponse.IsSuccess)
-            return StatusCode((int)updateResponse.StatusCode, updateResponse);
-        var cartResponse = await _cartService.GetCartByUserIdAsync(userId);
-        return StatusCode((int)cartResponse.StatusCode, cartResponse);
-    }
-
-    /// <summary>
-    /// Remove item from cart
-    /// </summary>
-    /// <param name="cartItemId">Cart item ID to remove</param>
-    /// <returns>Success status</returns>
-    [HttpDelete("items/{cartItemId}")]
-    public async Task<ActionResult<ApiResponse<CartResponse?>>> RemoveItemFromCart(int cartItemId)
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<CartResponse?>.Error("User not found"));
-
-        var removeResponse = await _cartService.RemoveItemFromCartAsync(userId, cartItemId);
-        if (!removeResponse.IsSuccess)
-            return StatusCode((int)removeResponse.StatusCode, removeResponse);
-        var cartResponse = await _cartService.GetCartByUserIdAsync(userId);
-        return StatusCode((int)cartResponse.StatusCode, cartResponse);
-    }
-
-    /// <summary>
-    /// Clear all items from cart
-    /// </summary>
-    /// <returns>Success status</returns>
+    /// <summary>Removes every line; a cart that is already empty stays that way.</summary>
     [HttpDelete]
-    public async Task<ActionResult<ApiResponse<bool>>> ClearCart()
+    public async Task<IActionResult> ClearCart()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<bool>.Error("User not found"));
-
-        var response = await _cartService.ClearCartAsync(userId);
-        if (!response.IsSuccess)
-            return StatusCode((int)response.StatusCode, response);
+        await _cartService.ClearCartAsync(UserId);
         return NoContent();
     }
 
-    /// <summary>
-    /// Get cart item count
-    /// </summary>
-    /// <returns>Number of items in cart</returns>
+    /// <summary>Number of pieces in the cart (quantities summed).</summary>
     [HttpGet("count")]
-    public async Task<ActionResult<ApiResponse<int>>> GetCartItemCount()
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<int>.Error("User not found"));
+    public Task<int> GetItemCount()
+        => _cartService.GetItemCountAsync(UserId);
 
-        var response = await _cartService.GetCartItemCountAsync(userId);
-        return StatusCode((int)response.StatusCode, response);
-    }
-
-    /// <summary>
-    /// Get cart total amount
-    /// </summary>
-    /// <returns>Total cart amount</returns>
+    /// <summary>Sum of the lines, before discount and delivery.</summary>
     [HttpGet("total")]
-    public async Task<ActionResult<ApiResponse<decimal>>> GetCartTotal()
-    {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized(ApiResponse<decimal>.Error("User not found"));
-
-        var response = await _cartService.GetCartTotalAsync(userId);
-        return StatusCode((int)response.StatusCode, response);
-    }
+    public Task<decimal> GetTotal()
+        => _cartService.GetTotalAsync(UserId);
 }
-

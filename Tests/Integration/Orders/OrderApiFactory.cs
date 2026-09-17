@@ -59,17 +59,17 @@ public sealed class FakeUpstreams : HttpMessageHandler
         var host = request.RequestUri?.Host ?? string.Empty;
         var path = request.RequestUri?.AbsolutePath ?? string.Empty;
 
-        if (host == "cart.test" && request.Method == HttpMethod.Get && path.StartsWith("/api/cart/internal/", StringComparison.Ordinal))
+        if (host == "cart.test" && request.Method == HttpMethod.Get && path.StartsWith("/api/v1/cart/internal/", StringComparison.Ordinal))
         {
-            var userId = Uri.UnescapeDataString(path["/api/cart/internal/".Length..]);
+            var userId = Uri.UnescapeDataString(path["/api/v1/cart/internal/".Length..]);
             return Task.FromResult(_carts.TryGetValue(userId, out var cart)
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(cart) }
                 : new HttpResponseMessage(HttpStatusCode.NotFound));
         }
 
         if (host == "catalog.test" && request.Method == HttpMethod.Get
-            && path.StartsWith("/api/products/", StringComparison.Ordinal) && path.EndsWith("/snapshot", StringComparison.Ordinal)
-            && int.TryParse(path["/api/products/".Length..^"/snapshot".Length], out var productId))
+            && path.StartsWith("/api/v1/products/", StringComparison.Ordinal) && path.EndsWith("/snapshot", StringComparison.Ordinal)
+            && int.TryParse(path["/api/v1/products/".Length..^"/snapshot".Length], out var productId))
         {
             return Task.FromResult(_products.TryGetValue(productId, out var product)
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(product) }

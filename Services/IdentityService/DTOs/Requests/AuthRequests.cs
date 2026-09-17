@@ -33,16 +33,6 @@ public class LoginRequest
     public string Password { get; set; } = string.Empty;
 }
 
-public class DemoLoginRequest
-{
-    // No authentication required - just return demo user token
-}
-
-public class DemoAdminLoginRequest
-{
-    // No authentication required - just return demo admin token
-}
-
 public class RefreshTokenRequest
 {
     [Required]

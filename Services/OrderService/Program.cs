@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -19,9 +18,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddStandardApiControllers();
 
-// FluentValidation: validators from DI, request models validated before the action runs
+// FluentValidation validators for the request models; the shared controller setup runs them before the action
 builder.Services.AddValidatorsFromAssemblyContaining<Store.OrderService.Validators.CreateOrderFromCartRequestValidator>();
-builder.Services.AddFluentValidationAutoValidation();
 
 // Database - the model and the migrations must agree; a drift is an error, not a warning to silence
 builder.Services.AddDbContext<OrderDbContext>(options =>
@@ -63,7 +61,7 @@ builder.Services.AddStandardCors();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseGlobalExceptionHandling();
+app.UseStoreProblemDetails();
 
 if (app.Environment.IsDevelopment())
 {

@@ -30,7 +30,7 @@ public sealed class AdminUsersTests : IClassFixture<IdentityApiFactory>
     {
         using var client = _factory.CreateClient();
         var email = $"{prefix}-{Guid.NewGuid():N}@test.local";
-        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        var response = await client.PostAsJsonAsync("/api/v1/auth/register", new
         {
             email,
             password = "Admin-Panel-Password-1!",
@@ -39,7 +39,7 @@ public sealed class AdminUsersTests : IClassFixture<IdentityApiFactory>
             lastName = prefix
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var id = (await ReadJson(response)).GetProperty("data").GetProperty("user").GetProperty("id").GetString()!;
+        var id = (await ReadJson(response)).GetProperty("user").GetProperty("id").GetString()!;
         return (id, email);
     }
 
@@ -49,13 +49,13 @@ public sealed class AdminUsersTests : IClassFixture<IdentityApiFactory>
         var (id, email) = await RegisterUser("real");
         using var admin = _factory.CreateClient().AsTrueAdmin();
 
-        var list = await ReadJson(await admin.GetAsync($"/api/admin/users?search={Uri.EscapeDataString(email)}"));
-        var detail = await admin.GetAsync($"/api/admin/users/{id}");
+        var list = await ReadJson(await admin.GetAsync($"/api/v1/admin/users?search={Uri.EscapeDataString(email)}"));
+        var detail = await admin.GetAsync($"/api/v1/admin/users/{id}");
 
         var row = Assert.Single(list.GetProperty("items").EnumerateArray());
         Assert.Equal(email, row.GetProperty("email").GetString());
         Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
-        Assert.Equal(email, (await ReadJson(detail)).GetProperty("data").GetProperty("email").GetString());
+        Assert.Equal(email, (await ReadJson(detail)).GetProperty("email").GetString());
     }
 
     [Fact]
@@ -64,12 +64,12 @@ public sealed class AdminUsersTests : IClassFixture<IdentityApiFactory>
         var (id, email) = await RegisterUser("masked");
         using var demoAdmin = _factory.CreateClient().AsDemoAdmin();
 
-        var list = await ReadJson(await demoAdmin.GetAsync($"/api/admin/users?search={Uri.EscapeDataString(email)}"));
-        var detail = await ReadJson(await demoAdmin.GetAsync($"/api/admin/users/{id}"));
+        var list = await ReadJson(await demoAdmin.GetAsync($"/api/v1/admin/users?search={Uri.EscapeDataString(email)}"));
+        var detail = await ReadJson(await demoAdmin.GetAsync($"/api/v1/admin/users/{id}"));
 
         var row = Assert.Single(list.GetProperty("items").EnumerateArray());
         Assert.Equal("anonymized-user-email", row.GetProperty("email").GetString());
-        Assert.Equal("anonymized-user-email", detail.GetProperty("data").GetProperty("email").GetString());
+        Assert.Equal("anonymized-user-email", detail.GetProperty("email").GetString());
     }
 
     [Fact]
@@ -78,9 +78,9 @@ public sealed class AdminUsersTests : IClassFixture<IdentityApiFactory>
         var (_, email) = await RegisterUser("filter");
         using var admin = _factory.CreateClient().AsTrueAdmin();
 
-        var byFragment = await ReadJson(await admin.GetAsync("/api/admin/users?search=filter-"));
-        var inactive = await ReadJson(await admin.GetAsync($"/api/admin/users?search={Uri.EscapeDataString(email)}&isActive=false"));
-        var nobody = await ReadJson(await admin.GetAsync("/api/admin/users?search=no-such-user-anywhere"));
+        var byFragment = await ReadJson(await admin.GetAsync("/api/v1/admin/users?search=filter-"));
+        var inactive = await ReadJson(await admin.GetAsync($"/api/v1/admin/users?search={Uri.EscapeDataString(email)}&isActive=false"));
+        var nobody = await ReadJson(await admin.GetAsync("/api/v1/admin/users?search=no-such-user-anywhere"));
 
         Assert.Contains(byFragment.GetProperty("items").EnumerateArray(), u => u.GetProperty("email").GetString() == email);
         Assert.Empty(inactive.GetProperty("items").EnumerateArray());
@@ -92,7 +92,7 @@ public sealed class AdminUsersTests : IClassFixture<IdentityApiFactory>
     {
         using var admin = _factory.CreateClient().AsTrueAdmin();
 
-        var response = await admin.GetAsync($"/api/admin/users/{Guid.NewGuid()}");
+        var response = await admin.GetAsync($"/api/v1/admin/users/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -104,6 +104,6 @@ public sealed class AdminUsersTests : IClassFixture<IdentityApiFactory>
     {
         using var client = _factory.CreateClient().As(who);
 
-        Assert.Equal(expected, (await client.GetAsync("/api/admin/users")).StatusCode);
+        Assert.Equal(expected, (await client.GetAsync("/api/v1/admin/users")).StatusCode);
     }
 }

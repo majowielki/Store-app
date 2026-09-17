@@ -34,7 +34,7 @@ public sealed class CartApiFactory : StoreApiFactory<CartDbContext>
 }
 
 /// <summary>
-/// Answers GET /api/products/{id}/snapshot the way the catalogue does, for the products a test
+/// Answers GET /api/v1/products/{id}/snapshot the way the catalogue does, for the products a test
 /// registers. Unknown ids get 404, like a product that was never created.
 /// </summary>
 public sealed class FakeCatalog : HttpMessageHandler
@@ -61,7 +61,7 @@ public sealed class FakeCatalog : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri?.AbsolutePath ?? string.Empty;
-        const string prefix = "/api/products/";
+        const string prefix = "/api/v1/products/";
         const string suffix = "/snapshot";
         if (request.Method == HttpMethod.Get && path.StartsWith(prefix, StringComparison.Ordinal) && path.EndsWith(suffix, StringComparison.Ordinal)
             && int.TryParse(path[prefix.Length..^suffix.Length], out var id) && _products.TryGetValue(id, out var product))

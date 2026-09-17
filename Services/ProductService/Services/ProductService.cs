@@ -1,24 +1,29 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.Contracts.Catalog;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Models;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Store.ProductService.Services;
 
 public class ProductService : IProductService
 {
+    private const int PublicPageSize = 12;
+    private const int AdminPageSize = 50;
+
     private readonly ProductDbContext _context;
     private readonly ILogger<ProductService> _logger;
     private readonly IAuditTrail _auditTrail;
 
-    private static readonly System.Text.Json.JsonSerializerOptions AuditJsonOptions = new()
+    private static readonly JsonSerializerOptions AuditJsonOptions = new()
     {
         ReferenceHandler = ReferenceHandler.IgnoreCycles,
-        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
     public ProductService(ProductDbContext context, ILogger<ProductService> logger, IAuditTrail auditTrail)
@@ -30,429 +35,163 @@ public class ProductService : IProductService
 
     public async Task<ProductResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null)
     {
-        try
+        var product = new Product
         {
-            var product = new Product
-            {
-                Title = request.Title,
-                Description = request.Description,
-                Price = request.Price,
-                SalePrice = request.SalePrice,
-                DiscountPercent = request.DiscountPercent,
-                Category = request.Category,
-                Company = request.Company,
-                NewArrival = request.NewArrival,
-                Image = request.Image,
-                Colors = request.Colors,
-                Groups = NormalizeList(request.Groups),
-                WidthCm = request.WidthCm,
-                HeightCm = request.HeightCm,
-                DepthCm = request.DepthCm,
-                WeightKg = request.WeightKg,
-                Materials = NormalizeList(request.Materials),
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            Title = request.Title,
+            Description = request.Description,
+            Price = request.Price,
+            SalePrice = request.SalePrice,
+            DiscountPercent = request.DiscountPercent,
+            Category = request.Category,
+            Company = request.Company,
+            NewArrival = request.NewArrival,
+            Image = request.Image,
+            Colors = request.Colors,
+            Groups = NormalizeList(request.Groups),
+            WidthCm = request.WidthCm,
+            HeightCm = request.HeightCm,
+            DepthCm = request.DepthCm,
+            WeightKg = request.WeightKg,
+            Materials = NormalizeList(request.Materials),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Product created successfully with ID: {ProductId}", product.Id);
-            await _auditTrail.RecordAsync("PRODUCT_CREATED", nameof(Product), product.Id.ToString(), actorId, newValues: product);
-            return MapToProductResponse(product);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating product: {ProductTitle}", request.Title);
-            throw;
-        }
+        _logger.LogInformation("Product created successfully with ID: {ProductId}", product.Id);
+        await _auditTrail.RecordAsync("PRODUCT_CREATED", nameof(Product), product.Id.ToString(), actorId, newValues: product);
+        return MapToProductResponse(product);
     }
 
-    public async Task<ProductResponse?> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null)
+    public async Task<ProductResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null)
     {
-        try
-        {
-            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
-            if (product == null)
-            {
-                return null;
-            }
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException("Product", id);
 
-            var oldValues = System.Text.Json.JsonSerializer.Serialize(product, AuditJsonOptions);
+        var oldValues = JsonSerializer.Serialize(product, AuditJsonOptions);
 
-            // Absent fields keep their value; the Optional ones can also be cleared by sending null
-            if (request.Title is not null) product.Title = request.Title;
-            if (request.Description is not null) product.Description = request.Description;
-            if (request.Price.HasValue) product.Price = request.Price.Value;
-            if (request.SalePrice.IsSet) product.SalePrice = request.SalePrice.Value;
-            if (request.DiscountPercent.IsSet) product.DiscountPercent = request.DiscountPercent.Value;
-            if (request.Category.HasValue) product.Category = request.Category.Value;
-            if (request.Company.HasValue) product.Company = request.Company.Value;
-            if (request.NewArrival.HasValue) product.NewArrival = request.NewArrival.Value;
-            if (request.Image is not null) product.Image = request.Image;
-            if (request.Colors is not null) product.Colors = request.Colors;
-            if (request.Groups is not null) product.Groups = NormalizeList(request.Groups);
-            if (request.WidthCm.IsSet) product.WidthCm = request.WidthCm.Value;
-            if (request.HeightCm.IsSet) product.HeightCm = request.HeightCm.Value;
-            if (request.DepthCm.IsSet) product.DepthCm = request.DepthCm.Value;
-            if (request.WeightKg.IsSet) product.WeightKg = request.WeightKg.Value;
-            if (request.Materials is not null) product.Materials = NormalizeList(request.Materials);
-            if (request.IsActive.HasValue) product.IsActive = request.IsActive.Value;
+        // Absent fields keep their value; the Optional ones can also be cleared by sending null
+        if (request.Title is not null) product.Title = request.Title;
+        if (request.Description is not null) product.Description = request.Description;
+        if (request.Price.HasValue) product.Price = request.Price.Value;
+        if (request.SalePrice.IsSet) product.SalePrice = request.SalePrice.Value;
+        if (request.DiscountPercent.IsSet) product.DiscountPercent = request.DiscountPercent.Value;
+        if (request.Category.HasValue) product.Category = request.Category.Value;
+        if (request.Company.HasValue) product.Company = request.Company.Value;
+        if (request.NewArrival.HasValue) product.NewArrival = request.NewArrival.Value;
+        if (request.Image is not null) product.Image = request.Image;
+        if (request.Colors is not null) product.Colors = request.Colors;
+        if (request.Groups is not null) product.Groups = NormalizeList(request.Groups);
+        if (request.WidthCm.IsSet) product.WidthCm = request.WidthCm.Value;
+        if (request.HeightCm.IsSet) product.HeightCm = request.HeightCm.Value;
+        if (request.DepthCm.IsSet) product.DepthCm = request.DepthCm.Value;
+        if (request.WeightKg.IsSet) product.WeightKg = request.WeightKg.Value;
+        if (request.Materials is not null) product.Materials = NormalizeList(request.Materials);
+        if (request.IsActive.HasValue) product.IsActive = request.IsActive.Value;
 
-            product.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+        product.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
-            await _auditTrail.RecordAsync("PRODUCT_UPDATED", nameof(Product), product.Id.ToString(), actorId, oldValues: oldValues, newValues: product);
-            return MapToProductResponse(product);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating product with ID: {ProductId}", id);
-            throw;
-        }
+        _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
+        await _auditTrail.RecordAsync("PRODUCT_UPDATED", nameof(Product), product.Id.ToString(), actorId, oldValues: oldValues, newValues: product);
+        return MapToProductResponse(product);
     }
 
-    public async Task<bool> DeleteProductAsync(int id, string? actorId = null)
+    public async Task DeleteProductAsync(int id, string? actorId = null)
     {
-        try
-        {
-            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
-            if (product == null)
-            {
-                return false;
-            }
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id)
+            ?? throw new NotFoundException("Product", id);
 
-            var oldValues = System.Text.Json.JsonSerializer.Serialize(product, AuditJsonOptions);
+        var oldValues = JsonSerializer.Serialize(product, AuditJsonOptions);
 
-            // Soft delete: past orders keep a valid product id and the admin panel can restore it
-            product.IsActive = false;
-            product.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+        // Soft delete: past orders keep a valid product id and the admin panel can restore it
+        product.IsActive = false;
+        product.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Product deactivated with ID: {ProductId}", id);
-            await _auditTrail.RecordAsync("PRODUCT_DELETED", nameof(Product), id.ToString(), actorId, oldValues: oldValues);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting product with ID: {ProductId}", id);
-            throw;
-        }
+        _logger.LogInformation("Product deactivated with ID: {ProductId}", id);
+        await _auditTrail.RecordAsync("PRODUCT_DELETED", nameof(Product), id.ToString(), actorId, oldValues: oldValues);
     }
 
-    // Frontend-compatible methods
-    public async Task<ProductsResponse> GetProductsForFrontendAsync(ProductQueryParams queryParams)
+    public Task<PagedResponse<ProductResponse>> GetProductsAsync(ProductQueryParams queryParams)
     {
-        try
+        var query = ApplyFilters(_context.Products.AsNoTracking().Where(p => p.IsActive), queryParams);
+
+        query = (queryParams.Order ?? string.Empty).ToLowerInvariant() switch
         {
-            // Every filter below translates to SQL; nothing is filtered or paginated in memory
-            var query = _context.Products.AsNoTracking().Where(p => p.IsActive);
+            "z-a" => query.OrderByDescending(p => p.Title),
+            "high" => query.OrderByDescending(p => p.SalePrice ?? p.Price),
+            "low" => query.OrderBy(p => p.SalePrice ?? p.Price),
+            _ => query.OrderBy(p => p.Title)
+        };
 
-            if (!string.IsNullOrEmpty(queryParams.Group) && queryParams.Group.ToLower() != "all")
-            {
-                var groupFilter = queryParams.Group.ToLower();
-                query = query.Where(p => p.Groups.Any(g => g.ToLower() == groupFilter));
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Search))
-            {
-                var pattern = $"%{queryParams.Search.Trim()}%";
-                query = query.Where(p =>
-                    EF.Functions.ILike(p.Title, pattern) ||
-                    EF.Functions.ILike(p.Description, pattern));
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Category) && queryParams.Category.ToLower() != "all")
-            {
-                if (Enum.TryParse<Category>(queryParams.Category, true, out var category))
-                {
-                    query = query.Where(p => p.Category == category);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Company) && queryParams.Company.ToLower() != "all")
-            {
-                if (Enum.TryParse<Company>(queryParams.Company, true, out var company))
-                {
-                    query = query.Where(p => p.Company == company);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Price))
-            {
-                var priceParts = queryParams.Price.Split(new[] { ',', '-' }, StringSplitOptions.RemoveEmptyEntries);
-                if (priceParts.Length == 2)
-                {
-                    if (decimal.TryParse(priceParts[0], out var minPrice))
-                        query = query.Where(p => (p.SalePrice ?? p.Price) >= minPrice);
-                    if (decimal.TryParse(priceParts[1], out var maxPrice))
-                        query = query.Where(p => (p.SalePrice ?? p.Price) <= maxPrice);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Materials))
-            {
-                var materialsFilter = queryParams.Materials.ToLower().Split(',');
-                query = query.Where(p => p.Materials.Any(m => materialsFilter.Contains(m.ToLower())));
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Colors))
-            {
-                var colorsFilter = queryParams.Colors.ToLower().Split(',');
-                query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
-            }
-
-            // Sale filter
-            if (!string.IsNullOrEmpty(queryParams.Sale))
-            {
-                var saleValue = queryParams.Sale.Trim().ToLower();
-                if (saleValue == "true" || saleValue == "on" || saleValue == "1")
-                {
-                    query = query.Where(p => (p.SalePrice.HasValue && p.SalePrice.Value > 0) || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0));
-                }
-            }
-
-            // Apply sorting
-            if (!string.IsNullOrEmpty(queryParams.Order))
-            {
-                query = queryParams.Order.ToLower() switch
-                {
-                    "a-z" => query.OrderBy(p => p.Title),
-                    "z-a" => query.OrderByDescending(p => p.Title),
-                    "high" => query.OrderByDescending(p => p.SalePrice ?? p.Price),
-                    "low" => query.OrderBy(p => p.SalePrice ?? p.Price),
-                    _ => query.OrderBy(p => p.Title)
-                };
-            }
-            else
-            {
-                query = query.OrderBy(p => p.Title);
-            }
-
-            const int pageSize = 12; // Standard page size for frontend
-            var totalCount = await query.CountAsync();
-            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-            var currentPage = queryParams.Page.GetValueOrDefault(1);
-            if (currentPage < 1) currentPage = 1;
-            var products = await query.Skip((currentPage - 1) * pageSize).Take(pageSize).ToListAsync();
-
-            var meta = await GetProductsMetaAsync();
-            meta.Pagination = new PaginationMeta
-            {
-                Page = currentPage,
-                PageCount = totalPages,
-                PageSize = pageSize,
-                Total = totalCount
-            };
-
-            return new ProductsResponse
-            {
-                Data = products.Select(MapToProductData).ToList(),
-                Meta = meta
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving products for frontend");
-            throw;
-        }
+        return PageAsync(query, queryParams, PublicPageSize);
     }
 
-    public async Task<SingleProductResponse> GetProductForFrontendAsync(int id)
+    public async Task<ProductResponse> GetProductAsync(int id)
     {
-        try
-        {
-            var product = await _context.Products
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
+        var product = await _context.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id && p.IsActive)
+            ?? throw new NotFoundException("Product", id);
 
-            if (product == null)
-                throw new ArgumentException($"Product with ID {id} not found");
-
-            return new SingleProductResponse
-            {
-                Data = MapToProductData(product),
-                Meta = new { }
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving product for frontend with ID: {ProductId}", id);
-            throw;
-        }
+        return MapToProductResponse(product);
     }
 
-    public Task<ProductsMeta> GetProductsMetaAsync()
+    public ProductsMeta GetProductsMeta()
     {
-        try
-        {
-            // Include 'all' as the first option so the frontend can default to it
-            var categories = new List<string> { "all" };
-            categories.AddRange(
-                Enum.GetValues<Category>()
-                    .Where(c => c != Category.All)
-                    .Select(c => c.ToString().ToLower())
-            );
+        // "all" first, so a menu can default to it; keys spelled like the product fields
+        var categories = new List<string> { "all" };
+        categories.AddRange(Enum.GetValues<Category>().Where(c => c != Category.All).Select(Key));
 
-            var groups = new List<string> { "all" };
-            groups.AddRange(
-                Enum.GetValues<Group>()
-                    .Where(g => g != Group.All)
-                    .Select(g => g.ToString().ToLower())
-            );
+        var groups = new List<string> { "all" };
+        groups.AddRange(Enum.GetValues<Group>().Where(g => g != Group.All).Select(Key));
 
-            var companies = new List<string> { "all" };
-            companies.AddRange(
-                Enum.GetValues<Company>()
-                    .Where(c => c != Company.All)
-                    .Select(c => c.ToString().ToLower())
-            );
+        var companies = new List<string> { "all" };
+        companies.AddRange(Enum.GetValues<Company>().Where(c => c != Company.All).Select(Key));
 
-            var colors = new List<string> { "all" };
-            colors.AddRange(
-                Enum.GetValues<Colors>()
-                    .Where(c => c != Colors.All)
-                    .Select(c => c.ToString().ToLower())
-            );
+        var colors = new List<string> { "all" };
+        colors.AddRange(Enum.GetValues<Colors>().Where(c => c != Colors.All).Select(Key));
 
-            // Build group -> categories map for the UI dropdowns
-            var groupCategoryMap = new List<GroupWithCategories>();
-            foreach (var group in Enum.GetValues<Group>())
+        var groupCategoryMap = Enum.GetValues<Group>()
+            .Where(group => group != Group.All)
+            .Select(group => new GroupWithCategories
             {
-                if (group == Group.All) continue; // UI handles 'all' separately
+                Key = Key(group),
+                Name = group.GetDisplayName(),
+                Categories = group.GetCategories()
+                    .Select(c => new OptionItem { Key = Key(c), Name = c.GetDisplayName() })
+                    .ToList()
+            })
+            .ToList();
 
-                var cats = group.GetCategories()
-                    .Select(c => new OptionItem
-                    {
-                        Key = c.ToString().ToLower(),
-                        Name = c.GetDisplayName()
-                    })
-                    .ToList();
-
-                groupCategoryMap.Add(new GroupWithCategories
-                {
-                    Key = group.ToString().ToLower(),
-                    Name = group.GetDisplayName(),
-                    Categories = cats
-                });
-            }
-
-            var result = new ProductsMeta
-            {
-                Categories = categories,
-                Groups = groups,
-                Companies = companies,
-                Colors = colors,
-                GroupCategoryMap = groupCategoryMap,
-                Pagination = new PaginationMeta() // Will be set by calling method
-            };
-            return Task.FromResult(result);
-        }
-        catch (Exception ex)
+        return new ProductsMeta
         {
-            _logger.LogError(ex, "Error retrieving products meta");
-            throw;
-        }
+            Categories = categories,
+            Groups = groups,
+            Companies = companies,
+            Colors = colors,
+            GroupCategoryMap = groupCategoryMap
+        };
     }
 
-    public async Task<ProductsResponse> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir)
+    public Task<PagedResponse<ProductResponse>> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir)
     {
-        try
+        // Inactive products too: the admin panel restores them from here
+        var query = ApplyFilters(_context.Products.AsNoTracking(), queryParams);
+
+        var desc = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+        query = (sortBy ?? "id").ToLowerInvariant() switch
         {
-            var query = _context.Products.AsNoTracking(); // Admin: show all, not just IsActive
+            "price" => desc ? query.OrderByDescending(p => p.SalePrice ?? p.Price) : query.OrderBy(p => p.SalePrice ?? p.Price),
+            "title" => desc ? query.OrderByDescending(p => p.Title) : query.OrderBy(p => p.Title),
+            "company" => desc ? query.OrderByDescending(p => p.Company) : query.OrderBy(p => p.Company),
+            _ => desc ? query.OrderByDescending(p => p.Id) : query.OrderBy(p => p.Id)
+        };
 
-            // Apply filters
-            if (!string.IsNullOrEmpty(queryParams.Search))
-            {
-                var pattern = $"%{queryParams.Search.Trim()}%";
-                query = query.Where(p =>
-                    EF.Functions.ILike(p.Title, pattern) ||
-                    EF.Functions.ILike(p.Description, pattern));
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Category) && queryParams.Category.ToLower() != "all")
-            {
-                if (Enum.TryParse<Category>(queryParams.Category, true, out var category))
-                {
-                    query = query.Where(p => p.Category == category);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Company) && queryParams.Company.ToLower() != "all")
-            {
-                if (Enum.TryParse<Company>(queryParams.Company, true, out var company))
-                {
-                    query = query.Where(p => p.Company == company);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Price))
-            {
-                var priceParts = queryParams.Price.Split(new[] { ',', '-' }, StringSplitOptions.RemoveEmptyEntries);
-                if (priceParts.Length == 2)
-                {
-                    if (decimal.TryParse(priceParts[0], out var minPrice))
-                        query = query.Where(p => (p.SalePrice ?? p.Price) >= minPrice);
-                    if (decimal.TryParse(priceParts[1], out var maxPrice))
-                        query = query.Where(p => (p.SalePrice ?? p.Price) <= maxPrice);
-                }
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Materials))
-            {
-                var materialsFilter = queryParams.Materials.ToLower().Split(',');
-                query = query.Where(p => p.Materials.Any(m => materialsFilter.Contains(m.ToLower())));
-            }
-
-            if (!string.IsNullOrEmpty(queryParams.Colors))
-            {
-                var colorsFilter = queryParams.Colors.ToLower().Split(',');
-                query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
-            }
-
-            // Advanced sorting for admin
-            bool desc = (sortDir ?? "asc").ToLower() == "desc";
-            query = (sortBy ?? "id").ToLower() switch
-            {
-                "id" => desc ? query.OrderByDescending(p => p.Id) : query.OrderBy(p => p.Id),
-                "price" => desc ? query.OrderByDescending(p => p.SalePrice ?? p.Price) : query.OrderBy(p => p.SalePrice ?? p.Price),
-                "title" => desc ? query.OrderByDescending(p => p.Title) : query.OrderBy(p => p.Title),
-                "company" => desc ? query.OrderByDescending(p => p.Company) : query.OrderBy(p => p.Company),
-                _ => query.OrderBy(p => p.Id)
-            };
-
-            int pageSize = queryParams.PageSize.GetValueOrDefault(50); // Default 50 for admin
-            if (pageSize < 1) pageSize = 1;
-            if (pageSize > 1000) pageSize = 1000;
-            var totalCount = await query.CountAsync();
-            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-            var currentPage = queryParams.Page.GetValueOrDefault(1);
-            if (currentPage < 1) currentPage = 1;
-            var skip = (currentPage - 1) * pageSize;
-
-            var products = await query.Skip(skip).Take(pageSize).ToListAsync();
-
-            var meta = await GetProductsMetaAsync();
-            meta.Pagination = new PaginationMeta
-            {
-                Page = currentPage,
-                PageCount = totalPages,
-                PageSize = pageSize,
-                Total = totalCount
-            };
-
-            return new ProductsResponse
-            {
-                Data = products.Select(MapToProductData).ToList(),
-                Meta = meta
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving products for admin");
-            throw;
-        }
+        return PageAsync(query, queryParams, AdminPageSize);
     }
 
     public async Task<ProductSnapshot?> GetSnapshotAsync(int id)
@@ -461,7 +200,85 @@ public class ProductService : IProductService
         return product?.ToSnapshot();
     }
 
-    // Helper methods
+    /// <summary>Every filter translates to SQL; nothing is filtered or paginated in memory.</summary>
+    private static IQueryable<Product> ApplyFilters(IQueryable<Product> query, ProductQueryParams queryParams)
+    {
+        if (!string.IsNullOrEmpty(queryParams.Group) && !IsAll(queryParams.Group))
+        {
+            var groupFilter = queryParams.Group.ToLower();
+            query = query.Where(p => p.Groups.Any(g => g.ToLower() == groupFilter));
+        }
+
+        if (!string.IsNullOrEmpty(queryParams.Search))
+        {
+            var pattern = $"%{queryParams.Search.Trim()}%";
+            query = query.Where(p =>
+                EF.Functions.ILike(p.Title, pattern) ||
+                EF.Functions.ILike(p.Description, pattern));
+        }
+
+        if (!string.IsNullOrEmpty(queryParams.Category) && !IsAll(queryParams.Category)
+            && Enum.TryParse<Category>(queryParams.Category, true, out var category))
+        {
+            query = query.Where(p => p.Category == category);
+        }
+
+        if (!string.IsNullOrEmpty(queryParams.Company) && !IsAll(queryParams.Company)
+            && Enum.TryParse<Company>(queryParams.Company, true, out var company))
+        {
+            query = query.Where(p => p.Company == company);
+        }
+
+        if (!string.IsNullOrEmpty(queryParams.Price))
+        {
+            var priceParts = queryParams.Price.Split(new[] { ',', '-' }, StringSplitOptions.RemoveEmptyEntries);
+            if (priceParts.Length == 2)
+            {
+                if (decimal.TryParse(priceParts[0], out var minPrice))
+                    query = query.Where(p => (p.SalePrice ?? p.Price) >= minPrice);
+                if (decimal.TryParse(priceParts[1], out var maxPrice))
+                    query = query.Where(p => (p.SalePrice ?? p.Price) <= maxPrice);
+            }
+        }
+
+        if (!string.IsNullOrEmpty(queryParams.Materials))
+        {
+            var materialsFilter = queryParams.Materials.ToLower().Split(',');
+            query = query.Where(p => p.Materials.Any(m => materialsFilter.Contains(m.ToLower())));
+        }
+
+        if (!string.IsNullOrEmpty(queryParams.Colors))
+        {
+            var colorsFilter = queryParams.Colors.ToLower().Split(',');
+            query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
+        }
+
+        // Checkbox-style values from the UI: "true", "on", "1"
+        if (queryParams.Sale?.Trim().ToLowerInvariant() is "true" or "on" or "1")
+        {
+            query = query.Where(p => (p.SalePrice.HasValue && p.SalePrice.Value > 0) || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0));
+        }
+
+        return query;
+    }
+
+    private static async Task<PagedResponse<ProductResponse>> PageAsync(IQueryable<Product> query, ProductQueryParams queryParams, int defaultPageSize)
+    {
+        var paging = new PagedQuery { Page = queryParams.Page ?? 1, PageSize = queryParams.PageSize ?? defaultPageSize }
+            .Normalized(defaultPageSize);
+
+        var totalCount = await query.CountAsync();
+        var products = await query.Skip(paging.Skip).Take(paging.PageSize).ToListAsync();
+
+        return new PagedResponse<ProductResponse>(products.Select(MapToProductResponse).ToList(), totalCount, paging);
+    }
+
+    private static bool IsAll(string value) => string.Equals(value, "all", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The spelling enum values have in JSON ("tvStands"), so filters and products agree.</summary>
+    private static string Key<TEnum>(TEnum value) where TEnum : struct, Enum
+        => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
+
     private static List<string> NormalizeList(IEnumerable<string>? values)
         => values?.Select(v => v.Trim().ToLowerInvariant()).Where(v => v.Length > 0).Distinct().ToList() ?? new List<string>();
 
@@ -480,7 +297,7 @@ public class ProductService : IProductService
             Company = product.Company,
             NewArrival = product.NewArrival,
             Image = product.Image,
-            Colors = product.Colors,
+            Colors = product.Colors.Select(c => c.ToLowerInvariant()).ToList(),
             Groups = product.Groups,
             WidthCm = product.WidthCm,
             HeightCm = product.HeightCm,
@@ -490,51 +307,6 @@ public class ProductService : IProductService
             IsActive = product.IsActive,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
-        };
-    }
-
-    private static ProductData MapToProductData(Product product)
-    {
-        // Compute sale info consistently
-        decimal? salePrice = product.SalePrice;
-        decimal? discountPercent = product.DiscountPercent;
-        if (!salePrice.HasValue && discountPercent.HasValue && discountPercent.Value > 0)
-        {
-            salePrice = Math.Round(product.Price * (1 - (discountPercent.Value / 100m)), 2);
-        }
-        else if (salePrice.HasValue && (!discountPercent.HasValue || discountPercent.Value <= 0))
-        {
-            var computed = product.Price == 0 ? 0 : Math.Round((1 - (salePrice.Value / product.Price)) * 100m, 2);
-            discountPercent = computed;
-        }
-
-        return new ProductData
-        {
-            Id = product.Id,
-            Attributes = new ProductAttributes
-            {
-                Category = product.Category.ToString().ToLower(),
-                Company = product.Company.ToString().ToLower(),
-                CreatedAt = product.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                Description = product.Description,
-                NewArrival = product.NewArrival,
-                Image = product.Image,
-                Price = product.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                SalePrice = salePrice.HasValue ? salePrice.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : null,
-                DiscountPercent = discountPercent,
-                EffectivePrice = product.EffectivePrice.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                PublishedAt = product.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                Title = product.Title,
-                UpdatedAt = product.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                Colors = product.Colors.Select(c => c.ToLower()).ToList(),
-                Groups = product.Groups.Select(g => g.ToLower()).Distinct().ToList(),
-                WidthCm = product.WidthCm,
-                HeightCm = product.HeightCm,
-                DepthCm = product.DepthCm,
-                WeightKg = product.WeightKg,
-                Materials = product.Materials.Select(m => m.ToLower()).ToList(),
-                IsActive = product.IsActive
-            }
         };
     }
 }

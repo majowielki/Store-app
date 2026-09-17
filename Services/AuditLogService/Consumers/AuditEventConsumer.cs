@@ -21,7 +21,8 @@ public sealed class AuditEventConsumer : IConsumer<AuditEvent>
     public async Task Consume(ConsumeContext<AuditEvent> context)
     {
         var e = context.Message;
-        var result = await _auditLogService.CreateAuditLogAsync(new AuditLog
+        // A database that refuses the row throws: the bus retries and, after that, parks the event in the error queue
+        await _auditLogService.CreateAuditLogAsync(new AuditLog
         {
             Action = Trim(e.Action, AuditLogConstraints.ActionMaxLength)!,
             EntityName = Trim(e.EntityName, AuditLogConstraints.EntityNameMaxLength)!,
@@ -34,11 +35,6 @@ public sealed class AuditEventConsumer : IConsumer<AuditEvent>
             OldValues = e.OldValues,
             NewValues = e.NewValues
         });
-
-        if (!result.IsSuccess)
-        {
-            throw new InvalidOperationException($"Audit entry {e.Action} for {e.EntityName} {e.EntityId} could not be stored: {result.Message}");
-        }
     }
 
     private static string? Trim(string? value, int maxLength)

@@ -27,7 +27,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
 
     private static async Task<string> RegisterAsync(HttpClient client, string email, string password)
     {
-        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        var response = await client.PostAsJsonAsync("/api/v1/auth/register", new
         {
             email,
             password,
@@ -37,7 +37,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await ReadJson(response);
-        return body.GetProperty("data").GetProperty("accessToken").GetString()!;
+        return body.GetProperty("accessToken").GetString()!;
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
     {
         using var client = _factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/api/auth/login", new
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
             email = TestUsers.TrueAdminEmail,
             password = TestUsers.TrueAdminPassword
@@ -65,7 +65,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await ReadJson(response);
-        var roles = body.GetProperty("data").GetProperty("user").GetProperty("roles").EnumerateArray().Select(r => r.GetString()).ToList();
+        var roles = body.GetProperty("user").GetProperty("roles").EnumerateArray().Select(r => r.GetString()).ToList();
         Assert.Contains(Roles.TrueAdmin, roles);
     }
 
@@ -80,7 +80,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         var statuses = new List<HttpStatusCode>();
         for (var attempt = 1; attempt <= 5; attempt++)
         {
-            var response = await client.PostAsJsonAsync("/api/auth/login", new { email, password = "wrong-password" });
+            var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "wrong-password" });
             statuses.Add(response.StatusCode);
         }
 
@@ -89,7 +89,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
             new[] { HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.Locked },
             statuses);
 
-        var correctPasswordWhileLocked = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+        var correctPasswordWhileLocked = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password });
         Assert.Equal(HttpStatusCode.Locked, correctPasswordWhileLocked.StatusCode);
     }
 
@@ -98,11 +98,13 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
     {
         using var client = _factory.CreateClient();
 
-        var unknown = await client.PostAsJsonAsync("/api/auth/login", new { email = UniqueEmail("nobody"), password = "whatever-1!" });
+        var unknown = await client.PostAsJsonAsync("/api/v1/auth/login", new { email = UniqueEmail("nobody"), password = "whatever-1!" });
 
         Assert.Equal(HttpStatusCode.Unauthorized, unknown.StatusCode);
         var body = await ReadJson(unknown);
-        Assert.Equal("Invalid email or password", body.GetProperty("message").GetString());
+        Assert.Equal("application/problem+json", unknown.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("Invalid email or password", body.GetProperty("detail").GetString());
+        Assert.Equal(401, body.GetProperty("status").GetInt32());
     }
 
     [Fact]
@@ -112,10 +114,10 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         var email = UniqueEmail("me");
         var accessToken = await RegisterAsync(client, email, "Me-Password-1!");
 
-        var anonymous = await client.GetAsync("/api/auth/me");
+        var anonymous = await client.GetAsync("/api/v1/auth/me");
         Assert.Equal(HttpStatusCode.NoContent, anonymous.StatusCode);
 
-        var authenticated = await client.WithToken(accessToken).GetAsync("/api/auth/me");
+        var authenticated = await client.WithToken(accessToken).GetAsync("/api/v1/auth/me");
         Assert.Equal(HttpStatusCode.OK, authenticated.StatusCode);
         var profile = await ReadJson(authenticated);
         Assert.Equal(email, profile.GetProperty("email").GetString());
@@ -130,7 +132,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
     {
         using var client = _factory.CreateClient().As(who);
 
-        var response = await client.GetAsync("/api/auth/users");
+        var response = await client.GetAsync("/api/v1/admin/users");
 
         Assert.Equal(expected, response.StatusCode);
     }
@@ -141,7 +143,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         using var client = _factory.CreateClient();
         var forged = TestTokens.TrueAdmin().Replace('a', 'b');
 
-        var response = await client.WithToken(forged).GetAsync("/api/auth/users");
+        var response = await client.WithToken(forged).GetAsync("/api/v1/admin/users");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }

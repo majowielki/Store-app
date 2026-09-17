@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -22,9 +21,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddStandardApiControllers();
 
-// FluentValidation: validators from DI, request models validated before the action runs
+// FluentValidation validators for the request models; the shared controller setup runs them before the action
 builder.Services.AddValidatorsFromAssemblyContaining<Store.IdentityService.Validators.RegisterRequestValidator>();
-builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<IdentityDbContext>(options =>
@@ -115,7 +113,7 @@ builder.Services.AddStandardCors();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseGlobalExceptionHandling();
+app.UseStoreProblemDetails();
 
 if (app.Environment.IsDevelopment())
 {

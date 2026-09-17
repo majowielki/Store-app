@@ -26,7 +26,7 @@ public sealed class CatalogClient : ICatalogClient
 
     public async Task<ProductSnapshot?> GetSnapshotAsync(int productId, CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync(new Uri($"api/products/{productId}/snapshot", UriKind.Relative), cancellationToken);
+        using var response = await _httpClient.GetAsync(new Uri($"api/v1/products/{productId}/snapshot", UriKind.Relative), cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;

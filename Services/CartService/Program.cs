@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -19,9 +18,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddStandardApiControllers();
 
-// FluentValidation: validators from DI, request models validated before the action runs
+// FluentValidation validators for the request models; the shared controller setup runs them before the action
 builder.Services.AddValidatorsFromAssemblyContaining<Store.CartService.Validators.AddCartItemRequestValidator>();
-builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<CartDbContext>(options =>
@@ -37,7 +35,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
-// /api/cart/internal/* is for the order service: callers present the shared internal key
+// /api/v1/cart/internal/* is for the order service: callers present the shared internal key
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
 // Addresses of the services this one calls; startup fails when any is missing
@@ -63,7 +61,7 @@ builder.Services.AddStandardCors();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseGlobalExceptionHandling();
+app.UseStoreProblemDetails();
 
 if (app.Environment.IsDevelopment())
 {

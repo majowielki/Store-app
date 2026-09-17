@@ -46,209 +46,116 @@ public class CartService : ICartService
         _auditTrail = auditTrail;
     }
 
-    public async Task<ApiResponse<CartResponse?>> GetCartByUserIdAsync(string userId)
+    public async Task<CartResponse> GetCartAsync(string userId)
     {
-        try
+        var cart = await FindCartAsync(userId);
+        if (cart is null)
         {
-            var cart = await _context.Carts
-                .Include(c => c.Items)
-                .FirstOrDefaultAsync(c => c.UserId == userId);
-
-            if (cart == null) return ApiResponse<CartResponse?>.Error("Cart not found");
-
-            var priceChanged = await RefreshStaleSnapshotsAsync(cart);
-
-            return ApiResponse<CartResponse?>.Success(MapToCartResponse(cart, priceChanged));
+            // Nothing is written for a customer who only looks: the cart appears with the first line
+            return EmptyCart(userId);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving cart for user: {UserId}", userId);
-            return ApiResponse<CartResponse?>.Error("An error occurred while retrieving the cart.");
-        }
+
+        var priceChanged = await RefreshStaleSnapshotsAsync(cart);
+        return MapToCartResponse(cart, priceChanged);
     }
 
-    public async Task<ApiResponse<CartResponse>> CreateCartAsync(string userId)
+    public async Task<CartResponse> AddItemAsync(string userId, AddCartItemRequest request)
     {
-        try
+        var product = await _catalog.GetSnapshotAsync(request.ProductId);
+        if (product is null || !product.IsActive)
         {
-            var cart = await GetOrCreateCartAsync(userId);
-            await AuditAsync("CART_CREATED", "Cart", cart.Id.ToString(), userId, new { cart.Id });
-            return ApiResponse<CartResponse>.Success(MapToCartResponse(cart, priceChanged: false));
+            throw new DomainValidationException($"Product {request.ProductId} is not available");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating cart for user: {UserId}", userId);
-            return ApiResponse<CartResponse>.Error("An error occurred while creating the cart.");
-        }
+
+        var cart = await GetOrCreateCartAsync(userId);
+        var item = AddOrMerge(cart, product, request.Color, request.Quantity);
+        await _context.SaveChangesAsync();
+
+        await AuditAsync("CART_ITEM_ADDED", "CartItem", item.Id.ToString(), userId,
+            new { item.ProductId, item.Color, item.Quantity, item.UnitPrice });
+        return await ReadBackAsync(cart);
     }
 
-    public async Task<ApiResponse<CartItemResponse>> AddItemToCartAsync(string userId, AddCartItemRequest request)
+    public async Task<CartResponse> UpdateItemAsync(string userId, int cartItemId, UpdateCartItemRequest request)
     {
-        try
+        var (cart, item) = await FindLineAsync(userId, cartItemId);
+
+        var now = DateTime.UtcNow;
+        if (request.Quantity.HasValue)
         {
-            var product = await _catalog.GetSnapshotAsync(request.ProductId);
+            item.Quantity = request.Quantity.Value;
+        }
+        if (!string.IsNullOrEmpty(request.Color))
+        {
+            item.Color = request.Color;
+        }
+        item.UpdatedAt = now;
+        cart.UpdatedAt = now;
+        await _context.SaveChangesAsync();
+
+        await AuditAsync("CART_ITEM_UPDATED", "CartItem", cartItemId.ToString(), userId,
+            new { item.ProductId, item.Color, item.Quantity });
+        return await ReadBackAsync(cart);
+    }
+
+    public async Task<CartResponse> RemoveItemAsync(string userId, int cartItemId)
+    {
+        var (cart, item) = await FindLineAsync(userId, cartItemId);
+
+        cart.Items.Remove(item);
+        _context.CartItems.Remove(item);
+        cart.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        await AuditAsync("CART_ITEM_REMOVED", "CartItem", cartItemId.ToString(), userId, new { item.ProductId });
+        return await ReadBackAsync(cart);
+    }
+
+    public async Task ClearCartAsync(string userId)
+    {
+        var cart = await FindCartAsync(userId);
+        if (cart is null || cart.Items.Count == 0)
+        {
+            // Already empty - clearing it again changes nothing
+            return;
+        }
+
+        _context.CartItems.RemoveRange(cart.Items);
+        cart.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        await AuditAsync("CART_CLEARED", "Cart", cart.Id.ToString(), userId, null);
+    }
+
+    public Task<int> GetItemCountAsync(string userId)
+        => _context.CartItems.Where(ci => ci.Cart.UserId == userId).SumAsync(ci => ci.Quantity);
+
+    public Task<decimal> GetTotalAsync(string userId)
+        => _context.CartItems.Where(ci => ci.Cart.UserId == userId).SumAsync(ci => ci.UnitPrice * ci.Quantity);
+
+    public async Task<CartResponse> SyncCartAsync(string userId, SyncCartRequest request)
+    {
+        if (request.Items.Count == 0)
+        {
+            // Nothing to merge: the server cart as it is
+            return await GetCartAsync(userId);
+        }
+
+        var cart = await GetOrCreateCartAsync(userId);
+        foreach (var item in request.Items)
+        {
+            var product = await _catalog.GetSnapshotAsync(item.ProductId);
             if (product is null || !product.IsActive)
             {
-                return ApiResponse<CartItemResponse>.Error($"Product with ID {request.ProductId} not found");
+                // A guest cart may hold a product that left the catalogue since; the rest still merges
+                _logger.LogWarning("Skipping sync item - product not found: {ProductId}", item.ProductId);
+                continue;
             }
-
-            var cart = await GetOrCreateCartAsync(userId);
-            var item = AddOrMerge(cart, product, request.Color, request.Quantity);
-            await _context.SaveChangesAsync();
-
-            await AuditAsync("CART_ITEM_ADDED", "CartItem", item.Id.ToString(), userId,
-                new { item.ProductId, item.Color, item.Quantity, item.UnitPrice });
-            return ApiResponse<CartItemResponse>.Success(MapToCartItemResponse(item));
+            AddOrMerge(cart, product, item.Color, item.Quantity);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error adding item to cart for user: {UserId}, Product: {ProductId}", userId, request.ProductId);
-            return ApiResponse<CartItemResponse>.Error("An error occurred while adding item to cart.");
-        }
-    }
+        await _context.SaveChangesAsync();
 
-    public async Task<ApiResponse<CartItemResponse?>> UpdateCartItemAsync(string userId, int cartItemId, UpdateCartItemRequest request)
-    {
-        try
-        {
-            var item = await _context.CartItems
-                .Include(ci => ci.Cart)
-                .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.Cart.UserId == userId);
-
-            if (item == null) return ApiResponse<CartItemResponse?>.Error("Cart item not found");
-
-            var now = DateTime.UtcNow;
-            if (request.Quantity.HasValue)
-            {
-                item.Quantity = request.Quantity.Value;
-            }
-            if (!string.IsNullOrEmpty(request.Color))
-            {
-                item.Color = request.Color;
-            }
-            item.UpdatedAt = now;
-            item.Cart.UpdatedAt = now;
-            await _context.SaveChangesAsync();
-
-            await AuditAsync("CART_ITEM_UPDATED", "CartItem", cartItemId.ToString(), userId,
-                new { item.ProductId, item.Color, item.Quantity });
-            return ApiResponse<CartItemResponse?>.Success(MapToCartItemResponse(item));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating cart item: {CartItemId} for user: {UserId}", cartItemId, userId);
-            return ApiResponse<CartItemResponse?>.Error("An error occurred while updating cart item.");
-        }
-    }
-
-    public async Task<ApiResponse<bool>> RemoveItemFromCartAsync(string userId, int cartItemId)
-    {
-        try
-        {
-            var item = await _context.CartItems
-                .Include(ci => ci.Cart)
-                .FirstOrDefaultAsync(ci => ci.Id == cartItemId && ci.Cart.UserId == userId);
-
-            if (item == null) return ApiResponse<bool>.Error("Cart item not found");
-
-            _context.CartItems.Remove(item);
-            item.Cart.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            await AuditAsync("CART_ITEM_REMOVED", "CartItem", cartItemId.ToString(), userId, new { item.ProductId });
-            return ApiResponse<bool>.Success(true);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error removing cart item: {CartItemId} for user: {UserId}", cartItemId, userId);
-            return ApiResponse<bool>.Error("An error occurred while removing cart item.");
-        }
-    }
-
-    public async Task<ApiResponse<bool>> ClearCartAsync(string userId)
-    {
-        try
-        {
-            var cart = await _context.Carts
-                .Include(c => c.Items)
-                .FirstOrDefaultAsync(c => c.UserId == userId);
-
-            if (cart == null) return ApiResponse<bool>.Error("Cart not found");
-
-            _context.CartItems.RemoveRange(cart.Items);
-            cart.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            await AuditAsync("CART_CLEARED", "Cart", cart.Id.ToString(), userId, null);
-            return ApiResponse<bool>.Success(true);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error clearing cart for user: {UserId}", userId);
-            return ApiResponse<bool>.Error("An error occurred while clearing cart.");
-        }
-    }
-
-    public async Task<ApiResponse<int>> GetCartItemCountAsync(string userId)
-    {
-        try
-        {
-            var count = await _context.CartItems
-                .Where(ci => ci.Cart.UserId == userId)
-                .SumAsync(ci => ci.Quantity);
-            return ApiResponse<int>.Success(count);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting cart item count for user: {UserId}", userId);
-            return ApiResponse<int>.Error("An error occurred while getting cart item count.");
-        }
-    }
-
-    public async Task<ApiResponse<decimal>> GetCartTotalAsync(string userId)
-    {
-        try
-        {
-            var total = await _context.CartItems
-                .Where(ci => ci.Cart.UserId == userId)
-                .SumAsync(ci => ci.UnitPrice * ci.Quantity);
-            return ApiResponse<decimal>.Success(total);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting cart total for user: {UserId}", userId);
-            return ApiResponse<decimal>.Error("An error occurred while getting cart total.");
-        }
-    }
-
-    public async Task<ApiResponse<CartResponse>> SyncCartAsync(string userId, SyncCartRequest request)
-    {
-        if (request == null || request.Items == null || request.Items.Count == 0)
-        {
-            return ApiResponse<CartResponse>.ValidationError(new List<string> { "Sync request must contain at least one item" });
-        }
-        try
-        {
-            var cart = await GetOrCreateCartAsync(userId);
-
-            foreach (var item in request.Items)
-            {
-                var product = await _catalog.GetSnapshotAsync(item.ProductId);
-                if (product is null || !product.IsActive)
-                {
-                    _logger.LogWarning("Skipping sync item - product not found: {ProductId}", item.ProductId);
-                    continue;
-                }
-                AddOrMerge(cart, product, item.Color, item.Quantity);
-            }
-            await _context.SaveChangesAsync();
-            return ApiResponse<CartResponse>.Success(MapToCartResponse(cart, priceChanged: false));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error syncing cart for user: {UserId}", userId);
-            return ApiResponse<CartResponse>.Error("An error occurred while syncing cart.");
-        }
+        return MapToCartResponse(cart, priceChanged: false);
     }
 
     public async Task<CartSnapshot?> GetSnapshotAsync(string userId)
@@ -268,10 +175,7 @@ public class CartService : ICartService
 
     public async Task<int> ClearAfterOrderAsync(string userId, int orderId)
     {
-        var cart = await _context.Carts
-            .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.UserId == userId);
-
+        var cart = await FindCartAsync(userId);
         if (cart is null || cart.Items.Count == 0)
         {
             return 0;
@@ -286,12 +190,12 @@ public class CartService : ICartService
         return removed;
     }
 
+    private Task<Cart?> FindCartAsync(string userId)
+        => _context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId);
+
     private async Task<Cart> GetOrCreateCartAsync(string userId)
     {
-        var cart = await _context.Carts
-            .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.UserId == userId);
-
+        var cart = await FindCartAsync(userId);
         if (cart != null)
         {
             return cart;
@@ -303,6 +207,20 @@ public class CartService : ICartService
         await _context.SaveChangesAsync();
         return cart;
     }
+
+    /// <summary>A line of the user's own cart; lines of other carts are as unknown as missing ones.</summary>
+    private async Task<(Cart Cart, CartItem Item)> FindLineAsync(string userId, int cartItemId)
+    {
+        var cart = await FindCartAsync(userId);
+        var item = cart?.Items.FirstOrDefault(ci => ci.Id == cartItemId);
+        return item is null
+            ? throw new NotFoundException("Cart item", cartItemId)
+            : (cart!, item);
+    }
+
+    /// <summary>The cart after a change, with the same price refresh a plain read gets.</summary>
+    private async Task<CartResponse> ReadBackAsync(Cart cart)
+        => MapToCartResponse(cart, await RefreshStaleSnapshotsAsync(cart));
 
     /// <summary>
     /// Adds a line for the product and colour, or raises the quantity of the line that already
@@ -378,6 +296,13 @@ public class CartService : ICartService
 
     private Task AuditAsync(string action, string entityName, string? entityId, string userId, object? details)
         => _auditTrail.RecordAsync(action, entityName, entityId, userId, details);
+
+    private static CartResponse EmptyCart(string userId) => new()
+    {
+        UserId = userId,
+        IsEmpty = true,
+        UpdatedAt = DateTime.UtcNow
+    };
 
     private static CartResponse MapToCartResponse(Cart cart, bool priceChanged)
     {

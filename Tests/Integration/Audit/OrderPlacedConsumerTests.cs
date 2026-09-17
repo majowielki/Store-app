@@ -33,8 +33,8 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<AuditApiFactory>
         JsonElement entry = default;
         await Eventually.AssertAsync(async () =>
         {
-            var page = JsonSerializer.Deserialize<JsonElement>(await admin.GetStringAsync("/api/auditlog/entity/Order?entityId=701"), Json);
-            entry = Assert.Single(page.GetProperty("auditLogs").EnumerateArray());
+            var page = JsonSerializer.Deserialize<JsonElement>(await admin.GetStringAsync("/api/v1/auditlog?entityName=Order&entityId=701"), Json);
+            entry = Assert.Single(page.GetProperty("items").EnumerateArray());
         });
         Assert.Equal("ORDER_PLACED", entry.GetProperty("action").GetString());
         Assert.Equal(user, entry.GetProperty("userId").GetString());

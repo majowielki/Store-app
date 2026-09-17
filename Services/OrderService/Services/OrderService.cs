@@ -8,7 +8,6 @@ using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Models;
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -45,65 +44,49 @@ public class OrderService : IOrderService
         _logger = logger;
     }
 
-    public async Task<ApiResponse<OrderResponse>> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null)
+    public async Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null)
     {
-        try
+        var requestHash = idempotencyKey is null ? null : HashRequest(request);
+        if (idempotencyKey is not null)
         {
-            var requestHash = idempotencyKey is null ? null : HashRequest(request);
-            if (idempotencyKey is not null)
+            // A retry of an answered checkout gets the same order back, before any work is done
+            var replayed = await FindAnsweredAsync(idempotencyKey, request.UserId, requestHash!);
+            if (replayed is not null)
             {
-                // A retry of an answered checkout gets the same order back, before any work is done
-                var replayed = await FindAnsweredAsync(idempotencyKey, request.UserId, requestHash!);
-                if (replayed is not null)
-                {
-                    return replayed;
-                }
+                return replayed;
             }
-
-            var cart = await _cart.GetSnapshotAsync(request.UserId);
-            if (cart is null || cart.Lines.Count == 0)
-            {
-                return ApiResponse<OrderResponse>.Error("Cart is empty or not found");
-            }
-
-            // Price the lines from the catalogue as it is now; the cart's prices may be stale
-            var lines = new List<OrderLine>(cart.Lines.Count);
-            foreach (var line in cart.Lines)
-            {
-                var product = await _catalog.GetSnapshotAsync(line.ProductId);
-                if (product is null || !product.IsActive)
-                {
-                    return ApiResponse<OrderResponse>.Error(
-                        $"\"{line.Title}\" is no longer available. Remove it from the cart to continue.",
-                        HttpStatusCode.Conflict);
-                }
-
-                lines.Add(new OrderLine
-                {
-                    ProductId = product.Id,
-                    ProductTitle = product.Title,
-                    ProductImage = product.Image,
-                    Company = product.Company,
-                    Color = line.Color,
-                    UnitPrice = product.EffectivePrice,
-                    Quantity = line.Quantity
-                });
-            }
-
-            var (order, replayedAfterLock) = await PlaceOrderAsync(request, lines, idempotencyKey, requestHash);
-            if (replayedAfterLock is not null)
-            {
-                return replayedAfterLock;
-            }
-
-            // The audit service records the order from the OrderPlaced event
-            return ApiResponse<OrderResponse>.Success(MapToOrderResponse(order));
         }
-        catch (Exception ex)
+
+        var cart = await _cart.GetSnapshotAsync(request.UserId);
+        if (cart is null || cart.Lines.Count == 0)
         {
-            _logger.LogError(ex, "Error creating order from cart for user: {UserId}", request.UserId);
-            return ApiResponse<OrderResponse>.Error("An error occurred while creating the order.", HttpStatusCode.InternalServerError);
+            throw new DomainValidationException("The cart is empty");
         }
+
+        // Price the lines from the catalogue as it is now; the cart's prices may be stale
+        var lines = new List<OrderLine>(cart.Lines.Count);
+        foreach (var line in cart.Lines)
+        {
+            var product = await _catalog.GetSnapshotAsync(line.ProductId);
+            if (product is null || !product.IsActive)
+            {
+                throw new ConflictException($"\"{line.Title}\" is no longer available. Remove it from the cart to continue.");
+            }
+
+            lines.Add(new OrderLine
+            {
+                ProductId = product.Id,
+                ProductTitle = product.Title,
+                ProductImage = product.Image,
+                Company = product.Company,
+                Color = line.Color,
+                UnitPrice = product.EffectivePrice,
+                Quantity = line.Quantity
+            });
+        }
+
+        // The audit service records the order from the OrderPlaced event
+        return await PlaceOrderAsync(request, lines, idempotencyKey, requestHash);
     }
 
     /// <summary>
@@ -112,7 +95,7 @@ public class OrderService : IOrderService
     /// serialised: only one of them can be the first order, and a duplicate that waited on the
     /// lock finds the key its twin stored and returns that order instead of creating another.
     /// </summary>
-    private async Task<(Order Order, ApiResponse<OrderResponse>? Replayed)> PlaceOrderAsync(
+    private async Task<OrderResponse> PlaceOrderAsync(
         CreateOrderFromCartRequest request, List<OrderLine> lines, string? idempotencyKey, string? requestHash)
     {
         var now = DateTime.UtcNow;
@@ -131,7 +114,7 @@ public class OrderService : IOrderService
             if (replayed is not null)
             {
                 await transaction.RollbackAsync();
-                return (null!, replayed);
+                return replayed;
             }
         }
 
@@ -192,11 +175,14 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        return (order, null);
+        return MapToOrderResponse(order);
     }
 
-    /// <summary>The response an earlier request with this key received, or null when the key is new.</summary>
-    private async Task<ApiResponse<OrderResponse>?> FindAnsweredAsync(string idempotencyKey, string userId, string requestHash)
+    /// <summary>
+    /// The order an earlier request with this key received, or null when the key is new. The
+    /// same key with a different body or from a different customer is rejected.
+    /// </summary>
+    private async Task<OrderResponse?> FindAnsweredAsync(string idempotencyKey, string userId, string requestHash)
     {
         var answered = await _context.IdempotencyKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == idempotencyKey);
         if (answered is null)
@@ -206,14 +192,12 @@ public class OrderService : IOrderService
 
         if (answered.UserId != userId || answered.RequestHash != requestHash)
         {
-            return ApiResponse<OrderResponse>.Error(
-                "Idempotency-Key was already used for a different request",
-                HttpStatusCode.UnprocessableEntity);
+            throw new DomainValidationException("Idempotency-Key was already used for a different request");
         }
 
         var order = await _context.Orders.AsNoTracking().Include(o => o.Lines).SingleAsync(o => o.Id == answered.OrderId);
         _logger.LogInformation("Checkout with Idempotency-Key {Key} replayed order {OrderId}", idempotencyKey, order.Id);
-        return ApiResponse<OrderResponse>.Success(MapToOrderResponse(order));
+        return MapToOrderResponse(order);
     }
 
     private static string HashRequest(CreateOrderFromCartRequest request)
@@ -229,164 +213,97 @@ public class OrderService : IOrderService
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
-    public async Task<ApiResponse<OrderResponse?>> GetOrderByIdAsync(int orderId, string userId)
+    public async Task<OrderResponse> GetOrderAsync(int orderId, string userId)
     {
-        try
+        var order = await FindOrderAsync(orderId);
+
+        // Customers only see their own orders; admins go through GetOrderForAdminAsync
+        if (order.UserId != userId)
         {
-            var order = await _context.Orders
-                .AsNoTracking()
-                .Include(o => o.Lines)
-                .FirstOrDefaultAsync(o => o.Id == orderId);
-
-            if (order == null)
-            {
-                return ApiResponse<OrderResponse?>.Error("Order not found", HttpStatusCode.NotFound);
-            }
-
-            // Users only see their own orders; admins go through GetOrderByIdForAdminAsync
-            if (order.UserId != userId)
-            {
-                _logger.LogWarning("User {UserId} attempted to access order {OrderId} belonging to {OrderUserId}",
-                    userId, orderId, order.UserId);
-                return ApiResponse<OrderResponse?>.Error("Unauthorized", HttpStatusCode.Forbidden);
-            }
-
-            return ApiResponse<OrderResponse?>.Success(MapToOrderResponse(order));
+            _logger.LogWarning("User {UserId} attempted to access order {OrderId} belonging to {OrderUserId}",
+                userId, orderId, order.UserId);
+            throw new ForbiddenException("This order belongs to another customer");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving order: {OrderId}", orderId);
-            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.", HttpStatusCode.InternalServerError);
-        }
+
+        return MapToOrderResponse(order);
     }
 
-    public async Task<ApiResponse<OrderResponse?>> GetOrderByIdForAdminAsync(int orderId)
+    public async Task<OrderResponse> GetOrderForAdminAsync(int orderId)
+        => MapToOrderResponse(await FindOrderAsync(orderId));
+
+    private async Task<Order> FindOrderAsync(int orderId)
+        => await _context.Orders
+            .AsNoTracking()
+            .Include(o => o.Lines)
+            .FirstOrDefaultAsync(o => o.Id == orderId)
+            ?? throw new NotFoundException("Order", orderId);
+
+    public Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging)
+        => ListOrdersAsync(_context.Orders.Where(o => o.UserId == userId), paging);
+
+    public Task<PagedResponse<OrderResponse>> GetAllOrdersAsync(PagedQuery paging)
+        => ListOrdersAsync(_context.Orders, paging);
+
+    private static async Task<PagedResponse<OrderResponse>> ListOrdersAsync(IQueryable<Order> query, PagedQuery paging)
     {
-        try
-        {
-            var order = await _context.Orders
-                .AsNoTracking()
-                .Include(o => o.Lines)
-                .FirstOrDefaultAsync(o => o.Id == orderId);
+        paging = paging.Normalized();
+        var totalCount = await query.CountAsync();
 
-            if (order == null)
-            {
-                return ApiResponse<OrderResponse?>.Error("Order not found", HttpStatusCode.NotFound);
-            }
+        var orders = await query
+            .AsNoTracking()
+            .Include(o => o.Lines)
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip(paging.Skip)
+            .Take(paging.PageSize)
+            .ToListAsync();
 
-            return ApiResponse<OrderResponse?>.Success(MapToOrderResponse(order));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving order for admin: {OrderId}", orderId);
-            return ApiResponse<OrderResponse?>.Error("An error occurred while retrieving the order.", HttpStatusCode.InternalServerError);
-        }
+        return new PagedResponse<OrderResponse>(orders.Select(MapToOrderResponse).ToList(), totalCount, paging);
     }
 
-    public Task<ApiResponse<OrderListResponse>> GetUserOrdersAsync(string userId, int page = 1, int pageSize = 20)
-        => ListOrdersAsync(_context.Orders.Where(o => o.UserId == userId), page, pageSize);
+    public Task<int> GetUserOrdersCountAsync(string userId)
+        => _context.Orders.CountAsync(o => o.UserId == userId);
 
-    public Task<ApiResponse<OrderListResponse>> GetOrdersByUserIdAsync(string userId, int page = 1, int pageSize = 20)
-        => GetUserOrdersAsync(userId, page, pageSize);
-
-    public Task<ApiResponse<OrderListResponse>> GetAllOrdersAsync(int page = 1, int pageSize = 20)
-        => ListOrdersAsync(_context.Orders, page, pageSize);
-
-    private async Task<ApiResponse<OrderListResponse>> ListOrdersAsync(IQueryable<Order> query, int page, int pageSize)
+    public async Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = 30)
     {
-        try
-        {
-            page = Math.Max(page, 1);
-            pageSize = Math.Clamp(pageSize, 1, 100);
+        var since = DateTime.UtcNow.Date.AddDays(-Math.Abs(daysWindow));
+        var window = _context.Orders.AsNoTracking().Where(o => o.CreatedAt >= since);
 
-            var totalCount = await query.CountAsync();
+        // Aggregates run in SQL; only one row per day and per product comes back
+        var daily = await window
+            .GroupBy(o => o.CreatedAt.Date)
+            .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Count(), Revenue = g.Sum(o => o.Total) })
+            .OrderBy(b => b.BucketStart)
+            .ToListAsync();
 
-            var orders = await query
-                .AsNoTracking()
-                .Include(o => o.Lines)
-                .OrderByDescending(o => o.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+        var weekly = daily
+            .GroupBy(d => WeekStart(d.BucketStart))
+            .OrderBy(g => g.Key)
+            .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Sum(d => d.Orders), Revenue = g.Sum(d => d.Revenue) })
+            .ToList();
 
-            return ApiResponse<OrderListResponse>.Success(new OrderListResponse
+        var topProducts = await _context.OrderLines.AsNoTracking()
+            .Where(l => l.Order.CreatedAt >= since)
+            .GroupBy(l => new { l.ProductId, l.ProductTitle })
+            .Select(g => new TopProductStats
             {
-                Orders = orders.Select(MapToOrderResponse).ToList(),
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
-            });
-        }
-        catch (Exception ex)
+                ProductId = g.Key.ProductId,
+                ProductTitle = g.Key.ProductTitle,
+                Quantity = g.Sum(l => l.Quantity),
+                Revenue = g.Sum(l => l.UnitPrice * l.Quantity)
+            })
+            .OrderByDescending(p => p.Quantity)
+            .ThenByDescending(p => p.Revenue)
+            .Take(10)
+            .ToListAsync();
+
+        return new OrderStatsResponse
         {
-            _logger.LogError(ex, "Error listing orders");
-            return ApiResponse<OrderListResponse>.Error("An error occurred while retrieving orders.", HttpStatusCode.InternalServerError);
-        }
-    }
-
-    public async Task<ApiResponse<int>> GetUserOrdersCountAsync(string userId)
-    {
-        try
-        {
-            var count = await _context.Orders.CountAsync(o => o.UserId == userId);
-            return ApiResponse<int>.Success(count);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting order count for user: {UserId}", userId);
-            return ApiResponse<int>.Error("An error occurred while getting order count.", HttpStatusCode.InternalServerError);
-        }
-    }
-
-    public async Task<ApiResponse<OrderStatsResponse>> GetOrderStatsAsync(int daysWindow = 30)
-    {
-        try
-        {
-            var since = DateTime.UtcNow.Date.AddDays(-Math.Abs(daysWindow));
-            var window = _context.Orders.AsNoTracking().Where(o => o.CreatedAt >= since);
-
-            // Aggregates run in SQL; only one row per day and per product comes back
-            var daily = await window
-                .GroupBy(o => o.CreatedAt.Date)
-                .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Count(), Revenue = g.Sum(o => o.Total) })
-                .OrderBy(b => b.BucketStart)
-                .ToListAsync();
-
-            var weekly = daily
-                .GroupBy(d => WeekStart(d.BucketStart))
-                .OrderBy(g => g.Key)
-                .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Sum(d => d.Orders), Revenue = g.Sum(d => d.Revenue) })
-                .ToList();
-
-            var topProducts = await _context.OrderLines.AsNoTracking()
-                .Where(l => l.Order.CreatedAt >= since)
-                .GroupBy(l => new { l.ProductId, l.ProductTitle })
-                .Select(g => new TopProductStats
-                {
-                    ProductId = g.Key.ProductId,
-                    ProductTitle = g.Key.ProductTitle,
-                    Quantity = g.Sum(l => l.Quantity),
-                    Revenue = g.Sum(l => l.UnitPrice * l.Quantity)
-                })
-                .OrderByDescending(p => p.Quantity)
-                .ThenByDescending(p => p.Revenue)
-                .Take(10)
-                .ToListAsync();
-
-            return ApiResponse<OrderStatsResponse>.Success(new OrderStatsResponse
-            {
-                TotalOrders = daily.Sum(d => d.Orders),
-                TotalRevenue = daily.Sum(d => d.Revenue),
-                Daily = daily,
-                Weekly = weekly,
-                TopProducts = topProducts
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting order stats");
-            return ApiResponse<OrderStatsResponse>.Error("An error occurred while getting order stats.", HttpStatusCode.InternalServerError);
-        }
+            TotalOrders = daily.Sum(d => d.Orders),
+            TotalRevenue = daily.Sum(d => d.Revenue),
+            Daily = daily,
+            Weekly = weekly,
+            TopProducts = topProducts
+        };
     }
 
     /// <summary>Monday of the ISO week the date falls in.</summary>

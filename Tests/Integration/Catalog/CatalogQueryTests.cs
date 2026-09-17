@@ -33,7 +33,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     private async Task<int> CreateProduct(object product)
     {
         using var admin = _factory.CreateClient().AsTrueAdmin();
-        var response = await admin.PostAsJsonAsync("/api/products", product);
+        var response = await admin.PostAsJsonAsync("/api/v1/products", product);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json).GetProperty("id").GetInt32();
     }
@@ -52,7 +52,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient();
 
-        var response = await client.GetAsync($"/api/products?{query}");
+        var response = await client.GetAsync($"/api/v1/products?{query}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -74,15 +74,15 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
         });
         using var client = _factory.CreateClient();
 
-        var byColour = await GetJson(client, "/api/products?colors=turquoise");
-        var byMaterial = await GetJson(client, "/api/products?materials=rattan");
-        var byOther = await GetJson(client, "/api/products?colors=turquoise&materials=steel");
+        var byColour = await GetJson(client, "/api/v1/products?colors=turquoise");
+        var byMaterial = await GetJson(client, "/api/v1/products?materials=rattan");
+        var byOther = await GetJson(client, "/api/v1/products?colors=turquoise&materials=steel");
 
-        Assert.Contains(byColour.GetProperty("data").EnumerateArray(), p => p.GetProperty("attributes").GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
-        Assert.All(byColour.GetProperty("data").EnumerateArray(), p =>
-            Assert.Contains("turquoise", p.GetProperty("attributes").GetProperty("colors").EnumerateArray().Select(c => c.GetString())));
-        Assert.Contains(byMaterial.GetProperty("data").EnumerateArray(), p => p.GetProperty("attributes").GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
-        Assert.DoesNotContain(byOther.GetProperty("data").EnumerateArray(), p => p.GetProperty("attributes").GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
+        Assert.Contains(byColour.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
+        Assert.All(byColour.GetProperty("items").EnumerateArray(), p =>
+            Assert.Contains("turquoise", p.GetProperty("colors").EnumerateArray().Select(c => c.GetString())));
+        Assert.Contains(byMaterial.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
+        Assert.DoesNotContain(byOther.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -90,17 +90,19 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient();
 
-        var page = await GetJson(client, "/api/products?page=1");
-        var pagination = page.GetProperty("meta").GetProperty("pagination");
-        var total = pagination.GetProperty("total").GetInt32();
-        var pageSize = pagination.GetProperty("pageSize").GetInt32();
+        var page = await GetJson(client, "/api/v1/products?page=1");
+        var total = page.GetProperty("totalCount").GetInt32();
+        var pageSize = page.GetProperty("pageSize").GetInt32();
+        var totalPages = page.GetProperty("totalPages").GetInt32();
 
         Assert.True(total > pageSize, "the seed data should span more than one page");
-        Assert.Equal(pageSize, page.GetProperty("data").GetArrayLength());
-        Assert.Equal((int)Math.Ceiling(total / (double)pageSize), pagination.GetProperty("pageCount").GetInt32());
+        Assert.Equal(pageSize, page.GetProperty("items").GetArrayLength());
+        Assert.Equal((int)Math.Ceiling(total / (double)pageSize), totalPages);
+        Assert.True(page.GetProperty("hasNextPage").GetBoolean());
 
-        var lastPage = await GetJson(client, $"/api/products?page={pagination.GetProperty("pageCount").GetInt32()}");
-        Assert.InRange(lastPage.GetProperty("data").GetArrayLength(), 1, pageSize);
+        var lastPage = await GetJson(client, $"/api/v1/products?page={totalPages}");
+        Assert.InRange(lastPage.GetProperty("items").GetArrayLength(), 1, pageSize);
+        Assert.False(lastPage.GetProperty("hasNextPage").GetBoolean());
     }
 
     [Fact]
@@ -108,12 +110,11 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     {
         using var client = _factory.CreateClient();
 
-        var lower = await GetJson(client, "/api/products?search=sofa");
-        var upper = await GetJson(client, "/api/products?search=SOFA");
+        var lower = await GetJson(client, "/api/v1/products?search=sofa");
+        var upper = await GetJson(client, "/api/v1/products?search=SOFA");
 
-        Assert.True(lower.GetProperty("data").GetArrayLength() > 0);
-        Assert.Equal(lower.GetProperty("meta").GetProperty("pagination").GetProperty("total").GetInt32(),
-                     upper.GetProperty("meta").GetProperty("pagination").GetProperty("total").GetInt32());
+        Assert.True(lower.GetProperty("items").GetArrayLength() > 0);
+        Assert.Equal(lower.GetProperty("totalCount").GetInt32(), upper.GetProperty("totalCount").GetInt32());
     }
 
     // Regression: the sale price was shown on the page but never charged
@@ -144,11 +145,11 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
         });
         using var client = _factory.CreateClient();
 
-        var saleProduct = await GetJson(client, $"/api/products/{onSale}");
-        var discountedProduct = await GetJson(client, $"/api/products/{discounted}");
+        var saleProduct = await GetJson(client, $"/api/v1/products/{onSale}");
+        var discountedProduct = await GetJson(client, $"/api/v1/products/{discounted}");
 
-        Assert.Equal("800.00", saleProduct.GetProperty("data").GetProperty("attributes").GetProperty("effectivePrice").GetString());
-        Assert.Equal("150.00", discountedProduct.GetProperty("data").GetProperty("attributes").GetProperty("effectivePrice").GetString());
+        Assert.Equal(800m, saleProduct.GetProperty("effectivePrice").GetDecimal());
+        Assert.Equal(150m, discountedProduct.GetProperty("effectivePrice").GetDecimal());
     }
 
     // Regression: the admin form sent enum names and strings the API could not deserialise
@@ -157,7 +158,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     {
         using var admin = _factory.CreateClient().AsTrueAdmin();
 
-        var response = await admin.PostAsJsonAsync("/api/products", new
+        var response = await admin.PostAsJsonAsync("/api/v1/products", new
         {
             title = "Form product",
             description = "Created with enum names, arrays and a boolean the way the admin form submits.",

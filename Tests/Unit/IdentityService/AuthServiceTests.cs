@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Models;
@@ -51,29 +52,28 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_ReturnsError_WhenUserExists()
+    public async Task RegisterAsync_Throws_Conflict_WhenUserExists()
     {
         var request = new RegisterRequest { Email = "test@example.com", Password = "Password123", ConfirmPassword = "Password123" };
         _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync(new ApplicationUser());
-        var result = await _authService.RegisterAsync(request);
-        Assert.False(result.IsSuccess);
-        Assert.Contains("already exists", result.Message);
+        var conflict = await Assert.ThrowsAsync<ConflictException>(() => _authService.RegisterAsync(request));
+        Assert.Contains("already exists", conflict.Message);
     }
 
     [Fact]
-    public async Task RegisterAsync_ReturnsValidationError_WhenPasswordInvalid()
+    public async Task RegisterAsync_Throws_Validation_WhenPasswordInvalid()
     {
         var request = new RegisterRequest { Email = "test2@example.com", Password = "short", ConfirmPassword = "short" };
         _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser?)null);
         _userManagerMock.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), request.Password))
-            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Password too short" }));
-        var result = await _authService.RegisterAsync(request);
-        Assert.False(result.IsSuccess);
-        Assert.Contains("Password too short", result.Errors[0]);
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "PasswordTooShort", Description = "Password too short" }));
+        var rejected = await Assert.ThrowsAsync<DomainValidationException>(() => _authService.RegisterAsync(request));
+        Assert.Equal(422, rejected.StatusCode);
+        Assert.Contains("Password too short", rejected.Errors!["Password"]);
     }
 
     [Fact]
-    public async Task RegisterAsync_ReturnsSuccess_WhenValid()
+    public async Task RegisterAsync_Issues_A_Token_WhenValid()
     {
         var request = new RegisterRequest { Email = "test3@example.com", Password = "Password123", ConfirmPassword = "Password123" };
         _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser?)null);
@@ -82,8 +82,8 @@ public class AuthServiceTests
         _roleManagerMock.Setup(x => x.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         _userManagerMock.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
         var result = await _authService.RegisterAsync(request);
-        Assert.True(result.IsSuccess);
-        Assert.Equal("Registration successful", result.Data!.Message);
+        Assert.NotEmpty(result.AccessToken);
+        Assert.Equal(request.Email, result.User.Email);
     }
 
     // Helper mocks for UserManager/SignInManager/RoleManager

@@ -2,7 +2,7 @@ using Store.Contracts.Catalog;
 
 namespace Store.ProductService.DTOs.Requests;
 
-/// <summary>Body of POST /api/products. Rules: <c>CreateProductRequestValidator</c>.</summary>
+/// <summary>Body of POST /api/v1/products. Rules: <c>CreateProductRequestValidator</c>.</summary>
 public class CreateProductRequest
 {
     public string Title { get; set; } = string.Empty;

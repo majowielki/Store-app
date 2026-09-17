@@ -27,7 +27,8 @@ public sealed class OrderPlacedConsumer : IConsumer<OrderPlaced>
     public async Task Consume(ConsumeContext<OrderPlaced> context)
     {
         var order = context.Message;
-        var result = await _auditLogService.CreateAuditLogAsync(new AuditLog
+        // A database that refuses the row throws: the bus retries and, after that, parks the event in the error queue
+        await _auditLogService.CreateAuditLogAsync(new AuditLog
         {
             Action = "ORDER_PLACED",
             EntityName = "Order",
@@ -45,11 +46,5 @@ public sealed class OrderPlacedConsumer : IConsumer<OrderPlaced>
                 Lines = order.Lines.Select(l => new { l.ProductId, l.Quantity, l.UnitPrice })
             }, JsonOptions)
         });
-
-        if (!result.IsSuccess)
-        {
-            // Let the bus retry and, after that, park the event in the error queue
-            throw new InvalidOperationException($"Audit entry for order {order.OrderId} could not be stored: {result.Message}");
-        }
     }
 }

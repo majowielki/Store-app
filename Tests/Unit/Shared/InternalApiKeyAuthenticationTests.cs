@@ -31,7 +31,7 @@ public class InternalApiKeyAuthenticationTests
             Options.Create(new InternalApiOptions { ApiKey = ValidKey }));
 
         var context = new DefaultHttpContext();
-        context.Request.Path = "/api/auditlog/internal";
+        context.Request.Path = "/api/v1/auditlog/internal";
         if (presentedKey is not null)
         {
             context.Request.Headers[InternalApiOptions.HeaderName] = presentedKey;
@@ -102,7 +102,7 @@ public class InternalApiKeyAuthenticationTests
             BaseAddress = new Uri("http://auditlogservice")
         };
 
-        await client.PostAsync("/api/auditlog/internal", new StringContent("{}"));
+        await client.PostAsync("/api/v1/auditlog/internal", new StringContent("{}"));
 
         Assert.NotNull(captured);
         Assert.Equal(ValidKey, captured!.Headers.GetValues(InternalApiOptions.HeaderName).Single());

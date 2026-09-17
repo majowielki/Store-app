@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Models;
+using Store.AuditLogService.Services;
+using Store.BuildingBlocks.Api;
 using Xunit;
 
 namespace Store.Tests.Unit.AuditLogService;
@@ -29,17 +31,14 @@ public class AuditLogServiceTests
     public async Task CreateAuditLogAsync_Creates_And_Returns_Id()
     {
         var log = new AuditLog { Action = "CREATE", EntityName = "TestEntity", Timestamp = System.DateTime.UtcNow };
-        var result = await _auditLogService.CreateAuditLogAsync(log);
-        Assert.True(result.IsSuccess);
-        Assert.True(result.Data > 0);
+        var id = await _auditLogService.CreateAuditLogAsync(log);
+        Assert.True(id > 0);
     }
 
     [Fact]
-    public async Task GetAuditLogAsync_Returns_Error_If_Not_Found()
+    public async Task GetAuditLogAsync_Throws_NotFound_If_Not_Found()
     {
-        var result = await _auditLogService.GetAuditLogAsync(999);
-        Assert.False(result.IsSuccess);
-        Assert.Contains("not found", result.Message);
+        await Assert.ThrowsAsync<NotFoundException>(() => _auditLogService.GetAuditLogAsync(999));
     }
 
     [Fact]
@@ -49,9 +48,7 @@ public class AuditLogServiceTests
         _dbContext.AuditLogs.Add(log);
         await _dbContext.SaveChangesAsync();
         var result = await _auditLogService.GetAuditLogAsync(log.Id);
-        Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Data);
-        Assert.Equal(log.Id, result.Data.Id);
+        Assert.Equal(log.Id, result.Id);
     }
 
     [Fact]
@@ -62,8 +59,9 @@ public class AuditLogServiceTests
             _dbContext.AuditLogs.Add(new AuditLog { Action = "PAGE", EntityName = "Entity", Timestamp = System.DateTime.UtcNow });
         }
         await _dbContext.SaveChangesAsync();
-        var result = await _auditLogService.GetAuditLogsAsync(1, 3);
-        Assert.True(result.IsSuccess);
-        Assert.True(result.Data!.Count() <= 3);
+        var result = await _auditLogService.GetAuditLogsAsync(new AuditLogQuery(), new PagedQuery { Page = 1, PageSize = 3 });
+        Assert.Equal(3, result.Items.Count);
+        Assert.Equal(5, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
     }
 }

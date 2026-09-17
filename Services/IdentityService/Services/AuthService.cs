@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
@@ -9,7 +8,6 @@ using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
 using Store.IdentityService.Seeding;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net;
 using System.Security.Claims;
 using System.Text;
 
@@ -40,312 +38,167 @@ public class AuthService : IAuthService
         _auditTrail = auditTrail;
     }
 
-    public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
-        try
+        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+        if (existingUser != null)
         {
-            var existingUser = await _userManager.FindByEmailAsync(request.Email);
-            if (existingUser != null)
-            {
-                return ApiResponse<AuthResponse>.Error("User with this email already exists");
-            }
-            var user = new ApplicationUser
-            {
-                UserName = request.Email,
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                EmailConfirmed = true,
-                IsActive = true
-            };
-            var result = await _userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<AuthResponse>.ValidationError(errors);
-            }
-            await EnsureRoleExistsAsync(Roles.User);
-            await _userManager.AddToRoleAsync(user, Roles.User);
-            _logger.LogInformation("User registered successfully: {Email}", request.Email);
-            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
-            var authResponse = new AuthResponse
-            {
-                Success = true,
-                Message = "Registration successful",
-                AccessToken = accessToken,
-                ExpiresAt = expiresAt,
-                User = await MapToUserResponseAsync(user)
-            };
-            return ApiResponse<AuthResponse>.Success(authResponse);
+            throw new ConflictException("User with this email already exists");
         }
-        catch (Exception ex)
+
+        var user = new ApplicationUser
         {
-            _logger.LogError(ex, "Error during user registration");
-            return ApiResponse<AuthResponse>.Error("An error occurred during registration");
+            UserName = request.Email,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            EmailConfirmed = true,
+            IsActive = true
+        };
+        var result = await _userManager.CreateAsync(user, request.Password);
+        if (!result.Succeeded)
+        {
+            throw RejectedByIdentity(result, "The account could not be created");
         }
+
+        await EnsureRoleExistsAsync(Roles.User);
+        await _userManager.AddToRoleAsync(user, Roles.User);
+        _logger.LogInformation("User registered successfully: {Email}", request.Email);
+        return await IssueAsync(user);
     }
 
-    public async Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request)
+    public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(request.Email)
+            ?? throw new InvalidCredentialsException();
+        if (!user.IsActive)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
-            if (user == null)
-            {
-                return ApiResponse<AuthResponse>.Error("Invalid email or password");
-            }
-            if (!user.IsActive)
-            {
-                return ApiResponse<AuthResponse>.Error("Account is deactivated");
-            }
-            // lockoutOnFailure: true - failed attempts count towards Identity's lockout
-            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-            if (result.IsLockedOut)
-            {
-                _logger.LogWarning("Login rejected: account locked out for {Email}", request.Email);
-                return ApiResponse<AuthResponse>.Error("Account is temporarily locked. Try again later.", HttpStatusCode.Locked);
-            }
-            if (!result.Succeeded)
-            {
-                return ApiResponse<AuthResponse>.Error("Invalid email or password");
-            }
-            user.LastLoginAt = DateTime.UtcNow;
-            user.UpdatedAt = DateTime.UtcNow;
-            await _userManager.UpdateAsync(user);
-            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
-            _logger.LogInformation("User logged in successfully: {Email}", request.Email);
-            var authResponse = new AuthResponse
-            {
-                Success = true,
-                Message = "Login successful",
-                AccessToken = accessToken,
-                ExpiresAt = expiresAt,
-                User = await MapToUserResponseAsync(user)
-            };
-            return ApiResponse<AuthResponse>.Success(authResponse);
+            throw new InvalidCredentialsException("Account is deactivated");
         }
-        catch (Exception ex)
+
+        // lockoutOnFailure: true - failed attempts count towards Identity's lockout
+        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+        if (result.IsLockedOut)
         {
-            _logger.LogError(ex, "Error during login");
-            return ApiResponse<AuthResponse>.Error("An error occurred during login");
+            _logger.LogWarning("Login rejected: account locked out for {Email}", request.Email);
+            throw new AccountLockedException();
         }
+        if (!result.Succeeded)
+        {
+            throw new InvalidCredentialsException();
+        }
+
+        await RecordLoginAsync(user);
+        _logger.LogInformation("User logged in successfully: {Email}", request.Email);
+        return await IssueAsync(user);
     }
 
-    public async Task<ApiResponse<AuthResponse>> DemoLoginAsync(DemoLoginRequest request)
+    public Task<AuthResponse> DemoLoginAsync() => DemoSignInAsync(SeedAccounts.DemoUserEmail, "Demo user");
+
+    public Task<AuthResponse> DemoAdminLoginAsync() => DemoSignInAsync(SeedAccounts.DemoAdminEmail, "Demo admin");
+
+    private async Task<AuthResponse> DemoSignInAsync(string email, string account)
     {
-        try
-        {
-            var demoUser = await _userManager.FindByEmailAsync(SeedAccounts.DemoUserEmail);
-            if (demoUser == null)
-            {
-                _logger.LogError("Demo user not found. Should be created during database initialization.");
-                return ApiResponse<AuthResponse>.Error("Demo user not available");
-            }
-            demoUser.LastLoginAt = DateTime.UtcNow;
-            demoUser.UpdatedAt = DateTime.UtcNow;
-            await _userManager.UpdateAsync(demoUser);
-            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(demoUser);
-            _logger.LogInformation("Demo user logged in successfully");
-            var authResponse = new AuthResponse
-            {
-                Success = true,
-                Message = "Demo login successful",
-                AccessToken = accessToken,
-                ExpiresAt = expiresAt,
-                User = await MapToUserResponseAsync(demoUser)
-            };
-            return ApiResponse<AuthResponse>.Success(authResponse);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during demo login");
-            return ApiResponse<AuthResponse>.Error("An error occurred during demo login");
-        }
+        // The demo accounts are seeded at start-up; a missing one is a deployment fault, not a client error
+        var user = await _userManager.FindByEmailAsync(email)
+            ?? throw new InvalidOperationException($"{account} not found. It should be created during database initialization.");
+
+        await RecordLoginAsync(user);
+        _logger.LogInformation("{Account} logged in successfully", account);
+        return await IssueAsync(user);
     }
 
-    public async Task<ApiResponse<AuthResponse>> DemoAdminLoginAsync(DemoAdminLoginRequest request)
+    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
     {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
+        ClaimsPrincipal principal;
         try
         {
-            var demoAdmin = await _userManager.FindByEmailAsync(SeedAccounts.DemoAdminEmail);
-            if (demoAdmin == null)
+            principal = tokenHandler.ValidateToken(request.Token, new TokenValidationParameters
             {
-                _logger.LogError("Demo admin not found. Should be created during database initialization.");
-                return ApiResponse<AuthResponse>.Error("Demo admin not available");
-            }
-            demoAdmin.LastLoginAt = DateTime.UtcNow;
-            demoAdmin.UpdatedAt = DateTime.UtcNow;
-            await _userManager.UpdateAsync(demoAdmin);
-            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(demoAdmin);
-            _logger.LogInformation("Demo admin logged in successfully");
-            var authResponse = new AuthResponse
-            {
-                Success = true,
-                Message = "Demo admin login successful",
-                AccessToken = accessToken,
-                ExpiresAt = expiresAt,
-                User = await MapToUserResponseAsync(demoAdmin)
-            };
-            return ApiResponse<AuthResponse>.Success(authResponse);
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidIssuer = _configuration["JwtSettings:Issuer"],
+                ValidAudience = _configuration["JwtSettings:Audience"],
+                ValidateLifetime = false,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.LogError(ex, "Error during demo admin login");
-            return ApiResponse<AuthResponse>.Error("An error occurred during demo admin login");
+            throw new InvalidCredentialsException("Invalid token");
         }
+
+        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            throw new InvalidCredentialsException("Invalid token");
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null || !user.IsActive)
+        {
+            throw new InvalidCredentialsException("User not found or inactive");
+        }
+
+        _logger.LogInformation("Token refreshed successfully for user: {UserId}", userId);
+        return await IssueAsync(user);
     }
 
-    public async Task<ApiResponse<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request)
+    public async Task<UserResponse> GetUserAsync(string userId)
+        => await MapToUserResponseAsync(await FindUserAsync(userId));
+
+    public async Task<UserResponse> UpdateAddressAsync(string userId, string simpleAddress)
     {
-        try
+        var user = await FindUserAsync(userId);
+
+        var oldAddress = user.SimpleAddress;
+        user.SimpleAddress = string.IsNullOrWhiteSpace(simpleAddress) ? null : simpleAddress.Trim();
+        user.UpdatedAt = DateTime.UtcNow;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
-            ClaimsPrincipal principal;
-            try
-            {
-                principal = tokenHandler.ValidateToken(request.Token, new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidIssuer = _configuration["JwtSettings:Issuer"],
-                    ValidAudience = _configuration["JwtSettings:Audience"],
-                    ValidateLifetime = false,
-                    ClockSkew = TimeSpan.Zero
-                }, out SecurityToken validatedToken);
-            }
-            catch (Exception)
-            {
-                return ApiResponse<AuthResponse>.Error("Invalid token");
-            }
-            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-            {
-                return ApiResponse<AuthResponse>.Error("Invalid token");
-            }
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null || !user.IsActive)
-            {
-                return ApiResponse<AuthResponse>.Error("User not found or inactive");
-            }
-            var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
-            _logger.LogInformation("Token refreshed successfully for user: {UserId}", userId);
-            var authResponse = new AuthResponse
-            {
-                Success = true,
-                Message = "Token refreshed successfully",
-                AccessToken = accessToken,
-                ExpiresAt = expiresAt,
-                User = await MapToUserResponseAsync(user)
-            };
-            return ApiResponse<AuthResponse>.Success(authResponse);
+            throw RejectedByIdentity(result, "The address could not be saved");
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during token refresh");
-            return ApiResponse<AuthResponse>.Error("An error occurred during token refresh");
-        }
+
+        await _auditTrail.RecordAsync("USER_ADDRESS_UPDATED", nameof(ApplicationUser), user.Id, user.Id,
+            oldValues: new { SimpleAddress = oldAddress is null ? null : "(set)" },
+            newValues: new { SimpleAddress = user.SimpleAddress is null ? null : "(set)" });
+
+        return await MapToUserResponseAsync(user);
     }
 
-    public async Task<ApiResponse<UserResponse>> GetCurrentUserAsync(string userId)
-    {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return ApiResponse<UserResponse>.Error("User not found");
-            }
+    private async Task<ApplicationUser> FindUserAsync(string userId)
+        => await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException("User", userId);
 
-            var userResponse = await MapToUserResponseAsync(user);
-            return ApiResponse<UserResponse>.Success(userResponse);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving current user");
-            return ApiResponse<UserResponse>.Error("An error occurred while retrieving user information");
-        }
+    private async Task RecordLoginAsync(ApplicationUser user)
+    {
+        user.LastLoginAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
     }
 
-    public async Task<ApiResponse<UserResponse>> GetUserAsync(string userId)
+    /// <summary>Identity's own rules (password policy, user name characters) as a validation problem.</summary>
+    private static DomainValidationException RejectedByIdentity(IdentityResult result, string message)
     {
-        try
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return ApiResponse<UserResponse>.Error("User not found");
-            }
-
-            var userResponse = await MapToUserResponseAsync(user);
-            return ApiResponse<UserResponse>.Success(userResponse);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving user");
-            return ApiResponse<UserResponse>.Error("An error occurred while retrieving user information");
-        }
+        var errors = result.Errors
+            .GroupBy(e => e.Code.Contains("Password", StringComparison.Ordinal) ? "Password" : "Email")
+            .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+        return new DomainValidationException(message, errors);
     }
 
-    public async Task<ApiResponse<UserResponse>> UpdateAddressAsync(string userId, string simpleAddress)
+    private async Task<AuthResponse> IssueAsync(ApplicationUser user)
     {
-        try
+        var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
+        return new AuthResponse
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return ApiResponse<UserResponse>.Error("User not found", System.Net.HttpStatusCode.NotFound);
-            }
-
-            var oldAddress = user.SimpleAddress;
-            user.SimpleAddress = string.IsNullOrWhiteSpace(simpleAddress) ? null : simpleAddress.Trim();
-            user.UpdatedAt = DateTime.UtcNow;
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                var errors = result.Errors.Select(e => e.Description).ToList();
-                return ApiResponse<UserResponse>.ValidationError(errors);
-            }
-
-            await _auditTrail.RecordAsync("USER_ADDRESS_UPDATED", nameof(ApplicationUser), user.Id, user.Id,
-                oldValues: new { SimpleAddress = oldAddress is null ? null : "(set)" },
-                newValues: new { SimpleAddress = user.SimpleAddress is null ? null : "(set)" });
-
-            var mapped = await MapToUserResponseAsync(user);
-            return ApiResponse<UserResponse>.Success(mapped);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating user address for {UserId}", userId);
-            return ApiResponse<UserResponse>.Error("An error occurred while updating address");
-        }
-    }
-
-    public async Task<ApiResponse<IEnumerable<UserResponse>>> GetAllUsersAsync(int page = 1, int pageSize = 20)
-    {
-        try
-        {
-            var skip = (page - 1) * pageSize;
-            var users = await _userManager.Users
-                .Skip(skip)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var userResponses = new List<UserResponse>();
-            foreach (var user in users)
-            {
-                userResponses.Add(await MapToUserResponseAsync(user));
-            }
-
-            return ApiResponse<IEnumerable<UserResponse>>.Success(userResponses);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving all users");
-            return ApiResponse<IEnumerable<UserResponse>>.Error("An error occurred while retrieving users");
-        }
+            AccessToken = accessToken,
+            ExpiresAt = expiresAt,
+            User = await MapToUserResponseAsync(user)
+        };
     }
 
     private async Task<(string token, DateTime expiresAt)> GenerateAccessTokenAsync(ApplicationUser user)
@@ -414,5 +267,4 @@ public class AuthService : IAuthService
             await _roleManager.CreateAsync(new IdentityRole(roleName));
         }
     }
-
 }

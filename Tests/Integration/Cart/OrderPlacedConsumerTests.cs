@@ -31,8 +31,8 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<CartApiFactory>
         Lines: new[] { new OrderPlacedLine(9101, "Ten", 1, 10m) }, PlacedAt: DateTime.UtcNow);
 
     private static async Task<int> LineCount(HttpClient client)
-        => JsonSerializer.Deserialize<JsonElement>(await client.GetStringAsync("/api/cart"), Json)
-            .GetProperty("data").GetProperty("items").GetArrayLength();
+        => JsonSerializer.Deserialize<JsonElement>(await client.GetStringAsync("/api/v1/cart"), Json)
+            .GetProperty("items").GetArrayLength();
 
     [Fact]
     public async Task Placed_order_empties_the_cart()
@@ -40,7 +40,7 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<CartApiFactory>
         const string user = "cart-consumer-clear";
         _factory.Catalog.Add(id: 9101, price: 10m, title: "Ten");
         using var client = _factory.CreateClient().AsUser(user);
-        await client.PostAsJsonAsync("/api/cart/items", new { productId = 9101, quantity = 2, color = "black" });
+        await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9101, quantity = 2, color = "black" });
         Assert.Equal(1, await LineCount(client));
 
         await _factory.Bus.Bus.Publish(OrderFor(user, orderId: 501));
@@ -56,14 +56,14 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<CartApiFactory>
         const string user = "cart-consumer-dedupe";
         _factory.Catalog.Add(id: 9101, price: 10m, title: "Ten");
         using var client = _factory.CreateClient().AsUser(user);
-        await client.PostAsJsonAsync("/api/cart/items", new { productId = 9101, quantity = 1, color = "black" });
+        await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9101, quantity = 1, color = "black" });
         var messageId = Guid.NewGuid();
 
         await _factory.Bus.Bus.Publish(OrderFor(user, orderId: 502), context => context.MessageId = messageId);
         await Eventually.AssertAsync(async () => Assert.Equal(0, await LineCount(client)));
 
         // The customer starts a new cart, then the broker delivers the same message again
-        await client.PostAsJsonAsync("/api/cart/items", new { productId = 9101, quantity = 1, color = "white" });
+        await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9101, quantity = 1, color = "white" });
         await _factory.Bus.Bus.Publish(OrderFor(user, orderId: 502), context => context.MessageId = messageId);
         await Task.Delay(TimeSpan.FromSeconds(2));
 

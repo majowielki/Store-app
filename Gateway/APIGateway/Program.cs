@@ -9,7 +9,6 @@ using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.GatewayService.RateLimiting;
-using System.Text.Json;
 using System.Threading.RateLimiting;
 using Yarp.ReverseProxy.Transforms;
 
@@ -20,13 +19,8 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Add services to the container.
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
-    });
+// The few endpoints the gateway serves itself follow the same conventions as the services
+builder.Services.AddStandardApiControllers();
 
 // JWT Authentication - key, issuer and audience come from validated JwtOptions
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
@@ -204,7 +198,7 @@ forwardedHeadersOptions.KnownNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
-app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseStoreProblemDetails();
 
 if (app.Environment.IsDevelopment())
 {

@@ -33,4 +33,17 @@ public static class AuthorizationExtensions
     /// <summary>True when the principal is the read-only demo administrator.</summary>
     public static bool IsDemoAdmin(this ClaimsPrincipal principal)
         => principal.IsInRole(Roles.DemoAdmin);
+
+    /// <summary>
+    /// Id of the signed-in user. Every token the identity service issues carries it, so a
+    /// principal without one passed authentication with a token this store never issued;
+    /// the request ends as 401.
+    /// </summary>
+    public static string GetRequiredUserId(this ClaimsPrincipal principal)
+    {
+        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return string.IsNullOrEmpty(userId)
+            ? throw new UnauthorizedAccessException("The token carries no user id")
+            : userId;
+    }
 }

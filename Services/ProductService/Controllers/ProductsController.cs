@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Store.BuildingBlocks.Api;
 using Store.Contracts.Authorization;
 using Store.Contracts.Catalog;
 using Store.ProductService.DTOs.Requests;
@@ -8,232 +9,84 @@ using Store.ProductService.Services;
 
 namespace Store.ProductService.Controllers;
 
+/// <summary>
+/// The catalogue. Reads are public and show active products only; writes need the true
+/// administrator. Errors arrive as problem responses from the shared exception handler.
+/// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/products")]
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
-    private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(IProductService productService, ILogger<ProductsController> logger)
+    public ProductsController(IProductService productService)
     {
         _productService = productService;
-        _logger = logger;
     }
 
     /// <summary>Id of the signed-in administrator, for the audit trail.</summary>
     private string? ActorId => User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-    /// <summary>
-    /// Get all products with filtering and pagination (Frontend compatible)
-    /// Returns: ProductsResponse = { data: Product[]; meta: ProductsMeta; }
-    /// Product = { id: number; attributes: { category, company, createdAt, description, featured, image, price, publishedAt, title, updatedAt, colors } }
-    /// </summary>
-    /// <param name="queryParams">Query parameters for filtering and pagination</param>
-    /// <returns>Products response in frontend format</returns>
+    /// <summary>A page of the public catalogue, filtered and sorted by the query.</summary>
     [HttpGet]
-    public async Task<ActionResult<ProductsResponse>> GetProducts([FromQuery] ProductQueryParams queryParams)
-    {
-        try
-        {
-            var result = await _productService.GetProductsForFrontendAsync(queryParams);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving products");
-            return StatusCode(500, "An error occurred while retrieving products");
-        }
-    }
+    public Task<PagedResponse<ProductResponse>> GetProducts([FromQuery] ProductQueryParams queryParams)
+        => _productService.GetProductsAsync(queryParams);
+
+    /// <summary>One active product; 404 for an unknown or deleted id.</summary>
+    [HttpGet("{id:int}")]
+    public Task<ProductResponse> GetProduct(int id)
+        => _productService.GetProductAsync(id);
+
+    /// <summary>The values the catalogue can be filtered by.</summary>
+    [HttpGet("meta")]
+    public ProductsMeta GetProductsMeta()
+        => _productService.GetProductsMeta();
 
     /// <summary>
-    /// Get a specific product by ID (Frontend compatible)
-    /// Returns: SingleProductResponse = { data: Product; meta: {} }
+    /// Every product, inactive ones included, sorted by <paramref name="sortBy"/> (id, price,
+    /// title, company) in <paramref name="sortDir"/> (asc, desc).
     /// </summary>
-    /// <param name="id">Product ID</param>
-    /// <returns>Product details in frontend format</returns>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<SingleProductResponse>> GetProduct(int id)
-    {
-        try
-        {
-            var product = await _productService.GetProductForFrontendAsync(id);
-            return Ok(product);
-        }
-        catch (ArgumentException)
-        {
-            return NotFound($"Product with ID {id} not found");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving product with ID: {ProductId}", id);
-            return StatusCode(500, "An error occurred while retrieving the product");
-        }
-    }
+    [HttpGet("admin")]
+    [Authorize(Policy = Policies.Admin)]
+    public Task<PagedResponse<ProductResponse>> GetProductsAdmin(
+        [FromQuery] ProductQueryParams queryParams,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDir = null)
+        => _productService.GetProductsForAdminAsync(queryParams, sortBy, sortDir);
 
-    /// <summary>
-    /// Search products that contain the searched phrase
-    /// </summary>
-    /// <param name="search">Search term</param>
-    /// <param name="page">Page number (default: 1)</param>
-    /// <returns>List of matching products in frontend format</returns>
-    [HttpGet("search")]
-    public async Task<ActionResult<ProductsResponse>> SearchProducts(
-        [FromQuery] string search,
-        [FromQuery] int page = 1)
-    {
-        if (string.IsNullOrEmpty(search))
-        {
-            return BadRequest("Search term is required");
-        }
-
-        try
-        {
-            var queryParams = new ProductQueryParams { Search = search, Page = page };
-            var result = await _productService.GetProductsForFrontendAsync(queryParams);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching products with term: {SearchTerm}", search);
-            return StatusCode(500, "An error occurred while searching products");
-        }
-    }
-
-    /// <summary>
-    /// Create a new product
-    /// </summary>
-    /// <param name="request">Product creation data</param>
-    /// <returns>Created product</returns>
+    /// <summary>Creates a product; the body is validated before the action runs.</summary>
     [HttpPost]
     [Authorize(Policy = Policies.AdminWrite)]
     public async Task<ActionResult<ProductResponse>> CreateProduct([FromBody] CreateProductRequest request)
     {
-        // FluentValidation will handle validation automatically; demo-admin is rejected by the policy (403)
-        try
-        {
-            var product = await _productService.CreateProductAsync(request, ActorId);
-            return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating product: {ProductTitle}", request.Title);
-            return StatusCode(500, "An error occurred while creating the product");
-        }
+        var product = await _productService.CreateProductAsync(request, ActorId);
+        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
     }
 
-    /// <summary>
-    /// Update an existing product
-    /// </summary>
-    /// <param name="id">Product ID</param>
-    /// <param name="request">Product update data</param>
-    /// <returns>Updated product</returns>
-    [HttpPut("{id}")]
+    /// <summary>Partial update: absent fields keep their value, the nullable ones can be cleared with null.</summary>
+    [HttpPut("{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
-    public async Task<ActionResult<ProductResponse>> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
-    {
-        // FluentValidation rejects invalid fields before the action runs; absent fields keep their value
-        try
-        {
-            var product = await _productService.UpdateProductAsync(id, request, ActorId);
-
-            if (product == null)
-            {
-                return NotFound($"Product with ID {id} not found");
-            }
-
-            return Ok(product);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating product with ID: {ProductId}", id);
-            return StatusCode(500, "An error occurred while updating the product");
-        }
-    }
+    public Task<ProductResponse> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
+        => _productService.UpdateProductAsync(id, request, ActorId);
 
     /// <summary>
-    /// Delete a product: it disappears from the public catalogue but stays in the database, so
-    /// past orders keep a valid reference and an admin can reactivate it with an update.
+    /// Removes the product from the public catalogue but keeps the row, so past orders keep a
+    /// valid reference and an admin can reactivate it with an update.
     /// </summary>
-    /// <param name="id">Product ID</param>
-    /// <returns>Success status</returns>
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
-    public async Task<ActionResult> DeleteProduct(int id)
+    public async Task<IActionResult> DeleteProduct(int id)
     {
-        try
-        {
-            var success = await _productService.DeleteProductAsync(id, ActorId);
-
-            if (!success)
-            {
-                return NotFound($"Product with ID {id} not found");
-            }
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting product with ID: {ProductId}", id);
-            return StatusCode(500, "An error occurred while deleting the product");
-        }
+        await _productService.DeleteProductAsync(id, ActorId);
+        return NoContent();
     }
 
     /// <summary>
     /// What another service needs to know about a product (title, image, colours, the price the
     /// customer pays right now). Service-to-service only: callers present the internal API key.
     /// </summary>
-    [HttpGet("{id}/snapshot")]
+    [HttpGet("{id:int}/snapshot")]
     [Authorize(Policy = Policies.InternalService)]
-    public async Task<ActionResult<ProductSnapshot>> GetSnapshot(int id)
-    {
-        var snapshot = await _productService.GetSnapshotAsync(id);
-        return snapshot is null ? NotFound() : Ok(snapshot);
-    }
-
-    /// <summary>
-    /// Get products metadata (categories, companies)
-    /// </summary>
-    /// <returns>Products metadata</returns>
-    [HttpGet("meta")]
-    public async Task<ActionResult<ProductsMeta>> GetProductsMeta()
-    {
-        try
-        {
-            var meta = await _productService.GetProductsMetaAsync();
-            return Ok(meta);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving products meta");
-            return StatusCode(500, "An error occurred while retrieving products metadata");
-        }
-    }
-
-    /// <summary>
-    /// Get all products for admin with advanced sorting and pagination
-    /// </summary>
-    /// <param name="queryParams">Query parameters for filtering, sorting, and pagination</param>
-    /// <param name="sortBy">Column to sort by (id, price, title, company)</param>
-    /// <param name="sortDir">Sort direction (asc, desc)</param>
-    /// <returns>Products response in frontend format</returns>
-    [HttpGet("admin")]
-    // Returns inactive products too - admins only
-    [Authorize(Policy = Policies.Admin)]
-    public async Task<ActionResult<ProductsResponse>> GetProductsAdmin(
-    [FromQuery] ProductQueryParams queryParams,
-    [FromQuery] string? sortBy = null,
-    [FromQuery] string? sortDir = null)
-    {
-        try
-        {
-            var result = await _productService.GetProductsForAdminAsync(queryParams, sortBy, sortDir);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving admin products");
-            return StatusCode(500, "An error occurred while retrieving products for admin");
-        }
-    }
+    public async Task<ProductSnapshot> GetSnapshot(int id)
+        => await _productService.GetSnapshotAsync(id) ?? throw new NotFoundException("Product", id);
 }

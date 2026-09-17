@@ -26,7 +26,7 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<IdentityApiFactory>
     private static async Task<(string UserId, string Token)> RegisterAsync(HttpClient client)
     {
         var email = $"consumer-{Guid.NewGuid():N}@test.local";
-        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        var response = await client.PostAsJsonAsync("/api/v1/auth/register", new
         {
             email,
             password = "Consumer-Password-1!",
@@ -35,13 +35,13 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<IdentityApiFactory>
             lastName = "Buyer"
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var data = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json).GetProperty("data");
+        var data = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json);
         return (data.GetProperty("user").GetProperty("id").GetString()!, data.GetProperty("accessToken").GetString()!);
     }
 
     private static async Task<string?> AddressOf(HttpClient client)
     {
-        var me = JsonSerializer.Deserialize<JsonElement>(await client.GetStringAsync("/api/auth/me"), Json);
+        var me = JsonSerializer.Deserialize<JsonElement>(await client.GetStringAsync("/api/v1/auth/me"), Json);
         return me.TryGetProperty("simpleAddress", out var address) ? address.GetString() : null;
     }
 

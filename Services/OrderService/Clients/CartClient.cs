@@ -26,7 +26,7 @@ public sealed class CartClient : ICartClient
 
     public async Task<CartSnapshot?> GetSnapshotAsync(string userId, CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync(new Uri($"api/cart/internal/{Uri.EscapeDataString(userId)}", UriKind.Relative), cancellationToken);
+        using var response = await _httpClient.GetAsync(new Uri($"api/v1/cart/internal/{Uri.EscapeDataString(userId)}", UriKind.Relative), cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;

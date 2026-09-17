@@ -27,11 +27,11 @@ public sealed class IdempotencyTests : IClassFixture<OrderApiFactory>
     };
 
     private static async Task<int> OrderIdOf(HttpResponseMessage response)
-        => JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json).GetProperty("data").GetProperty("id").GetInt32();
+        => JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json).GetProperty("id").GetInt32();
 
     private static async Task<HttpResponseMessage> CheckoutAsync(HttpClient client, string key, object? body = null)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/orders/from-cart")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/orders/from-cart")
         {
             Content = JsonContent.Create(body ?? CheckoutBody())
         };
@@ -56,8 +56,8 @@ public sealed class IdempotencyTests : IClassFixture<OrderApiFactory>
         Assert.Equal(HttpStatusCode.Created, retry.StatusCode);
         Assert.Equal(await OrderIdOf(first), await OrderIdOf(retry));
 
-        var orders = JsonSerializer.Deserialize<JsonElement>(await client.GetStringAsync("/api/orders/my-orders"), Json)
-            .GetProperty("data").GetProperty("totalCount").GetInt32();
+        var orders = JsonSerializer.Deserialize<JsonElement>(await client.GetStringAsync("/api/v1/orders/my-orders"), Json)
+            .GetProperty("totalCount").GetInt32();
         Assert.Equal(1, orders);
     }
 
@@ -104,8 +104,8 @@ public sealed class IdempotencyTests : IClassFixture<OrderApiFactory>
         _factory.Upstreams.SetCart(user, (14, 1, 50m));
         using var client = _factory.CreateClient().AsUser(user);
 
-        var first = await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody());
-        var second = await client.PostAsJsonAsync("/api/orders/from-cart", CheckoutBody());
+        var first = await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody());
+        var second = await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody());
 
         Assert.NotEqual(await OrderIdOf(first), await OrderIdOf(second));
     }

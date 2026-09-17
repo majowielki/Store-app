@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
@@ -47,11 +48,10 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task UpdateProductAsync_Returns_Null_If_Not_Found()
+    public async Task UpdateProductAsync_Throws_NotFound_If_Not_Found()
     {
         var request = new UpdateProductRequest { Title = "Updated" };
-        var result = await _productService.UpdateProductAsync(999, request);
-        Assert.Null(result);
+        await Assert.ThrowsAsync<NotFoundException>(() => _productService.UpdateProductAsync(999, request));
     }
 
     [Fact]
@@ -82,10 +82,9 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task DeleteProductAsync_Returns_False_If_Not_Found()
+    public async Task DeleteProductAsync_Throws_NotFound_If_Not_Found()
     {
-        var result = await _productService.DeleteProductAsync(999);
-        Assert.False(result);
+        await Assert.ThrowsAsync<NotFoundException>(() => _productService.DeleteProductAsync(999));
     }
 
     [Fact]
@@ -105,7 +104,8 @@ public class ProductServiceTests
         };
         _dbContext.Products.Add(product);
         await _dbContext.SaveChangesAsync();
-        var result = await _productService.DeleteProductAsync(product.Id);
-        Assert.True(result);
+        await _productService.DeleteProductAsync(product.Id);
+
+        Assert.False((await _dbContext.Products.SingleAsync(p => p.Id == product.Id)).IsActive);
     }
 }

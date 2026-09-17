@@ -2,7 +2,7 @@ namespace Store.Contracts.Catalog;
 
 /// <summary>
 /// What the catalogue tells other services about a product: enough to show a cart line and
-/// to charge the right price. Returned by <c>GET /api/products/{id}/snapshot</c>; the caller
+/// to charge the right price. Returned by <c>GET /api/v1/products/{id}/snapshot</c>; the caller
 /// stores the fields it needs instead of keeping a copy of the product.
 /// </summary>
 /// <param name="Id">Product id</param>

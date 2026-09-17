@@ -1,4 +1,5 @@
 using MassTransit;
+using Store.BuildingBlocks.Api;
 using Store.Contracts.Orders.V1;
 using Store.IdentityService.Services;
 
@@ -28,20 +29,15 @@ public sealed class OrderPlacedConsumer : IConsumer<OrderPlaced>
             return;
         }
 
-        var result = await _authService.UpdateAddressAsync(order.UserId, order.DeliveryAddress);
-        if (result.IsSuccess)
+        try
         {
+            await _authService.UpdateAddressAsync(order.UserId, order.DeliveryAddress);
             _logger.LogInformation("Order {OrderId}: delivery address saved to the profile of user {UserId}", order.OrderId, order.UserId);
-            return;
         }
-
-        if (result.Message == "User not found")
+        catch (NotFoundException)
         {
-            // The account is gone; there is nothing to retry
+            // The account is gone; there is nothing to retry. Any other failure propagates and the bus retries.
             _logger.LogWarning("Order {OrderId}: user {UserId} no longer exists, address not saved", order.OrderId, order.UserId);
-            return;
         }
-
-        throw new InvalidOperationException($"Saving the address for user {order.UserId} failed: {result.Message}");
     }
 }

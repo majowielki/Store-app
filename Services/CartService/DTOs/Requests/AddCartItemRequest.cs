@@ -1,6 +1,6 @@
 namespace Store.CartService.DTOs.Requests;
 
-/// <summary>Body of POST /api/cart/items. Rules: <c>AddCartItemRequestValidator</c>.</summary>
+/// <summary>Body of POST /api/v1/cart/items. Rules: <c>AddCartItemRequestValidator</c>.</summary>
 public class AddCartItemRequest
 {
     public int ProductId { get; set; }

@@ -21,9 +21,9 @@ public sealed class CartPricingTests : IClassFixture<CartApiFactory>
     private static async Task<JsonElement> ReadJson(HttpResponseMessage response)
         => JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync(), Json);
 
-    /// <summary>POST /api/cart/items answers with the whole cart; pick the line for the product.</summary>
+    /// <summary>POST /api/v1/cart/items answers with the whole cart; pick the line for the product.</summary>
     private static async Task<JsonElement> LineFor(HttpResponseMessage response, int productId)
-        => (await ReadJson(response)).GetProperty("data").GetProperty("items").EnumerateArray()
+        => (await ReadJson(response)).GetProperty("items").EnumerateArray()
             .Single(item => item.GetProperty("productId").GetInt32() == productId);
 
     // Regression: the cart copied the list price even when the page showed a sale price
@@ -33,12 +33,12 @@ public sealed class CartPricingTests : IClassFixture<CartApiFactory>
         _factory.Catalog.Add(id: 9001, price: 899.99m, salePrice: 799.99m, title: "Sale sofa");
         using var client = _factory.CreateClient().AsUser("cart-sale-user");
 
-        var added = await client.PostAsJsonAsync("/api/cart/items", new { productId = 9001, quantity = 2, color = "black" });
+        var added = await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9001, quantity = 2, color = "black" });
 
         Assert.Equal(HttpStatusCode.OK, added.StatusCode);
         Assert.Equal(799.99m, (await LineFor(added, 9001)).GetProperty("price").GetDecimal());
 
-        var cart = (await ReadJson(await client.GetAsync("/api/cart"))).GetProperty("data");
+        var cart = await ReadJson(await client.GetAsync("/api/v1/cart"));
         Assert.Equal(1599.98m, cart.GetProperty("total").GetDecimal());
     }
 
@@ -48,7 +48,7 @@ public sealed class CartPricingTests : IClassFixture<CartApiFactory>
         _factory.Catalog.Add(id: 9002, price: 200m, discountPercent: 25m, title: "Discounted table");
         using var client = _factory.CreateClient().AsUser("cart-discount-user");
 
-        var added = await client.PostAsJsonAsync("/api/cart/items", new { productId = 9002, quantity = 1, color = "black" });
+        var added = await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9002, quantity = 1, color = "black" });
 
         Assert.Equal(HttpStatusCode.OK, added.StatusCode);
         Assert.Equal(150m, (await LineFor(added, 9002)).GetProperty("price").GetDecimal());
@@ -60,7 +60,7 @@ public sealed class CartPricingTests : IClassFixture<CartApiFactory>
         _factory.Catalog.Add(id: 9003, price: 120m, title: "Plain chair");
         using var client = _factory.CreateClient().AsUser("cart-plain-user");
 
-        var added = await client.PostAsJsonAsync("/api/cart/items", new { productId = 9003, quantity = 1, color = "black" });
+        var added = await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9003, quantity = 1, color = "black" });
 
         Assert.Equal(120m, (await LineFor(added, 9003)).GetProperty("price").GetDecimal());
     }
@@ -70,29 +70,29 @@ public sealed class CartPricingTests : IClassFixture<CartApiFactory>
     {
         _factory.Catalog.Add(id: 9004, price: 300m, title: "Repriced lamp");
         using var first = _factory.CreateClient().AsUser("cart-reprice-user-1");
-        await first.PostAsJsonAsync("/api/cart/items", new { productId = 9004, quantity = 1, color = "black" });
+        await first.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9004, quantity = 1, color = "black" });
 
         _factory.Catalog.Add(id: 9004, price: 300m, salePrice: 240m, title: "Repriced lamp");
         using var second = _factory.CreateClient().AsUser("cart-reprice-user-2");
-        var added = await second.PostAsJsonAsync("/api/cart/items", new { productId = 9004, quantity = 1, color = "black" });
+        var added = await second.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9004, quantity = 1, color = "black" });
 
         Assert.Equal(240m, (await LineFor(added, 9004)).GetProperty("price").GetDecimal());
     }
 
-    // Regression: GET /api/cart/total summed an unmapped computed property and failed
+    // Regression: GET /api/v1/cart/total summed an unmapped computed property and failed
     [Fact]
     public async Task Cart_total_endpoint_sums_lines_in_the_database()
     {
         _factory.Catalog.Add(id: 9005, price: 10m, title: "Ten");
         _factory.Catalog.Add(id: 9006, price: 5.5m, title: "Five fifty");
         using var client = _factory.CreateClient().AsUser("cart-total-user");
-        await client.PostAsJsonAsync("/api/cart/items", new { productId = 9005, quantity = 3, color = "black" });
-        await client.PostAsJsonAsync("/api/cart/items", new { productId = 9006, quantity = 2, color = "black" });
+        await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9005, quantity = 3, color = "black" });
+        await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 9006, quantity = 2, color = "black" });
 
-        var response = await client.GetAsync("/api/cart/total");
+        var response = await client.GetAsync("/api/v1/cart/total");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(41m, (await ReadJson(response)).GetProperty("data").GetDecimal());
+        Assert.Equal(41m, (await ReadJson(response)).GetDecimal());
     }
 
     [Fact]
@@ -100,8 +100,8 @@ public sealed class CartPricingTests : IClassFixture<CartApiFactory>
     {
         using var client = _factory.CreateClient().AsUser("cart-unknown-user");
 
-        var added = await client.PostAsJsonAsync("/api/cart/items", new { productId = 424242, quantity = 1, color = "black" });
+        var added = await client.PostAsJsonAsync("/api/v1/cart/items", new { productId = 424242, quantity = 1, color = "black" });
 
-        Assert.Equal(HttpStatusCode.BadRequest, added.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, added.StatusCode);
     }
 }

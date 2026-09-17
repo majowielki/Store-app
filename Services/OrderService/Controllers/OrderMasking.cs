@@ -1,3 +1,4 @@
+using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authorization;
 using Store.OrderService.DTOs.Responses;
 using System.Security.Claims;
@@ -29,13 +30,16 @@ public static class OrderMasking
         return order;
     }
 
-    public static OrderListResponse ForViewer(this OrderListResponse list, ClaimsPrincipal viewer)
+    public static PagedResponse<OrderResponse> ForViewer(this PagedResponse<OrderResponse> page, ClaimsPrincipal viewer)
     {
         if (viewer.IsDemoAdmin())
         {
-            list.Orders = list.Orders.Select(order => order.ForViewer(viewer)).ToList();
+            foreach (var order in page.Items)
+            {
+                order.ForViewer(viewer);
+            }
         }
 
-        return list;
+        return page;
     }
 }

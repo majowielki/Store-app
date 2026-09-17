@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Store.BuildingBlocks.Api;
 using Store.Contracts.Authorization;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Services;
@@ -7,12 +8,11 @@ using Store.OrderService.Services;
 namespace Store.OrderService.Controllers;
 
 /// <summary>
-/// Orders as the admin panel sees them. Served by the order service itself - the identity
-/// service used to proxy these calls with the administrator's token and its own copy of the
-/// response types. The demo administrator sees the panel but not the customers' data.
+/// Orders as the admin panel sees them. The demo administrator sees the panel but not the
+/// customers' data.
 /// </summary>
 [ApiController]
-[Route("api/admin/orders")]
+[Route("api/v1/admin/orders")]
 [Authorize(Policy = Policies.Admin)]
 public class AdminOrdersController : ControllerBase
 {
@@ -25,63 +25,21 @@ public class AdminOrdersController : ControllerBase
 
     /// <summary>All orders, newest first.</summary>
     [HttpGet]
-    public async Task<ActionResult<AdminOrderListResponse>> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
-    {
-        var result = await _orderService.GetAllOrdersAsync(page, pageSize);
-        if (!result.IsSuccess || result.Data is null)
-        {
-            return StatusCode((int)result.StatusCode, result);
-        }
-
-        return Ok(ToList(result.Data));
-    }
+    public async Task<PagedResponse<OrderResponse>> GetOrders([FromQuery] PagedQuery paging)
+        => (await _orderService.GetAllOrdersAsync(paging)).ForViewer(User);
 
     /// <summary>Orders of one customer, newest first; an empty page when they have none.</summary>
     [HttpGet("by-user/{userId}")]
-    public async Task<ActionResult<AdminOrderListResponse>> GetOrdersByUser(string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
-    {
-        var result = await _orderService.GetOrdersByUserIdAsync(userId, page, pageSize);
-        if (!result.IsSuccess || result.Data is null)
-        {
-            return StatusCode((int)result.StatusCode, result);
-        }
-
-        return Ok(ToList(result.Data));
-    }
+    public async Task<PagedResponse<OrderResponse>> GetOrdersByUser(string userId, [FromQuery] PagedQuery paging)
+        => (await _orderService.GetUserOrdersAsync(userId, paging)).ForViewer(User);
 
     /// <summary>One order; 404 when the id is unknown.</summary>
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<OrderResponse>> GetOrder(int id)
-    {
-        var result = await _orderService.GetOrderByIdForAdminAsync(id);
-        if (!result.IsSuccess || result.Data is null)
-        {
-            return StatusCode((int)result.StatusCode, result);
-        }
+    public async Task<OrderResponse> GetOrder(int id)
+        => (await _orderService.GetOrderForAdminAsync(id)).ForViewer(User);
 
-        return Ok(result.Data.ForViewer(User));
-    }
-
-    private AdminOrderListResponse ToList(OrderListResponse list) => new()
-    {
-        Items = list.ForViewer(User).Orders.ToList(),
-        TotalCount = list.TotalCount,
-        Page = list.Page,
-        PageSize = list.PageSize,
-        TotalPages = list.TotalPages,
-        HasNextPage = list.HasNextPage,
-        HasPreviousPage = list.HasPreviousPage
-    };
-}
-
-/// <summary>Page of orders for the admin panel.</summary>
-public class AdminOrderListResponse
-{
-    public List<OrderResponse> Items { get; set; } = new();
-    public int TotalCount { get; set; }
-    public int Page { get; set; }
-    public int PageSize { get; set; }
-    public int TotalPages { get; set; }
-    public bool HasNextPage { get; set; }
-    public bool HasPreviousPage { get; set; }
+    /// <summary>Orders and revenue per day, per week and per product over the last <paramref name="days"/> days.</summary>
+    [HttpGet("stats")]
+    public Task<OrderStatsResponse> GetStats([FromQuery] int days = 30)
+        => _orderService.GetOrderStatsAsync(days <= 0 ? 30 : days);
 }

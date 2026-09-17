@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Store.GatewayService.Controllers;
 
 [ApiController]
-[Route("api/newsletter")]
+[Route("api/v1/newsletter")]
 public class NewsletterController : ControllerBase
 {
     private readonly ILogger<NewsletterController> _logger;
@@ -16,14 +16,10 @@ public class NewsletterController : ControllerBase
 
     [HttpPost("subscribe")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public IActionResult Subscribe([FromBody] SubscribeRequest request)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
+        // The body was validated before the action ran
         // TODO: integrate with real newsletter provider or database
         _logger.LogInformation("Newsletter subscription: {Email}", request.Email);
         return NoContent();

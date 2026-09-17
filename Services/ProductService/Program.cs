@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -16,9 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add standard API controllers
 builder.Services.AddStandardApiControllers();
 
-// FluentValidation: validators from DI, request models validated before the action runs
+// FluentValidation validators for the request models; the shared controller setup runs them before the action
 builder.Services.AddValidatorsFromAssemblyContaining<Store.ProductService.Validators.CreateProductRequestValidator>();
-builder.Services.AddFluentValidationAutoValidation();
 
 // Database
 builder.Services.AddDbContext<ProductDbContext>(options =>
@@ -30,7 +28,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
-// GET /api/products/{id}/snapshot is for other services: they present the shared internal key
+// GET /api/v1/products/{id}/snapshot is for other services: they present the shared internal key
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
 // Message bus: catalogue changes reach the audit service as events, through the outbox
@@ -60,7 +58,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseGlobalExceptionHandling();
+app.UseStoreProblemDetails();
 
 // CORS
 app.UseCors("DefaultCorsPolicy");
