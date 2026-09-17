@@ -634,6 +634,7 @@
           "email",
           "id",
           "isActive",
+          "isDemo",
           "roles",
           "userName"
         ],
@@ -671,6 +672,10 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "isDemo": {
+            "type": "boolean",
+            "description": "True for the shared showcase accounts (see `Demo` options): every visitor signs in\r\nto the same profile, so it cannot be changed - the address is fixed and the checkout\r\ndoes not offer to save one."
           },
           "createdAt": {
             "type": "string",

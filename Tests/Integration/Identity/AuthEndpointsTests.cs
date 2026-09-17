@@ -121,6 +121,38 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
         Assert.Equal(HttpStatusCode.OK, authenticated.StatusCode);
         var profile = await ReadJson(authenticated);
         Assert.Equal(email, profile.GetProperty("email").GetString());
+        Assert.False(profile.GetProperty("isDemo").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Demo_account_is_marked_as_such_and_keeps_its_address()
+    {
+        using var client = _factory.CreateClient();
+        var signedIn = await ReadJson(await client.PostAsync("/api/v1/auth/demo-login", null));
+        Assert.True(signedIn.GetProperty("user").GetProperty("isDemo").GetBoolean());
+        var address = signedIn.GetProperty("user").GetProperty("simpleAddress").GetString();
+        client.WithToken(signedIn.GetProperty("accessToken").GetString()!);
+
+        var change = await client.PutAsJsonAsync("/api/v1/auth/me/address", new { simpleAddress = "Somewhere else 1" });
+
+        // Every visitor shares the demo profile, so nobody may change it
+        Assert.Equal(HttpStatusCode.Forbidden, change.StatusCode);
+        var profile = await ReadJson(await client.GetAsync("/api/v1/auth/me"));
+        Assert.Equal(address, profile.GetProperty("simpleAddress").GetString());
+    }
+
+    [Fact]
+    public async Task Registered_user_can_change_the_address()
+    {
+        using var client = _factory.CreateClient();
+        var accessToken = await RegisterAsync(client, UniqueEmail("address"), "Address-Password-1!");
+        client.WithToken(accessToken);
+
+        var change = await client.PutAsJsonAsync("/api/v1/auth/me/address", new { simpleAddress = "New Street 5" });
+
+        Assert.Equal(HttpStatusCode.OK, change.StatusCode);
+        var profile = await ReadJson(await client.GetAsync("/api/v1/auth/me"));
+        Assert.Equal("New Street 5", profile.GetProperty("simpleAddress").GetString());
     }
 
     [Theory]

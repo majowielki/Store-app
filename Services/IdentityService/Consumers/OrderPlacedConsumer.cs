@@ -39,5 +39,10 @@ public sealed class OrderPlacedConsumer : IConsumer<OrderPlaced>
             // The account is gone; there is nothing to retry. Any other failure propagates and the bus retries.
             _logger.LogWarning("Order {OrderId}: user {UserId} no longer exists, address not saved", order.OrderId, order.UserId);
         }
+        catch (ForbiddenException)
+        {
+            // The shared demo accounts keep their address
+            _logger.LogInformation("Order {OrderId}: user {UserId} is a demo account, address not saved", order.OrderId, order.UserId);
+        }
     }
 }

@@ -191,6 +191,10 @@ public class AuthService : IAuthService
     public async Task<UserResponse> UpdateAddressAsync(string userId, string simpleAddress)
     {
         var user = await FindUserAsync(userId);
+        if (IsDemoAccount(user))
+        {
+            throw new ForbiddenException("The demo account is shared; its address cannot be changed");
+        }
 
         var oldAddress = user.SimpleAddress;
         user.SimpleAddress = string.IsNullOrWhiteSpace(simpleAddress) ? null : simpleAddress.Trim();
@@ -268,7 +272,13 @@ public class AuthService : IAuthService
     private async Task<UserResponse> MapToUserResponseAsync(ApplicationUser user)
         => MapToUserResponse(user, await _userManager.GetRolesAsync(user));
 
-    private static UserResponse MapToUserResponse(ApplicationUser user, IList<string> roles) => new()
+    /// <summary>The showcase accounts every visitor shares; their profile is read-only.</summary>
+    private bool IsDemoAccount(ApplicationUser user)
+        => _demo.Enabled
+           && (string.Equals(user.Email, _demo.UserEmail, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(user.Email, _demo.AdminEmail, StringComparison.OrdinalIgnoreCase));
+
+    private UserResponse MapToUserResponse(ApplicationUser user, IList<string> roles) => new()
     {
         Id = user.Id,
         Email = user.Email!,
@@ -279,6 +289,7 @@ public class AuthService : IAuthService
         SimpleAddress = user.SimpleAddress,
         Roles = roles.ToList(),
         IsActive = user.IsActive,
+        IsDemo = IsDemoAccount(user),
         CreatedAt = user.CreatedAt
     };
 

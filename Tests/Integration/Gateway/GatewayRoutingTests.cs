@@ -97,14 +97,17 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
         Assert.Equal(PassedTheGateway, otherClient.StatusCode);
     }
 
-    [Fact]
-    public async Task Profile_calls_are_not_throttled_like_credential_endpoints()
+    // The UI renews the session on every page load; that must not run into the credential limit
+    [Theory]
+    [InlineData("GET", "/api/v1/auth/me")]
+    [InlineData("POST", "/api/v1/auth/refresh")]
+    public async Task Profile_and_refresh_calls_are_not_throttled_like_credential_endpoints(string method, string path)
     {
-        using var client = ClientFrom("10.0.4.1");
+        using var client = ClientFrom("10.0.4." + (method == "GET" ? "1" : "2"));
 
         for (var i = 0; i < GatewayApiFactory.CredentialPermitLimit * 2; i++)
         {
-            var response = await client.GetAsync("/api/v1/auth/me");
+            var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path));
             Assert.Equal(PassedTheGateway, response.StatusCode);
         }
     }

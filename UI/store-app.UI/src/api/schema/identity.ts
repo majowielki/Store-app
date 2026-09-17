@@ -619,6 +619,12 @@ export interface components {
             simpleAddress?: string | null;
             roles: string[];
             isActive: boolean;
+            /**
+             * @description True for the shared showcase accounts (see `Demo` options): every visitor signs in
+             *     to the same profile, so it cannot be changed - the address is fixed and the checkout
+             *     does not offer to save one.
+             */
+            isDemo: boolean;
             /** Format: date-time */
             createdAt: string;
         };

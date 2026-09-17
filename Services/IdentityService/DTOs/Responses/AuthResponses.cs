@@ -19,5 +19,11 @@ public class UserResponse
     public string? SimpleAddress { get; set; } // Simplified single address field
     public List<string> Roles { get; set; } = new();
     public bool IsActive { get; set; }
+    /// <summary>
+    /// True for the shared showcase accounts (see <c>Demo</c> options): every visitor signs in
+    /// to the same profile, so it cannot be changed - the address is fixed and the checkout
+    /// does not offer to save one.
+    /// </summary>
+    public bool IsDemo { get; set; }
     public DateTime CreatedAt { get; set; }
 }

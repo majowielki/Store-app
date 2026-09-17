@@ -303,6 +303,8 @@ services:
       - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
       - JwtSettings__Issuer=Store.API
       - JwtSettings__Audience=Store.Client
+      # Sign-ins per minute per client; the end-to-end tests raise it, every scenario signs in on its own
+      - RateLimiting__Auth__CredentialPermitLimit=${AUTH_CREDENTIAL_LIMIT:-10}
     ports:
       - "5000:5000"
     depends_on:
