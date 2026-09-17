@@ -4,6 +4,7 @@ using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
+using Store.BuildingBlocks.Observability;
 using Store.GatewayService.Cors;
 using Store.GatewayService.RateLimiting;
 using Store.GatewayService.Security;
@@ -15,7 +16,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-builder.Logging.AddDebug();
+
+// Traces, metrics and logs through OTLP (see Store.BuildingBlocks.Observability)
+builder.AddStoreObservability("gateway");
 
 // Errors the gateway produces itself (401, 403, 404, 429) are problem responses like the services'
 builder.Services.AddStoreProblemDetails();

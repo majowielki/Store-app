@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.Contracts.Authorization;
 using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
@@ -22,6 +23,7 @@ public class AuthService : IAuthService
     private readonly DemoOptions _demo;
     private readonly ILogger<AuthService> _logger;
     private readonly IAuditTrail _auditTrail;
+    private readonly StoreMetrics _metrics;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -31,7 +33,8 @@ public class AuthService : IAuthService
         ITokenService tokens,
         IOptions<DemoOptions> demo,
         ILogger<AuthService> logger,
-        IAuditTrail auditTrail)
+        IAuditTrail auditTrail,
+        StoreMetrics metrics)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -41,6 +44,7 @@ public class AuthService : IAuthService
         _demo = demo.Value;
         _logger = logger;
         _auditTrail = auditTrail;
+        _metrics = metrics;
     }
 
     public async Task<SignedIn> RegisterAsync(RegisterRequest request, string? clientAddress)
@@ -76,11 +80,16 @@ public class AuthService : IAuthService
 
     public async Task<SignedIn> LoginAsync(LoginRequest request, string? clientAddress)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email)
-            ?? throw new InvalidCredentialsException();
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+        {
+            _metrics.LoginFailed("unknown-account");
+            throw new InvalidCredentialsException();
+        }
         if (!user.IsActive)
         {
             // Same answer as a wrong password: the caller learns nothing about the account
+            _metrics.LoginFailed("inactive");
             throw new InvalidCredentialsException();
         }
 
@@ -89,10 +98,12 @@ public class AuthService : IAuthService
         if (result.IsLockedOut)
         {
             _logger.LogWarning("Login rejected: account locked out for {Email}", request.Email);
+            _metrics.LoginFailed("locked-out");
             throw new AccountLockedException();
         }
         if (!result.Succeeded)
         {
+            _metrics.LoginFailed("wrong-password");
             throw new InvalidCredentialsException();
         }
 

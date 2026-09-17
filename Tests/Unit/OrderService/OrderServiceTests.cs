@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Observability;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
@@ -30,6 +31,7 @@ public class OrderServiceTests
             Mock.Of<ICatalogClient>(),
             Mock.Of<IPublishEndpoint>(),
             Options.Create(new PricingOptions()),
+            new StoreMetrics(),
             _loggerMock.Object
         );
     }

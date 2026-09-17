@@ -7,6 +7,7 @@ using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 using Store.IdentityService;
@@ -17,6 +18,9 @@ using Store.IdentityService.Seeding;
 using Store.IdentityService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Traces, metrics and logs through OTLP (see Store.BuildingBlocks.Observability)
+builder.AddStoreObservability("identity");
 
 builder.Services.AddStandardApiControllers();
 

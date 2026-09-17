@@ -2,6 +2,7 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Observability;
 using Store.Contracts.Orders.V1;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
@@ -26,6 +27,7 @@ public class OrderService : IOrderService
     private readonly ICatalogClient _catalog;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly PricingOptions _pricing;
+    private readonly StoreMetrics _metrics;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -34,6 +36,7 @@ public class OrderService : IOrderService
         ICatalogClient catalog,
         IPublishEndpoint publishEndpoint,
         IOptions<PricingOptions> pricing,
+        StoreMetrics metrics,
         ILogger<OrderService> logger)
     {
         _context = context;
@@ -41,6 +44,7 @@ public class OrderService : IOrderService
         _catalog = catalog;
         _publishEndpoint = publishEndpoint;
         _pricing = pricing.Value;
+        _metrics = metrics;
         _logger = logger;
     }
 
@@ -65,6 +69,7 @@ public class OrderService : IOrderService
 
         // Price the lines from the catalogue as it is now; the cart's prices may be stale
         var lines = new List<OrderLine>(cart.Lines.Count);
+        var repricedLines = 0;
         foreach (var line in cart.Lines)
         {
             var product = await _catalog.GetSnapshotAsync(line.ProductId);
@@ -73,6 +78,7 @@ public class OrderService : IOrderService
                 throw new ConflictException($"\"{line.Title}\" is no longer available. Remove it from the cart to continue.");
             }
 
+            if (product.EffectivePrice != line.UnitPrice) repricedLines++;
             lines.Add(new OrderLine
             {
                 ProductId = product.Id,
@@ -84,6 +90,8 @@ public class OrderService : IOrderService
                 Quantity = line.Quantity
             });
         }
+
+        if (repricedLines > 0) _metrics.PriceMismatch(repricedLines, "checkout");
 
         // The audit service records the order from the OrderPlaced event
         return await PlaceOrderAsync(request, lines, idempotencyKey, requestHash);
@@ -175,6 +183,7 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
 
+        _metrics.OrderPlaced(order.Total, order.DiscountReason);
         return MapToOrderResponse(order);
     }
 

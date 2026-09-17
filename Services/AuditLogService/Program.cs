@@ -8,10 +8,14 @@ using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Traces, metrics and logs through OTLP (see Store.BuildingBlocks.Observability)
+builder.AddStoreObservability("audit");
 
 builder.Services.AddStandardApiControllers();
 

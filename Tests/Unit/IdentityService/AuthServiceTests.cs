@@ -8,6 +8,7 @@ using Moq;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Models;
@@ -55,7 +56,8 @@ public class AuthServiceTests
             new TokenService(Options.Create(Jwt)),
             Options.Create(new DemoOptions { Enabled = true }),
             Mock.Of<ILogger<AuthService>>(),
-            Mock.Of<IAuditTrail>()
+            Mock.Of<IAuditTrail>(),
+            new StoreMetrics()
         );
     }
 

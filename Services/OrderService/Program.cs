@@ -7,6 +7,7 @@ using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Http;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 using Store.OrderService.Clients;
@@ -15,6 +16,9 @@ using Store.OrderService.Models;
 using Store.OrderService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Traces, metrics and logs through OTLP (see Store.BuildingBlocks.Observability)
+builder.AddStoreObservability("order");
 
 builder.Services.AddStandardApiControllers();
 

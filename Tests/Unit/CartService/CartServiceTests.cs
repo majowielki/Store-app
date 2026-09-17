@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.Services;
@@ -31,7 +32,8 @@ public class CartServiceTests
             _catalogMock.Object,
             Options.Create(new CartOptions()),
             _loggerMock.Object,
-            _auditTrailMock.Object
+            _auditTrailMock.Object,
+            new StoreMetrics()
         );
     }
 

@@ -2,9 +2,11 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Configuration;
+using Store.BuildingBlocks.Observability;
 
 namespace Store.BuildingBlocks.Messaging;
 
@@ -45,6 +47,10 @@ public static class MessagingExtensions
         // Business actions go to the audit service as events, signed with the service name
         services.AddSingleton(new AuditTrailOptions(serviceName));
         services.AddScoped<IAuditTrail, BusAuditTrail<TDbContext>>();
+
+        // store.outbox.pending, for the alert on a broker nobody can reach
+        services.TryAddSingleton<StoreMetrics>();
+        services.AddHostedService<OutboxMonitor<TDbContext>>();
 
         services.AddMassTransit(bus =>
         {

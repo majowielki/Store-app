@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
@@ -31,19 +32,22 @@ public class CartService : ICartService
     private readonly CartOptions _options;
     private readonly ILogger<CartService> _logger;
     private readonly IAuditTrail _auditTrail;
+    private readonly StoreMetrics _metrics;
 
     public CartService(
         CartDbContext context,
         ICatalogClient catalog,
         IOptions<CartOptions> options,
         ILogger<CartService> logger,
-        IAuditTrail auditTrail)
+        IAuditTrail auditTrail,
+        StoreMetrics metrics)
     {
         _context = context;
         _catalog = catalog;
         _options = options.Value;
         _logger = logger;
         _auditTrail = auditTrail;
+        _metrics = metrics;
     }
 
     public async Task<CartResponse> GetCartAsync(string userId)
@@ -70,6 +74,7 @@ public class CartService : ICartService
         var cart = await GetOrCreateCartAsync(userId);
         var item = AddOrMerge(cart, product, request.Color, request.Quantity);
         await _context.SaveChangesAsync();
+        _metrics.CartItemsAdded(request.Quantity);
 
         await AuditAsync("CART_ITEM_ADDED", "CartItem", item.Id.ToString(), userId,
             new { item.ProductId, item.Color, item.Quantity, item.UnitPrice });
@@ -267,6 +272,7 @@ public class CartService : ICartService
         }
 
         var priceChanged = false;
+        var repricedLines = 0;
         foreach (var item in stale)
         {
             ProductSnapshot? product;
@@ -286,11 +292,16 @@ public class CartService : ICartService
                 continue;
             }
 
-            priceChanged |= product.EffectivePrice != item.UnitPrice;
+            if (product.EffectivePrice != item.UnitPrice)
+            {
+                priceChanged = true;
+                repricedLines++;
+            }
             item.ApplySnapshot(product, now);
         }
 
         await _context.SaveChangesAsync();
+        if (repricedLines > 0) _metrics.PriceMismatch(repricedLines, "cart");
         return priceChanged;
     }
 

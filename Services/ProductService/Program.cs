@@ -5,12 +5,16 @@ using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 using Store.ProductService.Data;
 using Store.ProductService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Traces, metrics and logs through OTLP (see Store.BuildingBlocks.Observability)
+builder.AddStoreObservability("catalog");
 
 // Add standard API controllers
 builder.Services.AddStandardApiControllers();
