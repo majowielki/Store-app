@@ -19,8 +19,7 @@ COPY docker/40-app-config.sh /docker-entrypoint.d/40-app-config.sh
 RUN chmod +x /docker-entrypoint.d/10-resolver.envsh /docker-entrypoint.d/40-app-config.sh && rm -f /etc/nginx/conf.d/default.conf
 
 ENV GATEWAY_UPSTREAM=http://gateway:5000 \
-    API_BASE_URL=/api/v1 \
-    USE_AUTH_ME=true
+    API_BASE_URL=/api/v1
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

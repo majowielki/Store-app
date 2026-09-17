@@ -1,39 +1,30 @@
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
+import { useSubscribeToNewsletterMutation } from '@/api/newsletter';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { toast } from '@/hooks/use-toast';
 
-export type SubscribeFn = (email: string) => Promise<void>;
-
-type Props = { onSubscribe?: SubscribeFn };
-
-const NewsletterSection = ({ onSubscribe }: Props) => {
+const NewsletterSection = () => {
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const [subscribe, { isLoading }] = useSubscribeToNewsletterMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-  toast({ variant: 'destructive', description: 'Please enter a valid email address' });
+      toast({ variant: 'destructive', description: 'Please enter a valid email address' });
       return;
     }
     try {
-      setLoading(true);
-      if (onSubscribe) {
-        await onSubscribe(email);
-      }
-  toast({ description: 'Thanks for subscribing!' });
+      await subscribe(email).unwrap();
+      toast({ description: 'Thanks for subscribing!' });
       setEmail('');
-  } catch {
-  toast({ variant: 'destructive', description: 'Subscription failed' });
-    } finally {
-      setLoading(false);
+    } catch {
+      // Reported by the error middleware
     }
   };
 
   return (
-  <section className="py-12 bg-muted/30">
+    <section className="py-12 bg-muted/30">
       <div className="align-element">
         <div className="grid gap-4 md:grid-cols-2 items-center">
           <div>
@@ -41,14 +32,10 @@ const NewsletterSection = ({ onSubscribe }: Props) => {
             <p className="text-muted-foreground mt-2">Get updates about promotions and new arrivals.</p>
           </div>
           <form className="flex gap-2" onSubmit={handleSubmit}>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Your email"
-              aria-label="Email address"
-            />
-            <Button type="submit" disabled={loading}>{loading ? 'Sending...' : 'Subscribe'}</Button>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email" aria-label="Email address" />
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Sending...' : 'Subscribe'}
+            </Button>
           </form>
         </div>
       </div>

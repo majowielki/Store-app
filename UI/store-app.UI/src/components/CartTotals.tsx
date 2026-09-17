@@ -1,10 +1,10 @@
-
-import { useAppSelector } from "@/hooks";
-import { formatAsDollars } from "@/utils";
-import { Card, CardTitle } from "@/components/ui/card";
-import { Separator } from "./ui/separator";
-import { useEffect, useState } from "react";
-import { orderApi } from "@/utils/api";
+import { useGetHasOrdersQuery } from '@/api/orders';
+import { Card, CardTitle } from '@/components/ui/card';
+import { previewTotals } from '@/features/cart/pricing';
+import { useCart } from '@/features/cart/useCart';
+import { useAppSelector } from '@/hooks';
+import { formatAsDollars } from '@/utils';
+import { Separator } from './ui/separator';
 
 interface CartTotalRowProps {
   label: string;
@@ -13,57 +13,35 @@ interface CartTotalRowProps {
   isDiscount?: boolean;
 }
 
-const CartTotalRow = ({ label, amount, lastRow, isDiscount }: CartTotalRowProps) => {
-  return (
-    <>
-      <p className={`flex justify-between text-sm ${isDiscount ? 'text-green-700' : ''}`}>
-        <span>{label}</span>
-        <span>{isDiscount ? '-' : ''}{formatAsDollars(Math.abs(amount))}</span>
-      </p>
-      {lastRow ? null : <Separator className="my-2" />}
-    </>
-  );
-};
+const CartTotalRow = ({ label, amount, lastRow, isDiscount }: CartTotalRowProps) => (
+  <>
+    <p className={`flex justify-between text-sm ${isDiscount ? 'text-green-700' : ''}`}>
+      <span>{label}</span>
+      <span>
+        {isDiscount ? '-' : ''}
+        {formatAsDollars(Math.abs(amount))}
+      </span>
+    </p>
+    {lastRow ? null : <Separator className="my-2" />}
+  </>
+);
 
+/** A preview of the order's amounts; the order service prices the order itself when it is placed. */
 const CartTotals = () => {
-  const { cartTotal, tax, orderTotal } = useAppSelector((state) => state.cartState);
-  const user = useAppSelector((state) => state.userState.user);
-  const [isFirstOrder, setIsFirstOrder] = useState(false);
-
-  useEffect(() => {
-    const checkFirstOrder = async () => {
-      if (!user) {
-        setIsFirstOrder(false);
-        return;
-      }
-  // loading state removed
-      try {
-        const res = await orderApi.getHasOrders();
-        setIsFirstOrder(res.ordersCount === 0);
-      } catch {
-        setIsFirstOrder(false);
-      } finally {
-        // loading state removed
-      }
-    };
-    checkFirstOrder();
-  }, [user]);
-
-  let discount = 0;
-  if (isFirstOrder && cartTotal > 0) {
-    discount = cartTotal * 0.2;
-  }
-  const totalAfterDiscount = cartTotal - discount + tax;
+  const user = useAppSelector((state) => state.session.user);
+  const { subtotal } = useCart();
+  // Only a signed-in customer can be on their first order; a visitor sees the plain total
+  const { data: orders } = useGetHasOrdersQuery(undefined, { skip: !user });
+  const firstOrder = !!user && orders?.ordersCount === 0;
+  const totals = previewTotals(subtotal, firstOrder);
 
   return (
     <Card className="p-8 bg-muted">
-      <CartTotalRow label="Subtotal" amount={cartTotal} />
-      {isFirstOrder && discount > 0 && (
-        <CartTotalRow label="First order discount" amount={-discount} isDiscount />
-      )}
-      <CartTotalRow label="Delivery" amount={tax} />
+      <CartTotalRow label="Subtotal" amount={totals.subtotal} />
+      {totals.discount > 0 && <CartTotalRow label="First order discount" amount={-totals.discount} isDiscount />}
+      <CartTotalRow label="Delivery" amount={totals.deliveryFee} />
       <CardTitle className="mt-8">
-        <CartTotalRow label="Order Total" amount={isFirstOrder ? totalAfterDiscount : orderTotal} lastRow />
+        <CartTotalRow label="Order Total" amount={totals.total} lastRow />
       </CardTitle>
     </Card>
   );

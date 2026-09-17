@@ -1,39 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useGetAdminUsersQuery } from '@/api/admin';
+import PageNumbers from '@/components/PageNumbers';
 import { Button } from '@/components/ui/button';
-import type { AdminUserResponse } from '@/utils/types';
-import { identityAdminApi } from '@/utils/api';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/components/ui/pagination';
-import { Link } from 'react-router-dom';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const PAGE_SIZE = 20;
 
 const Users = () => {
-  const [items, setItems] = useState<AdminUserResponse[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [isActive, setIsActive] = useState<string>('');
-
-  const filters = useMemo(() => ({ search: search.trim() || undefined, isActive: isActive === '' ? undefined : isActive === 'true' }), [search, isActive]);
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await identityAdminApi.getUsers({ ...filters, page, pageSize });
-        setItems(res.items);
-        setTotalPages(res.totalPages);
-      } catch {
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [filters, page, pageSize]);
+  const [isActive, setIsActive] = useState('');
+  const { data, isLoading } = useGetAdminUsersQuery({
+    page,
+    pageSize: PAGE_SIZE,
+    search: search.trim() || undefined,
+    isActive: isActive === '' ? undefined : isActive === 'true',
+  });
 
   return (
     <div className="space-y-4">
@@ -42,18 +28,35 @@ const Users = () => {
         <div className="flex flex-wrap items-end gap-2 p-2">
           <div>
             <Label htmlFor="search">Search</Label>
-            <Input id="search" value={search} onChange={(e) => { setPage(1); setSearch(e.target.value); }} placeholder="email or name" className="w-56" />
+            <Input
+              id="search"
+              value={search}
+              onChange={(e) => {
+                setPage(1);
+                setSearch(e.target.value);
+              }}
+              placeholder="email or name"
+              className="w-56"
+            />
           </div>
           <div>
             <Label htmlFor="isActive">Active</Label>
-            <select id="isActive" className="border rounded h-9 px-2" value={isActive} onChange={(e) => { setPage(1); setIsActive(e.target.value); }}>
+            <select
+              id="isActive"
+              className="border rounded h-9 px-2"
+              value={isActive}
+              onChange={(e) => {
+                setPage(1);
+                setIsActive(e.target.value);
+              }}
+            >
               <option value="">All</option>
               <option value="true">Active</option>
               <option value="false">Inactive</option>
             </select>
           </div>
         </div>
-        {loading ? (
+        {isLoading ? (
           <div className="p-6">Loading...</div>
         ) : (
           <Table>
@@ -62,21 +65,23 @@ const Users = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Last logging</TableHead>
+                <TableHead>Last login</TableHead>
                 <TableHead className="text-right">Orders</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((u) => (
+              {data?.items.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell>{u.email}</TableCell>
+                  <TableCell>
+                    <Link to={`/admin/users/${u.id}`} className="hover:underline">
+                      {u.email}
+                    </Link>
+                  </TableCell>
                   <TableCell>{`${u.firstName} ${u.lastName}`.trim()}</TableCell>
                   <TableCell>
                     {u.isActive ? <span className="text-green-600">Active</span> : <span className="text-muted-foreground">Inactive</span>}
                   </TableCell>
-                  <TableCell>
-                    {new Date(u.createdAt).toLocaleString()}
-                  </TableCell>
+                  <TableCell>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'never'}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button asChild size="sm" variant="outline">
                       <Link to={`/admin/users/${u.id}/orders`}>Orders</Link>
@@ -87,17 +92,7 @@ const Users = () => {
             </TableBody>
           </Table>
         )}
-        <div className="px-2 py-3">
-          <Pagination>
-            <PaginationContent>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink to="#" isActive={page === i + 1} onClick={(e) => { e.preventDefault(); setPage(i + 1); }}>{i + 1}</PaginationLink>
-                </PaginationItem>
-              ))}
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <PageNumbers page={page} totalPages={data?.totalPages ?? 1} onPageChange={setPage} />
       </Card>
     </div>
   );

@@ -1,49 +1,34 @@
-import { Menu, ShoppingCart, UserCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
-import ModeToggle from "./ModeToggle";
-import { useAppSelector, useAppDispatch } from '@/hooks';
-import { useState, useRef, useEffect } from 'react';
-import { clearCart } from '@/features/cart/cartSlice';
-import { logoutUserAsync } from '@/features/user/userSlice';
-import { useToast } from '@/hooks/use-toast';
-
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Menu, ShoppingCart, UserCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useCart } from '@/features/cart/useCart';
+import { isAdmin } from '@/features/session/roles';
+import { useSignOut } from '@/features/session/useSignOut';
+import { useAppSelector } from '@/hooks';
+import ModeToggle from './ModeToggle';
 
 const MobileBottomBar = ({ onMenuClick }: { onMenuClick: () => void }) => {
-  const user = useAppSelector((s) => s.userState.user);
-  const isAdmin = !!user && (
-    user.roles?.some((r) => /admin/i.test(r)) ||
-    user.email === 'demoadmin@store.com'
-  );
-  const numItemsInCart = useAppSelector((state) => state.cartState.numItemsInCart);
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const user = useAppSelector((s) => s.session.user);
+  const admin = isAdmin(user);
+  const { totalItems } = useCart();
+  const signOut = useSignOut();
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click (mobile)
+  // Close the account menu on a tap outside it
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (accountOpen && accountRef.current && !accountRef.current.contains(e.target as Node)) {
-        setAccountOpen(false);
-      }
-    }
-    if (accountOpen) {
-      window.addEventListener('click', handleClick);
-    }
-    return () => {
-      window.removeEventListener('click', handleClick);
+    if (!accountOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
     };
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
   }, [accountOpen]);
 
   const handleLogout = async () => {
-    // Only the local copy is dropped; the server cart belongs to the account and survives signing out
-    dispatch(clearCart());
-    await dispatch(logoutUserAsync());
-    toast({ description: 'Logged Out' });
     setAccountOpen(false);
-    navigate('/');
+    await signOut();
   };
 
   return (
@@ -55,7 +40,6 @@ const MobileBottomBar = ({ onMenuClick }: { onMenuClick: () => void }) => {
           </Button>
           <span className="text-xs mt-0.5">Menu</span>
         </div>
-        {/* Account/Login */}
         <div className="flex flex-col items-center relative" ref={accountRef}>
           {!user ? (
             <>
@@ -74,12 +58,12 @@ const MobileBottomBar = ({ onMenuClick }: { onMenuClick: () => void }) => {
               <span className="text-xs mt-0.5">My Account</span>
               {accountOpen && (
                 <div className="absolute bottom-14 left-1/2 -translate-x-1/2 bg-popover border rounded shadow-lg min-w-[140px] z-50 flex flex-col">
-                  {isAdmin && (
-                    <Button asChild variant="ghost" className="justify-start px-4 py-2 w-full" onClick={() => { setAccountOpen(false); }}>
+                  {admin && (
+                    <Button asChild variant="ghost" className="justify-start px-4 py-2 w-full" onClick={() => setAccountOpen(false)}>
                       <Link to="/admin">Dashboard</Link>
                     </Button>
                   )}
-                  <Button asChild variant="ghost" className="justify-start px-4 py-2 w-full" onClick={() => { setAccountOpen(false); }}>
+                  <Button asChild variant="ghost" className="justify-start px-4 py-2 w-full" onClick={() => setAccountOpen(false)}>
                     <Link to="/orders">Orders</Link>
                   </Button>
                   <Button variant="ghost" className="justify-start px-4 py-2 w-full" onClick={handleLogout}>
@@ -94,9 +78,9 @@ const MobileBottomBar = ({ onMenuClick }: { onMenuClick: () => void }) => {
           <Button asChild variant="ghost" size="icon" aria-label="Cart" className="relative">
             <Link to="/cart">
               <ShoppingCart />
-              {numItemsInCart > 0 && (
+              {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-primary text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
-                  {numItemsInCart}
+                  {totalItems}
                 </span>
               )}
             </Link>

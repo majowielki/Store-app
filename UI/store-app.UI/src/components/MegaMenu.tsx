@@ -1,17 +1,9 @@
-import { useEffect, useState } from 'react';
-import { productApi } from '@/utils/api';
 import { NavLink } from 'react-router-dom';
+import { useGetProductsMetaQuery } from '@/api/catalog';
 
 const MegaMenu = () => {
-  const [categories, setCategories] = useState<string[]>([]);
-
-  useEffect(() => {
-    let mounted = true;
-    productApi.getProductsMeta()
-      .then((m) => { if (mounted) setCategories(m.categories || []); })
-      .catch(() => {});
-    return () => { mounted = false; };
-  }, []);
+  const { data: meta } = useGetProductsMetaQuery();
+  const categories = meta?.categories ?? [];
 
   if (categories.length === 0) return null;
 

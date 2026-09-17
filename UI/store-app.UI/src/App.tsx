@@ -1,140 +1,64 @@
-
-import { RouterProvider, createBrowserRouter, redirect } from "react-router-dom";
-
+import type { ComponentType } from 'react';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { ErrorElement } from './components';
 import {
+  About,
+  Cart,
+  Checkout,
+  Contact,
+  Error,
   HomeLayout,
   Landing,
-  Error,
-  Products,
-  SingleProduct,
-  Cart,
-  About,
-  Contact,
-  Register,
   Login,
-  Checkout,
+  OrderDetail,
   Orders,
-  // user order detail
-  OrderDetail as UserOrderDetail,
-} from "./pages";
-import { ErrorElement } from "./components";
+  Products,
+  Register,
+  SingleProduct,
+} from './pages';
+import { requireAdmin, requireUser } from './routes/guards';
 
-import { loader as landingLoader } from "./pages/Landing";
-import { loader as productsLoader } from "./pages/Products";
-import { loader as singleProductLoader } from "./pages/SingleProduct";
-import { loader as checkoutLoader } from './pages/Checkout.loader';
-import { loader as ordersLoader } from './pages/Orders';
+/** A route module loaded on first visit; the admin panel (with its charts) stays out of the shop's bundle this way. */
+const page = (load: () => Promise<{ default: ComponentType }>) => async () => ({ Component: (await load()).default });
 
-import { action as registerUser } from './pages/Register';
-import { action as loginUser } from './pages/Login';
-import { action as checkoutAction } from './components/CheckoutForm';
-
-import { store } from './store';
-import AdminLayout from './pages/admin/AdminLayout';
-import Dashboard from './pages/admin/Dashboard';
-import AdminOrders from './pages/admin/Orders';
-import AdminOrderDetail from './pages/admin/OrderDetail';
-import AdminProducts from './pages/admin/Products';
-import AdminProductForm from './pages/admin/ProductForm';
-import AdminUsers from './pages/admin/Users';
-import AdminUserDetail from './pages/admin/UserDetail';
-import AdminUserOrders from './pages/admin/UserOrders';
-import { UserBootstrap } from './features/user/UserBootstrap';
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: '/',
     element: <HomeLayout />,
     errorElement: <Error />,
     children: [
-      {
-        index: true,
-        element: <Landing />,
-        errorElement: <ErrorElement />,
-        loader: landingLoader,
-      },
-      {
-        path: "products",
-        element: <Products />,
-        errorElement: <ErrorElement />,
-        loader: productsLoader,
-      },
-      {
-        path: "products/:id",
-        element: <SingleProduct />,
-        errorElement: <ErrorElement />,
-        loader: singleProductLoader,
-      },
-      {
-        path: "cart",
-        element: <Cart />,
-        errorElement: <ErrorElement />,
-      },
-      { path: "about", element: <About />, errorElement: <ErrorElement /> },
-  { path: "kontakt", element: <Contact />, errorElement: <ErrorElement /> },
-  { path: "contact", element: <Contact />, errorElement: <ErrorElement /> },
-      {
-        path: "checkout",
-        element: <Checkout />,
-        errorElement: <ErrorElement />,
-        loader: checkoutLoader(store),
-        action: checkoutAction(store),
-      },
-      {
-        path: "orders",
-        element: <Orders />,
-        errorElement: <ErrorElement />,
-        loader: ordersLoader(store),
-      },
-      {
-        path: "orders/:id",
-        element: <UserOrderDetail />,
-        errorElement: <ErrorElement />,
-      },
+      { index: true, element: <Landing />, errorElement: <ErrorElement /> },
+      { path: 'products', element: <Products />, errorElement: <ErrorElement /> },
+      { path: 'products/:id', element: <SingleProduct />, errorElement: <ErrorElement /> },
+      { path: 'cart', element: <Cart />, errorElement: <ErrorElement /> },
+      { path: 'about', element: <About />, errorElement: <ErrorElement /> },
+      { path: 'contact', element: <Contact />, errorElement: <ErrorElement /> },
+      { path: 'checkout', element: <Checkout />, errorElement: <ErrorElement />, loader: requireUser },
+      { path: 'orders', element: <Orders />, errorElement: <ErrorElement />, loader: requireUser },
+      { path: 'orders/:id', element: <OrderDetail />, errorElement: <ErrorElement />, loader: requireUser },
     ],
   },
   {
     path: '/admin',
-    element: <AdminLayout />,
+    lazy: page(() => import('./pages/admin/AdminLayout')),
     errorElement: <Error />,
-    loader: async () => {
-      const state = store.getState();
-  const roles = state.userState.user?.roles || [];
-  const isAdmin = roles.some((r) => /admin/i.test(r));
-  if (!isAdmin) {
-        return redirect('/');
-      }
-      return null;
-    },
+    loader: requireAdmin,
     children: [
-  { index: true, element: <Dashboard /> },
-  { path: 'orders', element: <AdminOrders /> },
-  { path: 'orders/:id', element: <AdminOrderDetail /> },
-  { path: 'products', element: <AdminProducts /> },
-  { path: 'products/:id', element: <AdminProductForm /> },
-  { path: 'products/new', element: <AdminProductForm /> },
-  { path: 'users', element: <AdminUsers /> },
-  { path: 'users/:id', element: <AdminUserDetail /> },
-  { path: 'users/:id/orders', element: <AdminUserOrders /> },
+      { index: true, lazy: page(() => import('./pages/admin/Dashboard')), errorElement: <ErrorElement /> },
+      { path: 'orders', lazy: page(() => import('./pages/admin/Orders')), errorElement: <ErrorElement /> },
+      { path: 'orders/:id', lazy: page(() => import('./pages/admin/OrderDetail')), errorElement: <ErrorElement /> },
+      { path: 'products', lazy: page(() => import('./pages/admin/Products')), errorElement: <ErrorElement /> },
+      { path: 'products/new', lazy: page(() => import('./pages/admin/ProductForm')), errorElement: <ErrorElement /> },
+      { path: 'products/:id', lazy: page(() => import('./pages/admin/ProductForm')), errorElement: <ErrorElement /> },
+      { path: 'users', lazy: page(() => import('./pages/admin/Users')), errorElement: <ErrorElement /> },
+      { path: 'users/:id', lazy: page(() => import('./pages/admin/UserDetail')), errorElement: <ErrorElement /> },
+      { path: 'users/:id/orders', lazy: page(() => import('./pages/admin/UserOrders')), errorElement: <ErrorElement /> },
     ],
   },
-  {
-    path: "/login",
-    element: <Login />,
-    errorElement: <Error />,
-    action: loginUser(store),
-  },
-  {
-    path: "/register",
-    element: <Register />,
-    errorElement: <Error />,
-    action: registerUser,
-  },
+  { path: '/login', element: <Login />, errorElement: <Error /> },
+  { path: '/register', element: <Register />, errorElement: <Error /> },
 ]);
 
-const App = () => (
-  <>
-    <UserBootstrap />
-    <RouterProvider router={router} />
-  </>
-);
+const App = () => <RouterProvider router={router} />;
+
 export default App;

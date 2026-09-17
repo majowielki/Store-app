@@ -1,9 +1,0 @@
-export { default as AdminLayout } from './AdminLayout';
-export { default as Dashboard } from './Dashboard';
-export { default as Orders } from './Orders';
-export { default as OrderDetail } from './OrderDetail';
-export { default as Products } from './Products';
-export { default as ProductForm } from './ProductForm';
-export { default as Users } from './Users';
-export { default as UserDetail } from './UserDetail';
-export { default as UserOrders } from './UserOrders';

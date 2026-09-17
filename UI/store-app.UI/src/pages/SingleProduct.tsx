@@ -1,63 +1,43 @@
-import { useLoaderData } from "react-router-dom";
-import { Ruler, Scale, Layers } from "lucide-react";
-import { Link, type LoaderFunction } from "react-router-dom";
-import {
-  formatAsDollars,
-  priceTag,
-  productApi,
-  type Product,
-  type CartItem,
-} from "@/utils";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { SelectProductAmount, SelectProductColor } from "@/components";
-import { Mode } from "@/components/SelectProductAmount";
-import { useAppDispatch, useAppSelector } from "@/hooks";
-import { addItem, addItemToServer } from "@/features/cart/cartSlice";
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const loader: LoaderFunction = async ({ params }): Promise<Product> =>
-  productApi.getProduct(Number(params.id));
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Layers, Ruler, Scale } from 'lucide-react';
+import { useGetProductQuery } from '@/api/catalog';
+import { isApiError } from '@/api/problem';
+import { Loading, SectionTitle, SelectProductAmount, SelectProductColor } from '@/components';
+import { Mode } from '@/components/SelectProductAmount';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { useCartActions } from '@/features/cart/useCart';
+import { toast } from '@/hooks/use-toast';
+import { formatAsDollars, priceTag, type Product } from '@/utils';
 
 const SingleProduct = () => {
-  const product = useLoaderData() as Product;
+  const { id } = useParams<{ id: string }>();
+  const { data: product, isLoading, error } = useGetProductQuery(Number(id));
+
+  if (isLoading) return <Loading />;
+  if (!product) {
+    return <SectionTitle text={isApiError(error) && error.status === 404 ? 'Product not found' : 'Product unavailable'} />;
+  }
+  return <ProductDetails product={product} />;
+};
+
+const ProductDetails = ({ product }: { product: Product }) => {
   const { image, title, description, colors, company, widthCm, heightCm, depthCm, weightKg, materials } = product;
   const companyLabel = company ? company.charAt(0).toUpperCase() + company.slice(1) : '';
   const materialsText = (materials ?? []).filter(Boolean).join(', ');
   const { price, effectivePrice, hasSale } = priceTag(product);
   const [productColor, setProductColor] = useState(colors[0]);
   const [amount, setAmount] = useState(1);
-  const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.userState.user);
-  // The cart charges what the page shows: the sale price when the product is on sale
-  const cartProduct: CartItem = {
-    cartID: product.id + productColor,
-    productID: product.id,
-    image,
-    title,
-    price: String(effectivePrice),
-    amount,
-    productColor,
-    company,
-  };
+  const { add } = useCartActions();
 
   const addToCart = async () => {
-    if (user) {
-      try {
-        await dispatch(
-          addItemToServer({
-            productId: product.id,
-            quantity: amount,
-            color: productColor,
-          })
-        ).unwrap();
-      } catch {
-        // Fallback to local cart when server rejects (e.g., 401)
-        dispatch(addItem(cartProduct));
-      }
-    } else {
-      dispatch(addItem(cartProduct));
+    try {
+      // The cart charges what the page shows: the sale price when the product is on sale
+      await add({ productId: product.id, title, image, company, color: productColor, unitPrice: effectivePrice, quantity: amount });
+      toast({ description: 'Item added to cart' });
+    } catch {
+      // Reported by the error middleware
     }
   };
 
@@ -72,37 +52,21 @@ const SingleProduct = () => {
           <Link to="/products">Products</Link>
         </Button>
       </div>
-      {/* PRODUCT */}
       <div className="mt-6 grid gap-y-8 lg:grid-cols-2 lg:gap-x-16">
-        {/* IMAGE FIRST COL */}
         <div className="w-full max-w-[500px] mx-auto aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center sm:max-w-[400px] lg:max-w-full">
-          <img
-            src={image}
-            alt={title}
-            width={1184}
-            height={896}
-            className="w-full h-full object-cover"
-            style={{ aspectRatio: '4/3' }}
-          />
+          <img src={image} alt={title} className="w-full h-full object-cover" style={{ aspectRatio: '4/3' }} />
         </div>
-        {/* PRODUCT INFO SECOND COL */}
         <div>
           <h1 className="capitalize text-3xl font-bold">{title}</h1>
           <h4 className="text-xl mt-2">{companyLabel}</h4>
           <p className="mt-3 text-md bg-muted inline-block p-2 rounded-md">
             {hasSale ? (
               <>
-                <span className="text-primary font-semibold mr-2">
-                  {formatAsDollars(effectivePrice)}
-                </span>
-                <span className="line-through text-muted-foreground">
-                  {formatAsDollars(price)}
-                </span>
+                <span className="text-primary font-semibold mr-2">{formatAsDollars(effectivePrice)}</span>
+                <span className="line-through text-muted-foreground">{formatAsDollars(price)}</span>
               </>
             ) : (
-              <span className="text-primary font-light">
-                {formatAsDollars(price)}
-              </span>
+              <span className="text-primary font-light">{formatAsDollars(price)}</span>
             )}
           </p>
           <p className="mt-6 leading-8">{description}</p>
@@ -135,29 +99,17 @@ const SingleProduct = () => {
                     <span className="text-muted-foreground">Weight:</span> {weightKg} kg
                   </li>
                 )}
-        {materialsText && (
+                {materialsText && (
                   <li className="flex items-center gap-2 md:col-span-2 lg:col-span-3">
                     <Layers className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Materials:</span> {materialsText}
+                    <span className="text-muted-foreground">Materials:</span> {materialsText}
                   </li>
                 )}
               </ul>
             </div>
           )}
-          {/* COLORS  */}
-          <SelectProductColor
-            colors={colors}
-            productColor={productColor}
-            setProductColor={setProductColor}
-          />
-
-          {/* AMOUNT  */}
-          <SelectProductAmount
-            mode={Mode.SingleProduct}
-            amount={amount}
-            setAmount={setAmount}
-          />
-          {/* CART BUTTON  */}
+          <SelectProductColor colors={colors} productColor={productColor} setProductColor={setProductColor} />
+          <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} />
           <Button size="lg" className="mt-10" onClick={addToCart}>
             Add to bag
           </Button>
@@ -165,5 +117,5 @@ const SingleProduct = () => {
       </div>
     </section>
   );
-}
+};
 export default SingleProduct;

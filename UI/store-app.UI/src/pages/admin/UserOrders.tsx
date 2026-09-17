@@ -1,45 +1,30 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { useGetOrdersByUserQuery } from '@/api/orders';
+import PageNumbers from '@/components/PageNumbers';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { formatAsDollars } from '@/utils';
-import type { OrdersResponse, Order } from '@/utils/types';
-import { orderApi } from '@/utils/api';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@/components/ui/pagination';
+
+const PAGE_SIZE = 20;
 
 const UserOrders = () => {
-  const { id } = useParams<{ id: string }>();
-  const [data, setData] = useState<OrdersResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { id = '' } = useParams<{ id: string }>();
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
-
-  useEffect(() => {
-    if (!id) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await orderApi.getOrdersByUser(id, page, pageSize);
-        setData(res);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, page, pageSize]);
+  const { data, isLoading } = useGetOrdersByUserQuery({ userId: id, page, pageSize: PAGE_SIZE });
+  const customer = data?.items[0]?.customerName;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">
-          Orders for {data?.items?.[0]?.customerName ? `${data.items[0].customerName}` : `user ${id}`}
-        </h2>
+        <h2 className="text-xl font-semibold">Orders for {customer ?? `user ${id}`}</h2>
         <Button asChild variant="outline" size="sm">
           <Link to="/admin/users">Back to Users</Link>
         </Button>
       </div>
       <Card className="p-2">
-        {loading ? (
+        {isLoading ? (
           <div className="p-6">Loading...</div>
         ) : (
           <Table>
@@ -55,7 +40,7 @@ const UserOrders = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data?.items?.map((o: Order) => (
+              {data?.items.map((o) => (
                 <TableRow key={o.id}>
                   <TableCell>{o.id}</TableCell>
                   <TableCell>{o.customerName}</TableCell>
@@ -73,17 +58,7 @@ const UserOrders = () => {
             </TableBody>
           </Table>
         )}
-        <div className="px-2 py-3">
-          <Pagination>
-            <PaginationContent>
-              {Array.from({ length: data?.totalPages ?? 1 }, (_, i) => (
-                <PaginationItem key={i}>
-                  <PaginationLink to="#" isActive={page === i + 1} onClick={(e) => { e.preventDefault(); setPage(i + 1); }}>{i + 1}</PaginationLink>
-                </PaginationItem>
-              ))}
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <PageNumbers page={page} totalPages={data?.totalPages ?? 1} onPageChange={setPage} />
       </Card>
     </div>
   );

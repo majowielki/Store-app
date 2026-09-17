@@ -1,97 +1,34 @@
-import { useEffect, useState } from 'react';
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useGetOrderStatsQuery } from '@/api/orders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { orderApi } from '@/utils/api';
-import type { OrderStatsResponse } from '@/utils/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatAsDollars } from '@/utils';
 
-/** The statistics as the dashboard charts them, mapped from the API's OrderStatsResponse. */
-interface AdminOrderStats {
-  days: number;
-  totals: { revenue: number; ordersCount: number };
-  dailyBuckets: Array<{ date: string; revenue: number; ordersCount: number }>;
-  weeklyBuckets: Array<{ isoWeek: string; startDate: string; endDate: string; revenue: number; ordersCount: number }>;
-  topProducts: Array<{ productId: number; title: string; quantity: number; revenue: number }>;
-}
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+const DAYS = 30;
 
 const Dashboard = () => {
-  const [stats, setStats] = useState<AdminOrderStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // ...existing code...
+  const { data: stats, isLoading, isError } = useGetOrderStatsQuery({ days: DAYS });
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const s: OrderStatsResponse = await orderApi.getAdminStats(30);
-        // Map backend response to AdminOrderStats shape
-        const mapped = {
-          days: 30,
-          totals: {
-            revenue: s.totalRevenue ?? 0,
-            ordersCount: s.totalOrders ?? 0,
-          },
-          dailyBuckets: Array.isArray(s.daily)
-            ? s.daily.map((d) => ({
-                date: d.bucketStart || '',
-                revenue: d.revenue ?? 0,
-                ordersCount: d.orders ?? 0,
-              }))
-            : [],
-          weeklyBuckets: Array.isArray(s.weekly)
-            ? s.weekly.map((w) => ({
-                isoWeek: '',
-                startDate: w.bucketStart || '',
-                endDate: '',
-                revenue: w.revenue ?? 0,
-                ordersCount: w.orders ?? 0,
-              }))
-            : [],
-          topProducts: Array.isArray(s.topProducts)
-            ? s.topProducts.map((p) => ({
-                productId: p.productId,
-                title: p.productTitle,
-                quantity: p.quantity,
-                revenue: p.revenue,
-              }))
-            : [],
-        };
-        setStats(mapped);
-      } catch {
-        setStats(null);
-        setError('Failed to load dashboard stats.');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  if (isLoading) return <div>Loading dashboard...</div>;
+  if (isError || !stats) return <div className="text-red-500">Failed to load dashboard stats.</div>;
 
-  if (loading) {
-    return <div>Loading dashboard...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
-  if (!stats || !stats.totals) {
-    return <div>No dashboard data available.</div>;
-  }
+  const daily = stats.daily.map((bucket) => ({
+    date: bucket.bucketStart.slice(0, 10),
+    revenue: bucket.revenue,
+    orders: bucket.orders,
+  }));
+  const topProducts = [...stats.topProducts].sort((a, b) => b.quantity - a.quantity);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{formatAsDollars(stats.totals.revenue)}</p>
-            <p className="text-xs text-muted-foreground">Last {stats.days ?? 30} days</p>
+            <p className="text-2xl font-bold">{formatAsDollars(stats.totalRevenue)}</p>
+            <p className="text-xs text-muted-foreground">Last {DAYS} days</p>
           </CardContent>
         </Card>
         <Card>
@@ -99,13 +36,12 @@ const Dashboard = () => {
             <CardTitle>Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{stats.totals.ordersCount}</p>
-            <p className="text-xs text-muted-foreground">Last {stats.days ?? 30} days</p>
+            <p className="text-2xl font-bold">{stats.totalOrders}</p>
+            <p className="text-xs text-muted-foreground">Last {DAYS} days</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Chart */}
       <Card>
         <CardHeader>
           <CardTitle>Revenue & Orders (Daily)</CardTitle>
@@ -113,7 +49,7 @@ const Dashboard = () => {
         <CardContent>
           <div className="w-full h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.dailyBuckets} margin={{ top: 16, right: 24, left: 0, bottom: 0 }}>
+              <LineChart data={daily} margin={{ top: 16, right: 24, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
@@ -121,14 +57,13 @@ const Dashboard = () => {
                 <Tooltip />
                 <Legend />
                 <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#2563eb" name="Revenue" dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="ordersCount" stroke="#16a34a" name="Orders" dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#16a34a" name="Orders" dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* Top Products Table - shadcn Table, sorted by quantity desc */}
       <Card>
         <CardHeader>
           <CardTitle>Top Products</CardTitle>
@@ -144,19 +79,19 @@ const Dashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(stats.topProducts?.length ?? 0) > 0 ? (
-                  [...stats.topProducts]
-                    .sort((a, b) => b.quantity - a.quantity)
-                    .map((prod) => (
-                      <TableRow key={prod.productId + '-' + prod.title}>
-                        <TableCell>{prod.title}</TableCell>
-                        <TableCell>{prod.quantity}</TableCell>
-                        <TableCell>{formatAsDollars(prod.revenue)}</TableCell>
-                      </TableRow>
-                    ))
+                {topProducts.length > 0 ? (
+                  topProducts.map((product) => (
+                    <TableRow key={product.productId}>
+                      <TableCell>{product.productTitle}</TableCell>
+                      <TableCell>{product.quantity}</TableCell>
+                      <TableCell>{formatAsDollars(product.revenue)}</TableCell>
+                    </TableRow>
+                  ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">No data</TableCell>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
+                      No data
+                    </TableCell>
                   </TableRow>
                 )}
               </TableBody>

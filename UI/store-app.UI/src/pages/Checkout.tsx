@@ -1,20 +1,20 @@
-import { useAppSelector } from '@/hooks';
-import { CheckoutForm, SectionTitle, CartTotals } from '@/components';
+import { CheckoutForm, Loading, SectionTitle, CartTotals } from '@/components';
+import { useCart } from '@/features/cart/useCart';
 
 const Checkout = () => {
-  const cartTotal = useAppSelector((state) => state.cartState.cartTotal);
+  const { lines, isLoading } = useCart();
 
-  if (cartTotal === 0) {
-    return <SectionTitle text='Your cart is empty' />;
-  }
+  if (isLoading) return <Loading />;
+  if (lines.length === 0) return <SectionTitle text="Your cart is empty" />;
+
   return (
     <>
-      <SectionTitle text='Place your order' />
-      <div className='mt-8 grid gap-8 md:grid-cols-2 items-start'>
+      <SectionTitle text="Place your order" />
+      <div className="mt-8 grid gap-8 md:grid-cols-2 items-start">
         <CheckoutForm />
         <CartTotals />
       </div>
     </>
   );
-}
+};
 export default Checkout;

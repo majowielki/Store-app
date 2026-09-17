@@ -1,8 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { UserCircle2 } from 'lucide-react';
-// import ModeToggle from './ModeToggle';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,20 +9,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useEffect, useRef, useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { clearCart } from '@/features/cart/cartSlice';
-import { logoutUserAsync } from '@/features/user/userSlice';
+import { isAdmin } from '@/features/session/roles';
+import { useSignOut } from '@/features/session/useSignOut';
+import { useAppSelector } from '@/hooks';
 
 const AccountButton = () => {
-  const user = useAppSelector((s) => s.userState.user);
-  const isAdmin = !!user && (
-    user.roles?.some((r) => /admin/i.test(r)) ||
-    user.email === 'demoadmin@store.com'
-  );
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const user = useAppSelector((s) => s.session.user);
+  const admin = isAdmin(user);
+  const signOut = useSignOut();
   const [open, setOpen] = useState(false);
   const closeTimeout = useRef<number | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -36,28 +29,18 @@ const AccountButton = () => {
     }
   };
 
+  // The menu opens on hover and closes once the pointer has left both the trigger and the menu
   useEffect(() => {
     if (!open) return;
-    const padding = 6; // small grace area
+    const padding = 6;
     const handleMouseMove = (e: MouseEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
       const isInside = (el: HTMLElement | null): boolean => {
         if (!el) return false;
         const r = el.getBoundingClientRect();
-        return (
-          x >= r.left - padding &&
-          x <= r.right + padding &&
-          y >= r.top - padding &&
-          y <= r.bottom + padding
-        );
+        return e.clientX >= r.left - padding && e.clientX <= r.right + padding && e.clientY >= r.top - padding && e.clientY <= r.bottom + padding;
       };
-      const overTrigger = isInside(triggerRef.current);
-      const overContent = isInside(contentRef.current);
-      if (overTrigger || overContent) {
-        clearCloseTimeout();
-      } else {
-        clearCloseTimeout();
+      clearCloseTimeout();
+      if (!isInside(triggerRef.current) && !isInside(contentRef.current)) {
         closeTimeout.current = window.setTimeout(() => setOpen(false), 120);
       }
     };
@@ -69,37 +52,27 @@ const AccountButton = () => {
   }, [open]);
 
   const handleLogout = async () => {
-    // Only the local copy is dropped; the server cart belongs to the account and must survive
-    // signing out (and be there on the next device)
-    dispatch(clearCart());
-    await dispatch(logoutUserAsync());
-    toast({ description: 'Logged Out' });
-    navigate('/');
     setOpen(false);
+    await signOut();
   };
 
   return (
     <div className="flex items-center gap-2 sm:gap-3">
-  <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="gap-2"
             aria-haspopup="menu"
-    ref={triggerRef}
-    onMouseEnter={() => setOpen(true)}
-    onClick={() => setOpen((v) => !v)}
+            ref={triggerRef}
+            onMouseEnter={() => setOpen(true)}
+            onClick={() => setOpen((v) => !v)}
           >
             <UserCircle2 className="h-5 w-5" />
             <span className="hidden sm:inline">My Account</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="min-w-[180px]"
-      ref={contentRef}
-      onInteractOutside={() => setOpen(false)}
-        >
+        <DropdownMenuContent align="end" className="min-w-[180px]" ref={contentRef} onInteractOutside={() => setOpen(false)}>
           {!user ? (
             <>
               <DropdownMenuItem asChild>
@@ -115,7 +88,7 @@ const AccountButton = () => {
             </>
           ) : (
             <>
-              {isAdmin && (
+              {admin && (
                 <DropdownMenuItem asChild>
                   <Link to="/admin" onClick={() => setOpen(false)}>
                     Dashboard
@@ -133,8 +106,6 @@ const AccountButton = () => {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-
-  {/* ModeToggle removed to prevent duplicate theme switch in header */}
     </div>
   );
 };

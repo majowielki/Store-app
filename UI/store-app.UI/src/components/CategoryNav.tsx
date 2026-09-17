@@ -1,9 +1,7 @@
 import { categories } from '@/utils/categories';
 import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
-// import { useAppSelector } from '@/hooks';
 
 const CategoryNav = () => {
-  // user selector removed (was unused)
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const onProducts = location.pathname === '/products';

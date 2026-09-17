@@ -118,7 +118,16 @@ jobs:
         run: npm run api:check
       - run: npx eslint . --max-warnings=0
       - run: npx tsc -b
+      - name: Unit and component tests (Vitest, MSW)
+        run: npm run test:coverage
       - run: npm run build
+      - name: Upload UI coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-coverage
+          path: UI/store-app.UI/coverage/cobertura-coverage.xml
+          retention-days: 14
 
   docker:
     name: Docker image (${{ matrix.service.name }})

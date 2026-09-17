@@ -1,32 +1,28 @@
-import { Filters, ProductsContainer, PaginationContainer } from "@/components";
-import { emptyProductsMeta, type ProductsResponseWithParams } from "../utils";
-import { productApi } from '@/utils/api';
-import { type LoaderFunction } from "react-router-dom";
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const loader: LoaderFunction = async ({
-  request,
-}): Promise<ProductsResponseWithParams> => {
-  const params = Object.fromEntries([
-    ...new URL(request.url).searchParams.entries(),
-  ]);
-
-  // The filter values are a separate resource; the page still renders without them
-  const [page, meta] = await Promise.all([
-    productApi.getProducts(params),
-    productApi.getProductsMeta().catch(() => emptyProductsMeta),
-  ]);
-
-  return { ...page, meta, params };
-};
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { emptyProductsMeta, useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
+import { Filters, Loading, PaginationContainer, ProductsContainer } from '@/components';
+import { productQueryFrom } from '@/utils/productQuery';
 
 const Products = () => {
+  const [searchParams] = useSearchParams();
+  const query = useMemo(() => productQueryFrom(searchParams), [searchParams]);
+  const { data: page, isLoading } = useGetProductsQuery(query);
+  // The filter values are a separate resource; the page still renders without them
+  const { data: meta = emptyProductsMeta } = useGetProductsMetaQuery();
+
   return (
     <>
-      <Filters />
-      <ProductsContainer />
-      <PaginationContainer />
+      <Filters meta={meta} query={query} />
+      {isLoading || !page ? (
+        <Loading />
+      ) : (
+        <>
+          <ProductsContainer page={page} />
+          <PaginationContainer page={page.page} totalPages={page.totalPages} />
+        </>
+      )}
     </>
   );
-}
+};
 export default Products;

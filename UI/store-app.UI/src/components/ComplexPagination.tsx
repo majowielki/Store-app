@@ -1,83 +1,47 @@
+import { useLocation } from 'react-router-dom';
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-  PaginationEllipsis,
 } from '@/components/ui/pagination';
-import {
-  type OrdersResponse,
-  constructUrl,
-  constructPrevOrNextUrl,
-} from '@/utils';
-import { useLoaderData, useLocation } from 'react-router-dom';
+import { constructUrl, constructPrevOrNextUrl } from '@/utils';
 
-const ComplexPaginationContainer = () => {
-  const ordersResponse = useLoaderData() as OrdersResponse;
-  const pageCount = ordersResponse.totalPages ?? 1;
-  const page = ordersResponse.page ?? 1;
+interface ComplexPaginationProps {
+  page: number;
+  totalPages: number;
+}
+
+/** First, current and last page with ellipses between, for listings that may run to many pages. */
+const ComplexPaginationContainer = ({ page, totalPages: pageCount }: ComplexPaginationProps) => {
   const { search, pathname } = useLocation();
 
   if (pageCount < 2) return null;
 
-  const constructButton = ({
-    pageNumber,
-    isActive,
-  }: {
-    pageNumber: number;
-    isActive: boolean;
-  }): React.ReactNode => {
-    const url = constructUrl({ pageNumber, search, pathname });
-    return (
-      <PaginationItem key={pageNumber}>
-        <PaginationLink to={url} isActive={isActive}>
-          {pageNumber}
-        </PaginationLink>
-      </PaginationItem>
-    );
-  };
+  const pageButton = (pageNumber: number, isActive: boolean) => (
+    <PaginationItem key={pageNumber}>
+      <PaginationLink to={constructUrl({ pageNumber, search, pathname })} isActive={isActive}>
+        {pageNumber}
+      </PaginationLink>
+    </PaginationItem>
+  );
 
-  const constructEllipsis = (key: string): React.ReactNode => (
+  const ellipsis = (key: string) => (
     <PaginationItem key={key}>
       <PaginationEllipsis />
     </PaginationItem>
   );
 
-  const renderPagination = () => {
-    const pages: React.ReactNode[] = [];
-    // first page
-    pages.push(constructButton({ pageNumber: 1, isActive: page === 1 }));
+  const pages = [pageButton(1, page === 1)];
+  if (page > 2) pages.push(ellipsis(`dots-before-${page}`));
+  if (page !== 1 && page !== pageCount) pages.push(pageButton(page, true));
+  if (page < pageCount - 1) pages.push(ellipsis(`dots-after-${page}`));
+  pages.push(pageButton(pageCount, page === pageCount));
 
-    // ellipsis before current page
-    if (page > 2) {
-      pages.push(constructEllipsis(`dots-before-${page}`));
-    }
-
-    // active page (if not first or last)
-    if (page !== 1 && page !== pageCount) {
-      pages.push(constructButton({ pageNumber: page, isActive: true }));
-    }
-
-    // ellipsis after current page
-    if (page < pageCount - 1) {
-      pages.push(constructEllipsis(`dots-after-${page}`));
-    }
-
-    // last page
-    pages.push(
-      constructButton({ pageNumber: pageCount, isActive: page === pageCount })
-    );
-    return pages;
-  };
-
-  const { prevUrl, nextUrl } = constructPrevOrNextUrl({
-    currentPage: page,
-    pageCount,
-    search,
-    pathname,
-  });
+  const { prevUrl, nextUrl } = constructPrevOrNextUrl({ currentPage: page, pageCount, search, pathname });
 
   return (
     <Pagination className="mt-16">
@@ -85,7 +49,7 @@ const ComplexPaginationContainer = () => {
         <PaginationItem>
           <PaginationPrevious to={prevUrl} />
         </PaginationItem>
-        {renderPagination()}
+        {pages}
         <PaginationItem>
           <PaginationNext to={nextUrl} />
         </PaginationItem>
@@ -95,4 +59,3 @@ const ComplexPaginationContainer = () => {
 };
 
 export default ComplexPaginationContainer;
-  

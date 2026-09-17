@@ -1,27 +1,14 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { identityAdminApi } from '@/utils/api';
-import type { UserResponse } from '@/utils/types';
+import { Link, useParams } from 'react-router-dom';
+import { useGetAdminUserQuery } from '@/api/admin';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const UserDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const [user, setUser] = useState<UserResponse | null>(null);
+  const { id = '' } = useParams<{ id: string }>();
+  const { data: user, isLoading } = useGetAdminUserQuery(id);
 
-  useEffect(() => {
-    if (!id) return;
-    (async () => {
-      try {
-        const u = await identityAdminApi.getUser(id);
-        setUser(u);
-      } catch {
-        setUser(null);
-      }
-    })();
-  }, [id]);
-
-  if (!user) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>;
+  if (!user) return <div>User not found.</div>;
 
   return (
     <div className="space-y-4">
