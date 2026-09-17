@@ -233,16 +233,6 @@ Authorization: Bearer {{token}}
 GET {{api}}/auditlog/1
 Authorization: Bearer {{token}}
 
-### ---------------------------------------------------------------- newsletter
-
-### Subscribe (204; 422 for an invalid e-mail)
-POST {{api}}/newsletter/subscribe
-Content-Type: application/json
-
-{
-  "email": "reader@example.test"
-}
-
 ### ---------------------------------------------------------------- health (each host)
 
 ### Liveness / readiness of the gateway; the services answer the same paths on their own ports

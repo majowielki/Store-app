@@ -20,8 +20,8 @@ and the container's nginx does the same (`docker/`), so the refresh cookie needs
 ## How the app is put together
 
 - `src/api/` - the API layer. `api.ts` creates the one RTK Query instance; `auth.ts`, `cart.ts`,
-  `catalog.ts`, `orders.ts`, `admin.ts` and `newsletter.ts` inject the endpoints of the
-  corresponding service and export the hooks. `baseQuery.ts` sends every request: it attaches the
+  `catalog.ts`, `orders.ts` and `admin.ts` inject the endpoints of the corresponding service
+  and export the hooks. `baseQuery.ts` sends every request: it attaches the
   bearer token, turns a problem response (`application/problem+json`) into an `ApiError`
   (`problem.ts`) and renews an expired access token once before giving up. `session.ts` keeps the
   access token in memory; the refresh token lives in an httpOnly cookie the page never sees.
@@ -33,7 +33,8 @@ and the container's nginx does the same (`docker/`), so the refresh cookie needs
 - `src/features/cart/` - the cart. For a signed-in user the server cart is the source of truth
   (`useCart` reads the `getCart` query, every change is a mutation that answers with the whole
   cart); a visitor's cart lives in `guestCartSlice` and `localStorage` until sign-in.
-  `pricing.ts` previews the totals the order service will compute.
+  `pricing.ts` previews the totals the way the order service computes them, with the rules it
+  publishes (`GET /orders/pricing-rules`) - no price rule is written into the UI.
 - `src/routes/guards.ts` - route loaders that wait for the session check and redirect; the admin
   routes are loaded lazily (`App.tsx`), so the admin bundle (charts included) stays out of the shop.
 - `src/pages/`, `src/components/` - the screens; `components/ui/` are shadcn/ui primitives.
@@ -50,3 +51,12 @@ repository README) with the dev server, which `npm run e2e` starts itself. The t
 credentials come from `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` (compose defaults otherwise), and
 because every scenario signs in on its own, the gateway's sign-in limit has to be raised for a run
 (`AUTH_CREDENTIAL_LIMIT` in compose, `--RateLimiting:Auth:CredentialPermitLimit=...` by hand).
+
+## The container
+
+`Dockerfile` builds the bundle and serves it with nginx (`docker/`): `/api/` is proxied to
+`GATEWAY_UPSTREAM`, `/config.js` is written at start from `API_BASE_URL`, and every page comes
+with the security headers of `docker/security-headers.inc.template` (a content security policy
+that allows scripts only from the bundle, images from any https host and the contact page's map).
+When `API_BASE_URL` is absolute, `docker/15-csp.envsh` adds that origin to `connect-src`;
+`CSP_CONNECT_SRC` overrides it. HSTS is for the ingress that terminates TLS.

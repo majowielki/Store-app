@@ -43,9 +43,6 @@ builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString(
 // Swagger
 builder.Services.AddSwaggerWithJwt("Product Service API");
 
-// CORS
-builder.Services.AddStandardCors();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -59,9 +56,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStoreProblemDetails();
-
-// CORS
-app.UseCors("DefaultCorsPolicy");
 
 // Authentication & Authorization
 app.UseAuthentication();

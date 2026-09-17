@@ -8,7 +8,7 @@ export type ApiTag = (typeof tagTypes)[number];
 /**
  * The store's API as RTK Query sees it: one cache, one base query (src/api/baseQuery.ts),
  * endpoints injected per document from the files next to this one (auth, cart, catalog,
- * orders, admin, newsletter). Hooks are exported by those files.
+ * orders, admin). Hooks are exported by those files.
  */
 export const api = createApi({
   reducerPath: 'api',

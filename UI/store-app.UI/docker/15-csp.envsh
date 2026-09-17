@@ -1,0 +1,15 @@
+#!/bin/sh
+# Sourced by the nginx entrypoint before the templates are rendered: when the API lives on
+# another origin than this host (API_BASE_URL absolute), the content security policy must let
+# the app connect to it. CSP_CONNECT_SRC set explicitly wins.
+if [ -z "${CSP_CONNECT_SRC:-}" ]; then
+  case "${API_BASE_URL:-}" in
+    http://*|https://*)
+      CSP_CONNECT_SRC="$(printf '%s' "${API_BASE_URL}" | sed -E 's#^(https?://[^/]+).*$#\1#')"
+      ;;
+    *)
+      CSP_CONNECT_SRC=""
+      ;;
+  esac
+  export CSP_CONNECT_SRC
+fi

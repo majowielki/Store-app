@@ -33,34 +33,4 @@ public static class ApiConventionsExtensions
         options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     }
-
-    /// <summary>
-    /// CORS policy for the services. They sit behind the gateway, which is the only public
-    /// entry point, so the policy is permissive here and restrictive at the gateway.
-    /// </summary>
-    /// <param name="services">Service collection</param>
-    /// <param name="policyName">CORS policy name</param>
-    /// <param name="allowedOrigins">Allowed origins; any origin when empty</param>
-    /// <returns>Service collection</returns>
-    public static IServiceCollection AddStandardCors(this IServiceCollection services, string policyName = "DefaultCorsPolicy", string[]? allowedOrigins = null)
-    {
-        services.AddCors(options =>
-        {
-            options.AddPolicy(policyName, builder =>
-            {
-                if (allowedOrigins is { Length: > 0 })
-                {
-                    builder.WithOrigins(allowedOrigins).AllowCredentials();
-                }
-                else
-                {
-                    builder.AllowAnyOrigin();
-                }
-
-                builder.AllowAnyMethod().AllowAnyHeader();
-            });
-        });
-
-        return services;
-    }
 }

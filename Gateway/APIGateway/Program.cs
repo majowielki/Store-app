@@ -1,24 +1,24 @@
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
+using Store.GatewayService.Cors;
 using Store.GatewayService.RateLimiting;
-using System.Threading.RateLimiting;
-using Yarp.ReverseProxy.Transforms;
+using Store.GatewayService.Security;
 
+// The gateway does one thing: it proxies /api/v1 to the services, applying the shared
+// authentication, the authorization policies named on the routes and the rate limits. It
+// serves nothing of its own but the health endpoints.
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// The few endpoints the gateway serves itself follow the same conventions as the services
-builder.Services.AddStandardApiControllers();
+// Errors the gateway produces itself (401, 403, 404, 429) are problem responses like the services'
+builder.Services.AddStoreProblemDetails();
 
 // JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -26,125 +26,23 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 // Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes
 builder.Services.AddStoreAuthorization();
 
-// HTTP Client
-builder.Services.AddHttpClient();
-
-// YARP Reverse Proxy z przekazywaniem Authorization
+// YARP forwards the Authorization header and the client address (X-Forwarded-*) on its own
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
-    .AddTransforms(builderContext =>
-    {
-        builderContext.AddRequestTransform(context =>
-        {
-            var authHeader = context.HttpContext.Request.Headers["Authorization"].ToString();
-            if (!string.IsNullOrEmpty(authHeader))
-            {
-                context.ProxyRequest.Headers.Remove("Authorization");
-                context.ProxyRequest.Headers.Add("Authorization", authHeader);
-            }
-            return ValueTask.CompletedTask;
-        });
-    });
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
 // Health checks: the gateway has no database and no broker of its own
 builder.Services.AddStoreHealthChecks();
 
-// Rate Limiting: sliding windows per client address on the identity route, attached in
-// appsettings.json via "RateLimiterPolicy": "auth"; credential endpoints get the stricter limit
-builder.Services.AddStoreOptions<AuthRateLimitOptions>(builder.Configuration, AuthRateLimitOptions.SectionName);
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddPolicy(AuthRateLimitOptions.PolicyName, context =>
-    {
-        var limits = context.RequestServices.GetRequiredService<IOptions<AuthRateLimitOptions>>().Value;
-        var client = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var path = context.Request.Path.Value ?? string.Empty;
-        var isCredentialEndpoint = AuthRateLimitOptions.CredentialPaths
-            .Any(p => path.Equals(p, StringComparison.OrdinalIgnoreCase));
+// Rate limiting: sliding windows per client, attached to the routes in appsettings.json by name
+builder.Services.AddStoreRateLimiting(builder.Configuration);
 
-        var (bucket, permitLimit) = isCredentialEndpoint
-            ? ("auth-credentials", limits.CredentialPermitLimit)
-            : ("auth", limits.PermitLimit);
-
-        return RateLimitPartition.GetSlidingWindowLimiter($"{bucket}:{client}", _ => new SlidingWindowRateLimiterOptions
-        {
-            PermitLimit = permitLimit,
-            Window = TimeSpan.FromSeconds(limits.WindowSeconds),
-            SegmentsPerWindow = 6,
-            QueueLimit = 0
-        });
-    });
-
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.OnRejected = (context, _) =>
-    {
-        var limits = context.HttpContext.RequestServices.GetRequiredService<IOptions<AuthRateLimitOptions>>().Value;
-        context.HttpContext.Response.Headers.RetryAfter = limits.WindowSeconds.ToString();
-        return ValueTask.CompletedTask;
-    };
-});
-
-// Swagger with JWT support
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Store Gateway API",
-        Version = "v1",
-        Description = "API Gateway for Store microservices"
-    });
-
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// CORS
-builder.Services.AddCors(options =>
-{
-    if (builder.Environment.IsDevelopment())
-    {
-        options.AddPolicy("AllowAll", policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-    }
-    else
-    {
-        options.AddPolicy("Production", policy =>
-        {
-            var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins")
-                .Get<string[]>() ?? new[] { "https://localhost:3000" };
-
-            policy.WithOrigins(allowedOrigins)
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        });
-    }
-});
+// CORS only matters when the UI is served from another origin than this gateway; the normal
+// deployment proxies /api from the UI's own origin and needs none
+builder.Services.AddStoreOptions<CorsOptions>(builder.Configuration, CorsOptions.SectionName);
+builder.Services.AddStoreCors(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
 // Behind the Container Apps ingress (or the UI's nginx) the client address arrives in
 // X-Forwarded-For; without this every user would share one rate-limit bucket. ForwardLimit = 1
 // trusts only the entry appended by the nearest proxy.
@@ -159,31 +57,18 @@ forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseStoreProblemDetails();
+app.UseSecurityHeaders();
+app.UseStoreCors();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Store Gateway API V1");
-        c.RoutePrefix = "swagger";
-    });
-}
-
-// Rate limiting
-app.UseRateLimiter();
-
-// CORS
-var corsPolicy = app.Environment.IsDevelopment() ? "AllowAll" : "Production";
-app.UseCors(corsPolicy);
-
+// Authentication runs before the rate limiter, so a signed-in user is one bucket wherever
+// they come from; authorization decides after the limit has been applied
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 // Health checks: /health/live, /health/ready, /health (details)
 app.MapStoreHealthChecks();
 
 app.MapReverseProxy();
-app.MapControllers();
 
 app.Run();

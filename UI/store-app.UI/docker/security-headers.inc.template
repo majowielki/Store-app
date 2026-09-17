@@ -1,0 +1,12 @@
+# Included by default.conf in every location that serves the app itself (not /api/, whose
+# answers carry the gateway's own headers). Rendered next to default.conf; the ".inc" name
+# keeps nginx from loading it on its own.
+# TLS ends at the ingress, which is where HSTS belongs.
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "DENY" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+# Scripts and styles only from the bundle (Radix and the charts set inline style attributes,
+# hence 'unsafe-inline' for styles); product images are any https URL the catalogue holds;
+# the contact page embeds a Google map (maps.google.com answers from www.google.com). CSP_CONNECT_SRC: see 15-csp.envsh.
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ${CSP_CONNECT_SRC}; frame-src https://maps.google.com https://www.google.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'" always;

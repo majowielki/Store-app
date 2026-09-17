@@ -40,6 +40,5 @@ export { default as CustomSidebar } from './CustomSidebar';
 export { default as Footer } from './Footer';
 export { default as MegaMenu } from './MegaMenu';
 export { default as MobileBottomBar } from './MobileBottomBar';
-export { default as NewsletterSection } from './NewsletterSection';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as PageNumbers } from './PageNumbers';

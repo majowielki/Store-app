@@ -87,6 +87,15 @@ public class ReverseProxyConfigurationTests
         var routes = LoadProxyConfig(environment).Routes.ToDictionary(r => r.RouteId);
 
         Assert.Equal("auth", routes["identity-route"].RateLimiterPolicy);
+        // Every proxied route is rate limited: the shop ones per user, the admin ones stricter
+        foreach (var route in new[] { "products-route", "cart-route", "orders-route", "pricing-rules-route" })
+        {
+            Assert.Equal("api", routes[route].RateLimiterPolicy);
+        }
+        foreach (var route in new[] { "audit-route", "admin-orders-route", "admin-route" })
+        {
+            Assert.Equal("admin", routes[route].RateLimiterPolicy);
+        }
         // The public pricing rules must win over the orders catch-all, which requires a user
         Assert.Null(routes["pricing-rules-route"].AuthorizationPolicy);
         Assert.True(routes["pricing-rules-route"].Order < routes["orders-route"].Order);

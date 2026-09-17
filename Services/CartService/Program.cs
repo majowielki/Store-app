@@ -52,8 +52,6 @@ builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 builder.Services.AddSwaggerWithJwt("Store Cart Service");
-builder.Services.AddStandardCors();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -69,7 +67,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors("DefaultCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
