@@ -34,11 +34,10 @@ export const action =
 
   const customerName = name;
   const deliveryAddress = address;
-  const userEmail = user.email;
 
     try {
       // The profile address is stored by the order flow when saveAddress is set
-      await orderApi.createOrderFromCart({ userEmail, deliveryAddress, customerName, saveAddress }, idempotencyKey);
+      await orderApi.createOrderFromCart({ deliveryAddress, customerName, saveAddress }, idempotencyKey);
 
       // If address was saved, fetch updated user data
       if (saveAddress) {

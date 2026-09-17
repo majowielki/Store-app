@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Store.BuildingBlocks.Configuration;
@@ -63,10 +64,17 @@ public static class JwtAuthenticationExtensions
                 {
                     OnAuthenticationFailed = context =>
                     {
+                        // The client learns only that the token expired (so it refreshes) - never why a
+                        // token was rejected; the challenge stays the plain "Bearer error=invalid_token"
                         if (context.Exception is SecurityTokenExpiredException)
                         {
                             context.Response.Headers["Token-Expired"] = "true";
                         }
+
+                        // The exception type is enough to diagnose; never the token, the claims or the headers
+                        context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                            .CreateLogger("Store.Authentication")
+                            .LogInformation("Bearer token rejected: {ErrorType}", context.Exception.GetType().Name);
                         return Task.CompletedTask;
                     }
                 };

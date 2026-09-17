@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.Contracts.Authorization;
@@ -18,6 +19,7 @@ public class AuthService : IAuthService
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IdentityDbContext _context;
     private readonly ITokenService _tokens;
+    private readonly DemoOptions _demo;
     private readonly ILogger<AuthService> _logger;
     private readonly IAuditTrail _auditTrail;
 
@@ -27,6 +29,7 @@ public class AuthService : IAuthService
         RoleManager<IdentityRole> roleManager,
         IdentityDbContext context,
         ITokenService tokens,
+        IOptions<DemoOptions> demo,
         ILogger<AuthService> logger,
         IAuditTrail auditTrail)
     {
@@ -35,6 +38,7 @@ public class AuthService : IAuthService
         _roleManager = roleManager;
         _context = context;
         _tokens = tokens;
+        _demo = demo.Value;
         _logger = logger;
         _auditTrail = auditTrail;
     }
@@ -76,7 +80,8 @@ public class AuthService : IAuthService
             ?? throw new InvalidCredentialsException();
         if (!user.IsActive)
         {
-            throw new InvalidCredentialsException("Account is deactivated");
+            // Same answer as a wrong password: the caller learns nothing about the account
+            throw new InvalidCredentialsException();
         }
 
         // lockoutOnFailure: true - failed attempts count towards Identity's lockout
@@ -95,12 +100,18 @@ public class AuthService : IAuthService
         return await StartSessionAsync(user, clientAddress);
     }
 
-    public Task<SignedIn> DemoLoginAsync(string? clientAddress) => DemoSignInAsync(SeedAccounts.DemoUserEmail, "Demo user", clientAddress);
+    public Task<SignedIn> DemoLoginAsync(string? clientAddress) => DemoSignInAsync(_demo.UserEmail, "Demo user", clientAddress);
 
-    public Task<SignedIn> DemoAdminLoginAsync(string? clientAddress) => DemoSignInAsync(SeedAccounts.DemoAdminEmail, "Demo admin", clientAddress);
+    public Task<SignedIn> DemoAdminLoginAsync(string? clientAddress) => DemoSignInAsync(_demo.AdminEmail, "Demo admin", clientAddress);
 
     private async Task<SignedIn> DemoSignInAsync(string email, string account, string? clientAddress)
     {
+        if (!_demo.Enabled)
+        {
+            // Where the showcase is off, the endpoints do not exist as far as the client can tell
+            throw new NotFoundException("Demo accounts are not available");
+        }
+
         // The demo accounts are seeded at start-up; a missing one is a deployment fault, not a client error
         var user = await _userManager.FindByEmailAsync(email)
             ?? throw new InvalidOperationException($"{account} not found. It should be created during database initialization.");

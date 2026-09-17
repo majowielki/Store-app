@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
@@ -22,43 +20,8 @@ builder.Logging.AddDebug();
 // The few endpoints the gateway serves itself follow the same conventions as the services
 builder.Services.AddStandardApiControllers();
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions
-builder.Services.AddJwtAuthentication(builder.Configuration, options =>
-    {
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-                {
-                    context.Response.Headers["Token-Expired"] = "true";
-                }
-                // Surface details to help client-side recovery and logging (dev-friendly)
-                // Sanitize header value to avoid CR/LF or invalid characters that Kestrel rejects
-                var rawMsg = context.Exception.Message ?? "invalid token";
-                var safeMsg = rawMsg.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
-                context.Response.Headers["WWW-Authenticate"] =
-                    $"Bearer error=\"invalid_token\", error_description=\"{safeMsg}\"";
-                // Exception type and IdentityModel's PII-free message only - no headers,
-                // tokens or claims in logs; successful validations are not logged
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
-                    .CreateLogger("GatewayAuth");
-                logger.LogWarning("JWT authentication failed at gateway: {ErrorType}: {Error}",
-                    context.Exception.GetType().Name, context.Exception.Message);
-                return Task.CompletedTask;
-            },
-            OnChallenge = context =>
-            {
-                // Add hint header without suppressing default behavior
-                if (!string.IsNullOrEmpty(context.ErrorDescription))
-                {
-                    var safe = context.ErrorDescription.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
-                    context.Response.Headers["WWW-Authenticate-Error"] = safe;
-                }
-                return Task.CompletedTask;
-            }
-        };
-    });
+// JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes
 builder.Services.AddStoreAuthorization();

@@ -453,14 +453,10 @@
       "CreateOrderFromCartRequest": {
         "required": [
           "customerName",
-          "saveAddress",
-          "userEmail"
+          "saveAddress"
         ],
         "type": "object",
         "properties": {
-          "userEmail": {
-            "type": "string"
-          },
           "deliveryAddress": {
             "type": "string",
             "nullable": true

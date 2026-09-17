@@ -61,6 +61,8 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
         builder.UseSetting("JwtSettings:Audience", TestTokens.Audience);
         builder.UseSetting("InternalApi:ApiKey", TestTokens.InternalApiKey);
         builder.UseSetting("TrueAdmin:Password", TestUsers.TrueAdminPassword);
+        // The demo accounts and their password-less logins, which several tests sign in with
+        builder.UseSetting("Demo:Enabled", "true");
         // Validated on start but unused: the harness swaps RabbitMQ for the in-memory transport
         builder.UseSetting("RabbitMQ:Host", "broker.test");
         builder.UseSetting("RabbitMQ:Username", "tests");

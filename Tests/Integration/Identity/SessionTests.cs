@@ -146,3 +146,45 @@ public sealed class SessionTests : IClassFixture<IdentityApiFactory>
         Assert.False(await context.RefreshTokens.AnyAsync(t => t.TokenHash == hash));
     }
 }
+
+/// <summary>Without Demo:Enabled the showcase accounts are not seeded and their logins do not exist.</summary>
+[Collection(PostgresTests.Name)]
+public sealed class DemoDisabledTests
+{
+    private readonly PostgresFixture _postgres;
+
+    public DemoDisabledTests(PostgresFixture postgres)
+    {
+        _postgres = postgres;
+    }
+
+    private sealed class DemoDisabledFactory : StoreApiFactory<IdentityDbContext>
+    {
+        public DemoDisabledFactory(PostgresFixture postgres) : base(postgres)
+        {
+        }
+
+        protected override string? DatabaseName => "store_identity_nodemo_test";
+
+        protected override void ConfigureSettings(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
+        {
+            builder.UseSetting("Demo:Enabled", "false");
+        }
+    }
+
+    [Fact]
+    public async Task Demo_logins_answer_404_and_no_demo_account_exists()
+    {
+        await using var factory = new DemoDisabledFactory(_postgres);
+        await ((IAsyncLifetime)factory).InitializeAsync();
+        using var client = factory.CreateClient();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsync("/api/v1/auth/demo-login", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsync("/api/v1/auth/demo-admin-login", null)).StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Users;
+        Assert.False(await users.AnyAsync(u => u.Email!.StartsWith("demo")));
+        Assert.True(await users.AnyAsync(u => u.Email == TestUsers.TrueAdminEmail), "the true admin is seeded regardless");
+    }
+}

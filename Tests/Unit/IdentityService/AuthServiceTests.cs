@@ -11,6 +11,7 @@ using Store.BuildingBlocks.Messaging;
 using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Models;
+using Store.IdentityService.Seeding;
 using Store.IdentityService.Services;
 using Xunit;
 
@@ -52,6 +53,7 @@ public class AuthServiceTests
             _roleManagerMock.Object,
             _dbContext,
             new TokenService(Options.Create(Jwt)),
+            Options.Create(new DemoOptions { Enabled = true }),
             Mock.Of<ILogger<AuthService>>(),
             Mock.Of<IAuditTrail>()
         );

@@ -508,7 +508,6 @@ export interface components {
     schemas: {
         /** @description Body of POST /api/v1/orders/from-cart. Rules: `CreateOrderFromCartRequestValidator`. */
         CreateOrderFromCartRequest: {
-            userEmail: string;
             deliveryAddress?: string | null;
             customerName: string;
             notes?: string | null;

@@ -5,6 +5,7 @@ using Store.BuildingBlocks.Authorization;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Services;
+using System.Security.Claims;
 
 namespace Store.OrderService.Controllers;
 
@@ -35,7 +36,10 @@ public class OrdersController : ControllerBase
         [FromBody] CreateOrderFromCartRequest request,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
     {
+        // Who orders and where the confirmation goes come from the token, not from the body
         request.UserId = UserId;
+        request.UserEmail = User.FindFirst(ClaimTypes.Email)?.Value
+            ?? throw new UnauthorizedAccessException("The token carries no e-mail address");
         if (idempotencyKey is { Length: > IdempotencyKeyMaxLength })
         {
             throw new DomainValidationException($"Idempotency-Key must be at most {IdempotencyKeyMaxLength} characters");

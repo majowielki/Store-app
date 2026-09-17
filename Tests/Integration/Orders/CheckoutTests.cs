@@ -53,6 +53,8 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         Assert.Equal(10m, order.GetProperty("deliveryFee").GetDecimal());
         Assert.Equal(162m, order.GetProperty("total").GetDecimal());
         Assert.Equal("Placed", order.GetProperty("status").GetString());
+        // The body said buyer@test.local; the order carries the account's e-mail from the token
+        Assert.Equal($"{user}@test.local", order.GetProperty("userEmail").GetString());
         var lines = order.GetProperty("orderItems").EnumerateArray().ToList();
         Assert.Equal(2, lines.Count);
         Assert.All(lines, line => Assert.NotEqual(0, line.GetProperty("productId").GetInt32()));

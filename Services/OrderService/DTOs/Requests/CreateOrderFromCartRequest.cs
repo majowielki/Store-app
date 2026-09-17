@@ -9,6 +9,8 @@ public class CreateOrderFromCartRequest
     [JsonIgnore]
     public string UserId { get; set; } = string.Empty;
 
+    /// <summary>Not part of the request either: the e-mail on the order is the account's, from the token.</summary>
+    [JsonIgnore]
     public string UserEmail { get; set; } = string.Empty;
 
     public string? DeliveryAddress { get; set; }
