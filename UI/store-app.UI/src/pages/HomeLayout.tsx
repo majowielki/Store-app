@@ -1,44 +1,23 @@
-import { useAuthMe } from '@/config';
 import { Outlet, useNavigation, useLocation } from "react-router-dom";
 import React, { useEffect } from 'react';
 import { Header, Loading, Navbar } from "@/components";
-// ...existing code...
 import Footer from '@/components/Footer';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { fetchCart } from '@/features/cart/cartSlice';
 import { useRef } from 'react';
-import { getCurrentUserAsync } from '@/features/user/userSlice';
 
 const HomeLayout = () => {
-  const authMeEnabled = useAuthMe;
   const navigation = useNavigation();
   const isPageLoading = navigation.state === "loading";
   const dispatch = useAppDispatch();
-  const token = useAppSelector((s) => s.userState.token);
   const user = useAppSelector((s) => s.userState.user);
-  const userLoading = useAppSelector((s) => s.userState.isLoading);
-  const meAttempted = useAppSelector((s) => s.userState.meAttempted);
+  const sessionChecked = useAppSelector((s) => s.userState.sessionChecked);
 
   // Scroll to top on route change
   const { pathname, search } = useLocation();
   React.useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [pathname, search]);
-
-  // If we have a token but no user yet, validate token and load user first
-  useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      authMeEnabled &&
-      token &&
-      !user &&
-      !userLoading &&
-      !meAttempted
-    ) {
-      dispatch(getCurrentUserAsync());
-    }
-  }, [authMeEnabled, token, user, userLoading, meAttempted, dispatch]);
-
 
   // On first app load, always initialize Redux cart state from localStorage
   const initialized = useRef(false);
@@ -57,10 +36,10 @@ const HomeLayout = () => {
     }
   }, [dispatch]);
 
-  // Fetch cart only after user is known (prevents 401 from stale/invalid tokens on startup)
+  // Fetch the server cart once the session is confirmed (a cached profile alone is not a session)
   useEffect(() => {
     // Only fetch cart if we did NOT just merge a guest cart (after login/registration)
-    if (token && user) {
+    if (sessionChecked && user) {
       const justMerged = sessionStorage.getItem('justMergedGuestCart');
       if (!justMerged) {
         dispatch(fetchCart());
@@ -68,7 +47,7 @@ const HomeLayout = () => {
         sessionStorage.removeItem('justMergedGuestCart');
       }
     }
-  }, [token, user, dispatch]);
+  }, [sessionChecked, user, dispatch]);
 
   return (
     <>

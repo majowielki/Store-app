@@ -13,7 +13,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { clearCart } from '@/features/cart/cartSlice';
-import { logoutUser } from '@/features/user/userSlice';
+import { logoutUserAsync } from '@/features/user/userSlice';
 
 const AccountButton = () => {
   const user = useAppSelector((s) => s.userState.user);
@@ -72,7 +72,7 @@ const AccountButton = () => {
     // Only the local copy is dropped; the server cart belongs to the account and must survive
     // signing out (and be there on the next device)
     dispatch(clearCart());
-    dispatch(logoutUser());
+    await dispatch(logoutUserAsync());
     toast({ description: 'Logged Out' });
     navigate('/');
     setOpen(false);

@@ -1,14 +1,12 @@
 import { useEffect } from 'react';
 import { useAppDispatch } from '@/hooks';
-import { getCurrentUserAsync } from '@/features/user/userSlice';
+import { restoreSessionAsync } from '@/features/user/userSlice';
 
+/** Once per page load: continue the session from the refresh cookie, or settle as anonymous. */
 export function UserBootstrap() {
   const dispatch = useAppDispatch();
   useEffect(() => {
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    if (token) {
-      dispatch(getCurrentUserAsync());
-    }
+    dispatch(restoreSessionAsync());
   }, [dispatch]);
   return null;
 }

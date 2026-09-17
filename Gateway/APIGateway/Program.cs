@@ -25,9 +25,6 @@ builder.Services.AddStandardApiControllers();
 // JWT Authentication - key, issuer and audience come from validated JwtOptions
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     {
-        options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
-        options.TokenValidationParameters.RequireExpirationTime = true;
-
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>

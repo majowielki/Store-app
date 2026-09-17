@@ -4,7 +4,8 @@
 # missing resource, 409 for a state conflict, 422 for request content a rule rejects.
 #
 # Environment: local compose or "dotnet run" of the gateway on port 5000. Sign in first
-# (login or a demo login), then paste the accessToken into @token.
+# (login or a demo login), then paste the accessToken into @token. The refresh token arrives
+# in an httpOnly cookie (store_refresh, path /api/v1/auth); access tokens last 15 minutes.
 
 @gateway = http://localhost:5000
 @api = {{gateway}}/api/v1
@@ -53,17 +54,12 @@ Content-Type: application/json
   "simpleAddress": "1 Example Street, Example City"
 }
 
-### A new access token for one that only expired
+### A new access token for the session in the refresh cookie (rotated on every call; the REST
+### Client keeps the cookie from the sign-in above). 401 for a spent, expired or missing cookie.
 POST {{api}}/auth/refresh
-Content-Type: application/json
 
-{
-  "token": "{{token}}"
-}
-
-### Logout (the client discards its token)
+### Logout: revokes the session behind the refresh cookie and removes the cookie
 POST {{api}}/auth/logout
-Authorization: Bearer {{token}}
 
 ### ---------------------------------------------------------------- catalogue (public)
 

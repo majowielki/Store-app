@@ -1,6 +1,6 @@
+using Microsoft.IdentityModel.JsonWebTokens;
 using Store.Contracts.Authorization;
 using Store.Tests.Integration.TestSupport;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -47,7 +47,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
 
         var accessToken = await RegisterAsync(client, UniqueEmail("register"), "Register-Password-1!");
 
-        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        var jwt = new JsonWebTokenHandler().ReadJsonWebToken(accessToken);
         Assert.Equal(TestTokens.Issuer, jwt.Issuer);
         Assert.Contains(jwt.Claims, c => c.Type == "role" && c.Value == Roles.User);
     }

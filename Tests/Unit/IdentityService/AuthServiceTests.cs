@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Moq;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Messaging;
+using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Models;
 using Store.IdentityService.Services;
@@ -14,12 +18,19 @@ namespace Store.Tests.Unit.IdentityService;
 
 public class AuthServiceTests
 {
+    private static readonly JwtOptions Jwt = new()
+    {
+        SecretKey = "test-secret-key-12345678901234567890123456789012",
+        Issuer = "TestIssuer",
+        Audience = "TestAudience",
+        AccessTokenMinutes = 15,
+        RefreshTokenDays = 14
+    };
+
     private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private readonly Mock<RoleManager<IdentityRole>> _roleManagerMock;
-    private readonly Mock<IConfiguration> _configurationMock;
-    private readonly Mock<ILogger<AuthService>> _loggerMock;
-    private readonly Mock<IAuditTrail> _auditTrailMock;
+    private readonly IdentityDbContext _dbContext;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
@@ -27,27 +38,22 @@ public class AuthServiceTests
         _userManagerMock = MockUserManager();
         _signInManagerMock = MockSignInManager(_userManagerMock.Object);
         _roleManagerMock = MockRoleManager();
-        _configurationMock = new Mock<IConfiguration>();
-        _loggerMock = new Mock<ILogger<AuthService>>();
-        _auditTrailMock = new Mock<IAuditTrail>();
+        _dbContext = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>()
+            .UseInMemoryDatabase($"AuthServiceTests-{Guid.NewGuid():N}")
+            .Options);
 
-        // Setup configuration for JWT
-        _configurationMock.Setup(c => c["JwtSettings:SecretKey"]).Returns("test-secret-key-12345678901234567890123456789012");
-        _configurationMock.Setup(c => c["JwtSettings:ExpirationInMinutes"]).Returns("60");
-        _configurationMock.Setup(c => c["JwtSettings:Issuer"]).Returns("TestIssuer");
-        _configurationMock.Setup(c => c["JwtSettings:Audience"]).Returns("TestAudience");
-
-        // Setup UserManager to return a non-null list for GetRolesAsync
         _userManagerMock.Setup(x => x.GetRolesAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(new List<string> { "user" });
+        _userManagerMock.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>())).ReturnsAsync(IdentityResult.Success);
 
         _authService = new AuthService(
             _userManagerMock.Object,
             _signInManagerMock.Object,
             _roleManagerMock.Object,
-            _configurationMock.Object,
-            _loggerMock.Object,
-            _auditTrailMock.Object
+            _dbContext,
+            new TokenService(Options.Create(Jwt)),
+            Mock.Of<ILogger<AuthService>>(),
+            Mock.Of<IAuditTrail>()
         );
     }
 
@@ -56,7 +62,7 @@ public class AuthServiceTests
     {
         var request = new RegisterRequest { Email = "test@example.com", Password = "Password123", ConfirmPassword = "Password123" };
         _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync(new ApplicationUser());
-        var conflict = await Assert.ThrowsAsync<ConflictException>(() => _authService.RegisterAsync(request));
+        var conflict = await Assert.ThrowsAsync<ConflictException>(() => _authService.RegisterAsync(request, null));
         Assert.Contains("already exists", conflict.Message);
     }
 
@@ -67,13 +73,13 @@ public class AuthServiceTests
         _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser?)null);
         _userManagerMock.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), request.Password))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "PasswordTooShort", Description = "Password too short" }));
-        var rejected = await Assert.ThrowsAsync<DomainValidationException>(() => _authService.RegisterAsync(request));
+        var rejected = await Assert.ThrowsAsync<DomainValidationException>(() => _authService.RegisterAsync(request, null));
         Assert.Equal(422, rejected.StatusCode);
         Assert.Contains("Password too short", rejected.Errors!["Password"]);
     }
 
     [Fact]
-    public async Task RegisterAsync_Issues_A_Token_WhenValid()
+    public async Task RegisterAsync_Starts_A_Session_WhenValid()
     {
         var request = new RegisterRequest { Email = "test3@example.com", Password = "Password123", ConfirmPassword = "Password123" };
         _userManagerMock.Setup(x => x.FindByEmailAsync(request.Email)).ReturnsAsync((ApplicationUser?)null);
@@ -81,9 +87,19 @@ public class AuthServiceTests
             .ReturnsAsync(IdentityResult.Success);
         _roleManagerMock.Setup(x => x.RoleExistsAsync(It.IsAny<string>())).ReturnsAsync(true);
         _userManagerMock.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())).ReturnsAsync(IdentityResult.Success);
-        var result = await _authService.RegisterAsync(request);
-        Assert.NotEmpty(result.AccessToken);
-        Assert.Equal(request.Email, result.User.Email);
+
+        var session = await _authService.RegisterAsync(request, "10.0.0.1");
+
+        // The access token carries the identity the services check; the refresh token is stored only as a hash
+        var jwt = new JsonWebTokenHandler().ReadJsonWebToken(session.Auth.AccessToken);
+        Assert.Equal(Jwt.Issuer, jwt.Issuer);
+        Assert.Contains(jwt.Claims, c => c.Type == "role" && c.Value == "user");
+        Assert.Equal(request.Email, session.Auth.User.Email);
+        Assert.NotEmpty(session.RefreshToken);
+        var stored = Assert.Single(_dbContext.RefreshTokens);
+        Assert.NotEqual(session.RefreshToken, stored.TokenHash);
+        Assert.Equal("10.0.0.1", stored.CreatedByIp);
+        Assert.InRange(stored.ExpiresAt, DateTime.UtcNow.AddDays(13), DateTime.UtcNow.AddDays(15));
     }
 
     // Helper mocks for UserManager/SignInManager/RoleManager

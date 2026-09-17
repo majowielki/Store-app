@@ -1,20 +1,57 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
-import type { UserState, LoginRequest, RegisterRequest, UserResponse } from "@/utils/types";
+import type { UserState, LoginRequest, RegisterRequest, UserResponse, AuthResponse } from "@/utils/types";
 import { authApi } from "@/utils/api";
+import { refreshAccessToken } from "@/utils/customFetch";
 import { getErrorMessage } from "@/utils/errorHandling";
+import { setAccessToken } from "@/utils/session";
 import { toast } from "@/hooks/use-toast";
+
+// The profile is cached so the header shows the name at once after a reload; the access token
+// is never stored - the refresh cookie brings a new one (see utils/session.ts)
+const USER_CACHE_KEY = 'authUser';
+
+const readCachedUser = (): UserResponse | null => {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as UserResponse) : null;
+  } catch {
+    return null;
+  }
+};
+
+const cacheUser = (user: UserResponse | null) => {
+  try {
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_CACHE_KEY);
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const signedIn = (state: UserState, session: AuthResponse) => {
+  state.user = session.user;
+  state.error = null;
+  state.sessionChecked = true;
+  setAccessToken(session.accessToken);
+  cacheUser(session.user);
+};
+
+const signedOut = (state: UserState) => {
+  state.user = null;
+  state.error = null;
+  state.sessionChecked = true;
+  setAccessToken(null);
+  cacheUser(null);
+};
 
 // Async thunks
 export const loginUserAsync = createAsyncThunk(
   'user/login',
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
-      const response = await authApi.login(credentials);
-      localStorage.setItem('authToken', response.accessToken);
-      return { user: response.user, accessToken: response.accessToken };
+      return await authApi.login(credentials);
     } catch (error: unknown) {
-      const message = getErrorMessage(error) || 'Login failed';
-      return rejectWithValue(message);
+      return rejectWithValue(getErrorMessage(error) || 'Login failed');
     }
   }
 );
@@ -23,12 +60,9 @@ export const registerUserAsync = createAsyncThunk(
   'user/register',
   async (userData: RegisterRequest, { rejectWithValue }) => {
     try {
-      const response = await authApi.register(userData);
-      localStorage.setItem('authToken', response.accessToken);
-      return { user: response.user, accessToken: response.accessToken };
+      return await authApi.register(userData);
     } catch (error: unknown) {
-      const message = getErrorMessage(error) || 'Registration failed';
-      return rejectWithValue(message);
+      return rejectWithValue(getErrorMessage(error) || 'Registration failed');
     }
   }
 );
@@ -38,14 +72,27 @@ export const logoutUserAsync = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authApi.logout();
-      // Clear token from localStorage
-      localStorage.removeItem('authToken');
       return null;
     } catch (error: unknown) {
-      // Even if API call fails, we should clear local storage
-      localStorage.removeItem('authToken');
-      const message = getErrorMessage(error) || 'Logout failed';
-      return rejectWithValue(message);
+      // The session on this device ends either way; the server side is revoked next time
+      return rejectWithValue(getErrorMessage(error) || 'Logout failed');
+    }
+  }
+);
+
+/**
+ * Continues the session after a page load: the refresh cookie is traded for an access token,
+ * then the profile is read. Without a cookie the visitor is anonymous, which is not an error.
+ */
+export const restoreSessionAsync = createAsyncThunk(
+  'user/restoreSession',
+  async (_, { rejectWithValue }) => {
+    const token = await refreshAccessToken();
+    if (!token) return rejectWithValue(null);
+    try {
+      return await authApi.getCurrentUser();
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error) || 'Failed to get user info');
     }
   }
 );
@@ -53,43 +100,20 @@ export const logoutUserAsync = createAsyncThunk(
 export const getCurrentUserAsync = createAsyncThunk(
   'user/getCurrentUser',
   async (_, { rejectWithValue }) => {
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    if (!token) {
-      // Nie wykonuj requestu, nie zwracaj błędu ani toasta
-      return rejectWithValue(null);
-    }
     try {
-      const user = await authApi.getCurrentUser();
-      return user;
+      return await authApi.getCurrentUser();
     } catch (error: unknown) {
-      const message = getErrorMessage(error) || 'Failed to get user info';
-      return rejectWithValue(message);
+      return rejectWithValue(getErrorMessage(error) || 'Failed to get user info');
     }
   }
 );
 
-// Helper function to get initial state
-const getInitialState = (): UserState => {
-  let token = localStorage.getItem('authToken');
-  let user: UserResponse | null = null;
-  try {
-    const raw = localStorage.getItem('authUser');
-    if (raw) user = JSON.parse(raw) as UserResponse;
-  } catch {
-    user = null;
-  }
-  // Fallback: jeśli token w stanie jest null, a istnieje w localStorage, ustaw go
-  if (!token && typeof window !== 'undefined') {
-    token = localStorage.getItem('authToken') || null;
-  }
-  return {
-    user,
-    token,
-    isLoading: false,
-    error: null,
-    meAttempted: false,
-  };
-};
+const getInitialState = (): UserState => ({
+  user: readCachedUser(),
+  isLoading: false,
+  error: null,
+  sessionChecked: false,
+});
 
 const userSlice = createSlice({
   name: 'user',
@@ -98,61 +122,16 @@ const userSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    /** Forgets the user without calling the API - the session ended on its own (refresh refused). */
     clearUser: (state) => {
-      state.user = null;
-      state.token = null;
-      state.error = null;
-  state.meAttempted = true;
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
+      signedOut(state);
     },
-    setUser: (state, action: PayloadAction<UserResponse>) => {
-      state.user = action.payload;
-      try {
-        localStorage.setItem('authUser', JSON.stringify(action.payload));
-      } catch {
-        // ignore storage errors
-      }
-    },
-    setToken: (state, action: PayloadAction<string>) => {
-      state.token = action.payload;
-      localStorage.setItem('authToken', action.payload);
-    },
-    // Legacy action for backward compatibility
-    loginUser: (state, action: PayloadAction<{ username: string; jwt: string }>) => {
-      const { username, jwt } = action.payload;
-      state.token = jwt;
-      state.user = {
-        id: 'demo',
-        email: 'demo@example.com',
-        userName: username,
-        displayName: username,
-        roles: [],
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      };
-      localStorage.setItem('authToken', jwt);
-      try {
-        localStorage.setItem('authUser', JSON.stringify(state.user));
-      } catch {
-        // ignore storage errors
-      }
-      if (username === "demo user") {
-        toast({ description: "Welcome Guest User" });
-        return;
-      }
-      toast({ description: "Login successful" });
-    },
-    logoutUser: (state) => {
-      state.user = null;
-      state.token = null;
-      state.error = null;
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('authUser');
+    /** A session established outside the thunks (demo logins). */
+    sessionStarted: (state, action: PayloadAction<AuthResponse>) => {
+      signedIn(state, action.payload);
     },
   },
   extraReducers: (builder) => {
-    // Login
     builder
       .addCase(loginUserAsync.pending, (state) => {
         state.isLoading = true;
@@ -160,23 +139,18 @@ const userSlice = createSlice({
       })
       .addCase(loginUserAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.error = null;
-        if (action.payload.user && action.payload.accessToken) {
-          state.user = action.payload.user;
-          state.token = action.payload.accessToken;
-        }
+        signedIn(state, action.payload);
         toast({ description: 'Successfully logged in!' });
       })
       .addCase(loginUserAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-        toast({ 
+        toast({
           description: action.payload as string || 'Login failed',
           variant: 'destructive'
         });
-      })
-      
-    // Register
+      });
+
     builder
       .addCase(registerUserAsync.pending, (state) => {
         state.isLoading = true;
@@ -184,85 +158,68 @@ const userSlice = createSlice({
       })
       .addCase(registerUserAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.error = null;
-        if (action.payload.user && action.payload.accessToken) {
-          state.user = action.payload.user;
-          state.token = action.payload.accessToken;
-        }
+        signedIn(state, action.payload);
         toast({ description: 'Successfully registered!' });
       })
       .addCase(registerUserAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-        toast({ 
+        toast({
           description: action.payload as string || 'Registration failed',
           variant: 'destructive'
         });
-      })
-      
-    // Logout
+      });
+
     builder
       .addCase(logoutUserAsync.pending, (state) => {
         state.isLoading = true;
       })
       .addCase(logoutUserAsync.fulfilled, (state) => {
         state.isLoading = false;
-        state.user = null;
-        state.token = null;
-        state.error = null;
-        toast({ description: 'Successfully logged out!' });
-        try {
-          localStorage.removeItem('authUser');
-        } catch {
-          // ignore storage errors
-        }
+        signedOut(state);
       })
       .addCase(logoutUserAsync.rejected, (state, action) => {
         state.isLoading = false;
-        // Still clear user data even if logout API call fails
-        state.user = null;
-        state.token = null;
+        signedOut(state);
         state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(restoreSessionAsync.pending, (state) => {
+        state.isLoading = true;
       })
-      
-    // Get Current User
+      .addCase(restoreSessionAsync.fulfilled, (state, action) => {
+        state.isLoading = false;
+        if (action.payload) {
+          state.user = action.payload;
+          state.sessionChecked = true;
+          cacheUser(action.payload);
+        } else {
+          signedOut(state);
+        }
+      })
+      .addCase(restoreSessionAsync.rejected, (state) => {
+        state.isLoading = false;
+        signedOut(state);
+      });
+
     builder
       .addCase(getCurrentUserAsync.pending, (state) => {
         state.isLoading = true;
       })
       .addCase(getCurrentUserAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload;
         state.error = null;
-        state.meAttempted = true;
-        // Do NOT clear or overwrite the token here; preserve the token from login/register
-        try {
-          localStorage.setItem('authUser', JSON.stringify(action.payload));
-        } catch {
-          // ignore storage errors
-        }
+        state.user = action.payload;
+        cacheUser(action.payload);
       })
       .addCase(getCurrentUserAsync.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-        state.meAttempted = true;
-        // Jeśli nie ma tokena, nie wyświetlaj błędu ani toasta
-        const hasToken = !!(localStorage.getItem('authToken') || sessionStorage.getItem('authToken'));
-        if (hasToken) {
-          console.error('[getCurrentUserAsync.rejected]', action.payload);
-          toast({ description: `[getCurrentUserAsync.rejected] ${action.payload}`, variant: 'destructive' });
-        }
-        try {
-          localStorage.removeItem('authToken');
-          sessionStorage.removeItem('authToken');
-          localStorage.removeItem('authUser');
-        } catch {
-          // ignore storage errors
-        }
       });
   },
 });
 
-export const { clearError, clearUser, setUser, setToken, loginUser, logoutUser } = userSlice.actions;
+export const { clearError, clearUser, sessionStarted } = userSlice.actions;
 
 export default userSlice.reducer;

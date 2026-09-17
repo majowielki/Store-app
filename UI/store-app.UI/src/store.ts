@@ -4,8 +4,8 @@ import cartReducer from "./features/cart/cartSlice";
 import userReducer from "./features/user/userSlice";
 import productReducer from "./features/products/productSlice";
 import orderReducer from "./features/orders/orderSlice";
-// ...existing code...
-// ...
+import { clearUser } from "./features/user/userSlice";
+import { onSessionEnded } from "./utils/session";
 
 export const store = configureStore({
   reducer: {
@@ -14,7 +14,6 @@ export const store = configureStore({
     userState: userReducer,
     productState: productReducer,
     orderState: orderReducer,
-  // ...existing code...
   },
 });
 
@@ -25,3 +24,6 @@ export type ReduxStore = {
   getState: () => RootState;
   dispatch: AppDispatch;
 };
+
+// A refused refresh means the session is over for the whole app, whichever request found out
+onSessionEnded(() => store.dispatch(clearUser()));

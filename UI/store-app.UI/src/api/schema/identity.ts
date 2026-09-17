@@ -326,7 +326,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** A new access token for a token that is still valid apart from its expiry. */
+        /**
+         * A new access token for the session in the refresh cookie; the cookie is replaced with a
+         *     new refresh token. 401 without a cookie, with a spent or expired one, or after the
+         *     session was ended - the client signs in again then.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -334,11 +338,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["RefreshTokenRequest"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -493,7 +493,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ends the session. Tokens are stateless for now, so the client discards its token; server-side revocation comes with refresh tokens. */
+        /**
+         * Ends the session: the refresh token family in the cookie is revoked and the cookie
+         *     removed. The access token stays valid until it expires (minutes); the client discards it.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -505,20 +508,6 @@ export interface paths {
             responses: {
                 /** @description No Content */
                 204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description No valid access token */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description The signed-in user may not do this */
-                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -583,16 +572,13 @@ export interface components {
             expiresAt: string;
             user: components["schemas"]["UserResponse"];
         };
+        /** @description Body of POST /api/v1/auth/login. Rules: `LoginRequestValidator`. */
         LoginRequest: {
-            /** Format: email */
             email: string;
             password: string;
         };
-        RefreshTokenRequest: {
-            token: string;
-        };
+        /** @description Body of POST /api/v1/auth/register. Rules: `RegisterRequestValidator` and the password policy. */
         RegisterRequest: {
-            /** Format: email */
             email: string;
             password: string;
             confirmPassword: string;
@@ -619,6 +605,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** @description Body of PUT /api/v1/auth/me/address; an empty value clears the address. Rules: `UpdateAddressRequestValidator`. */
         UpdateAddressRequest: {
             simpleAddress: string;
         };

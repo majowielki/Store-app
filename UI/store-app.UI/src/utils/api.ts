@@ -1,4 +1,5 @@
 import { customFetch } from './customFetch';
+import { getAccessToken } from './session';
 import type {
   ApiCartResponse,
   AddCartItemRequest,
@@ -47,25 +48,20 @@ export const authApi = {
     return data;
   },
 
+  /** Ends the session on the server (the refresh cookie is revoked and removed). */
   logout: async (): Promise<void> => {
     await customFetch.post('/auth/logout');
   },
 
-  /** The signed-in user's profile; null without a stored token or for an anonymous answer (204). */
+  /** The signed-in user's profile; null without an access token or for an anonymous answer (204). */
   getCurrentUser: async (): Promise<UserResponse | null> => {
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    if (!token) return null;
+    if (!getAccessToken()) return null;
     const { data, status } = await customFetch.get<UserResponse>('/auth/me');
     return status === 204 ? null : data;
   },
 
   updateMyAddress: async (simpleAddress: string): Promise<UserResponse> => {
     const { data } = await customFetch.put<UserResponse>('/auth/me/address', { simpleAddress });
-    return data;
-  },
-
-  refreshToken: async (token: string): Promise<AuthResponse> => {
-    const { data } = await customFetch.post<AuthResponse>('/auth/refresh', { token });
     return data;
   },
 };

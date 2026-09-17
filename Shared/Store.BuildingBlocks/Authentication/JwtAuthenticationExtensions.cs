@@ -17,7 +17,7 @@ public static class JwtAuthenticationExtensions
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <param name="configuration">Application configuration</param>
-    /// <param name="configure">Optional per-service customisation applied after the shared defaults (events, clock skew, claim types)</param>
+    /// <param name="configure">Optional per-service customisation applied after the shared defaults (events, claim types); the validation rules are shared and not meant to differ</param>
     /// <returns>Service collection</returns>
     public static IServiceCollection AddJwtAuthentication(
         this IServiceCollection services,
@@ -41,6 +41,9 @@ public static class JwtAuthenticationExtensions
             {
                 var settings = jwt.Value;
 
+                // One set of rules for the gateway and every service: the token must be signed with
+                // the shared key using HS256, carry an expiry, and is accepted at most 30 seconds
+                // past it (the hosts are time-synchronised, the skew only covers jitter)
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
@@ -50,7 +53,10 @@ public static class JwtAuthenticationExtensions
                     ValidateAudience = true,
                     ValidAudience = settings.Audience,
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
+                    ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
+                    ClockSkew = TimeSpan.FromSeconds(30)
                 };
 
                 options.Events = new JwtBearerEvents

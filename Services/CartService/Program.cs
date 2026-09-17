@@ -25,12 +25,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<Store.CartService.Validator
 builder.Services.AddDbContext<CartDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions
-builder.Services.AddJwtAuthentication(builder.Configuration, options =>
-{
-    // Clock skew this service used before the shared setup (JwtBearer default); to be unified across services later
-    options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
-});
+// JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();

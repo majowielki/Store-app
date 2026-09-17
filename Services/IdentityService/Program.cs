@@ -11,6 +11,7 @@ using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Authorization;
+using Store.IdentityService;
 using Store.IdentityService.Consumers;
 using Store.IdentityService.Data;
 using Store.IdentityService.Models;
@@ -28,15 +29,16 @@ builder.Services.AddValidatorsFromAssemblyContaining<Store.IdentityService.Valid
 builder.Services.AddDbContext<IdentityDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+// Identity without the cookie stack: this service issues bearer tokens and never signs anyone
+// in with a cookie, so there is nothing to redirect to /Account/Login
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
-    // Password settings
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequiredLength = 8;
+    // Password settings - the one definition, shared with the request validator
+    options.Password.RequireDigit = PasswordPolicy.RequireDigit;
+    options.Password.RequireLowercase = PasswordPolicy.RequireLowercase;
+    options.Password.RequireNonAlphanumeric = PasswordPolicy.RequireNonAlphanumeric;
+    options.Password.RequireUppercase = PasswordPolicy.RequireUppercase;
+    options.Password.RequiredLength = PasswordPolicy.MinLength;
     options.Password.RequiredUniqueChars = 1;
 
     // Lockout settings
@@ -48,28 +50,14 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
     options.User.RequireUniqueEmail = true;
 })
+.AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<IdentityDbContext>()
+.AddSignInManager()
 .AddDefaultTokenProviders();
-
-// Ensure API returns 401/403 instead of redirecting to /Account/Login
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Events.OnRedirectToLogin = context =>
-    {
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        return Task.CompletedTask;
-    };
-    options.Events.OnRedirectToAccessDenied = context =>
-    {
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        return Task.CompletedTask;
-    };
-});
 
 // JWT Authentication - key, issuer and audience come from validated JwtOptions
 builder.Services.AddJwtAuthentication(builder.Configuration, options =>
     {
-        options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
         options.TokenValidationParameters.RoleClaimType = System.Security.Claims.ClaimTypes.Role;
 
         options.Events = new JwtBearerEvents
@@ -98,8 +86,10 @@ builder.Services.AddJwtAuthentication(builder.Configuration, options =>
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
 
-// Services
+// Services: tokens of a session, accounts, and the daily purge of refresh tokens nobody can present any more
+builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 // Message bus: a placed order may carry a delivery address to store in the profile; profile changes reach the audit service as events
 builder.Services.AddStoreMessaging<IdentityDbContext>(builder.Configuration, serviceName: "identity", bus => bus.AddConsumer<OrderPlacedConsumer>());

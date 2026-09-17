@@ -52,9 +52,10 @@ export interface CartState {
 }
 
 export interface UserState {
+  /** The profile, cached across reloads; the session itself is the in-memory access token plus the refresh cookie */
   user: UserResponse | null;
-  token: string | null;
   isLoading: boolean;
   error: string | null;
-  meAttempted?: boolean;
+  /** True once the session was restored or refused after a page load */
+  sessionChecked: boolean;
 }

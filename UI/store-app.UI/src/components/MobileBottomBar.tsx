@@ -4,8 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import ModeToggle from "./ModeToggle";
 import { useAppSelector, useAppDispatch } from '@/hooks';
 import { useState, useRef, useEffect } from 'react';
-import { clearCart, clearCartOnServer } from '@/features/cart/cartSlice';
-import { logoutUser } from '@/features/user/userSlice';
+import { clearCart } from '@/features/cart/cartSlice';
+import { logoutUserAsync } from '@/features/user/userSlice';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -38,11 +38,9 @@ const MobileBottomBar = ({ onMenuClick }: { onMenuClick: () => void }) => {
   }, [accountOpen]);
 
   const handleLogout = async () => {
-    if (user) {
-      await dispatch(clearCartOnServer());
-    }
+    // Only the local copy is dropped; the server cart belongs to the account and survives signing out
     dispatch(clearCart());
-    dispatch(logoutUser());
+    await dispatch(logoutUserAsync());
     toast({ description: 'Logged Out' });
     setAccountOpen(false);
     navigate('/');

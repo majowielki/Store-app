@@ -1,15 +1,13 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.Contracts.Authorization;
+using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
 using Store.IdentityService.Seeding;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace Store.IdentityService.Services;
 
@@ -18,7 +16,8 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly IConfiguration _configuration;
+    private readonly IdentityDbContext _context;
+    private readonly ITokenService _tokens;
     private readonly ILogger<AuthService> _logger;
     private readonly IAuditTrail _auditTrail;
 
@@ -26,19 +25,21 @@ public class AuthService : IAuthService
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<IdentityRole> roleManager,
-        IConfiguration configuration,
+        IdentityDbContext context,
+        ITokenService tokens,
         ILogger<AuthService> logger,
         IAuditTrail auditTrail)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
-        _configuration = configuration;
+        _context = context;
+        _tokens = tokens;
         _logger = logger;
         _auditTrail = auditTrail;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+    public async Task<SignedIn> RegisterAsync(RegisterRequest request, string? clientAddress)
     {
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
@@ -66,10 +67,10 @@ public class AuthService : IAuthService
         await EnsureRoleExistsAsync(Roles.User);
         await _userManager.AddToRoleAsync(user, Roles.User);
         _logger.LogInformation("User registered successfully: {Email}", request.Email);
-        return await IssueAsync(user);
+        return await StartSessionAsync(user, clientAddress);
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<SignedIn> LoginAsync(LoginRequest request, string? clientAddress)
     {
         var user = await _userManager.FindByEmailAsync(request.Email)
             ?? throw new InvalidCredentialsException();
@@ -90,62 +91,87 @@ public class AuthService : IAuthService
             throw new InvalidCredentialsException();
         }
 
-        await RecordLoginAsync(user);
         _logger.LogInformation("User logged in successfully: {Email}", request.Email);
-        return await IssueAsync(user);
+        return await StartSessionAsync(user, clientAddress);
     }
 
-    public Task<AuthResponse> DemoLoginAsync() => DemoSignInAsync(SeedAccounts.DemoUserEmail, "Demo user");
+    public Task<SignedIn> DemoLoginAsync(string? clientAddress) => DemoSignInAsync(SeedAccounts.DemoUserEmail, "Demo user", clientAddress);
 
-    public Task<AuthResponse> DemoAdminLoginAsync() => DemoSignInAsync(SeedAccounts.DemoAdminEmail, "Demo admin");
+    public Task<SignedIn> DemoAdminLoginAsync(string? clientAddress) => DemoSignInAsync(SeedAccounts.DemoAdminEmail, "Demo admin", clientAddress);
 
-    private async Task<AuthResponse> DemoSignInAsync(string email, string account)
+    private async Task<SignedIn> DemoSignInAsync(string email, string account, string? clientAddress)
     {
         // The demo accounts are seeded at start-up; a missing one is a deployment fault, not a client error
         var user = await _userManager.FindByEmailAsync(email)
             ?? throw new InvalidOperationException($"{account} not found. It should be created during database initialization.");
 
-        await RecordLoginAsync(user);
         _logger.LogInformation("{Account} logged in successfully", account);
-        return await IssueAsync(user);
+        return await StartSessionAsync(user, clientAddress);
     }
 
-    public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
+    public async Task<SignedIn> RefreshAsync(string refreshToken, string? clientAddress)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!);
-        ClaimsPrincipal principal;
-        try
+        var presented = await _context.RefreshTokens
+            .Include(t => t.User)
+            .SingleOrDefaultAsync(t => t.TokenHash == _tokens.HashRefreshToken(refreshToken))
+            ?? throw new InvalidCredentialsException("Invalid refresh token");
+
+        if (presented.RevokedAt is not null)
         {
-            principal = tokenHandler.ValidateToken(request.Token, new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidIssuer = _configuration["JwtSettings:Issuer"],
-                ValidAudience = _configuration["JwtSettings:Audience"],
-                ValidateLifetime = false,
-                ClockSkew = TimeSpan.Zero
-            }, out _);
-        }
-        catch (Exception)
-        {
-            throw new InvalidCredentialsException("Invalid token");
+            // A spent token presented again: either the client replayed it or somebody stole a
+            // copy. Both copies become useless, and the user signs in again.
+            await RevokeFamilyAsync(presented.FamilyId, "reuse");
+            _logger.LogWarning("Refresh token reuse for user {UserId}; session family {FamilyId} revoked", presented.UserId, presented.FamilyId);
+            throw new InvalidCredentialsException("Refresh token was already used");
         }
 
-        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
+        if (presented.ExpiresAt <= DateTime.UtcNow)
         {
-            throw new InvalidCredentialsException("Invalid token");
+            throw new InvalidCredentialsException("Refresh token expired");
         }
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null || !user.IsActive)
+        if (!presented.User.IsActive)
         {
-            throw new InvalidCredentialsException("User not found or inactive");
+            await RevokeFamilyAsync(presented.FamilyId, "inactive user");
+            throw new InvalidCredentialsException("Account is deactivated");
         }
 
-        _logger.LogInformation("Token refreshed successfully for user: {UserId}", userId);
-        return await IssueAsync(user);
+        // Rotate: the presented token is spent, its successor takes over in the same family.
+        // Spending it is one conditional update, so two simultaneous refreshes with the same
+        // token (two tabs) rotate it once; the loser is told to try again with the new one.
+        var (token, hash) = _tokens.CreateRefreshToken();
+        var now = DateTime.UtcNow;
+        var spent = await _context.RefreshTokens
+            .Where(t => t.Id == presented.Id && t.RevokedAt == null)
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(t => t.RevokedAt, now)
+                .SetProperty(t => t.ReplacedByHash, hash));
+        if (spent == 0)
+        {
+            throw new InvalidCredentialsException("Refresh token was already used");
+        }
+
+        var successor = NewRefreshToken(presented.User, presented.FamilyId, hash, clientAddress, now);
+        _context.RefreshTokens.Add(successor);
+        await _context.SaveChangesAsync();
+
+        return await IssueAsync(presented.User, token, successor.ExpiresAt);
+    }
+
+    public async Task LogoutAsync(string? refreshToken)
+    {
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return;
+        }
+
+        var hash = _tokens.HashRefreshToken(refreshToken);
+        var presented = await _context.RefreshTokens.AsNoTracking().SingleOrDefaultAsync(t => t.TokenHash == hash);
+        if (presented is not null)
+        {
+            await RevokeFamilyAsync(presented.FamilyId, "logout");
+            _logger.LogInformation("User {UserId} logged out; session family {FamilyId} revoked", presented.UserId, presented.FamilyId);
+        }
     }
 
     public async Task<UserResponse> GetUserAsync(string userId)
@@ -174,11 +200,49 @@ public class AuthService : IAuthService
     private async Task<ApplicationUser> FindUserAsync(string userId)
         => await _userManager.FindByIdAsync(userId) ?? throw new NotFoundException("User", userId);
 
-    private async Task RecordLoginAsync(ApplicationUser user)
+    /// <summary>A fresh session for a user who just proved who they are: new family, new tokens.</summary>
+    private async Task<SignedIn> StartSessionAsync(ApplicationUser user, string? clientAddress)
     {
-        user.LastLoginAt = DateTime.UtcNow;
-        user.UpdatedAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        user.LastLoginAt = now;
+        user.UpdatedAt = now;
         await _userManager.UpdateAsync(user);
+
+        var (token, hash) = _tokens.CreateRefreshToken();
+        var refreshToken = NewRefreshToken(user, Guid.NewGuid(), hash, clientAddress, now);
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        return await IssueAsync(user, token, refreshToken.ExpiresAt);
+    }
+
+    private RefreshToken NewRefreshToken(ApplicationUser user, Guid familyId, string hash, string? clientAddress, DateTime now) => new()
+    {
+        User = user,
+        UserId = user.Id,
+        TokenHash = hash,
+        FamilyId = familyId,
+        CreatedAt = now,
+        ExpiresAt = now + _tokens.RefreshTokenLifetime,
+        CreatedByIp = clientAddress
+    };
+
+    private Task<int> RevokeFamilyAsync(Guid familyId, string reason)
+        => _context.RefreshTokens
+            .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
+            .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, DateTime.UtcNow));
+
+    private async Task<SignedIn> IssueAsync(ApplicationUser user, string refreshToken, DateTime refreshTokenExpiresAt)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+        var (accessToken, expiresAt) = _tokens.CreateAccessToken(user, roles);
+        var auth = new AuthResponse
+        {
+            AccessToken = accessToken,
+            ExpiresAt = expiresAt,
+            User = MapToUserResponse(user, roles)
+        };
+        return new SignedIn(auth, refreshToken, refreshTokenExpiresAt);
     }
 
     /// <summary>Identity's own rules (password policy, user name characters) as a validation problem.</summary>
@@ -190,75 +254,22 @@ public class AuthService : IAuthService
         return new DomainValidationException(message, errors);
     }
 
-    private async Task<AuthResponse> IssueAsync(ApplicationUser user)
-    {
-        var (accessToken, expiresAt) = await GenerateAccessTokenAsync(user);
-        return new AuthResponse
-        {
-            AccessToken = accessToken,
-            ExpiresAt = expiresAt,
-            User = await MapToUserResponseAsync(user)
-        };
-    }
-
-    private async Task<(string token, DateTime expiresAt)> GenerateAccessTokenAsync(ApplicationUser user)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var secretKey = _configuration["JwtSettings:SecretKey"];
-        if (string.IsNullOrEmpty(secretKey))
-            throw new InvalidOperationException("JWT SecretKey is not configured");
-        var key = Encoding.UTF8.GetBytes(secretKey);
-        var expiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["JwtSettings:ExpirationInMinutes"]!));
-
-        var roles = (await _userManager.GetRolesAsync(user)).Distinct().ToList();
-
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Name, user.UserName!),
-            new(ClaimTypes.Email, user.Email!),
-            new("firstName", user.FirstName ?? ""),
-            new("lastName", user.LastName ?? ""),
-            new("displayName", user.DisplayName)
-        };
-
-        // Add each role as a single 'role' claim (standard JWT)
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim("role", role));
-        }
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(claims),
-            Expires = expiresAt,
-            Issuer = _configuration["JwtSettings:Issuer"],
-            Audience = _configuration["JwtSettings:Audience"],
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return (tokenHandler.WriteToken(token), expiresAt);
-    }
-
     private async Task<UserResponse> MapToUserResponseAsync(ApplicationUser user)
-    {
-        var roles = await _userManager.GetRolesAsync(user);
+        => MapToUserResponse(user, await _userManager.GetRolesAsync(user));
 
-        return new UserResponse
-        {
-            Id = user.Id,
-            Email = user.Email!,
-            UserName = user.UserName!,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            DisplayName = user.DisplayName,
-            SimpleAddress = user.SimpleAddress,
-            Roles = roles.ToList(),
-            IsActive = user.IsActive,
-            CreatedAt = user.CreatedAt
-        };
-    }
+    private static UserResponse MapToUserResponse(ApplicationUser user, IList<string> roles) => new()
+    {
+        Id = user.Id,
+        Email = user.Email!,
+        UserName = user.UserName!,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        DisplayName = user.DisplayName,
+        SimpleAddress = user.SimpleAddress,
+        Roles = roles.ToList(),
+        IsActive = user.IsActive,
+        CreatedAt = user.CreatedAt
+    };
 
     private async Task EnsureRoleExistsAsync(string roleName)
     {

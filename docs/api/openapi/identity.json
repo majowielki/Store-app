@@ -273,16 +273,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "A new access token for a token that is still valid apart from its expiry.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequest"
-              }
-            }
-          }
-        },
+        "summary": "A new access token for the session in the refresh cookie; the cookie is replaced with a\r\nnew refresh token. 401 without a cookie, with a spent or expired one, or after the\r\nsession was ended - the client signs in again then.",
         "responses": {
           "200": {
             "description": "OK",
@@ -395,7 +386,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Ends the session. Tokens are stateless for now, so the client discards its token; server-side revocation comes with refresh tokens.",
+        "summary": "Ends the session: the refresh token family in the cookie is revoked and the cookie\r\nremoved. The access token stays valid until it expires (minutes); the client discards it.",
         "responses": {
           "204": {
             "description": "No Content"
@@ -409,19 +400,8 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "No valid access token"
-          },
-          "403": {
-            "description": "The signed-in user may not do this"
           }
-        },
-        "security": [
-          {
-            "Bearer": [ ]
-          }
-        ]
+        }
       }
     }
   },
@@ -552,29 +532,14 @@
         "type": "object",
         "properties": {
           "email": {
-            "minLength": 1,
-            "type": "string",
-            "format": "email"
+            "type": "string"
           },
           "password": {
-            "minLength": 1,
             "type": "string"
           }
         },
-        "additionalProperties": false
-      },
-      "RefreshTokenRequest": {
-        "required": [
-          "token"
-        ],
-        "type": "object",
-        "properties": {
-          "token": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/auth/login. Rules: `LoginRequestValidator`."
       },
       "RegisterRequest": {
         "required": [
@@ -585,33 +550,25 @@
         "type": "object",
         "properties": {
           "email": {
-            "minLength": 1,
-            "type": "string",
-            "format": "email"
+            "type": "string"
           },
           "password": {
-            "maxLength": 100,
-            "minLength": 6,
             "type": "string"
           },
           "confirmPassword": {
-            "minLength": 1,
             "type": "string"
           },
           "firstName": {
-            "maxLength": 100,
-            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "lastName": {
-            "maxLength": 100,
-            "minLength": 0,
             "type": "string",
             "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/auth/register. Rules: `RegisterRequestValidator` and the password policy."
       },
       "StoreProblemDetails": {
         "type": "object",
@@ -667,7 +624,8 @@
             "type": "string"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Body of PUT /api/v1/auth/me/address; an empty value clears the address. Rules: `UpdateAddressRequestValidator`."
       },
       "UserResponse": {
         "required": [
@@ -738,7 +696,7 @@
     },
     {
       "name": "Auth",
-      "description": "Sign-up, sign-in and the signed-in user's own profile."
+      "description": "Sign-up, sign-in and the signed-in user's own profile. A sign-in answers with a short-lived\r\naccess token in the body and a refresh token in an httpOnly cookie scoped to this\r\ncontroller's path, so a script in the page can never read the refresh token."
     }
   ]
 }

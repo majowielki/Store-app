@@ -39,7 +39,6 @@ export type SyncCartRequest = Cart['schemas']['SyncCartRequest'];
 // Users and sessions
 export type LoginRequest = Identity['schemas']['LoginRequest'];
 export type RegisterRequest = Identity['schemas']['RegisterRequest'];
-export type RefreshTokenRequest = Identity['schemas']['RefreshTokenRequest'];
 export type UpdateAddressRequest = Identity['schemas']['UpdateAddressRequest'];
 export type UserResponse = Identity['schemas']['UserResponse'];
 export type AuthResponse = Identity['schemas']['AuthResponse'];

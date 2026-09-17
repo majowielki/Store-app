@@ -1,40 +1,23 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Store.IdentityService.DTOs.Requests;
 
+/// <summary>Body of POST /api/v1/auth/register. Rules: <c>RegisterRequestValidator</c> and the password policy.</summary>
 public class RegisterRequest
 {
-    [Required]
-    [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 6)]
     public string Password { get; set; } = string.Empty;
 
-    [Required]
-    [Compare("Password")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
-    [StringLength(100)]
     public string? FirstName { get; set; }
 
-    [StringLength(100)]
     public string? LastName { get; set; }
 }
 
+/// <summary>Body of POST /api/v1/auth/login. Rules: <c>LoginRequestValidator</c>.</summary>
 public class LoginRequest
 {
-    [Required]
-    [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
     public string Password { get; set; } = string.Empty;
-}
-
-public class RefreshTokenRequest
-{
-    [Required]
-    public string Token { get; set; } = string.Empty;
 }

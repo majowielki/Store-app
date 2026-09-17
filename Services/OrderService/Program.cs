@@ -25,12 +25,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<Store.OrderService.Validato
 builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// JWT Authentication - key, issuer and audience come from validated JwtOptions;
-// the shared setup already adds the Token-Expired header on expired tokens
-builder.Services.AddJwtAuthentication(builder.Configuration, options =>
-{
-    options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(2);
-});
+// JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Authorization - shared policies User / Admin / AdminWrite
 builder.Services.AddStoreAuthorization();
