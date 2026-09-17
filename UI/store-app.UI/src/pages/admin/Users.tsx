@@ -2,15 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import type { UserResponse } from '@/utils/types';
-
-type BackendUsersResponse = {
-  items: UserResponse[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages?: number;
-};
+import type { AdminUserResponse } from '@/utils/types';
 import { identityAdminApi } from '@/utils/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink } from '@
 import { Link } from 'react-router-dom';
 
 const Users = () => {
-  const [items, setItems] = useState<UserResponse[]>([]);
+  const [items, setItems] = useState<AdminUserResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -32,10 +24,9 @@ const Users = () => {
     (async () => {
       setLoading(true);
       try {
-  const res: BackendUsersResponse = await identityAdminApi.getUsers({ ...filters, page, pageSize });
-  setItems(res.items);
-  // Calculate totalPages if not present
-  setTotalPages(res.totalPages ?? Math.ceil((res.totalCount ?? 0) / pageSize));
+        const res = await identityAdminApi.getUsers({ ...filters, page, pageSize });
+        setItems(res.items);
+        setTotalPages(res.totalPages);
       } catch {
         setItems([]);
       } finally {
@@ -79,7 +70,7 @@ const Users = () => {
               {items.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell>{u.email}</TableCell>
-                  <TableCell>{u.displayName || `${u.firstName ?? ''} ${u.lastName ?? ''}`}</TableCell>
+                  <TableCell>{`${u.firstName} ${u.lastName}`.trim()}</TableCell>
                   <TableCell>
                     {u.isActive ? <span className="text-green-600">Active</span> : <span className="text-muted-foreground">Inactive</span>}
                   </TableCell>

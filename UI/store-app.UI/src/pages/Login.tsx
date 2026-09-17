@@ -51,16 +51,12 @@ const Login = () => {
   const loginAsGuestUser = async (): Promise<void> => {
     try {
       const response = await authApi.demoLogin();
-      if (response.success && response.accessToken && response.user) {
-        localStorage.setItem('authToken', response.accessToken);
-        localStorage.setItem('authUser', JSON.stringify(response.user));
-        await dispatch({ type: 'user/setUser', payload: response.user });
-        await dispatch({ type: 'user/setToken', payload: response.accessToken });
-        toast({ description: 'Demo user logged in!' });
-        window.location.href = '/';
-      } else {
-        toast({ description: response.message || 'Demo user login failed', variant: 'destructive' });
-      }
+      localStorage.setItem('authToken', response.accessToken);
+      localStorage.setItem('authUser', JSON.stringify(response.user));
+      await dispatch({ type: 'user/setUser', payload: response.user });
+      await dispatch({ type: 'user/setToken', payload: response.accessToken });
+      toast({ description: 'Demo user logged in!' });
+      window.location.href = '/';
     } catch {
       toast({ description: 'Demo user login failed', variant: 'destructive' });
     }
@@ -69,16 +65,12 @@ const Login = () => {
   const loginAsDemoAdmin = async (): Promise<void> => {
     try {
       const response = await authApi.demoAdminLogin();
-      if (response.success && response.accessToken && response.user) {
-        localStorage.setItem('authToken', response.accessToken);
-        localStorage.setItem('authUser', JSON.stringify(response.user));
-        await dispatch({ type: 'user/setUser', payload: response.user });
-        await dispatch({ type: 'user/setToken', payload: response.accessToken });
-        toast({ description: 'Demo admin logged in!' });
-        window.location.href = '/admin';
-      } else {
-        toast({ description: response.message || 'Demo admin login failed', variant: 'destructive' });
-      }
+      localStorage.setItem('authToken', response.accessToken);
+      localStorage.setItem('authUser', JSON.stringify(response.user));
+      await dispatch({ type: 'user/setUser', payload: response.user });
+      await dispatch({ type: 'user/setToken', payload: response.accessToken });
+      toast({ description: 'Demo admin logged in!' });
+      window.location.href = '/admin';
     } catch {
       toast({ description: 'Demo admin login failed', variant: 'destructive' });
     }

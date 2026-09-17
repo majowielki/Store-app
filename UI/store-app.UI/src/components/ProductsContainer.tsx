@@ -8,8 +8,7 @@ import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 
 const ProductsContainer = () => {
-  const { meta } = useLoaderData() as ProductsResponse;
-  const totalProducts = meta.pagination.total;
+  const { totalCount: totalProducts } = useLoaderData() as ProductsResponse;
 
   const location = useLocation();
   const navigate = useNavigate();

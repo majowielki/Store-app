@@ -2,9 +2,10 @@ import { useLoaderData } from "react-router-dom";
 import { Ruler, Scale, Layers } from "lucide-react";
 import { Link, type LoaderFunction } from "react-router-dom";
 import {
-  customFetch,
   formatAsDollars,
-  type SingleProductResponse,
+  priceTag,
+  productApi,
+  type Product,
   type CartItem,
 } from "@/utils";
 import { useState } from "react";
@@ -16,47 +17,26 @@ import { useAppDispatch, useAppSelector } from "@/hooks";
 import { addItem, addItemToServer } from "@/features/cart/cartSlice";
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const loader: LoaderFunction = async ({
-  params,
-}): Promise<SingleProductResponse> => {
-  const response = await customFetch<SingleProductResponse>(
-    `/products/${params.id}`
-  );
-  return { ...response.data };
-};
+export const loader: LoaderFunction = async ({ params }): Promise<Product> =>
+  productApi.getProduct(Number(params.id));
 
 const SingleProduct = () => {
-  const { data: product } = useLoaderData() as SingleProductResponse;
-  const { image, title, price, description, colors, company } = product.attributes;
+  const product = useLoaderData() as Product;
+  const { image, title, description, colors, company, widthCm, heightCm, depthCm, weightKg, materials } = product;
   const companyLabel = company ? company.charAt(0).toUpperCase() + company.slice(1) : '';
-  const { widthCm, heightCm, depthCm, weightKg, materials } = product.attributes as unknown as {
-    widthCm?: number | null;
-    heightCm?: number | null;
-    depthCm?: number | null;
-    weightKg?: number | null;
-    materials?: string | null;
-  };
-  // Safe materials display in case backend sends non-string values
-  let materialsText = '' as string;
-  if (typeof (materials as unknown) === 'string') {
-    materialsText = (materials as unknown as string).trim();
-  } else if (Array.isArray(materials)) {
-    materialsText = (materials as unknown as unknown[]).filter(Boolean).join(', ');
-  }
-  const salePrice = (product.attributes as unknown as { salePrice?: string | null }).salePrice ?? null;
-  const hasSale = salePrice !== null && Number(salePrice) < Number(price);
+  const materialsText = (materials ?? []).filter(Boolean).join(', ');
+  const { price, effectivePrice, hasSale } = priceTag(product);
   const [productColor, setProductColor] = useState(colors[0]);
   const [amount, setAmount] = useState(1);
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.userState.user);
   // The cart charges what the page shows: the sale price when the product is on sale
-  const effectivePrice = product.attributes.effectivePrice ?? (hasSale && salePrice ? salePrice : price);
   const cartProduct: CartItem = {
     cartID: product.id + productColor,
     productID: product.id,
     image,
     title,
-    price: effectivePrice,
+    price: String(effectivePrice),
     amount,
     productColor,
     company,
@@ -113,7 +93,7 @@ const SingleProduct = () => {
             {hasSale ? (
               <>
                 <span className="text-primary font-semibold mr-2">
-                  {formatAsDollars(salePrice)}
+                  {formatAsDollars(effectivePrice)}
                 </span>
                 <span className="line-through text-muted-foreground">
                   {formatAsDollars(price)}

@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { LoaderFunction, redirect, useLoaderData } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { customFetch } from '@/utils';
+import { orderApi } from '@/utils/api';
 import {
   OrdersList,
   ComplexPaginationContainer,
@@ -23,23 +23,7 @@ export const loader =
       ...new URL(request.url).searchParams.entries(),
     ]);
     try {
-      // Use user-specific endpoint; admin endpoint is protected
-      const response = await customFetch.get('/orders/my-orders', {
-        params,
-      });
-      // Map backend response to OrdersResponse shape expected by UI
-      const backend = response.data.data;
-      const items = backend.orders || [];
-      const mapped: OrdersResponse = {
-        items,
-        totalCount: backend.totalCount ?? items.length,
-        page: backend.page ?? 1,
-        pageSize: backend.pageSize ?? 20,
-        totalPages: backend.totalPages ?? 1,
-        hasNextPage: backend.hasNextPage ?? false,
-        hasPreviousPage: backend.hasPreviousPage ?? false,
-      };
-      return mapped;
+      return await orderApi.getMyOrders(Number(params.page) || 1, Number(params.pageSize) || 20);
   } catch {
       toast({ description: 'Failed to fetch orders' });
       // Return safe empty response to avoid runtime null errors

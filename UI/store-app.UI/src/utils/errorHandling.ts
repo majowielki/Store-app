@@ -1,56 +1,40 @@
-// Error handling utilities
-export interface ApiError {
-  response?: {
-    data?: {
-      message?: string;
-    };
-    status?: number;
-  };
-  message?: string;
+import { isAxiosError } from 'axios';
+import type { ProblemDetails } from './types';
+
+/** The problem response an API error carries, when it carries one. */
+export function getProblem(error: unknown): ProblemDetails | undefined {
+  if (!isAxiosError(error)) return undefined;
+  const data: unknown = error.response?.data;
+  if (data && typeof data === 'object' && ('title' in data || 'detail' in data || 'status' in data)) {
+    return data as ProblemDetails;
+  }
+  return undefined;
 }
 
-export const getErrorMessage = (error: unknown): string => {
-  if (error && typeof error === 'object' && 'response' in error) {
-    const apiError = error as ApiError;
-    return apiError.response?.data?.message || 'An error occurred';
-  }
-  
-  if (error instanceof Error) {
-    return error.message;
-  }
-  
-  return 'An unknown error occurred';
-};
+/** HTTP status of an API error, or undefined for a network failure. */
+export function getStatus(error: unknown): number | undefined {
+  return isAxiosError(error) ? error.response?.status : undefined;
+}
 
-
-// More robust error extractor for API errors
+/**
+ * The message to show for a failed request: the problem's detail (or title), with the
+ * field messages of a validation problem appended; the transport error otherwise.
+ */
 export function extractApiErrorMessage(error: unknown): string {
-  if (
-    error &&
-    typeof error === 'object' &&
-    'response' in error &&
-    error.response &&
-    typeof error.response === 'object'
-  ) {
-    const response = (error as { response: unknown }).response;
-    if (
-      response &&
-      typeof response === 'object' &&
-      'data' in response &&
-      response.data !== undefined
-    ) {
-      const data = (response as { data: unknown }).data;
-      if (
-        data &&
-        typeof data === 'object' &&
-        'message' in data &&
-        typeof (data as { message?: unknown }).message === 'string'
-      ) {
-        return (data as { message: string }).message;
-      }
-      if (typeof data === 'string') return data;
+  const problem = getProblem(error);
+  if (problem) {
+    const fieldMessages = problem.errors
+      ? Object.values(problem.errors).flat().filter((m) => typeof m === 'string')
+      : [];
+    const headline = problem.detail || problem.title;
+    if (fieldMessages.length > 0) {
+      return headline ? `${headline}: ${fieldMessages.join(' ')}` : fieldMessages.join(' ');
     }
+    if (headline) return headline;
   }
+  if (isAxiosError(error) && !error.response) return 'The server could not be reached. Please try again.';
   if (error instanceof Error && error.message) return error.message;
   return 'An unexpected error occurred. Please try again.';
 }
+
+export const getErrorMessage = extractApiErrorMessage;

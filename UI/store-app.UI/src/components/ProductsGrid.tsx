@@ -1,18 +1,17 @@
 import { Link, useLoaderData } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import SaleBadge from "./SaleBadge";
-import { formatAsDollars, type ProductsResponse } from "@/utils";
+import { formatAsDollars, priceTag, type ProductsResponse } from "@/utils";
 
 const ProductsGrid = () => {
   const loaderData = useLoaderData() as ProductsResponse | undefined;
-  const products = loaderData?.data ?? [];
+  const products = loaderData?.items ?? [];
 
   return (
     <div className="pt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-  {products.map((product) => {
-        const { title, price, image } = product.attributes;
-        const salePrice = (product.attributes as unknown as { salePrice?: string | null }).salePrice ?? null;
-        const hasSale = salePrice !== null && Number(salePrice) < Number(price);
+      {products.map((product) => {
+        const { title, image } = product;
+        const { price, effectivePrice, hasSale, percent } = priceTag(product);
         return (
           <Link to={`/products/${product.id}`} key={product.id}>
             <Card>
@@ -26,9 +25,7 @@ const ProductsGrid = () => {
                     className="w-full h-full object-cover"
                     style={{ aspectRatio: '4/3' }}
                   />
-                  {hasSale && (
-                    <SaleBadge percent={((Number(price) - Number(salePrice)) / Number(price)) * 100} />
-                  )}
+                  {hasSale && <SaleBadge percent={percent} />}
                 </div>
                 <div className="mt-4 text-center">
                   <h2 className="text-xl font-semibold capitalize">{title}</h2>
@@ -36,7 +33,7 @@ const ProductsGrid = () => {
                     {hasSale ? (
                       <>
                         <span className="text-primary font-semibold mr-2">
-                          {formatAsDollars(salePrice)}
+                          {formatAsDollars(effectivePrice)}
                         </span>
                         <span className="line-through text-muted-foreground">
                           {formatAsDollars(price)}

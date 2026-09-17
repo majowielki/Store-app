@@ -3,6 +3,7 @@ export * from "./applyTheme";
 export * from "./customFetch";
 export * from "./types";
 export * from "./formatAsDollars";
+export * from "./productPrice";
 export * from "./pagination";
 export * from "./api";
 export * from "./errorHandling";

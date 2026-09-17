@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { customFetch } from '@/utils';
-import type { ProductsResponse, ProductData } from '@/utils/types';
+import { productApi } from '@/utils/api';
+import type { Product } from '@/utils/types';
 
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,10 +20,10 @@ import {
 const Products = () => {
   useToast();
 
-  const [items, setItems] = useState<ProductData[]>([]);
-  const [meta, setMeta] = useState<ProductsResponse['meta'] | null>(null);
+  const [items, setItems] = useState<Product[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [sort, setSort] = useState<{ key: keyof ProductData | 'company' | 'price' | 'title'; direction: 'asc' | 'desc' }>({ key: 'id', direction: 'asc' });
+  const [sort, setSort] = useState<{ key: 'id' | 'company' | 'price' | 'title'; direction: 'asc' | 'desc' }>({ key: 'id', direction: 'asc' });
   // Pagination state
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -32,15 +32,9 @@ const Products = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const params: Record<string, string | number> = {
-          page,
-          pageSize,
-          sortBy: sort.key,
-          sortDir: sort.direction,
-        };
-        const res = await customFetch.get<ProductsResponse>('/products/admin', { params });
-        setItems(res.data.data);
-        setMeta(res.data.meta);
+        const res = await productApi.getProductsAdmin({ page, pageSize, sortBy: sort.key, sortDir: sort.direction });
+        setItems(res.items);
+        setTotalPages(res.totalPages);
       } finally {
         setLoading(false);
       }
@@ -51,9 +45,9 @@ const Products = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      await customFetch.delete(`/products/${id}`);
+      await productApi.deleteProduct(id);
       toast({ description: 'Product deleted.' });
-      setItems((prev: ProductData[]) => prev.filter((p: ProductData) => p.id !== id));
+      setItems((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
       if (typeof err === 'object' && err && 'response' in err && (err as { response?: { status?: number } }).response?.status === 403) {
         toast({ description: 'Demo admin is not allowed to perform this action.', variant: 'destructive' });
@@ -63,7 +57,7 @@ const Products = () => {
     }
   };
 
-  const handleSort = (key: keyof ProductData | 'company' | 'price' | 'title') => {
+  const handleSort = (key: 'id' | 'company' | 'price' | 'title') => {
     setSort((prev) => {
       if (prev.key === key) {
         return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
@@ -72,7 +66,7 @@ const Products = () => {
     });
   };
 
-  function SortButton(key: keyof ProductData | 'company' | 'price' | 'title', label: string) {
+  function SortButton(key: 'id' | 'company' | 'price' | 'title', label: string) {
     const isActive = sort.key === key;
     return (
       <button
@@ -94,7 +88,7 @@ const Products = () => {
     );
   }
 
-  const totalPages = meta?.pagination?.pageCount ?? 1;
+
   const paginatedItems = items;
 
   return (
@@ -124,9 +118,9 @@ const Products = () => {
                 {paginatedItems.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>{p.id}</TableCell>
-                    <TableCell>{p.attributes.title}</TableCell>
-                    <TableCell>{p.attributes.price}</TableCell>
-                    <TableCell>{p.attributes.company}</TableCell>
+                    <TableCell>{p.title}</TableCell>
+                    <TableCell>{p.price}</TableCell>
+                    <TableCell>{p.company}</TableCell>
                     <TableCell className="text-right space-x-2 flex items-center justify-end gap-2">
                       <Button asChild size="sm" variant="outline"><Link to={`/admin/products/${p.id}`}>Edit</Link></Button>
                       <Button size="sm" variant="destructive" aria-label="Delete" onClick={() => handleDelete(p.id)}><Trash2 className="w-4 h-4" /></Button>

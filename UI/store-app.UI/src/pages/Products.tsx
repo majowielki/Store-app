@@ -1,13 +1,7 @@
 import { Filters, ProductsContainer, PaginationContainer } from "@/components";
-import {
-  customFetch,
-  type ProductsResponse,
-  type ProductsResponseWithParams,
-} from "../utils";
+import { emptyProductsMeta, type ProductsResponseWithParams } from "../utils";
 import { productApi } from '@/utils/api';
 import { type LoaderFunction } from "react-router-dom";
-
-const url = "/products";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const loader: LoaderFunction = async ({
@@ -17,17 +11,13 @@ export const loader: LoaderFunction = async ({
     ...new URL(request.url).searchParams.entries(),
   ]);
 
-  const [productsRes, meta] = await Promise.all([
-    customFetch<ProductsResponse>(url, { params }),
-    productApi.getProductsMeta().catch(() => undefined),
+  // The filter values are a separate resource; the page still renders without them
+  const [page, meta] = await Promise.all([
+    productApi.getProducts(params),
+    productApi.getProductsMeta().catch(() => emptyProductsMeta),
   ]);
 
-  // If meta returned, replace response meta (preserves pagination from productsRes)
-  const merged: ProductsResponse = meta
-    ? { ...productsRes.data, meta: { ...productsRes.data.meta, ...meta } }
-    : productsRes.data;
-
-  return { ...merged, params };
+  return { ...page, meta, params };
 };
 
 const Products = () => {

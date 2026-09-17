@@ -1,100 +1,92 @@
 import { customFetch } from './customFetch';
-import type { 
-  ApiCartResponse, 
-  AddCartItemRequest, 
+import type {
+  ApiCartResponse,
+  AddCartItemRequest,
   UpdateCartItemRequest,
   AuthResponse,
   LoginRequest,
   RegisterRequest,
   UserResponse,
+  AdminUserResponse,
   ProductsResponse,
-  ProductData,
-  SingleProductResponse,
+  ProductsMeta,
+  Product,
+  ProductPayload,
   OrdersResponse,
   Order,
+  OrderStatsResponse,
   CreateOrderFromCartRequest,
   HasOrdersResponse,
-  ApiResponse
+  PagedResponse,
 } from './types';
 
-// Backend stats response type (matches actual API response)
-export type BackendStatsResponse = {
-  totalRevenue: number;
-  totalOrders: number;
-  daily: Array<{ bucketStart: string; orders: number; revenue: number }>;
-  weekly: Array<{ bucketStart: string; orders: number; revenue: number }>;
-  topProducts: Array<{ productId: number; productTitle: string; quantity: number; revenue: number }>;
-};
+// Every function returns the response body as the API sends it (see utils/types.ts);
+// failures reject with an axios error whose response.data is a problem (utils/errorHandling.ts).
 
-// Auth API functions
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    const { data } = await customFetch.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
-    return data.data;
+    const { data } = await customFetch.post<AuthResponse>('/auth/login', credentials);
+    return data;
   },
 
   register: async (userData: RegisterRequest): Promise<AuthResponse> => {
-    const { data } = await customFetch.post<ApiResponse<AuthResponse>>('/auth/register', userData);
-    return data.data;
+    const { data } = await customFetch.post<AuthResponse>('/auth/register', userData);
+    return data;
   },
 
-  // IMPLEMENTED IN BACKEND BUT NOT USED IN FRONTEND YET
   demoLogin: async (): Promise<AuthResponse> => {
-    const { data } = await customFetch.post<ApiResponse<AuthResponse>>('/auth/demo-login', {});
-    return data.data;
+    const { data } = await customFetch.post<AuthResponse>('/auth/demo-login');
+    return data;
   },
 
   demoAdminLogin: async (): Promise<AuthResponse> => {
-    const { data } = await customFetch.post<ApiResponse<AuthResponse>>('/auth/demo-admin-login', {});
-    return data.data;
+    const { data } = await customFetch.post<AuthResponse>('/auth/demo-admin-login');
+    return data;
   },
 
-  // NOT FULLY IMPLEMENTED IN BACKEND - JUST RETURNS 200 OK
   logout: async (): Promise<void> => {
     await customFetch.post('/auth/logout');
   },
 
-  // NOT IMPLEMENTED IN BACKEND YET
+  /** The signed-in user's profile; null without a stored token or for an anonymous answer (204). */
   getCurrentUser: async (): Promise<UserResponse | null> => {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     if (!token) return null;
-    const { data } = await customFetch.get<UserResponse>('/auth/me');
+    const { data, status } = await customFetch.get<UserResponse>('/auth/me');
+    return status === 204 ? null : data;
+  },
+
+  updateMyAddress: async (simpleAddress: string): Promise<UserResponse> => {
+    const { data } = await customFetch.put<UserResponse>('/auth/me/address', { simpleAddress });
     return data;
   },
 
-  // Update current user's simple address
-  updateMyAddress: async (simpleAddress: string): Promise<UserResponse> => {
-    const { data } = await customFetch.put<ApiResponse<UserResponse>>('/auth/me/address', { simpleAddress });
-    return data.data;
+  refreshToken: async (token: string): Promise<AuthResponse> => {
+    const { data } = await customFetch.post<AuthResponse>('/auth/refresh', { token });
+    return data;
   },
-
-  // NOT IMPLEMENTED IN BACKEND YET
-  refreshToken: async (): Promise<AuthResponse> => {
-    const { data } = await customFetch.post<ApiResponse<AuthResponse>>('/auth/refresh');
-    return data.data;
-  }
 };
 
-// Cart API functions
+// Every change to the cart answers with the whole cart as it is afterwards
 export const cartApi = {
   getCart: async (): Promise<ApiCartResponse> => {
-    const { data } = await customFetch.get<ApiResponse<ApiCartResponse>>('/cart');
-    return data.data;
+    const { data } = await customFetch.get<ApiCartResponse>('/cart');
+    return data;
   },
 
   addItem: async (item: AddCartItemRequest): Promise<ApiCartResponse> => {
-    const { data } = await customFetch.post<ApiResponse<ApiCartResponse>>('/cart/items', item);
-    return data.data;
+    const { data } = await customFetch.post<ApiCartResponse>('/cart/items', item);
+    return data;
   },
 
   updateItem: async (itemId: number, update: UpdateCartItemRequest): Promise<ApiCartResponse> => {
-    const { data } = await customFetch.put<ApiResponse<ApiCartResponse>>(`/cart/items/${itemId}`, update);
-    return data.data;
+    const { data } = await customFetch.put<ApiCartResponse>(`/cart/items/${itemId}`, update);
+    return data;
   },
 
   removeItem: async (itemId: number): Promise<ApiCartResponse> => {
-    const { data } = await customFetch.delete<ApiResponse<ApiCartResponse>>(`/cart/items/${itemId}`);
-    return data.data;
+    const { data } = await customFetch.delete<ApiCartResponse>(`/cart/items/${itemId}`);
+    return data;
   },
 
   clearCart: async (): Promise<void> => {
@@ -102,174 +94,124 @@ export const cartApi = {
   },
 
   syncWithServer: async (payload: { items: { productId: number; quantity: number; color: string }[] }): Promise<ApiCartResponse> => {
-    const { data } = await customFetch.post<ApiResponse<ApiCartResponse>>('/cart/sync', payload);
-    return data.data;
-  }
+    const { data } = await customFetch.post<ApiCartResponse>('/cart/sync', payload);
+    return data;
+  },
 };
 
-// PRODUCT API - MATCHING CURRENT BACKEND IMPLEMENTATION
+export interface ProductQuery {
+  search?: string;
+  category?: string;
+  company?: string;
+  page?: number;
+  pageSize?: number;
+  group?: string;
+  sale?: boolean | string;
+  price?: string; // "100,500" or "100-500"
+  order?: string;
+  colors?: string;
+  materials?: string;
+}
+
 export const productApi = {
-  getProducts: async (params?: {
-    search?: string;
-    category?: string;
-    company?: string;
-    page?: number;
-    pageSize?: number;
-    group?: 'all' | 'furniture' | 'bathroom' | 'kids' | 'garden';
-    sale?: boolean;
-    price?: string; // "100,500" or "100-500"
-  }): Promise<ProductsResponse> => {
-    const { data } = await customFetch.get<ApiResponse<ProductsResponse>>('/products', { params });
-    return data.data;
+  getProducts: async (params?: ProductQuery): Promise<ProductsResponse> => {
+    const { data } = await customFetch.get<ProductsResponse>('/products', { params });
+    return data;
   },
 
-  getProduct: async (id: number): Promise<ProductData> => {
-    const { data } = await customFetch.get<ApiResponse<SingleProductResponse>>(`/products/${id}`);
-    return data.data.data;
+  getProduct: async (id: number): Promise<Product> => {
+    const { data } = await customFetch.get<Product>(`/products/${id}`);
+    return data;
   },
-  getProductsMeta: async (): Promise<ProductsResponse['meta']> => {
-    const { data } = await customFetch.get<ApiResponse<{ meta: ProductsResponse['meta'] }>>(`/products/meta`);
-    return data.data.meta;
+
+  /** The values the catalogue can be filtered by. */
+  getProductsMeta: async (): Promise<ProductsMeta> => {
+    const { data } = await customFetch.get<ProductsMeta>('/products/meta');
+    return data;
   },
-  // Note: featured/category/company specific endpoints were removed;
-  // use getProducts with appropriate query params instead.
+
+  /** Admin listing: inactive products too, sortable by id, price, title or company. */
+  getProductsAdmin: async (params: ProductQuery & { sortBy?: string; sortDir?: 'asc' | 'desc' }): Promise<ProductsResponse> => {
+    const { data } = await customFetch.get<ProductsResponse>('/products/admin', { params });
+    return data;
+  },
+
+  createProduct: async (payload: ProductPayload): Promise<Product> => {
+    const { data } = await customFetch.post<Product>('/products', payload);
+    return data;
+  },
+
+  updateProduct: async (id: number, payload: Partial<ProductPayload>): Promise<Product> => {
+    const { data } = await customFetch.put<Product>(`/products/${id}`, payload);
+    return data;
+  },
+
+  deleteProduct: async (id: number): Promise<void> => {
+    await customFetch.delete(`/products/${id}`);
+  },
 };
 
-// ORDER API - MATCHING CURRENT BACKEND IMPLEMENTATION
 export const orderApi = {
-  createOrderFromCart: async (orderData: CreateOrderFromCartRequest): Promise<Order> => {
-    const { data } = await customFetch.post<ApiResponse<Order>>('/orders/from-cart', orderData);
-    return data.data;
+  /** Places an order; the Idempotency-Key makes a retry return the order created the first time. */
+  createOrderFromCart: async (orderData: CreateOrderFromCartRequest, idempotencyKey?: string): Promise<Order> => {
+    const { data } = await customFetch.post<Order>('/orders/from-cart', orderData, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    });
+    return data;
   },
 
   getOrder: async (id: number): Promise<Order> => {
-    const { data } = await customFetch.get<ApiResponse<Order>>(`/orders/${id}`);
-    return data.data;
+    const { data } = await customFetch.get<Order>(`/orders/${id}`);
+    return data;
   },
 
   getMyOrders: async (page = 1, pageSize = 20): Promise<OrdersResponse> => {
-    const { data } = await customFetch.get<ApiResponse<OrdersResponse>>('/orders/my-orders', {
-      params: { page, pageSize }
-    });
-    return data.data;
+    const { data } = await customFetch.get<OrdersResponse>('/orders/my-orders', { params: { page, pageSize } });
+    return data;
   },
 
-  // Admin: list all orders with pagination (existing)
+  /** User promo eligibility: has orders */
+  getHasOrders: async (): Promise<HasOrdersResponse> => {
+    const { data } = await customFetch.get<HasOrdersResponse>('/orders/has-orders');
+    return data;
+  },
+
+  // Admin views, served by the order service; the demo administrator gets masked customer data
   getAllOrders: async (page = 1, pageSize = 20): Promise<OrdersResponse> => {
-    type AdminOrdersApiResponse = {
-      orders?: Order[];
-      items?: Order[];
-      totalCount: number;
-      page: number;
-      pageSize: number;
-      totalPages?: number;
-      hasNextPage?: boolean;
-      hasPreviousPage?: boolean;
-    };
-    const { data } = await customFetch.get<AdminOrdersApiResponse>('/admin/orders', { params: { page, pageSize } });
-    const backend = data;
-    // Support both 'orders' and 'items' keys for compatibility
-    const items = backend.items || backend.orders || [];
-    const mapped: OrdersResponse = {
-      items,
-      totalCount: backend.totalCount ?? items.length,
-      page: backend.page ?? 1,
-      pageSize: backend.pageSize ?? 20,
-      totalPages: backend.totalPages ?? 1,
-      hasNextPage: backend.hasNextPage ?? false,
-      hasPreviousPage: backend.hasPreviousPage ?? false,
-    };
-    return mapped;
+    const { data } = await customFetch.get<OrdersResponse>('/admin/orders', { params: { page, pageSize } });
+    return data;
   },
 
-  // Admin override to fetch any order by id
   getOrderAdmin: async (id: number): Promise<Order> => {
     const { data } = await customFetch.get<Order>(`/admin/orders/${id}`);
     return data;
   },
 
-  // Admin: orders of one customer, served by the order service like the other admin views
   getOrdersByUser: async (userId: string, page = 1, pageSize = 20): Promise<OrdersResponse> => {
     const { data } = await customFetch.get<OrdersResponse>(`/admin/orders/by-user/${encodeURIComponent(userId)}`, { params: { page, pageSize } });
     return data;
   },
 
-  // Admin stats endpoint
-  getAdminStats: async (days = 30): Promise<BackendStatsResponse> => {
-    const { data } = await customFetch.get<ApiResponse<BackendStatsResponse>>('/orders/stats', { params: { days } });
-    return data.data;
-  },
-
-  // User promo eligibility: has orders
-  getHasOrders: async (): Promise<HasOrdersResponse> => {
-    const { data } = await customFetch.get<ApiResponse<HasOrdersResponse>>('/orders/has-orders');
-    return data.data;
+  getAdminStats: async (days = 30): Promise<OrderStatsResponse> => {
+    const { data } = await customFetch.get<OrderStatsResponse>('/admin/orders/stats', { params: { days } });
+    return data;
   },
 };
 
-// Newsletter API - FRONTEND HOOK CONTRACT
-// Backend to implement: POST /newsletter/subscribe { email: string }
 export const newsletterApi = {
   subscribe: async (email: string): Promise<void> => {
     await customFetch.post('/newsletter/subscribe', { email });
   },
 };
 
-// MISSING API ENDPOINTS - NEED IMPLEMENTATION IN BACKEND:
-// 
-// Product API missing endpoints:
-// - POST /products (admin only) - exists in backend but not in frontend
-// - PUT /products/{id} (admin only) - exists in backend but not in frontend  
-// - DELETE /products/{id} (admin only) - exists in backend but not in frontend
-//
-// Auth API missing endpoints:
-// - POST /auth/demo-login - exists in backend but not in frontend
-// - POST /auth/refresh - not implemented in backend
-// - GET /auth/me - not implemented in backend
-// - POST /auth/logout - not fully implemented in backend
-//
-// Cart API missing endpoints:
-// - POST /cart/sync - not implemented in backend (custom frontend method)
-//
-// Order API missing endpoints:  
-// - GET /orders (admin only) - not implemented in backend
-//
-// Additional APIs that might be needed:
-// - Profile management (update user profile, change password, etc.)
-// - Admin dashboard APIs
-// - Analytics/reporting APIs
-// - File upload APIs (for product images)
-// - Search suggestions API
-// - Product reviews/ratings API
-// - Wishlist API
-// - Discount/coupon API
-
-// Identity Admin API
 export const identityAdminApi = {
-  // GET /api/admin/users?search=&isActive=&page=&pageSize=
-  // Backend users response type (matches actual API response)
-  getUsers: async (params?: { search?: string; isActive?: boolean; page?: number; pageSize?: number }): Promise<{ items: UserResponse[]; totalCount: number; page: number; pageSize: number; totalPages?: number }> => {
-    type AdminUsersApiResponse = {
-      items: UserResponse[];
-      totalCount: number;
-      page: number;
-      pageSize: number;
-      totalPages?: number;
-    };
-    const { data } = await customFetch.get<AdminUsersApiResponse>('/admin/users', { params });
-    const backend = data;
-    return {
-      items: backend.items || [],
-      totalCount: backend.totalCount ?? 0,
-      page: backend.page ?? 1,
-      pageSize: backend.pageSize ?? 20,
-      totalPages: backend.totalPages ?? Math.ceil((backend.totalCount ?? 0) / (backend.pageSize ?? 20)),
-    };
+  getUsers: async (params?: { search?: string; isActive?: boolean; page?: number; pageSize?: number }): Promise<PagedResponse<AdminUserResponse>> => {
+    const { data } = await customFetch.get<PagedResponse<AdminUserResponse>>('/admin/users', { params });
+    return data;
   },
 
-  // GET /api/admin/users/{id}
   getUser: async (id: string): Promise<UserResponse> => {
-    const { data } = await customFetch.get<ApiResponse<UserResponse>>(`/admin/users/${id}`);
-    return data.data;
+    const { data } = await customFetch.get<UserResponse>(`/admin/users/${id}`);
+    return data;
   },
 };

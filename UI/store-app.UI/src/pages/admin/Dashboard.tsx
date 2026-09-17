@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { orderApi } from '@/utils/api';
-import type { AdminOrderStats } from '@/utils/types';
+import type { OrderStatsResponse } from '@/utils/types';
 import { formatAsDollars } from '@/utils';
 
-// Backend stats response type (matches actual API response)
-type BackendStatsResponse = {
-  totalRevenue: number;
-  totalOrders: number;
-  daily: Array<{ bucketStart: string; orders: number; revenue: number }>;
-  weekly: Array<{ bucketStart: string; orders: number; revenue: number }>;
-  topProducts: Array<{ productId: number; productTitle: string; quantity: number; revenue: number }>;
-};
+/** The statistics as the dashboard charts them, mapped from the API's OrderStatsResponse. */
+interface AdminOrderStats {
+  days: number;
+  totals: { revenue: number; ordersCount: number };
+  dailyBuckets: Array<{ date: string; revenue: number; ordersCount: number }>;
+  weeklyBuckets: Array<{ isoWeek: string; startDate: string; endDate: string; revenue: number; ordersCount: number }>;
+  topProducts: Array<{ productId: number; title: string; quantity: number; revenue: number }>;
+}
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
 const Dashboard = () => {
@@ -26,7 +26,7 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        const s: BackendStatsResponse = await orderApi.getAdminStats(30);
+        const s: OrderStatsResponse = await orderApi.getAdminStats(30);
         // Map backend response to AdminOrderStats shape
         const mapped = {
           days: 30,

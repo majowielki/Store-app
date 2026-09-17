@@ -10,7 +10,7 @@ services:
     environment:
       # The SPA calls /api on its own origin; nginx proxies it to the gateway
       - GATEWAY_UPSTREAM=http://gateway:5000
-      - API_BASE_URL=/api
+      - API_BASE_URL=/api/v1
       - USE_AUTH_ME=true
     ports:
       - "${FRONTEND_PORT:-8081}:80"

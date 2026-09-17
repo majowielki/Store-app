@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActionFunction, Form, redirect } from 'react-router-dom';
 import FormInput from './FormInput';
 import SubmitBtn from './SubmitBtn';
-import { customFetch } from '@/utils';
+import { orderApi } from '@/utils/api';
 import { toast } from '@/hooks/use-toast';
 import { clearCart } from '../features/cart';
 import { getCurrentUserAsync } from '../features/user/userSlice';
@@ -37,19 +37,8 @@ export const action =
   const userEmail = user.email;
 
     try {
-  // Address saving is now handled by the order API using saveAddress
-
-      await customFetch.post(
-        '/orders/from-cart',
-        {
-          userEmail,
-          deliveryAddress,
-          customerName,
-          notes: undefined,
-          saveAddress,
-        },
-        { headers: { 'Idempotency-Key': idempotencyKey } }
-      );
+      // The profile address is stored by the order flow when saveAddress is set
+      await orderApi.createOrderFromCart({ userEmail, deliveryAddress, customerName, saveAddress }, idempotencyKey);
 
       // If address was saved, fetch updated user data
       if (saveAddress) {

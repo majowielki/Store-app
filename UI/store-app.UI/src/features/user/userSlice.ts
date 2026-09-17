@@ -10,12 +10,8 @@ export const loginUserAsync = createAsyncThunk(
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       const response = await authApi.login(credentials);
-      if (response.success && response.accessToken && response.user) {
-        localStorage.setItem('authToken', response.accessToken);
-        return { user: response.user, accessToken: response.accessToken };
-      } else {
-        return rejectWithValue(response.message || 'Login failed');
-      }
+      localStorage.setItem('authToken', response.accessToken);
+      return { user: response.user, accessToken: response.accessToken };
     } catch (error: unknown) {
       const message = getErrorMessage(error) || 'Login failed';
       return rejectWithValue(message);
@@ -28,12 +24,8 @@ export const registerUserAsync = createAsyncThunk(
   async (userData: RegisterRequest, { rejectWithValue }) => {
     try {
       const response = await authApi.register(userData);
-      if (response.success && response.accessToken && response.user) {
-        localStorage.setItem('authToken', response.accessToken);
-        return { user: response.user, accessToken: response.accessToken };
-      } else {
-        return rejectWithValue(response.message || 'Registration failed');
-      }
+      localStorage.setItem('authToken', response.accessToken);
+      return { user: response.user, accessToken: response.accessToken };
     } catch (error: unknown) {
       const message = getErrorMessage(error) || 'Registration failed';
       return rejectWithValue(message);

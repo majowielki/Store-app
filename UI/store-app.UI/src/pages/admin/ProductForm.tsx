@@ -1,31 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { customFetch } from '@/utils';
-import type { ProductData, ProductsMeta } from '@/utils/types';
+import { productApi } from '@/utils/api';
+import { getProblem, getStatus } from '@/utils/errorHandling';
+import type { Product, ProductPayload, ProductsMeta } from '@/utils/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast, toast } from '@/hooks/use-toast';
 import FormInput from '@/components/FormInput';
 import FormCheckbox from '@/components/FormCheckbox';
-
-/** Body of POST /api/products and PUT /api/products/{id} as the catalogue service expects it. */
-interface ProductPayload {
-  title: string;
-  description: string;
-  price: number;
-  salePrice?: number | null;
-  category: string;
-  company: string;
-  newArrival: boolean;
-  image: string;
-  colors: string[];
-  groups?: string[];
-  materials?: string[];
-  widthCm?: number | null;
-  heightCm?: number | null;
-  depthCm?: number | null;
-  weightKg?: number | null;
-}
 
 const splitList = (value: FormDataEntryValue | null): string[] =>
   String(value ?? '')
@@ -60,19 +42,12 @@ const toPayload = (fd: FormData): ProductPayload => ({
   weightKg: optionalNumber(fd.get('weightKg')),
 });
 
-interface ApiError {
-  response?: {
-    status?: number;
-    data?: { errors?: Record<string, string[]>; title?: string; message?: string };
-  };
-}
-
 /** Maps API failures to what the admin should read: permission, validation details or a generic message. */
 const describeError = (err: unknown, fallback: string): string => {
-  const response = (err as ApiError)?.response;
-  if (response?.status === 403) return 'Demo admin is not allowed to perform this action.';
-  if (response?.status === 400 && response.data?.errors) {
-    const details = Object.entries(response.data.errors)
+  if (getStatus(err) === 403) return 'Demo admin is not allowed to perform this action.';
+  const errors = getProblem(err)?.errors;
+  if (errors) {
+    const details = Object.entries(errors)
       .map(([field, messages]) => `${field}: ${messages[0]}`)
       .join('; ');
     return details ? `Please correct: ${details}` : fallback;
@@ -85,21 +60,19 @@ const ProductForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const editing = !!id && id !== 'new';
-  const [product, setProduct] = useState<ProductData | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [meta, setMeta] = useState<ProductsMeta | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const metaResponse = await customFetch.get<ProductsMeta>('/products/meta');
-        setMeta(metaResponse.data);
+        setMeta(await productApi.getProductsMeta());
       } catch {
         // Meta is only used for hints; the form still works without it
       }
       if (editing) {
-        const res = await customFetch.get(`/products/${id}`);
-        setProduct(res.data.data);
+        setProduct(await productApi.getProduct(Number(id)));
       }
     })();
   }, [editing, id]);
@@ -110,9 +83,9 @@ const ProductForm = () => {
     const payload = toPayload(new FormData(e.target as HTMLFormElement));
     try {
       if (editing) {
-        await customFetch.put(`/products/${id}`, payload);
+        await productApi.updateProduct(Number(id), payload);
       } else {
-        await customFetch.post('/products', payload);
+        await productApi.createProduct(payload);
       }
       navigate('/admin/products');
     } catch (err) {
@@ -125,7 +98,7 @@ const ProductForm = () => {
     }
   };
 
-  const attrs = product?.attributes;
+  const attrs = product;
   const hint = (values?: string[]) => (values && values.length ? `e.g. ${values.slice(0, 6).join(', ')}` : undefined);
 
   return (

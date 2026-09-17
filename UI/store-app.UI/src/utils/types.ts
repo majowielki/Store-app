@@ -1,71 +1,106 @@
-// PRODUCT TYPES - MATCHING CURRENT API STRUCTURE
-// Backend DTOs serialize to camelCase in JSON:
-// ProductsResponse { data: ProductData[]; meta: ProductsMeta }
-// SingleProductResponse { data: ProductData; meta: {} }
+// Shapes of the /api/v1 contract. Success responses are the DTOs themselves (camelCase);
+// errors are RFC 9457 problem responses - see ProblemDetails and utils/errorHandling.ts.
 
-export interface ProductAttributes {
+/** An error response: application/problem+json with the status code that describes it. */
+export interface ProblemDetails {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+  traceId?: string;
+  /** Field-level messages of a 422 validation problem. */
+  errors?: Record<string, string[]>;
+}
+
+/** One page of any listing. */
+export interface PagedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+// PRODUCTS
+
+export interface Product {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  salePrice?: number | null;
+  discountPercent?: number | null;
+  /** Price the customer pays: sale price or discounted price, otherwise the list price. */
+  effectivePrice: number;
   category: string;
   company: string;
-  createdAt: string;
-  description: string;
-  newArrival?: boolean;
+  newArrival: boolean;
   image: string;
-  price: string; // backend returns string for price
-  salePrice?: string | null;
-  discountPercent?: number | null;
-  /** Price the customer pays: sale price when on sale, otherwise the list price */
-  effectivePrice?: string;
-  publishedAt: string;
-  title: string;
-  updatedAt: string;
   colors: string[];
-  groups?: string[] | null;
-  // Extended product model fields (DB changes required)
+  groups: string[];
   widthCm?: number | null;
   heightCm?: number | null;
   depthCm?: number | null;
   weightKg?: number | null;
-  materials?: string[] | null;
+  materials: string[];
+  /** False for products deleted from the catalogue; only the admin listing returns those. */
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string | null;
 }
 
-// Generic API response envelope matching backend
-export interface ApiResponse<T> {
-  isSuccess: boolean;
-  data: T;
-  message: string;
-  errors: string[];
-  statusCode: number;
-}
-
-export interface ProductData {
-  id: number;
-  attributes: ProductAttributes;
-}
-
-// Backward compatible alias for legacy imports
-export type Product = ProductData;
-
-export interface PaginationMeta {
-  page: number;
-  pageCount: number;
-  pageSize: number;
-  total: number;
-}
-
-export interface ProductsMeta {
-  categories: string[];
-  companies: string[];
+/** Body of POST /products and (partially) PUT /products/{id}; null clears an optional value on update. */
+export interface ProductPayload {
+  title: string;
+  description: string;
+  price: number;
+  salePrice?: number | null;
+  category: string;
+  company: string;
+  newArrival: boolean;
+  image: string;
   colors: string[];
   groups?: string[];
-  // Map of group -> categories belonging to that group, for dependent dropdowns
-  groupCategoryMap?: Record<string, string[]>;
-  pagination: PaginationMeta;
+  materials?: string[];
+  widthCm?: number | null;
+  heightCm?: number | null;
+  depthCm?: number | null;
+  weightKg?: number | null;
+  isActive?: boolean;
 }
 
-export interface ProductsResponse {
-  data: ProductData[];
-  meta: ProductsMeta;
+export interface OptionItem {
+  key: string;
+  name: string;
 }
+
+export interface GroupWithCategories {
+  key: string;
+  name: string;
+  categories: OptionItem[];
+}
+
+/** The values the catalogue can be filtered by; "all" comes first in every list. */
+export interface ProductsMeta {
+  categories: string[];
+  groups: string[];
+  companies: string[];
+  colors: string[];
+  groupCategoryMap: GroupWithCategories[];
+}
+
+export const emptyProductsMeta: ProductsMeta = {
+  categories: [],
+  groups: [],
+  companies: [],
+  colors: [],
+  groupCategoryMap: [],
+};
+
+export type ProductsResponse = PagedResponse<Product>;
 
 export interface Params {
   search?: string;
@@ -79,20 +114,17 @@ export interface Params {
   sale?: string;
 }
 
-// This must remain a type because it uses intersection (&)
-export type ProductsResponseWithParams = ProductsResponse & { params: Params };
+/** What the products page loader hands to its components: the page, the filter values and the query. */
+export type ProductsResponseWithParams = ProductsResponse & { meta: ProductsMeta; params: Params };
 
-export interface SingleProductResponse {
-  data: ProductData;
-  meta?: Record<string, unknown>;
-}
+// CART
 
-// Updated Cart Types to match your API
 export interface CartItem {
   cartID: string;
   productID: number;
   image: string;
   title: string;
+  // Kept as text in the local (guest) cart; the server cart carries numbers
   price: string;
   amount: number;
   productColor: string;
@@ -109,7 +141,6 @@ export interface CartState {
   orderTotal: number;
 }
 
-// API Cart Types (matching your backend DTOs)
 export interface ApiCartItemResponse {
   id: number;
   productId: number;
@@ -146,7 +177,8 @@ export interface UpdateCartItemRequest {
   quantity: number;
 }
 
-// User/Auth Types (matching your backend DTOs)
+// USERS AND AUTH
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -173,12 +205,11 @@ export interface UserResponse {
   createdAt: string;
 }
 
+/** A signed-in session: the bearer token, when it expires and whose it is. */
 export interface AuthResponse {
-  success: boolean;
-  message: string;
-  accessToken?: string;
-  expiresAt?: string;
-  user?: UserResponse;
+  accessToken: string;
+  expiresAt: string;
+  user: UserResponse;
 }
 
 export interface UserState {
@@ -189,39 +220,20 @@ export interface UserState {
   meAttempted?: boolean;
 }
 
-// OLD ORDER TYPES - DO NOT MATCH CURRENT API
-// TODO: Replace with API-matching types below
-// export interface Checkout {
-//   name: string;
-//   address: string;
-//   chargeTotal: number;
-//   orderTotal: string;
-//   cartItems: CartItem[];
-//   numItemsInCart: number;
-// }
+export interface AdminUserResponse {
+  id: string;
+  email: string;
+  userName: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string | null;
+}
 
-// export interface Order {
-//   id: number;
-//   address: string;
-//   cartItems: CartItem[];
-//   createdAt: string;
-//   name: string;
-//   numItemsInCart: number;
-//   orderTotal: string;
-//   publishedAt: string;
-//   updatedAt: string;
-// }
+// ORDERS
 
-// // export interface OrdersMeta {
-// //   pagination: Pagination;
-// // }
-
-// export interface OrdersResponse {
-//   data: Order[];
-//   meta: Pagination;
-// }
-
-// NEW ORDER TYPES - MATCHING CURRENT API STRUCTURE
 export interface OrderItemResponse {
   id: number;
   productId: number;
@@ -254,16 +266,7 @@ export interface Order {
   notes?: string;
 }
 
-// Use camelCase to match System.Text.Json default policy in our services
-export interface OrdersResponse {
-  items: Order[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages?: number;
-  hasNextPage?: boolean;
-  hasPreviousPage?: boolean;
-}
+export type OrdersResponse = PagedResponse<Order>;
 
 export interface CreateOrderFromCartRequest {
   userEmail: string;
@@ -273,58 +276,15 @@ export interface CreateOrderFromCartRequest {
   saveAddress?: boolean;
 }
 
-// CHECKOUT TYPES - NEEDS IMPLEMENTATION IN API
-export interface Checkout {
-  name: string;
-  address: string;
-  chargeTotal: number;
-  orderTotal: string;
-  cartItems: CartItem[];
-  numItemsInCart: number;
+export interface OrderStatsResponse {
+  totalRevenue: number;
+  totalOrders: number;
+  daily: Array<{ bucketStart: string; orders: number; revenue: number }>;
+  weekly: Array<{ bucketStart: string; orders: number; revenue: number }>;
+  topProducts: Array<{ productId: number; productTitle: string; quantity: number; revenue: number }>;
 }
 
-// ADMIN/IDENTITY types
-export interface AdminUsersResponse {
-  users: UserResponse[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
-
-// Admin stats types
-export interface AdminTopProduct {
-  productId: number;
-  title: string;
-  quantity: number;
-  revenue: number;
-}
-
-export interface AdminDailyBucket {
-  date: string; // yyyy-MM-dd
-  revenue: number;
-  ordersCount: number;
-}
-
-export interface AdminWeeklyBucket {
-  isoWeek: string; // e.g. 2025-W33
-  startDate: string; // Monday ISO date
-  endDate: string; // Sunday ISO date
-  revenue: number;
-  ordersCount: number;
-}
-
-export interface AdminOrderStats {
-  days: number;
-  totals: { revenue: number; ordersCount: number };
-  dailyBuckets: AdminDailyBucket[];
-  weeklyBuckets: AdminWeeklyBucket[];
-  topProducts: AdminTopProduct[];
-}
-
-// Has orders for current user
+/** Has orders for current user */
 export interface HasOrdersResponse {
   hasOrders: boolean;
   ordersCount: number;
