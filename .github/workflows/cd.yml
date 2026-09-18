@@ -1,0 +1,160 @@
+name: CD
+
+# Builds the seven images in the registry, runs each service's migrations as a Container Apps
+# job and only then deploys the new images - the same order docker compose follows locally.
+# Signs in to Azure with OpenID Connect (no password in the repository's secrets) and waits
+# for the approval the "production" environment requires.
+#
+# Repository configuration this needs:
+#   variables:  AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP,
+#               AZURE_CONTAINER_REGISTRY (login server, e.g. storeacrxxxx.azurecr.io),
+#               POSTGRES_HOST, optionally POSTGRES_USER and DEMO_ENABLED
+#   secrets:    POSTGRES_PASSWORD, JWT_SECRET_KEY, INTERNAL_API_KEY, TRUE_ADMIN_PASSWORD,
+#               RABBITMQ_PASSWORD
+# The service principal behind AZURE_CLIENT_ID needs Contributor on the resource group,
+# AcrPush on the registry, Key Vault Secrets Officer on the vault and User Access Administrator
+# for the two role assignments in main.bicep. See docs/runbooks/deploy.md.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  images:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build in the registry
+        # az acr build sends the context to the registry's build agents; nothing is pulled to the runner
+        run: |
+          set -euo pipefail
+          registry="${{ vars.AZURE_CONTAINER_REGISTRY }}"
+          name="${registry%%.*}"
+          build() {
+            az acr build --registry "$name" --image "store/$1:$IMAGE_TAG" --file "$2" "$3"
+          }
+          build identity Services/IdentityService/Dockerfile .
+          build product  Services/ProductService/Dockerfile .
+          build cart     Services/CartService/Dockerfile .
+          build order    Services/OrderService/Dockerfile .
+          build audit    Services/AuditLogService/Dockerfile .
+          build gateway  Gateway/APIGateway/Dockerfile .
+          build ui       UI/store-app.UI/Dockerfile UI/store-app.UI
+
+  deploy:
+    name: Migrate and deploy
+    needs: images
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.outputs.outputs.ui }}
+    env:
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER || 'store_user' }}
+      DEMO_ENABLED: ${{ vars.DEMO_ENABLED || 'false' }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+      TRUE_ADMIN_PASSWORD: ${{ secrets.TRUE_ADMIN_PASSWORD }}
+      RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate the template
+        run: az deployment group validate -g "$RESOURCE_GROUP" -f infra/bicep/main.bicep -p infra/bicep/main.bicepparam -o none
+
+      - name: Migrate the databases
+        # The jobs exist after the first deployment; on that first run the services themselves
+        # wait (a service in Production refuses a schema it does not know) until the jobs below
+        # have run once, which "Restart" takes care of.
+        run: |
+          set -euo pipefail
+          registry="${{ vars.AZURE_CONTAINER_REGISTRY }}"
+          for service in identityservice:identity productservice:product cartservice:cart orderservice:order auditlogservice:audit; do
+            job="${service%%:*}-migrate"
+            image="$registry/store/${service##*:}:$IMAGE_TAG"
+            if ! az containerapp job show -g "$RESOURCE_GROUP" -n "$job" -o none 2>/dev/null; then
+              echo "::notice::$job does not exist yet (first deployment); the template creates it"
+              continue
+            fi
+            az containerapp job update -g "$RESOURCE_GROUP" -n "$job" --image "$image" -o none
+            execution=$(az containerapp job start -g "$RESOURCE_GROUP" -n "$job" --query name -o tsv)
+            echo "$job: $execution"
+            for _ in $(seq 1 60); do
+              status=$(az containerapp job execution show -g "$RESOURCE_GROUP" -n "$job" --job-execution-name "$execution" --query properties.status -o tsv)
+              case "$status" in
+                Succeeded) break ;;
+                Failed|Stopped) echo "::error::$job $execution ended as $status"; exit 1 ;;
+              esac
+              sleep 10
+            done
+            [ "$status" = Succeeded ] || { echo "::error::$job did not finish in time"; exit 1; }
+          done
+
+      - name: Deploy
+        id: outputs
+        run: |
+          set -euo pipefail
+          az deployment group create -g "$RESOURCE_GROUP" -n "store-$IMAGE_TAG" \
+            -f infra/bicep/main.bicep -p infra/bicep/main.bicepparam -o none
+          ui=$(az deployment group show -g "$RESOURCE_GROUP" -n "store-$IMAGE_TAG" --query properties.outputs.uiUrl.value -o tsv)
+          gateway=$(az deployment group show -g "$RESOURCE_GROUP" -n "store-$IMAGE_TAG" --query properties.outputs.gatewayUrl.value -o tsv)
+          echo "ui=$ui" >> "$GITHUB_OUTPUT"
+          echo "gateway=$gateway" >> "$GITHUB_OUTPUT"
+
+      - name: Run the migrations after the first deployment
+        # Only when a job was missing above: the template has just created it
+        run: |
+          set -euo pipefail
+          for service in identityservice productservice cartservice orderservice auditlogservice; do
+            job="$service-migrate"
+            if [ "$(az containerapp job execution list -g "$RESOURCE_GROUP" -n "$job" --query 'length(@)' -o tsv)" = "0" ]; then
+              execution=$(az containerapp job start -g "$RESOURCE_GROUP" -n "$job" --query name -o tsv)
+              for _ in $(seq 1 60); do
+                status=$(az containerapp job execution show -g "$RESOURCE_GROUP" -n "$job" --job-execution-name "$execution" --query properties.status -o tsv)
+                [ "$status" = Succeeded ] && break
+                [ "$status" = Failed ] && { echo "::error::$job failed"; exit 1; }
+                sleep 10
+              done
+              az containerapp revision restart -g "$RESOURCE_GROUP" -n "$service" \
+                --revision "$(az containerapp revision list -g "$RESOURCE_GROUP" -n "$service" --query '[0].name' -o tsv)" -o none
+            fi
+          done
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            if curl -fsS "${{ steps.outputs.outputs.gateway }}/health/ready" > /dev/null \
+               && curl -fsS "${{ steps.outputs.outputs.ui }}/api/v1/products?pageSize=1" > /dev/null; then
+              echo "the store answers at ${{ steps.outputs.outputs.ui }}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::The deployment does not answer"
+          exit 1

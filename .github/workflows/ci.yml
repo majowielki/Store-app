@@ -100,6 +100,17 @@ jobs:
           path: TestResults/**/*.trx
           retention-days: 14
 
+  infra:
+    name: Infrastructure template compiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bicep build
+        run: |
+          az bicep install
+          az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+          IMAGE_TAG=ci POSTGRES_HOST=ci POSTGRES_PASSWORD=ci JWT_SECRET_KEY=01234567890123456789012345678901 INTERNAL_API_KEY=01234567890123456789012345678901 TRUE_ADMIN_PASSWORD=ci RABBITMQ_PASSWORD=ci az bicep build-params --file infra/bicep/main.bicepparam --stdout > /dev/null
+
   frontend:
     name: Frontend lint, types and build
     runs-on: ubuntu-latest

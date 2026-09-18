@@ -24,7 +24,7 @@ user's error report can be found in the traces.
 |-------------|---------|-----|
 | `docker compose` | Aspire dashboard | <http://localhost:18888> (traces, structured logs, metrics per resource); the services export to `http://aspire-dashboard:18889` |
 | services run by hand | Aspire dashboard | `docker run --rm -p 18888:18888 -p 18889:18889 -e DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true mcr.microsoft.com/dotnet/aspire-dashboard:13.5` and `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:18889` for each host |
-| Azure Container Apps | Azure Monitor / Application Insights | the environment's managed OpenTelemetry agent receives OTLP from the apps and forwards it: `az containerapp env telemetry app-insights set --name <env> --resource-group <rg> --connection-string <ai-connection-string> --enable-open-telemetry-traces true --enable-open-telemetry-logs true` (and `telemetry otlp add` for metrics to another OTLP backend); every app gets `OTEL_EXPORTER_OTLP_ENDPOINT` from the environment, no SDK of the vendor is compiled in |
+| Azure Container Apps | Azure Monitor / Application Insights | the environment's managed OpenTelemetry agent (`openTelemetryConfiguration` in `infra/bicep/main.bicep`) receives OTLP from the apps and forwards traces and logs to Application Insights (`store-insights`); every app gets `OTEL_EXPORTER_OTLP_ENDPOINT` from the environment, no SDK of the vendor is compiled in. Metrics stay with the agent's own destinations (add an OTLP destination in the template when a metrics backend exists) |
 
 The dashboard keeps nothing across restarts; it is a window, not a store.
 
