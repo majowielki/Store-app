@@ -7,14 +7,13 @@
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
-  <ItemGroup Label="ASP.NET Core / EF Core (9.0.x line)">
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.7" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.10.0" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.13.0" />
+  <ItemGroup Label="ASP.NET Core / EF Core (10.0.x line)">
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
 
   <ItemGroup Label="Infrastructure">
@@ -31,24 +30,24 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
-    <PackageVersion Include="Npgsql.OpenTelemetry" Version="9.0.4" />
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.3" />
   </ItemGroup>
 
   <ItemGroup Label="Validation / API docs">
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="SharpGrip.FluentValidation.AutoValidation.Mvc" Version="2.0.0" />
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.3" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
   <ItemGroup Label="Tests">
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.7" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="Moq" Version="4.20.72" />
-    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.6.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
 
 </Project>

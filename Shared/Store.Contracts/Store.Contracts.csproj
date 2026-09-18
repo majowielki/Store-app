@@ -4,7 +4,7 @@
        another, public enums and role names. Data only - no ASP.NET, EF or broker packages,
        so any service (or a future contract test project) can reference it. -->
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
 </Project>

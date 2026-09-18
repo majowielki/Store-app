@@ -36,7 +36,7 @@ circuit breakers of the typed clients, and events wait in the outbox until the b
 ## Images
 
 Every .NET host is built from the repository root (`Services/<Name>/Dockerfile`,
-`Gateway/APIGateway/Dockerfile`) into a chiseled `aspnet:9.0-noble-chiseled` image: no shell, no
+`Gateway/APIGateway/Dockerfile`) into a chiseled `aspnet:10.0-noble-chiseled` image: no shell, no
 package manager, runs as the unprivileged `app` user, listens on 8080. The UI image
 (`UI/store-app.UI/Dockerfile`) serves the bundle with `nginx-unprivileged` on 8080. Because the
 chiseled images have no `curl`, the containers carry no health check; the orchestrator probes

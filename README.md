@@ -1,6 +1,6 @@
 # Store
 
-A small furniture shop built as a set of .NET 9 services behind an API gateway, with a React
+A small furniture shop built as a set of .NET 10 services behind an API gateway, with a React
 front end. It exists to exercise the patterns a distributed system needs - and to show them
 working end to end: an API contract with generated clients, sessions with rotating refresh
 tokens, a transactional outbox between services, idempotent checkout, telemetry across every

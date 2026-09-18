@@ -70,7 +70,7 @@ New-Item -ItemType Directory -Force $target | Out-Null
 
 try {
     foreach ($entry in $services.GetEnumerator()) {
-        $assembly = Join-Path $root "Services/$($entry.Value)/bin/$Configuration/net9.0/Store.$($entry.Value).dll"
+        $assembly = Join-Path $root "Services/$($entry.Value)/bin/$Configuration/net10.0/Store.$($entry.Value).dll"
         $file = Join-Path $target "$($entry.Key).json"
         # The host reads appsettings*.json from its content root: the build output, not the repository root
         [Environment]::SetEnvironmentVariable('ASPNETCORE_CONTENTROOT', (Split-Path $assembly))

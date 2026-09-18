@@ -15,8 +15,7 @@ namespace Store.Tests.Integration.Health;
 /// </summary>
 public sealed class DatabaseLostAfterStartFactory : StoreApiFactory<AuditLogDbContext>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _ownDatabase = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
+    private readonly PostgreSqlContainer _ownDatabase = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase("store_audit_lost")
         .WithUsername("store_test")
         .WithPassword("store_test")

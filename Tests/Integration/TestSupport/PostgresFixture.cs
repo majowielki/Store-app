@@ -11,8 +11,7 @@ namespace Store.Tests.Integration.TestSupport;
 /// </summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase("store_test")
         .WithUsername("store_test")
         .WithPassword("store_test")

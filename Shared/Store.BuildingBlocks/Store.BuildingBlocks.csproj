@@ -4,7 +4,7 @@
        authentication, authorization policies, validated options, health endpoints,
        exception handling, JSON conventions. No entities and no business rules. -->
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

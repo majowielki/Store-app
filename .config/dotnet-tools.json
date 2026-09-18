@@ -3,11 +3,11 @@
   "isRoot": true,
   "tools": {
     "swashbuckle.aspnetcore.cli": {
-      "version": "9.0.3",
+      "version": "9.0.6",
       "commands": [
         "swagger"
       ],
-      "rollForward": false
+      "rollForward": true
     }
   }
 }

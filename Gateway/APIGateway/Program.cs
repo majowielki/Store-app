@@ -55,7 +55,7 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
     ForwardLimit = 1
 };
 // Defaults only trust loopback proxies; the ingress is not one
-forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownIPNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 

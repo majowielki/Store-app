@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # NuGet: patch/minor updates only. The solution targets net9.0 on purpose - moving the
+  # NuGet: patch/minor updates only. The solution targets net10.0 (LTS) on purpose - moving the
   # Microsoft.* packages, the runtime image or MassTransit to the next major is a deliberate
-  # migration, not a bot PR.
+  # migration, not a bot PR (MassTransit 9 is a commercial licence, so it stays on 8.x).
   - package-ecosystem: nuget
     directory: /
     schedule:
@@ -46,7 +46,7 @@ updates:
         patterns: ["*"]
     open-pull-requests-limit: 2
 
-  # Docker: base images follow the 9.0 line until the .NET 10 migration
+  # Docker: base images follow the 10.0 line; the next .NET major is a deliberate migration
   - package-ecosystem: docker
     directories: ["/Gateway/APIGateway", "/Services/*", "/UI/store-app.UI"]
     schedule:

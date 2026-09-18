@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
 
 # Chiseled runtime: no shell, no package manager, runs as the unprivileged "app" user. Health is
 # probed over HTTP by whatever runs the container (Container Apps probes, the compose wait loop).
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS final
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
