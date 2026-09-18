@@ -58,3 +58,17 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 2
+
+  # Docker Compose: PostgreSQL, RabbitMQ, the Aspire dashboard and pgAdmin. A new PostgreSQL
+  # major is a migration of the data, not a bot PR.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      compose-images:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 2

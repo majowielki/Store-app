@@ -56,7 +56,8 @@ the UI with `npm run dev`; the details are in the same document.
 | the generated API types match the documents | `npm run api:check` | CI |
 | end to end (Playwright): guest browsing, registration with cart merge, checkout, sale prices, the admin's product management, the demo admin's read-only access | `npm run e2e` against a running stack | workflow `End-to-end` (nightly, on demand, release tags) against `docker compose` |
 | the infrastructure template compiles | `az bicep build` | CI `infra` |
-| images build | every Dockerfile | CI `docker` |
+| images build and carry no known high or critical vulnerability | every Dockerfile, Trivy | CI `docker` |
+| no secret in the commits | gitleaks (`.gitleaks.toml` lists the test fixtures) | CI `secrets-scan` |
 
 `docs/api/store.http` walks the whole API by hand (REST Client / Rider).
 
