@@ -32,3 +32,6 @@ dist-ssr
 coverage
 test-results
 playwright-report
+
+# Incremental build state of tsc -b
+*.tsbuildinfo
