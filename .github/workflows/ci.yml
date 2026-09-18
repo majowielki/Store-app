@@ -57,11 +57,11 @@ jobs:
         with:
           global-json-file: global.json
       - name: Restore
-        run: dotnet restore Store.Microservices.sln
+        run: dotnet restore Store.Microservices.slnx
       - name: Format check
-        run: dotnet format Store.Microservices.sln --verify-no-changes --no-restore --severity warn
+        run: dotnet format Store.Microservices.slnx --verify-no-changes --no-restore --severity warn
       - name: Build (warnings are errors)
-        run: dotnet build Store.Microservices.sln --no-restore -c Release
+        run: dotnet build Store.Microservices.slnx --no-restore -c Release
       - name: OpenAPI documents match the code
         run: pwsh Scripts/Export-OpenApi.ps1 -Configuration Release -NoBuild -Check
       - name: Upload OpenAPI documents

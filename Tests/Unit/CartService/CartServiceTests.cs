@@ -33,7 +33,8 @@ public class CartServiceTests
             Options.Create(new CartOptions()),
             _loggerMock.Object,
             _auditTrailMock.Object,
-            new StoreMetrics()
+            new StoreMetrics(),
+            TimeProvider.System
         );
     }
 

@@ -53,11 +53,12 @@ public class AuthServiceTests
             _signInManagerMock.Object,
             _roleManagerMock.Object,
             _dbContext,
-            new TokenService(Options.Create(Jwt)),
+            new TokenService(Options.Create(Jwt), TimeProvider.System),
             Options.Create(new DemoOptions { Enabled = true }),
             Mock.Of<ILogger<AuthService>>(),
             Mock.Of<IAuditTrail>(),
-            new StoreMetrics()
+            new StoreMetrics(),
+            TimeProvider.System
         );
     }
 

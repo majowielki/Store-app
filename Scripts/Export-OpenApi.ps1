@@ -40,7 +40,7 @@ $services = [ordered]@{
 }
 
 if (-not $NoBuild) {
-    dotnet build (Join-Path $root 'Store.Microservices.sln') --nologo -v q -c $Configuration
+    dotnet build (Join-Path $root 'Store.Microservices.slnx') --nologo -v q -c $Configuration
     if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
 }
 

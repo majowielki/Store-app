@@ -63,6 +63,9 @@ param demoEnabled bool = false
 @description('Origins allowed to call the API from a browser; empty for the normal setup, where the UI proxies /api itself')
 param corsAllowedOrigins array = []
 
+@description('Extra host names the apps answer to (custom domains); the environment domain is always allowed')
+param extraAllowedHosts array = []
+
 var acrName = replace('${baseName}acr${uniqueString(resourceGroup().id)}', '-', '')
 var keyVaultName = take('${baseName}-kv-${uniqueString(resourceGroup().id)}', 24)
 var storageAccountName = replace('${baseName}st${uniqueString(resourceGroup().id)}', '-', '')
@@ -334,6 +337,8 @@ var internal = 'internal.${managedEnvironment.properties.defaultDomain}'
 
 var commonEnv = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
+  // Host filtering: the environment's domain covers the internal FQDNs too
+  { name: 'AllowedHosts', value: join(concat(['*.${managedEnvironment.properties.defaultDomain}'], extraAllowedHosts), ';') }
   { name: 'JwtSettings__SecretKey', secretRef: 'jwt-secret-key' }
   { name: 'JwtSettings__Issuer', value: 'Store.API' }
   { name: 'JwtSettings__Audience', value: 'Store.Client' }

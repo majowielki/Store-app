@@ -28,6 +28,7 @@ public class OrderService : IOrderService
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly PricingOptions _pricing;
     private readonly StoreMetrics _metrics;
+    private readonly TimeProvider _time;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -37,6 +38,7 @@ public class OrderService : IOrderService
         IPublishEndpoint publishEndpoint,
         IOptions<PricingOptions> pricing,
         StoreMetrics metrics,
+        TimeProvider time,
         ILogger<OrderService> logger)
     {
         _context = context;
@@ -45,6 +47,7 @@ public class OrderService : IOrderService
         _publishEndpoint = publishEndpoint;
         _pricing = pricing.Value;
         _metrics = metrics;
+        _time = time;
         _logger = logger;
     }
 
@@ -106,7 +109,7 @@ public class OrderService : IOrderService
     private async Task<OrderResponse> PlaceOrderAsync(
         CreateOrderFromCartRequest request, List<OrderLine> lines, string? idempotencyKey, string? requestHash)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -274,7 +277,7 @@ public class OrderService : IOrderService
 
     public async Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = 30)
     {
-        var since = DateTime.UtcNow.Date.AddDays(-Math.Abs(daysWindow));
+        var since = _time.GetUtcNow().UtcDateTime.Date.AddDays(-Math.Abs(daysWindow));
         var window = _context.Orders.AsNoTracking().Where(o => o.CreatedAt >= since);
 
         // Aggregates run in SQL; only one row per day and per product comes back

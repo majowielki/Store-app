@@ -33,9 +33,12 @@ public sealed class TokenService : ITokenService
     private readonly SigningCredentials _signingCredentials;
     private readonly JsonWebTokenHandler _handler = new();
 
-    public TokenService(IOptions<JwtOptions> options)
+    private readonly TimeProvider _time;
+
+    public TokenService(IOptions<JwtOptions> options, TimeProvider time)
     {
         _options = options.Value;
+        _time = time;
         _signingCredentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey)),
             SecurityAlgorithms.HmacSha256);
@@ -45,7 +48,7 @@ public sealed class TokenService : ITokenService
 
     public (string Token, DateTime ExpiresAt) CreateAccessToken(ApplicationUser user, IEnumerable<string> roles)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var expiresAt = now.AddMinutes(_options.AccessTokenMinutes);
 
         var claims = new List<Claim>

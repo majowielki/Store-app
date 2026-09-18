@@ -24,6 +24,7 @@ public class AuthService : IAuthService
     private readonly ILogger<AuthService> _logger;
     private readonly IAuditTrail _auditTrail;
     private readonly StoreMetrics _metrics;
+    private readonly TimeProvider _time;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -34,7 +35,8 @@ public class AuthService : IAuthService
         IOptions<DemoOptions> demo,
         ILogger<AuthService> logger,
         IAuditTrail auditTrail,
-        StoreMetrics metrics)
+        StoreMetrics metrics,
+        TimeProvider time)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -45,6 +47,7 @@ public class AuthService : IAuthService
         _logger = logger;
         _auditTrail = auditTrail;
         _metrics = metrics;
+        _time = time;
     }
 
     public async Task<SignedIn> RegisterAsync(RegisterRequest request, string? clientAddress)
@@ -61,8 +64,8 @@ public class AuthService : IAuthService
             Email = request.Email,
             FirstName = request.FirstName,
             LastName = request.LastName,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
+            UpdatedAt = _time.GetUtcNow().UtcDateTime,
             EmailConfirmed = true,
             IsActive = true
         };
@@ -147,7 +150,7 @@ public class AuthService : IAuthService
             throw new InvalidCredentialsException("Refresh token was already used");
         }
 
-        if (presented.ExpiresAt <= DateTime.UtcNow)
+        if (presented.ExpiresAt <= _time.GetUtcNow().UtcDateTime)
         {
             throw new InvalidCredentialsException("Refresh token expired");
         }
@@ -162,7 +165,7 @@ public class AuthService : IAuthService
         // Spending it is one conditional update, so two simultaneous refreshes with the same
         // token (two tabs) rotate it once; the loser is told to try again with the new one.
         var (token, hash) = _tokens.CreateRefreshToken();
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var spent = await _context.RefreshTokens
             .Where(t => t.Id == presented.Id && t.RevokedAt == null)
             .ExecuteUpdateAsync(set => set
@@ -209,7 +212,7 @@ public class AuthService : IAuthService
 
         var oldAddress = user.SimpleAddress;
         user.SimpleAddress = string.IsNullOrWhiteSpace(simpleAddress) ? null : simpleAddress.Trim();
-        user.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
         {
@@ -229,7 +232,7 @@ public class AuthService : IAuthService
     /// <summary>A fresh session for a user who just proved who they are: new family, new tokens.</summary>
     private async Task<SignedIn> StartSessionAsync(ApplicationUser user, string? clientAddress)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         user.LastLoginAt = now;
         user.UpdatedAt = now;
         await _userManager.UpdateAsync(user);
@@ -256,7 +259,7 @@ public class AuthService : IAuthService
     private Task<int> RevokeFamilyAsync(Guid familyId, string reason)
         => _context.RefreshTokens
             .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
-            .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, DateTime.UtcNow));
+            .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, _time.GetUtcNow().UtcDateTime));
 
     private async Task<SignedIn> IssueAsync(ApplicationUser user, string refreshToken, DateTime refreshTokenExpiresAt)
     {

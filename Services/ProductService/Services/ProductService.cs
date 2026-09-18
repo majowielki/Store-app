@@ -26,11 +26,14 @@ public class ProductService : IProductService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public ProductService(ProductDbContext context, ILogger<ProductService> logger, IAuditTrail auditTrail)
+    private readonly TimeProvider _time;
+
+    public ProductService(ProductDbContext context, ILogger<ProductService> logger, IAuditTrail auditTrail, TimeProvider time)
     {
         _context = context;
         _logger = logger;
         _auditTrail = auditTrail;
+        _time = time;
     }
 
     public async Task<ProductResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null)
@@ -53,8 +56,8 @@ public class ProductService : IProductService
             DepthCm = request.DepthCm,
             WeightKg = request.WeightKg,
             Materials = NormalizeList(request.Materials),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = _time.GetUtcNow().UtcDateTime,
+            UpdatedAt = _time.GetUtcNow().UtcDateTime
         };
 
         _context.Products.Add(product);
@@ -91,7 +94,7 @@ public class ProductService : IProductService
         if (request.Materials is not null) product.Materials = NormalizeList(request.Materials);
         if (request.IsActive.HasValue) product.IsActive = request.IsActive.Value;
 
-        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
@@ -108,7 +111,7 @@ public class ProductService : IProductService
 
         // Soft delete: past orders keep a valid product id and the admin panel can restore it
         product.IsActive = false;
-        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Product deactivated with ID: {ProductId}", id);
@@ -153,7 +156,7 @@ public class ProductService : IProductService
         companies.AddRange(Enum.GetValues<Company>().Where(c => c != Company.All).Select(Key));
 
         var colors = new List<string> { "all" };
-        colors.AddRange(Enum.GetValues<Colors>().Where(c => c != Colors.All).Select(Key));
+        colors.AddRange(Enum.GetValues<Color>().Where(c => c != Color.All).Select(Key));
 
         var groupCategoryMap = Enum.GetValues<Group>()
             .Where(group => group != Group.All)

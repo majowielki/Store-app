@@ -31,10 +31,13 @@ public sealed class AuditRetentionService : BackgroundService
     private readonly AuditRetentionOptions _options;
     private readonly ILogger<AuditRetentionService> _logger;
 
-    public AuditRetentionService(IServiceScopeFactory scopeFactory, IOptions<AuditRetentionOptions> options, ILogger<AuditRetentionService> logger)
+    private readonly TimeProvider _time;
+
+    public AuditRetentionService(IServiceScopeFactory scopeFactory, IOptions<AuditRetentionOptions> options, TimeProvider time, ILogger<AuditRetentionService> logger)
     {
         _scopeFactory = scopeFactory;
         _options = options.Value;
+        _time = time;
         _logger = logger;
     }
 
@@ -63,7 +66,7 @@ public sealed class AuditRetentionService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
-        var cutoff = DateTime.UtcNow.AddDays(-_options.RetentionDays);
+        var cutoff = _time.GetUtcNow().UtcDateTime.AddDays(-_options.RetentionDays);
 
         var total = 0;
         int deleted;

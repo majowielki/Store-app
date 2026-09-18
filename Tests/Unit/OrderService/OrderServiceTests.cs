@@ -32,6 +32,7 @@ public class OrderServiceTests
             Mock.Of<IPublishEndpoint>(),
             Options.Create(new PricingOptions()),
             new StoreMetrics(),
+            TimeProvider.System,
             _loggerMock.Object
         );
     }

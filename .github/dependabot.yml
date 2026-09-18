@@ -1,8 +1,8 @@
 version: 2
 updates:
   # NuGet: patch/minor updates only. The solution targets net9.0 on purpose - moving the
-  # Microsoft.* packages, the runtime image or RabbitMQ.Client (6 -> 7 changes the API) to the
-  # next major is a deliberate migration, not a bot PR.
+  # Microsoft.* packages, the runtime image or MassTransit to the next major is a deliberate
+  # migration, not a bot PR.
   - package-ecosystem: nuget
     directory: /
     schedule:

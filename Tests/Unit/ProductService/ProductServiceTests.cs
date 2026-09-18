@@ -25,7 +25,8 @@ public class ProductServiceTests
         _productService = new Store.ProductService.Services.ProductService(
             _dbContext,
             _loggerMock.Object,
-            _auditTrailMock.Object
+            _auditTrailMock.Object,
+            TimeProvider.System
         );
     }
 

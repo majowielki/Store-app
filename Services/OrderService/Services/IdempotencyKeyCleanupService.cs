@@ -15,9 +15,12 @@ public sealed class IdempotencyKeyCleanupService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<IdempotencyKeyCleanupService> _logger;
 
-    public IdempotencyKeyCleanupService(IServiceScopeFactory scopeFactory, ILogger<IdempotencyKeyCleanupService> logger)
+    private readonly TimeProvider _time;
+
+    public IdempotencyKeyCleanupService(IServiceScopeFactory scopeFactory, TimeProvider time, ILogger<IdempotencyKeyCleanupService> logger)
     {
         _scopeFactory = scopeFactory;
+        _time = time;
         _logger = logger;
     }
 
@@ -30,7 +33,7 @@ public sealed class IdempotencyKeyCleanupService : BackgroundService
             {
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
-                var cutoff = DateTime.UtcNow - IdempotencyKey.Lifetime;
+                var cutoff = _time.GetUtcNow().UtcDateTime - IdempotencyKey.Lifetime;
                 var deleted = await context.IdempotencyKeys
                     .Where(k => k.CreatedAt < cutoff)
                     .ExecuteDeleteAsync(stoppingToken);

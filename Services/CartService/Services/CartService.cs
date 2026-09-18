@@ -33,6 +33,7 @@ public class CartService : ICartService
     private readonly ILogger<CartService> _logger;
     private readonly IAuditTrail _auditTrail;
     private readonly StoreMetrics _metrics;
+    private readonly TimeProvider _time;
 
     public CartService(
         CartDbContext context,
@@ -40,7 +41,8 @@ public class CartService : ICartService
         IOptions<CartOptions> options,
         ILogger<CartService> logger,
         IAuditTrail auditTrail,
-        StoreMetrics metrics)
+        StoreMetrics metrics,
+        TimeProvider time)
     {
         _context = context;
         _catalog = catalog;
@@ -48,6 +50,7 @@ public class CartService : ICartService
         _logger = logger;
         _auditTrail = auditTrail;
         _metrics = metrics;
+        _time = time;
     }
 
     public async Task<CartResponse> GetCartAsync(string userId)
@@ -85,7 +88,7 @@ public class CartService : ICartService
     {
         var (cart, item) = await FindLineAsync(userId, cartItemId);
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         if (request.Quantity.HasValue)
         {
             item.Quantity = request.Quantity.Value;
@@ -109,7 +112,7 @@ public class CartService : ICartService
 
         cart.Items.Remove(item);
         _context.CartItems.Remove(item);
-        cart.UpdatedAt = DateTime.UtcNow;
+        cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
         await AuditAsync("CART_ITEM_REMOVED", "CartItem", cartItemId.ToString(), userId, new { item.ProductId });
@@ -126,7 +129,7 @@ public class CartService : ICartService
         }
 
         _context.CartItems.RemoveRange(cart.Items);
-        cart.UpdatedAt = DateTime.UtcNow;
+        cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
         await AuditAsync("CART_CLEARED", "Cart", cart.Id.ToString(), userId, null);
@@ -188,7 +191,7 @@ public class CartService : ICartService
 
         var removed = cart.Items.Count;
         _context.CartItems.RemoveRange(cart.Items);
-        cart.UpdatedAt = DateTime.UtcNow;
+        cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
         await AuditAsync("CART_CLEARED", "Cart", cart.Id.ToString(), userId, new { OrderId = orderId, Lines = removed });
@@ -206,7 +209,7 @@ public class CartService : ICartService
             return cart;
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         cart = new Cart { UserId = userId, CreatedAt = now, UpdatedAt = now };
         _context.Carts.Add(cart);
         await _context.SaveChangesAsync();
@@ -231,9 +234,9 @@ public class CartService : ICartService
     /// Adds a line for the product and colour, or raises the quantity of the line that already
     /// exists. Either way the line carries the product as the catalogue describes it now.
     /// </summary>
-    private static CartItem AddOrMerge(Cart cart, ProductSnapshot product, string color, int quantity)
+    private CartItem AddOrMerge(Cart cart, ProductSnapshot product, string color, int quantity)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var item = cart.Items.FirstOrDefault(ci => ci.ProductId == product.Id && ci.Color == color);
 
         if (item is null)
@@ -263,7 +266,7 @@ public class CartService : ICartService
     /// </summary>
     private async Task<bool> RefreshStaleSnapshotsAsync(Cart cart)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var maxAge = TimeSpan.FromMinutes(_options.SnapshotMaxAgeMinutes);
         var stale = cart.Items.Where(i => now - i.SnapshotAt > maxAge).ToList();
         if (stale.Count == 0)
@@ -308,11 +311,11 @@ public class CartService : ICartService
     private Task AuditAsync(string action, string entityName, string? entityId, string userId, object? details)
         => _auditTrail.RecordAsync(action, entityName, entityId, userId, details);
 
-    private static CartResponse EmptyCart(string userId) => new()
+    private CartResponse EmptyCart(string userId) => new()
     {
         UserId = userId,
         IsEmpty = true,
-        UpdatedAt = DateTime.UtcNow
+        UpdatedAt = _time.GetUtcNow().UtcDateTime
     };
 
     private static CartResponse MapToCartResponse(Cart cart, bool priceChanged)

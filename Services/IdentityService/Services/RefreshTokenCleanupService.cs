@@ -17,9 +17,12 @@ public sealed class RefreshTokenCleanupService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<RefreshTokenCleanupService> _logger;
 
-    public RefreshTokenCleanupService(IServiceScopeFactory scopeFactory, ILogger<RefreshTokenCleanupService> logger)
+    private readonly TimeProvider _time;
+
+    public RefreshTokenCleanupService(IServiceScopeFactory scopeFactory, TimeProvider time, ILogger<RefreshTokenCleanupService> logger)
     {
         _scopeFactory = scopeFactory;
+        _time = time;
         _logger = logger;
     }
 
@@ -48,7 +51,7 @@ public sealed class RefreshTokenCleanupService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var revokedBefore = now - RevokedRetention;
         return await context.RefreshTokens
             .Where(t => t.ExpiresAt < now || t.RevokedAt < revokedBefore)
