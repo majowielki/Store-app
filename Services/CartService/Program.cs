@@ -1,5 +1,4 @@
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -26,8 +25,7 @@ builder.Services.AddStandardApiControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<Store.CartService.Validators.AddCartItemRequestValidator>();
 
 // Database
-builder.Services.AddDbContext<CartDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddStoreDbContext<CartDbContext>(builder.Configuration);
 
 // JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -53,7 +51,7 @@ builder.Services.AddStoreOptions<CartOptions>(builder.Configuration, CartOptions
 builder.Services.AddScoped<ICartService, CartService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
-builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());
 
 builder.Services.AddSwaggerWithJwt("Store Cart Service");
 var app = builder.Build();

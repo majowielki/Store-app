@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Store.AuditLogService.Consumers;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Services;
@@ -20,8 +19,7 @@ builder.AddStoreObservability("audit");
 builder.Services.AddStandardApiControllers();
 
 // Database
-builder.Services.AddDbContext<AuditLogDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddStoreDbContext<AuditLogDbContext>(builder.Configuration);
 
 // JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -44,7 +42,7 @@ builder.Services.AddStoreOptions<AuditRetentionOptions>(builder.Configuration, A
 builder.Services.AddHostedService<AuditRetentionService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
-builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());
 
 builder.Services.AddSwaggerWithJwt("Store AuditLog Service");
 var app = builder.Build();

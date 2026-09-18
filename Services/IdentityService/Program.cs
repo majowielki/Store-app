@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -28,8 +27,7 @@ builder.Services.AddStandardApiControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<Store.IdentityService.Validators.RegisterRequestValidator>();
 
 // Database
-builder.Services.AddDbContext<IdentityDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddStoreDbContext<IdentityDbContext>(builder.Configuration);
 
 // Identity without the cookie stack: this service issues bearer tokens and never signs anyone
 // in with a cookie, so there is nothing to redirect to /Account/Login
@@ -76,7 +74,7 @@ builder.Services.AddScoped<IdentitySeeder>();
 builder.Services.AddStoreMessaging<IdentityDbContext>(builder.Configuration, serviceName: "identity", bus => bus.AddConsumer<OrderPlacedConsumer>());
 
 // Health checks: /health/live, /health/ready (database), /health (details)
-builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());
 
 builder.Services.AddSwaggerWithJwt("Store Identity Service");
 var app = builder.Build();

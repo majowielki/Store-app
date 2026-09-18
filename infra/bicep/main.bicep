@@ -290,7 +290,7 @@ resource rabbitMq 'Microsoft.App/containerApps@2025-01-01' = {
       containers: [
         {
           name: 'rabbitmq'
-          image: 'rabbitmq:3-management-alpine'
+          image: 'rabbitmq:4-management-alpine'
           env: [
             { name: 'RABBITMQ_DEFAULT_USER', value: rabbitMqUser }
             { name: 'RABBITMQ_DEFAULT_PASS', secretRef: 'rabbitmq-password' }

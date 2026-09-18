@@ -1,5 +1,4 @@
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -26,8 +25,7 @@ builder.Services.AddStandardApiControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<Store.OrderService.Validators.CreateOrderFromCartRequestValidator>();
 
 // Database - the model and the migrations must agree; a drift is an error, not a warning to silence
-builder.Services.AddDbContext<OrderDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddStoreDbContext<OrderDbContext>(builder.Configuration);
 
 // JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -53,7 +51,7 @@ builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderServi
 builder.Services.AddHostedService<IdempotencyKeyCleanupService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
-builder.Services.AddStoreHealthChecks(builder.Configuration.GetConnectionString("DefaultConnection")!);
+builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());
 
 builder.Services.AddSwaggerWithJwt("Store Order Service");
 var app = builder.Build();

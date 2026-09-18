@@ -70,6 +70,8 @@ public static class DatabaseStartup
 
         if (migrateOnly || mode == SchemaStartup.Migrate)
         {
+            // On an empty database EF Core 10 logs a failed SELECT on __EFMigrationsHistory (it
+            // probes the table instead of asking the catalogue) before it creates it; harmless
             var pending = (await context.Database.GetPendingMigrationsAsync()).ToList();
             await context.Database.MigrateAsync();
             logger.LogInformation("Database {Database}: applied {Count} migration(s) {Migrations}",
