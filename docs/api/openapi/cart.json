@@ -631,7 +631,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A customer's cart as another service (the order service) reads it through\r\n`GET /api/v1/cart/internal/{userId}`. Prices are what the cart last took from the\r\ncatalogue; the order service re-prices the lines before it charges anything."
+        "description": "A customer's cart as another service (the order service) reads it through\n`GET /api/v1/cart/internal/{userId}`. Prices are what the cart last took from the\ncatalogue; the order service re-prices the lines before it charges anything."
       },
       "StoreProblemDetails": {
         "type": "object",
@@ -675,7 +675,7 @@
           }
         },
         "additionalProperties": { },
-        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\r\nplus the trace id every problem carries and the field messages of a validation problem."
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
       },
       "SyncCartItemRequest": {
         "required": [
@@ -749,7 +749,7 @@
     },
     {
       "name": "InternalCart",
-      "description": "Endpoints for other services, authenticated with the shared internal key instead of a\r\nuser token: the order service reads a cart at checkout without carrying the customer's\r\ncredentials around. Emptying the cart afterwards happens through the order-placed event."
+      "description": "Endpoints for other services, authenticated with the shared internal key instead of a\nuser token: the order service reads a cart at checkout without carrying the customer's\ncredentials around. Emptying the cart afterwards happens through the order-placed event."
     }
   ]
 }

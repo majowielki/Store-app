@@ -276,7 +276,7 @@
         "tags": [
           "Products"
         ],
-        "summary": "Removes the product from the public catalogue but keeps the row, so past orders keep a\r\nvalid reference and an admin can reactivate it with an update.",
+        "summary": "Removes the product from the public catalogue but keeps the row, so past orders keep a\nvalid reference and an admin can reactivate it with an update.",
         "parameters": [
           {
             "name": "id",
@@ -351,7 +351,7 @@
         "tags": [
           "Products"
         ],
-        "summary": "Every product, inactive ones included, sorted by sortBy (id, price,\r\ntitle, company) in sortDir (asc, desc).",
+        "summary": "Every product, inactive ones included, sorted by sortBy (id, price,\ntitle, company) in sortDir (asc, desc).",
         "parameters": [
           {
             "name": "search",
@@ -495,7 +495,7 @@
         "tags": [
           "Products"
         ],
-        "summary": "What another service needs to know about a product (title, image, colours, the price the\r\ncustomer pays right now). Service-to-service only: callers present the internal API key.",
+        "summary": "What another service needs to know about a product (title, image, colours, the price the\ncustomer pays right now). Service-to-service only: callers present the internal API key.",
         "parameters": [
           {
             "name": "id",
@@ -679,7 +679,7 @@
       },
       "DecimalNullableOptional": {
         "type": "number",
-        "description": "A request field that distinguishes \"not sent\" from \"sent as null\". A partial update can\r\nthen clear a value (`\"salePrice\": null`) as well as leave it alone (property absent),\r\nwhich a plain nullable property cannot express - both arrive as null.",
+        "description": "A request field that distinguishes \"not sent\" from \"sent as null\". A partial update can\nthen clear a value (`\"salePrice\": null`) as well as leave it alone (property absent),\nwhich a plain nullable property cannot express - both arrive as null.",
         "format": "double",
         "nullable": true
       },
@@ -943,7 +943,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "What the catalogue tells other services about a product: enough to show a cart line and\r\nto charge the right price. Returned by `GET /api/v1/products/{id}/snapshot`; the caller\r\nstores the fields it needs instead of keeping a copy of the product."
+        "description": "What the catalogue tells other services about a product: enough to show a cart line and\nto charge the right price. Returned by `GET /api/v1/products/{id}/snapshot`; the caller\nstores the fields it needs instead of keeping a copy of the product."
       },
       "ProductsMeta": {
         "required": [
@@ -988,7 +988,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "The values the catalogue can be filtered by, for the shop's menus and the admin form.\r\nKeys use the same spelling as the product fields (\"tvStands\", \"modenza\"); \"all\" comes\r\nfirst so a menu can default to it."
+        "description": "The values the catalogue can be filtered by, for the shop's menus and the admin form.\nKeys use the same spelling as the product fields (\"tvStands\", \"modenza\"); \"all\" comes\nfirst so a menu can default to it."
       },
       "StoreProblemDetails": {
         "type": "object",
@@ -1032,7 +1032,7 @@
           }
         },
         "additionalProperties": { },
-        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\r\nplus the trace id every problem carries and the field messages of a validation problem."
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
       },
       "UpdateProductRequest": {
         "type": "object",
@@ -1112,7 +1112,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Body of PUT /api/v1/products/{id}: a partial update. A property that is absent keeps the\r\ncurrent value. Fields that can be empty use Store.BuildingBlocks.Api.Optional`1, so sending them as\r\nnull clears them - that is how a promotion is taken off a product.\r\nRules: `UpdateProductRequestValidator`."
+        "description": "Body of PUT /api/v1/products/{id}: a partial update. A property that is absent keeps the\ncurrent value. Fields that can be empty use Store.BuildingBlocks.Api.Optional`1, so sending them as\nnull clears them - that is how a promotion is taken off a product.\nRules: `UpdateProductRequestValidator`."
       }
     },
     "securitySchemes": {
@@ -1127,7 +1127,7 @@
   "tags": [
     {
       "name": "Products",
-      "description": "The catalogue. Reads are public and show active products only; writes need the true\r\nadministrator. Errors arrive as problem responses from the shared exception handler."
+      "description": "The catalogue. Reads are public and show active products only; writes need the true\nadministrator. Errors arrive as problem responses from the shared exception handler."
     }
   ]
 }

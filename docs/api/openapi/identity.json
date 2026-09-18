@@ -273,7 +273,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "A new access token for the session in the refresh cookie; the cookie is replaced with a\r\nnew refresh token. 401 without a cookie, with a spent or expired one, or after the\r\nsession was ended - the client signs in again then.",
+        "summary": "A new access token for the session in the refresh cookie; the cookie is replaced with a\nnew refresh token. 401 without a cookie, with a spent or expired one, or after the\nsession was ended - the client signs in again then.",
         "responses": {
           "200": {
             "description": "OK",
@@ -303,7 +303,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "The signed-in user's profile; 204 for an anonymous caller, so a client can ask without\r\nknowing whether its stored token is still good. 404 when the account no longer exists.",
+        "summary": "The signed-in user's profile; 204 for an anonymous caller, so a client can ask without\nknowing whether its stored token is still good. 404 when the account no longer exists.",
         "responses": {
           "200": {
             "description": "OK",
@@ -386,7 +386,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Ends the session: the refresh token family in the cookie is revoked and the cookie\r\nremoved. The access token stays valid until it expires (minutes); the client discards it.",
+        "summary": "Ends the session: the refresh token family in the cookie is revoked and the cookie\nremoved. The access token stays valid until it expires (minutes); the client discards it.",
         "responses": {
           "204": {
             "description": "No Content"
@@ -612,7 +612,7 @@
           }
         },
         "additionalProperties": { },
-        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\r\nplus the trace id every problem carries and the field messages of a validation problem."
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
       },
       "UpdateAddressRequest": {
         "required": [
@@ -675,7 +675,7 @@
           },
           "isDemo": {
             "type": "boolean",
-            "description": "True for the shared showcase accounts (see `Demo` options): every visitor signs in\r\nto the same profile, so it cannot be changed - the address is fixed and the checkout\r\ndoes not offer to save one."
+            "description": "True for the shared showcase accounts (see `Demo` options): every visitor signs in\nto the same profile, so it cannot be changed - the address is fixed and the checkout\ndoes not offer to save one."
           },
           "createdAt": {
             "type": "string",
@@ -697,11 +697,11 @@
   "tags": [
     {
       "name": "AdminUsers",
-      "description": "Accounts as the admin panel sees them. The demo administrator sees the panel but not\r\npersonal data; true-admin sees real values."
+      "description": "Accounts as the admin panel sees them. The demo administrator sees the panel but not\npersonal data; true-admin sees real values."
     },
     {
       "name": "Auth",
-      "description": "Sign-up, sign-in and the signed-in user's own profile. A sign-in answers with a short-lived\r\naccess token in the body and a refresh token in an httpOnly cookie scoped to this\r\ncontroller's path, so a script in the page can never read the refresh token."
+      "description": "Sign-up, sign-in and the signed-in user's own profile. A sign-in answers with a short-lived\naccess token in the body and a refresh token in an httpOnly cookie scoped to this\ncontroller's path, so a script in the page can never read the refresh token."
     }
   ]
 }

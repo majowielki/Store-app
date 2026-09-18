@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -18,23 +17,24 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
+# Actions are pinned to a commit (the tag is the comment); Dependabot moves both together.
 jobs:
   secrets-scan:
     name: Secrets scan (gitleaks)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   repo-hygiene:
     name: Repository hygiene
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fail if build or IDE artifacts are tracked
         run: |
           if git ls-files | grep -E '(^|/)(bin|obj|\.vs|node_modules)/'; then
@@ -50,10 +50,10 @@ jobs:
 
   backend:
     name: Backend build and tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       - name: Restore
@@ -65,7 +65,7 @@ jobs:
       - name: OpenAPI documents match the code
         run: pwsh Scripts/Export-OpenApi.ps1 -Configuration Release -NoBuild -Check
       - name: Upload OpenAPI documents
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: openapi
           path: docs/api/openapi/*.json
@@ -83,18 +83,19 @@ jobs:
           --results-directory TestResults
           --collect:"XPlat Code Coverage"
       - name: Coverage summary
-        if: always()
-        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        # Also after a failed test run, but not when an earlier step stopped the job before any test ran
+        if: (success() || failure()) && hashFiles('TestResults/**/coverage.cobertura.xml') != ''
+        uses: danielpalme/ReportGenerator-GitHub-Action@d3ebf1f760f7d8ab92cc44d9bcfee7ad73722a31 # 5.5.11
         with:
           reports: TestResults/**/coverage.cobertura.xml
           targetdir: coveragereport
           reporttypes: MarkdownSummaryGithub
       - name: Publish coverage to the job summary
-        if: always()
+        if: (success() || failure()) && hashFiles('coveragereport/SummaryGithub.md') != ''
         run: cat coveragereport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
+        if: (success() || failure()) && hashFiles('TestResults/**/*.trx') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results
           path: TestResults/**/*.trx
@@ -102,9 +103,9 @@ jobs:
 
   infra:
     name: Infrastructure template compiles
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Bicep build
         run: |
           az bicep install
@@ -113,15 +114,15 @@ jobs:
 
   frontend:
     name: Frontend lint, types and build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: UI/store-app.UI
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          node-version-file: UI/store-app.UI/.nvmrc
           cache: npm
           cache-dependency-path: UI/store-app.UI/package-lock.json
       - run: npm ci
@@ -133,8 +134,8 @@ jobs:
         run: npm run test:coverage
       - run: npm run build
       - name: Upload UI coverage
-        if: always()
-        uses: actions/upload-artifact@v4
+        if: (success() || failure()) && hashFiles('UI/store-app.UI/coverage/cobertura-coverage.xml') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ui-coverage
           path: UI/store-app.UI/coverage/cobertura-coverage.xml
@@ -143,7 +144,7 @@ jobs:
   docker:
     name: Docker image (${{ matrix.service.name }})
     needs: [backend, frontend]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -156,10 +157,10 @@ jobs:
           - { name: auditlog, dockerfile: Services/AuditLogService/Dockerfile }
           - { name: ui, dockerfile: UI/store-app.UI/Dockerfile }
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - name: Build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.service.name == 'ui' && 'UI/store-app.UI' || '.' }}
           file: ${{ matrix.service.dockerfile }}
@@ -169,7 +170,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service.name }}
           cache-to: type=gha,scope=${{ matrix.service.name }},mode=max
       - name: Scan (Trivy)
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: store/${{ matrix.service.name }}:${{ github.sha }}
           severity: HIGH,CRITICAL

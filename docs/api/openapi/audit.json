@@ -11,7 +11,7 @@
         "tags": [
           "AuditLog"
         ],
-        "summary": "Entries newest first, narrowed by any of entityName, entityId, userId, from and to\r\n(ISO 8601 instants). Pages hold 50 entries unless pageSize says otherwise, 100 at most.",
+        "summary": "Entries newest first, narrowed by any of entityName, entityId, userId, from and to\n(ISO 8601 instants). Pages hold 50 entries unless pageSize says otherwise, 100 at most.",
         "parameters": [
           {
             "name": "entityName",
@@ -215,7 +215,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "One business action in the audit trail, built from an event another service published.\r\nDeliberately narrow: identifiers, the acting user's id, the service and the business\r\nfields that changed. Nothing about the HTTP request and no personal data."
+        "description": "One business action in the audit trail, built from an event another service published.\nDeliberately narrow: identifiers, the acting user's id, the service and the business\nfields that changed. Nothing about the HTTP request and no personal data."
       },
       "AuditLogPagedResponse": {
         "required": [
@@ -307,7 +307,7 @@
           }
         },
         "additionalProperties": { },
-        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\r\nplus the trace id every problem carries and the field messages of a validation problem."
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
       }
     },
     "securitySchemes": {
@@ -322,7 +322,7 @@
   "tags": [
     {
       "name": "AuditLog",
-      "description": "Read API of the audit trail for administrators. Entries are written by the event\r\nconsumers only; there is no HTTP endpoint that accepts them."
+      "description": "Read API of the audit trail for administrators. Entries are written by the event\nconsumers only; there is no HTTP endpoint that accepts them."
     }
   ]
 }

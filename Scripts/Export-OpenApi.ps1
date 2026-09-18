@@ -76,8 +76,10 @@ try {
         [Environment]::SetEnvironmentVariable('ASPNETCORE_CONTENTROOT', (Split-Path $assembly))
         dotnet swagger tofile --output $file $assembly v1
         if ($LASTEXITCODE -ne 0) { throw "Export of $($entry.Key) failed" }
-        # Same bytes on every platform: LF line endings, newline at the end
-        $json = ([IO.File]::ReadAllText($file) -replace "`r`n", "`n").TrimEnd() + "`n"
+        # Same bytes on every platform: LF line endings, newline at the end. A multi-line XML
+        # comment keeps the line endings of its source file, so a description exported on
+        # Windows would carry an escaped "\r\n" where a Linux runner writes "\n".
+        $json = ([IO.File]::ReadAllText($file) -replace "`r`n", "`n" -replace '\\r\\n', '\n').TrimEnd() + "`n"
         [IO.File]::WriteAllText($file, $json, [Text.UTF8Encoding]::new($false))
         Write-Host "exported $($entry.Key) -> $file"
     }

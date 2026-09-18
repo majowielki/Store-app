@@ -34,10 +34,10 @@ env:
 jobs:
   images:
     name: Build and push images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/login@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -62,7 +62,7 @@ jobs:
   deploy:
     name: Migrate and deploy
     needs: images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: production
       url: ${{ steps.outputs.outputs.ui }}
@@ -77,8 +77,8 @@ jobs:
       TRUE_ADMIN_PASSWORD: ${{ secrets.TRUE_ADMIN_PASSWORD }}
       RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/login@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}

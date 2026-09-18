@@ -241,7 +241,7 @@
         "tags": [
           "Orders"
         ],
-        "summary": "The rules an order is priced by (delivery fee and its free-delivery threshold, first-order\r\ndiscount), for the cart page to preview the amounts the way the checkout will compute them.",
+        "summary": "The rules an order is priced by (delivery fee and its free-delivery threshold, first-order\ndiscount), for the cart page to preview the amounts the way the checkout will compute them.",
         "responses": {
           "200": {
             "description": "OK",
@@ -271,7 +271,7 @@
         "tags": [
           "Orders"
         ],
-        "summary": "Places an order from the cart. Send an Idempotency-Key header (a UUID per checkout\r\nattempt): a retry with the same key returns the order created the first time.",
+        "summary": "Places an order from the cart. Send an Idempotency-Key header (a UUID per checkout\nattempt): a retry with the same key returns the order created the first time.",
         "parameters": [
           {
             "name": "idempotency-Key",
@@ -764,7 +764,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "The rules the order service prices an order by, so the cart page can preview the amounts\r\nthe same way instead of keeping its own copy of the numbers. The order itself is always\r\npriced here, at checkout."
+        "description": "The rules the order service prices an order by, so the cart page can preview the amounts\nthe same way instead of keeping its own copy of the numbers. The order itself is always\npriced here, at checkout."
       },
       "StoreProblemDetails": {
         "type": "object",
@@ -808,7 +808,7 @@
           }
         },
         "additionalProperties": { },
-        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\r\nplus the trace id every problem carries and the field messages of a validation problem."
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
       },
       "TimeBucketStats": {
         "required": [
@@ -873,7 +873,7 @@
   "tags": [
     {
       "name": "AdminOrders",
-      "description": "Orders as the admin panel sees them. The demo administrator sees the panel but not the\r\ncustomers' data."
+      "description": "Orders as the admin panel sees them. The demo administrator sees the panel but not the\ncustomers' data."
     },
     {
       "name": "Orders",
