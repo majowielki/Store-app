@@ -12,7 +12,7 @@ RUN npm run build
 # Runtime stage: static files behind nginx, API proxied to the gateway, configuration injected
 # at container start (docker/40-app-config.sh) - the same image works in every environment.
 # The unprivileged variant runs as the "nginx" user and listens on 8080, like the services.
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS production
 
 COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 COPY docker/default.conf.template docker/security-headers.inc.template /etc/nginx/templates/
