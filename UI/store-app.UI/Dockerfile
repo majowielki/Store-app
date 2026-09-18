@@ -1,24 +1,24 @@
-# Build stage
+# syntax=docker/dockerfile:1.7
+# Build stage: the bundle. Type-check, tests and lint run in CI before an image is built.
 FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
 
 COPY . .
 RUN npm run build
 
 # Runtime stage: static files behind nginx, API proxied to the gateway, configuration injected
 # at container start (docker/40-app-config.sh) - the same image works in every environment.
-FROM nginx:1.27-alpine AS production
+# The unprivileged variant runs as the "nginx" user and listens on 8080, like the services.
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
 
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 COPY docker/default.conf.template docker/security-headers.inc.template /etc/nginx/templates/
-COPY docker/10-resolver.envsh docker/15-csp.envsh docker/40-app-config.sh /docker-entrypoint.d/
-RUN chmod +x /docker-entrypoint.d/10-resolver.envsh /docker-entrypoint.d/15-csp.envsh /docker-entrypoint.d/40-app-config.sh && rm -f /etc/nginx/conf.d/default.conf
+COPY --chmod=755 docker/10-resolver.envsh docker/15-csp.envsh docker/40-app-config.sh /docker-entrypoint.d/
 
-ENV GATEWAY_UPSTREAM=http://gateway:5000 \
+ENV GATEWAY_UPSTREAM=http://gateway:8080 \
     API_BASE_URL=/api/v1
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 8080

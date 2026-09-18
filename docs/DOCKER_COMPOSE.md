@@ -1,400 +1,69 @@
-# Docker Compose Setup Guide
+# Running the store with Docker Compose
 
-## 📋 Overview
+Three files in the repository root; the first is the base, the others are overrides:
 
-The Store App uses Docker Compose for local development and testing, providing a complete microservices environment with all dependencies.
-
-## 🏗️ Architecture
-
-### Services Included
-- **Infrastructure Services**: PostgreSQL, Redis, RabbitMQ
-- **Microservices**: Identity, Product, Cart, Order, Audit services
-- **API Gateway**: Central entry point for all requests
-- **Optional Tools**: PgAdmin for database management
-
-### Network Architecture
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        store-network                            │
-│                                                                 │
-│  ┌─────────────┐    ┌─────────────────────────────────────────┐  │
-│  │   Client    │───▶│         API Gateway                     │  │
-│  │  (Port 80)  │    │         (Port 5000)                     │  │
-│  └─────────────┘    └─────────────────────────────────────────┘  │
-│                                       │                         │
-│                     ┌─────────────────┼─────────────────┐       │
-│                     ▼                 ▼                 ▼       │
-│  ┌─················┐ ┌···············┐ ┌···············┐        │
-│  │ Identity Service│ │Product Service│ │  Cart Service │        │
-│  │   (Port 5001)   │ │  (Port 5002)  │ │  (Port 5003) │        │
-│  └─················┘ └···············┘ └···············┘        │
-│                     ┌─────────────────┼─────────────────┐       │
-│                     ▼                 ▼                 ▼       │
-│  ┌─················┐ ┌···············┐ ┌···············┐        │
-│  │  Order Service  │ │ Audit Service │ │               │        │
-│  │   (Port 5004)   │ │  (Port 5005)  │ │               │        │
-│  └─················┘ └···············┘ └···············┘        │
-│                     ┌─────────────────┼─────────────────┐       │
-│                     ▼                 ▼                 ▼       │
-│  ┌─················┐ ┌···············┐ ┌···············┐        │
-│  │   PostgreSQL    │ │     Redis     │ │   RabbitMQ    │        │
-│  │   (Port 5432)   │ │  (Port 6379)  │ │  (Port 5672)  │        │
-│  └─················┘ └···············┘ └···············┘        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running
-- At least 4GB RAM available for containers
-- Ports 5000-5005, 5432, 6379, 5672, 15672 available
-
-### Option 1: Using Quick Start Scripts
-```bash
-# Windows
-.\quick-start.bat
-
-# Linux/Mac
-chmod +x quick-start.sh
-./quick-start.sh
-```
-
-### Option 2: Using Management Script
-```powershell
-# Build and start all services
-.\manage.ps1 build
-
-# Start infrastructure only (for local .NET development)
-.\manage.ps1 infra-only
-
-# Show help
-.\manage.ps1 help
-```
-
-### Option 3: Direct Docker Compose
-```bash
-# Copy environment file
-cp .env.example .env
-
-# Start all services
-docker-compose up --build -d
-
-# Start infrastructure only
-docker-compose -f docker-compose.infra.yml up -d
-```
-
-## 📁 File Structure
-
-```
-Store-app/
-├── docker-compose.yml              # Main compose file
-├── docker-compose.override.yml     # Development overrides (auto-loaded)
-├── docker-compose.prod.yml         # Production configuration
-├── docker-compose.infra.yml        # Infrastructure services only
-├── .env.example                    # Environment variables template
-├── .env                           # Your environment variables (create from template)
-├── manage.ps1                     # PowerShell management script
-├── quick-start.bat                # Windows quick start
-└── quick-start.sh                 # Linux/Mac quick start
-```
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-The application uses environment variables for configuration. Copy `.env.example` to `.env` and customize:
+| File | What it adds |
+|------|--------------|
+| `docker-compose.yml` | the whole store the way it runs in production: `Production` environment, the UI on <http://localhost:8081> and nothing else on the host, no default passwords, CPU and memory limits, migrations as one-shot containers |
+| `docker-compose.dev.yml` | `Development` environment (Swagger per service), the demo accounts, every port on the host (gateway 5000, services 5001–5006, PostgreSQL 5432, RabbitMQ 5672 / 15672) and the Aspire dashboard on <http://localhost:18888> |
+| `docker-compose.tools.yml` | pgAdmin on <http://localhost:8080>, behind the `tools` profile |
 
 ```bash
-# Database
-POSTGRES_PASSWORD=StrongPassword123!
-POSTGRES_PORT=5432
-
-# JWT Configuration (JWT_SECRET_KEY is required, min. 32 chars, no default: openssl rand -base64 48)
-JWT_SECRET_KEY=
-JWT_ISSUER=Store.API
-JWT_AUDIENCE=Store.Client
-
-# Service Ports
-IDENTITY_SERVICE_PORT=5001
-PRODUCT_SERVICE_PORT=5002
-# ... etc
+cp .env.example .env            # then fill in every empty value - compose refuses to start otherwise
+docker compose up --build       # prod-like
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build            # development
+docker compose --profile tools -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tools.yml up
 ```
 
-### Service Configuration
+`--build` matters: the migration containers reuse the image of their service (`store/identity`
+and so on) and there is nothing to pull.
 
-Each service can be configured via environment variables:
+## What happens on `up`
 
-```yaml
-environment:
-  - ASPNETCORE_ENVIRONMENT=Development
-  - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_identity_db;...
-  - JwtSettings__SecretKey=${JWT_SECRET_KEY}
-```
+1. PostgreSQL (with one database per service, created by `Infrastructure/scripts/init-databases.sql`
+   on the first start) and RabbitMQ come up and pass their health checks.
+2. For each service a one-shot container runs the same image with `--migrate`: it applies the
+   migrations checked into the repository and the seed (catalogue, roles, the true administrator
+   from `TRUE_ADMIN_PASSWORD`, the demo accounts when `DEMO_ENABLED=true`), then exits.
+3. The services start once their migration finished. In `Production` a service refuses to start
+   against a schema it does not know, so a failed migration stops the service, not the data.
+4. The gateway starts on its own - it probes the services every ten seconds and routes to the
+   ones that answer - and the UI's nginx proxies `/api/` to it.
 
-## 🔧 Development Workflows
+No service waits for another service: a slow or failing neighbour is handled by the retries and
+circuit breakers of the typed clients, and events wait in the outbox until the broker takes them.
 
-### 1. Full Stack Development
-Start all services with Docker Compose:
-```bash
-docker-compose up --build -d
-```
+## Images
 
-### 2. Backend Development
-Start infrastructure services, run .NET services locally:
-```bash
-# Start infrastructure
-docker-compose -f docker-compose.infra.yml up -d
+Every .NET host is built from the repository root (`Services/<Name>/Dockerfile`,
+`Gateway/APIGateway/Dockerfile`) into a chiseled `aspnet:9.0-noble-chiseled` image: no shell, no
+package manager, runs as the unprivileged `app` user, listens on 8080. The UI image
+(`UI/store-app.UI/Dockerfile`) serves the bundle with `nginx-unprivileged` on 8080. Because the
+chiseled images have no `curl`, the containers carry no health check; the orchestrator probes
+`/health/ready` over HTTP (Container Apps probes, or the wait loop in the end-to-end workflow).
 
-# Run services locally
-cd Services/IdentityService
-dotnet run
-```
+`.dockerignore` keeps `appsettings.Production.json`, `appsettings.*.local.json` and `.env` out of
+every image: configuration and secrets reach a container only through its environment.
 
-### 3. Service-Specific Development
-Start dependencies, develop specific service:
-```bash
-# Start dependencies
-docker-compose up postgres redis identity-service -d
+## Variables
 
-# Develop product service locally
-cd Services/ProductService
-dotnet run
-```
+See `.env.example`. Required: `POSTGRES_PASSWORD`, `RABBITMQ_PASSWORD`, `JWT_SECRET_KEY`,
+`INTERNAL_API_KEY`, `TRUE_ADMIN_PASSWORD`. Optional: `ASPNETCORE_ENVIRONMENT` (the dev override
+sets `Development`), `DEMO_ENABLED`, `AUTH_CREDENTIAL_LIMIT` (sign-ins per minute per client, raised
+for the end-to-end tests), `OTEL_EXPORTER_OTLP_ENDPOINT`, the host ports.
 
-## 📊 Service Management
+## Data
 
-### Health Monitoring
-All services provide health check endpoints:
-- **Detailed Health**: `http://localhost:5001/health`
-- **Liveness Probe**: `http://localhost:5001/health/live`
-- **Readiness Probe**: `http://localhost:5001/health/ready`
+Two named volumes, `store_postgres_data` and `store_rabbitmq_data`. `docker compose down -v`
+removes them; the next `up` recreates the databases from the migrations and the seed. To reset a
+single service's database while the stack is down, `Scripts/Reset-Local-Databases.ps1` does the
+same with the dev override's PostgreSQL port.
 
-### Logging
-View service logs:
-```bash
-# All services
-docker-compose logs -f
+## Running the services outside Docker
 
-# Specific service
-docker-compose logs -f identity-service
-
-# Recent logs with timestamps
-docker-compose logs --tail=100 -t identity-service
-```
-
-### Scaling Services
-Scale specific services:
-```bash
-# Scale product service to 3 instances
-docker-compose up --scale product-service=3 -d
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### Port Conflicts
-```bash
-# Check what's using a port
-netstat -ano | findstr :5001  # Windows
-lsof -i :5001                 # Linux/Mac
-
-# Use different ports via environment variables
-IDENTITY_SERVICE_PORT=5011 docker-compose up identity-service
-```
-
-#### Service Won't Start
-```bash
-# Check service logs
-docker-compose logs identity-service
-
-# Rebuild specific service
-docker-compose build identity-service
-docker-compose up identity-service
-```
-
-#### Database Connection Issues
-```bash
-# Check PostgreSQL logs
-docker-compose logs postgres
-
-# Connect to database manually
-docker exec -it store-postgres psql -U store_user -d store_identity_db
-
-# Reset database
-docker-compose down -v
-docker-compose up postgres -d
-```
-
-#### Out of Memory
-```bash
-# Check resource usage
-docker stats
-
-# Increase Docker Desktop memory limit
-# Docker Desktop > Settings > Resources > Memory
-```
-
-### Debugging Services
-
-#### Attach Debugger to Running Container
-```bash
-# Run service in debug mode
-docker-compose -f docker-compose.yml -f docker-compose.debug.yml up identity-service
-```
-
-#### Access Service Logs
-```bash
-# Real-time logs
-docker-compose logs -f identity-service
-
-# Export logs to file
-docker-compose logs identity-service > identity-service.log
-```
-
-## 🔒 Security Considerations
-
-### Development Environment
-- Default passwords are used for convenience
-- Services are exposed on localhost
-- Debug logging is enabled
-
-### Production Environment
-- Use `docker-compose.prod.yml` for production settings
-- Set strong passwords via environment variables
-- Configure proper network policies
-- Enable TLS/SSL certificates
-- Set appropriate log levels
-
-### Secrets Management
-```bash
-# Use Docker secrets for production
-echo "strong_password" | docker secret create postgres_password -
-
-# Reference in compose file
-secrets:
-  - postgres_password
-```
-
-## 📈 Performance Optimization
-
-### Resource Limits
-Production compose file includes resource limits:
-```yaml
-deploy:
-  resources:
-    limits:
-      cpus: '0.5'
-      memory: 512M
-    reservations:
-      cpus: '0.1'
-      memory: 128M
-```
-
-### Database Optimization
-```yaml
-postgres:
-  environment:
-    - POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_stat_statements
-  command: >
-    postgres
-    -c shared_buffers=256MB
-    -c effective_cache_size=1GB
-```
-
-### Caching Strategy
-```yaml
-redis:
-  command: >
-    redis-server
-    --maxmemory 256mb
-    --maxmemory-policy allkeys-lru
-    --appendonly yes
-```
-
-## 🚢 Deployment Options
-
-### Local Development
-```bash
-docker-compose up --build -d
-```
-
-### Staging Environment
-```bash
-ASPNETCORE_ENVIRONMENT=Staging docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
-### Production Environment
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
-### CI/CD Pipeline
-```yaml
-# Example GitHub Actions workflow
-- name: Deploy to Production
-  run: |
-    docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
-    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
-## 📋 Maintenance
-
-### Regular Tasks
-```bash
-# Update base images
-docker-compose pull
-
-# Clean up unused resources
-docker system prune -f
-
-# Backup database
-docker exec store-postgres pg_dump -U store_user store_db > backup.sql
-
-# Update application
-git pull
-docker-compose build
-docker-compose up -d
-```
-
-### Monitoring
-```bash
-# Resource usage
-docker stats
-
-# Service health
-curl http://localhost:5000/health
-
-# Database connections
-docker exec store-postgres psql -U store_user -d store_db -c "SELECT * FROM pg_stat_activity;"
-```
-
-## 🆘 Support
-
-### Useful Commands
-```bash
-# View all containers
-docker-compose ps
-
-# Stop all services
-docker-compose down
-
-# Remove volumes (⚠️ This deletes data)
-docker-compose down -v
-
-# Rebuild everything
-docker-compose build --no-cache
-docker-compose up --force-recreate
-```
-
-### Getting Help
-1. Check service logs: `docker-compose logs [service-name]`
-2. Verify service health: `curl http://localhost:5001/health`
-3. Check resource usage: `docker stats`
-4. Review configuration: `docker-compose config`
-5. Consult documentation in the `docs/` folder
-
----
-
-*For more detailed information about the Store App architecture and development, see the main [README.md](../README.md) file.*
+Start only the infrastructure (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres rabbitmq`),
+put the secrets into user secrets (`Scripts/Set-Local-Secrets.ps1`) and run each host with
+`ASPNETCORE_ENVIRONMENT=Development` and its port (`dotnet run --project Services/OrderService --urls http://localhost:5006`);
+the gateway takes the cluster addresses as command-line arguments
+(`--ReverseProxy:Clusters:orders-cluster:Destinations:destination1:Address=http://localhost:5006/`).
+The UI dev server (`npm run dev` in `UI/store-app.UI`) proxies `/api` to the gateway on 5000.

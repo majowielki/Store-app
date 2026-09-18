@@ -8,7 +8,8 @@
   "--migrate", which applies the committed migrations, runs the seed (catalogue, roles,
   demo accounts) and exits.
 
-  Needs: PostgreSQL from docker compose ("docker compose up -d postgres"), the dotnet-ef
+  Needs: PostgreSQL from docker compose with its port on the host
+  ("docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres"), the dotnet-ef
   tool ("dotnet tool install -g dotnet-ef") and the connection strings from
   appsettings.Development.json. Secrets are not needed for this step.
 

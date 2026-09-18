@@ -1,42 +1,29 @@
-# Multi-stage Dockerfile for Cart Service
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-WORKDIR /app
-EXPOSE 80
-ENV ASPNETCORE_URLS=http://+:80
-
-# Install curl for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# syntax=docker/dockerfile:1.7
+# Cart service. Built from the repository root: docker build -f Services/CartService/Dockerfile .
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Repository-wide build settings and central package versions must be present before restore
-COPY ["global.json", "Directory.Build.props", "Directory.Packages.props", ".editorconfig", "./"]
+# Restore from the project files alone, so this layer survives source changes
+COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
+COPY Shared/Store.Contracts/Store.Contracts.csproj Shared/Store.Contracts/
+COPY Shared/Store.BuildingBlocks/Store.BuildingBlocks.csproj Shared/Store.BuildingBlocks/
+COPY Services/CartService/Store.CartService.csproj Services/CartService/
+RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
+    dotnet restore Services/CartService/Store.CartService.csproj
 
-# Copy shared projects first for better layer caching
-COPY ["Shared/Store.Contracts/Store.Contracts.csproj", "Shared/Store.Contracts/"]
-COPY ["Shared/Store.BuildingBlocks/Store.BuildingBlocks.csproj", "Shared/Store.BuildingBlocks/"]
+COPY Shared/ Shared/
+COPY Services/CartService/ Services/CartService/
+RUN --mount=type=cache,target=/root/.nuget/packages,sharing=locked \
+    dotnet publish Services/CartService/Store.CartService.csproj -c $BUILD_CONFIGURATION -o /app/publish --no-restore /p:UseAppHost=false
 
-# Copy service project
-COPY ["Services/CartService/Store.CartService.csproj", "Services/CartService/"]
-
-# Restore dependencies
-RUN dotnet restore "Services/CartService/Store.CartService.csproj"
-
-# Copy source code
-COPY ["Services/CartService/", "Services/CartService/"]
-COPY ["Shared/", "Shared/"]
-
-# Build the application
-WORKDIR "/src/Services/CartService"
-RUN dotnet build "Store.CartService.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "Store.CartService.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
+# Chiseled runtime: no shell, no package manager, runs as the unprivileged "app" user. Health is
+# probed over HTTP by whatever runs the container (Container Apps probes, the compose wait loop).
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-
-
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+USER $APP_UID
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "Store.CartService.dll"]

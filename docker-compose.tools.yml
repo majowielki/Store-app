@@ -1,0 +1,29 @@
+# Tooling that is handy on a developer's machine and has no place in a prod-like stack:
+#
+#   docker compose --profile tools -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tools.yml up
+#
+# pgAdmin on http://localhost:8080 (sign in with PGADMIN_EMAIL / PGADMIN_PASSWORD from .env;
+# add the server "postgres", user POSTGRES_USER, password POSTGRES_PASSWORD). RabbitMQ's own
+# management UI comes with the dev override on http://localhost:15672.
+
+services:
+  pgadmin:
+    image: dpage/pgadmin4:9
+    profiles: ["tools"]
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@store.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?PGADMIN_PASSWORD is required for the tools profile - set it in .env}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "${PGADMIN_PORT:-8080}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - store
+
+volumes:
+  pgadmin_data:

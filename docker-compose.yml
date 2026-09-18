@@ -1,73 +1,105 @@
+# The whole store, the way it runs in production: Production environment, no port of the
+# infrastructure on the host, no default password, every service limited in CPU and memory,
+# and no service waiting for another service - only for its database and the broker. Each
+# service's migrations run first as a one-shot container of the same image (--migrate), so the
+# service itself refuses to start against a schema it does not know.
+#
+#   docker compose up --build                         prod-like, UI on http://localhost:8081
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#                                                     development: Development environment,
+#                                                     demo accounts, host ports, Aspire dashboard
+#   docker compose --profile tools -f ... up          plus pgAdmin (docker-compose.tools.yml)
+#
+# Secrets come from .env (see .env.example); compose refuses to start without them.
+
+name: store
+
+x-limits: &limits
+  deploy:
+    resources:
+      limits:
+        cpus: "0.50"
+        memory: 512M
+
+x-service-env: &service-env
+  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+  JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
+  JwtSettings__Issuer: Store.API
+  JwtSettings__Audience: Store.Client
+  RabbitMQ__Host: rabbitmq
+  RabbitMQ__Port: 5672
+  RabbitMQ__VirtualHost: /
+  RabbitMQ__Username: ${RABBITMQ_USER:-store_user}
+  RabbitMQ__Password: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required - set it in .env, see .env.example}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+
+x-identity-env: &identity-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_identity_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+  TrueAdmin__Email: ${TRUE_ADMIN_EMAIL:-trueadmin@store.com}
+  TrueAdmin__Password: ${TRUE_ADMIN_PASSWORD:?TRUE_ADMIN_PASSWORD is required - set it in .env, see .env.example}
+  # The showcase accounts and the password-less demo logins; off unless a deployment wants them
+  Demo__Enabled: ${DEMO_ENABLED:-false}
+
+x-product-env: &product-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_product_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+  InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
+
+x-cart-env: &cart-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_cart_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+  InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
+  Services__ProductService: http://productservice:8080
+
+x-order-env: &order-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_order_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+  InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
+  Services__ProductService: http://productservice:8080
+  Services__CartService: http://cartservice:8080
+
+x-audit-env: &audit-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_audit_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+
+x-infrastructure-ready: &infrastructure-ready
+  postgres:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+
 services:
-  # UI Service
-  ui:
-    build:
-      context: ./UI/store-app.UI
-      dockerfile: Dockerfile
-    image: store-app-ui:latest
-    container_name: store-ui
-    restart: unless-stopped
-    environment:
-      # The SPA calls /api on its own origin; nginx proxies it to the gateway
-      - GATEWAY_UPSTREAM=http://gateway:5000
-      - API_BASE_URL=/api/v1
-    ports:
-      - "${FRONTEND_PORT:-8081}:80"
-    depends_on:
-      - gateway
-    networks:
-      - store-network
   postgres:
     image: postgres:16-alpine
-    container_name: store-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: store_db
-      POSTGRES_USER: store_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-StrongPassword123!}
-      POSTGRES_MULTIPLE_DATABASES: store_identity_db,store_product_db,store_cart_db,store_order_db,store_audit_db
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-store_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./Infrastructure/scripts/init-databases.sql:/docker-entrypoint-initdb.d/02-init-databases.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U store_user -d store_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-store_user} -d store_db"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
-      - store-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: store-redis
-    restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD:-}"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    networks:
-      - store-network
+      - store
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: store-rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-store_user}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-StrongPassword123!}
-    ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required - set it in .env, see .env.example}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -76,287 +108,180 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
     networks:
-      - store-network
+      - store
 
-  # AuditLog Service - stores the audit events the other services publish
-  auditlogservice:
-    build:
-      context: .
-      dockerfile: Services/AuditLogService/Dockerfile
-    container_name: store-auditlogservice
-    restart: unless-stopped
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5004
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_audit_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
-      - JwtSettings__Issuer=Store.API
-      - JwtSettings__Audience=Store.Client
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-    ports:
-      - "5004:5004"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5004/health/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+  # --- identity ------------------------------------------------------------------------------
+  identity-migrate:
+    image: store/identity
+    environment: *identity-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
     networks:
-      - store-network
+      - store
 
-  # Identity Service
   identityservice:
     build:
       context: .
       dockerfile: Services/IdentityService/Dockerfile
-    container_name: store-identityservice
+    image: store/identity
+    <<: *limits
     restart: unless-stopped
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5001
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_identity_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
-      - JwtSettings__Issuer=Store.API
-      - JwtSettings__Audience=Store.Client
-      - TrueAdmin__Email=trueadmin@store.com
-      - TrueAdmin__Password=${TRUE_ADMIN_PASSWORD:-SecurePassword123!}
-      # The showcase accounts and the password-less demo logins; off unless a deployment wants them
-      - Demo__Enabled=true
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-    ports:
-      - "5001:5001"
+    environment: *identity-env
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      identity-migrate:
+        condition: service_completed_successfully
     networks:
-      - store-network
+      - store
 
-  # Product Service
+  # --- catalogue -----------------------------------------------------------------------------
+  product-migrate:
+    image: store/product
+    environment: *product-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
+    networks:
+      - store
+
   productservice:
     build:
       context: .
       dockerfile: Services/ProductService/Dockerfile
-    container_name: store-productservice
+    image: store/product
+    <<: *limits
     restart: unless-stopped
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5003
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_product_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
-      - JwtSettings__Issuer=Store.API
-      - JwtSettings__Audience=Store.Client
-      - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-    ports:
-      - "5003:5003"
+    environment: *product-env
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-      identityservice:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5003/health/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      product-migrate:
+        condition: service_completed_successfully
     networks:
-      - store-network
+      - store
 
-  # Cart Service
+  # --- cart ----------------------------------------------------------------------------------
+  cart-migrate:
+    image: store/cart
+    environment: *cart-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
+    networks:
+      - store
+
   cartservice:
     build:
       context: .
       dockerfile: Services/CartService/Dockerfile
-    container_name: store-cartservice
+    image: store/cart
+    <<: *limits
     restart: unless-stopped
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5005
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=store_cart_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
-      - JwtSettings__Issuer=Store.API
-      - JwtSettings__Audience=Store.Client
-      - InternalApi__ApiKey=${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      - Services__ProductService=http://productservice:5003
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Port=5672
-      - RabbitMQ__VirtualHost=/
-      - RabbitMQ__Username=${RABBITMQ_USER:-store_user}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-StrongPassword123!}
-    ports:
-      - "5005:5005"
+    environment: *cart-env
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-      identityservice:
-        condition: service_healthy
-      productservice:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5005/health/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      cart-migrate:
+        condition: service_completed_successfully
     networks:
-      - store-network
+      - store
 
-  # Order Service
+  # --- orders --------------------------------------------------------------------------------
+  order-migrate:
+    image: store/order
+    environment: *order-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
+    networks:
+      - store
+
   orderservice:
     build:
       context: .
       dockerfile: Services/OrderService/Dockerfile
-    container_name: store-orderservice
+    image: store/order
+    <<: *limits
     restart: unless-stopped
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:5006
-      ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_order_db;Username=store_user;Password=${POSTGRES_PASSWORD:-StrongPassword123!};Port=5432"
-      JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
-      JwtSettings__Issuer: Store.API
-      JwtSettings__Audience: Store.Client
-      InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
-      Services__ProductService: http://productservice:5003
-      Services__CartService: http://cartservice:5005
-      RabbitMQ__Host: rabbitmq
-      RabbitMQ__Port: 5672
-      RabbitMQ__VirtualHost: /
-      RabbitMQ__Username: ${RABBITMQ_USER:-store_user}
-      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-StrongPassword123!}
-    ports:
-      - "5006:5006"
+    environment: *order-env
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
-      identityservice:
-        condition: service_healthy
-      productservice:
-        condition: service_healthy
-      cartservice:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5006/health/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      order-migrate:
+        condition: service_completed_successfully
     networks:
-      - store-network
+      - store
 
-  # API Gateway
+  # --- audit ---------------------------------------------------------------------------------
+  audit-migrate:
+    image: store/audit
+    environment: *audit-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
+    networks:
+      - store
+
+  auditlogservice:
+    build:
+      context: .
+      dockerfile: Services/AuditLogService/Dockerfile
+    image: store/audit
+    <<: *limits
+    restart: unless-stopped
+    environment: *audit-env
+    depends_on:
+      audit-migrate:
+        condition: service_completed_successfully
+    networks:
+      - store
+
+  # --- gateway and UI ------------------------------------------------------------------------
   gateway:
     build:
       context: .
       dockerfile: Gateway/APIGateway/Dockerfile
-    container_name: store-gateway
+    image: store/gateway
+    <<: *limits
     restart: unless-stopped
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5000
-      - JwtSettings__SecretKey=${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
-      - JwtSettings__Issuer=Store.API
-      - JwtSettings__Audience=Store.Client
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      JwtSettings__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required - set it in .env, see .env.example}
+      JwtSettings__Issuer: Store.API
+      JwtSettings__Audience: Store.Client
+      # Where the routes go inside this network; the image carries no addresses of its own
+      ReverseProxy__Clusters__identity-cluster__Destinations__destination1__Address: http://identityservice:8080/
+      ReverseProxy__Clusters__products-cluster__Destinations__destination1__Address: http://productservice:8080/
+      ReverseProxy__Clusters__cart-cluster__Destinations__destination1__Address: http://cartservice:8080/
+      ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address: http://orderservice:8080/
+      ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address: http://auditlogservice:8080/
       # Sign-ins per minute per client; the end-to-end tests raise it, every scenario signs in on its own
-      - RateLimiting__Auth__CredentialPermitLimit=${AUTH_CREDENTIAL_LIMIT:-10}
-    ports:
-      - "5000:5000"
-    depends_on:
-      identityservice:
-        condition: service_healthy
-      productservice:
-        condition: service_healthy
-      cartservice:
-        condition: service_healthy
-      orderservice:
-        condition: service_healthy
-
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s
+      RateLimiting__Auth__CredentialPermitLimit: ${AUTH_CREDENTIAL_LIMIT:-10}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    # The services are not dependencies: the gateway starts, probes them and routes to the
+    # ones that answer
     networks:
-      - store-network
+      - store
 
-  # Optional: PgAdmin for database management
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: store-pgadmin
+  ui:
+    build:
+      context: ./UI/store-app.UI
+      dockerfile: Dockerfile
+    image: store/ui
+    <<: *limits
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@store-app.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      # The SPA calls /api on its own origin; nginx proxies it to the gateway
+      GATEWAY_UPSTREAM: http://gateway:8080
+      API_BASE_URL: /api/v1
     ports:
-      - "${PGADMIN_PORT:-8080}:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
+      - "${FRONTEND_PORT:-8081}:8080"
     networks:
-      - store-network
+      - store
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
-    driver: local
   rabbitmq_data:
-    driver: local
-  pgadmin_data:
-    driver: local
 
 networks:
-  store-network:
-    driver: bridge
-    name: store-network
+  store:

@@ -23,9 +23,13 @@ jobs:
     timeout-minutes: 45
     env:
       # Throw-away secrets for the stack under test; nothing here leaves the runner
+      POSTGRES_PASSWORD: e2e-only-postgres-password
+      RABBITMQ_PASSWORD: e2e-only-rabbitmq-password
       JWT_SECRET_KEY: e2e-only-jwt-secret-key-that-is-long-enough-0123456789
       INTERNAL_API_KEY: e2e-only-internal-api-key-0123456789abcdef
       TRUE_ADMIN_PASSWORD: E2e-Admin-Pass-1!
+      # The scenarios sign in as the demo accounts too
+      DEMO_ENABLED: "true"
       # Every scenario signs in on its own; the production limit (10 a minute) would stop them
       AUTH_CREDENTIAL_LIMIT: 1000
     steps:
@@ -33,6 +37,16 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - name: Start the stack
         run: docker compose up --build --detach --wait --wait-timeout 600
+      - name: Wait for the catalogue to answer through the UI
+        # The service containers have no health check of their own (chiseled images); the gateway
+        # routes to a service once its probe passes
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8081/api/v1/products?pageSize=1 > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::The stack did not answer within two minutes"
+          exit 1
       - name: Show the stack
         if: always()
         run: docker compose ps

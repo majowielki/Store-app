@@ -1,0 +1,77 @@
+# Development on top of docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Development environment (Swagger on every service, migrations applied by the service itself
+# too), the demo accounts, every port on the host (services 5001-5006, gateway 5000, PostgreSQL,
+# RabbitMQ with its management UI) and the Aspire dashboard on http://localhost:18888 receiving
+# the traces, metrics and logs of every host.
+
+x-dev-env: &dev-env
+  ASPNETCORE_ENVIRONMENT: Development
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+
+services:
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  rabbitmq:
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.5
+    restart: unless-stopped
+    environment:
+      # Nothing here leaves the machine; the dashboard keeps nothing across restarts either
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "${ASPIRE_DASHBOARD_PORT:-18888}:18888"
+    networks:
+      - store
+
+  identity-migrate:
+    environment:
+      <<: *dev-env
+      Demo__Enabled: "true"
+  identityservice:
+    environment:
+      <<: *dev-env
+      Demo__Enabled: "true"
+    ports:
+      - "${IDENTITY_SERVICE_PORT:-5001}:8080"
+
+  product-migrate:
+    environment: *dev-env
+  productservice:
+    environment: *dev-env
+    ports:
+      - "${PRODUCT_SERVICE_PORT:-5003}:8080"
+
+  cart-migrate:
+    environment: *dev-env
+  cartservice:
+    environment: *dev-env
+    ports:
+      - "${CART_SERVICE_PORT:-5005}:8080"
+
+  order-migrate:
+    environment: *dev-env
+  orderservice:
+    environment: *dev-env
+    ports:
+      - "${ORDER_SERVICE_PORT:-5006}:8080"
+
+  audit-migrate:
+    environment: *dev-env
+  auditlogservice:
+    environment: *dev-env
+    ports:
+      - "${AUDIT_SERVICE_PORT:-5004}:8080"
+
+  gateway:
+    environment: *dev-env
+    ports:
+      - "${GATEWAY_SERVICE_PORT:-5000}:8080"

@@ -55,7 +55,9 @@ public static class ObservabilityExtensions
                         if (userId is not null) activity.SetTag("enduser.id", userId);
                     };
                 })
-                .AddHttpClientInstrumentation()
+                .AddHttpClientInstrumentation(options =>
+                    // The gateway probes every service every few seconds; those calls are not traces either
+                    options.FilterHttpRequestMessage = request => !IsHealthProbe(request.RequestUri))
                 // Npgsql records the statement text (parameters stay out of it)
                 .AddNpgsql()
                 .AddSource(DiagnosticHeaders.DefaultListenerName))
@@ -74,4 +76,7 @@ public static class ObservabilityExtensions
 
         return builder;
     }
+
+    private static bool IsHealthProbe(Uri? uri)
+        => uri is not null && uri.AbsolutePath.StartsWith("/health", StringComparison.Ordinal);
 }
