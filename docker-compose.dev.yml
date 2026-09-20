@@ -21,6 +21,19 @@ services:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
 
+  # Local stand-in for Azure Blob Storage; devstoreaccount1/product-images is where seeded
+  # product images are expected to live (see DatabaseSeeder.cs)
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.34.0
+    restart: unless-stopped
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose --skipApiVersionCheck"
+    volumes:
+      - azurite_data:/data
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    networks:
+      - store
+
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13.5
     restart: unless-stopped
@@ -75,3 +88,11 @@ services:
     environment: *dev-env
     ports:
       - "${GATEWAY_SERVICE_PORT:-5000}:8080"
+
+  ui:
+    environment:
+      # Lets the browser load product images straight from the local blob emulator
+      CSP_IMG_SRC_EXTRA: http://localhost:${AZURITE_BLOB_PORT:-10000}
+
+volumes:
+  azurite_data:

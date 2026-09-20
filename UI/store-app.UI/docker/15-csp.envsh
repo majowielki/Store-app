@@ -2,6 +2,7 @@
 # Sourced by the nginx entrypoint before the templates are rendered: when the API lives on
 # another origin than this host (API_BASE_URL absolute), the content security policy must let
 # the app connect to it. CSP_CONNECT_SRC set explicitly wins.
+export CSP_IMG_SRC_EXTRA="${CSP_IMG_SRC_EXTRA:-}"
 if [ -z "${CSP_CONNECT_SRC:-}" ]; then
   case "${API_BASE_URL:-}" in
     http://*|https://*)
