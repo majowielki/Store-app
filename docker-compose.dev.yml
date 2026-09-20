@@ -24,7 +24,7 @@ services:
   # Local stand-in for Azure Blob Storage; devstoreaccount1/product-images is where seeded
   # product images are expected to live (see DatabaseSeeder.cs)
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:3.34.0
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
     restart: unless-stopped
     command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose --skipApiVersionCheck"
     volumes:
