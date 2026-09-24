@@ -9,3 +9,4 @@ export * from './label';
 export * from './pagination';
 export * from './select';
 export * from './skeleton';
+export * from './textarea';

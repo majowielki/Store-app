@@ -1,5 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
+import '@fontsource-variable/fraunces/opsz.css';
+import '@fontsource-variable/fraunces/opsz-italic.css';
+import '@fontsource-variable/geist';
 import App from './App.tsx';
 import './index.css';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';

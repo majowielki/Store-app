@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const { fontFamily } = require('tailwindcss/defaultTheme');
+
 module.exports = {
   darkMode: ["class"],
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -12,6 +14,10 @@ module.exports = {
   		}
   	},
   	extend: {
+  		fontFamily: {
+  			sans: ['"Geist Variable"', ...fontFamily.sans],
+  			display: ['"Fraunces Variable"', 'ui-serif', 'Georgia', 'serif']
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
@@ -46,6 +52,11 @@ module.exports = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+  			brand: {
+  				DEFAULT: 'hsl(var(--brand))',
+  				foreground: 'hsl(var(--brand-foreground))'
+  			},
+  			success: 'hsl(var(--success))',
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
@@ -61,6 +72,9 @@ module.exports = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		transitionTimingFunction: {
+  			smooth: 'cubic-bezier(0.22, 1, 0.36, 1)'
   		},
   		keyframes: {
   			'accordion-down': {
@@ -78,11 +92,43 @@ module.exports = {
   				to: {
   					height: '0'
   				}
+  			},
+  			marquee: {
+  				from: { transform: 'translateX(0)' },
+  				to: { transform: 'translateX(-50%)' }
+  			},
+  			'fade-up': {
+  				from: { opacity: '0', transform: 'translateY(16px)' },
+  				to: { opacity: '1', transform: 'none' }
+  			},
+  			'line-up': {
+  				from: { transform: 'translateY(110%)' },
+  				to: { transform: 'translateY(0)' }
+  			},
+  			'zoom-out': {
+  				from: { transform: 'scale(1.12)' },
+  				to: { transform: 'scale(1)' }
+  			},
+  			float: {
+  				'0%, 100%': { transform: 'translateY(0)' },
+  				'50%': { transform: 'translateY(-10px)' }
+  			},
+  			bump: {
+  				'0%': { transform: 'scale(1)' },
+  				'40%': { transform: 'scale(1.35)' },
+  				'100%': { transform: 'scale(1)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			marquee: 'marquee var(--marquee-duration, 40s) linear infinite',
+  			'fade-up': 'fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
+  			'line-up': 'line-up 1s cubic-bezier(0.22, 1, 0.36, 1) both',
+  			'zoom-out': 'zoom-out 1.8s cubic-bezier(0.22, 1, 0.36, 1) both',
+  			float: 'float 6s ease-in-out infinite',
+  			bump: 'bump 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+  			'spin-slow': 'spin 22s linear infinite'
   		}
   	}
   },
