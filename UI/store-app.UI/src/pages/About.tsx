@@ -1,134 +1,109 @@
-import { Card, CardContent } from "@/components/ui/card";
-import SectionTitle from "@/components/SectionTitle";
-import { Leaf, ShieldCheck, Truck, Sparkles } from "lucide-react";
-import hero1 from "@/assets/hero1.webp";
-import hero2 from "@/assets/hero2.webp";
+import { Link } from 'react-router-dom';
+import { ArrowUpRight, Leaf, ShieldCheck, Sparkles, Truck } from 'lucide-react';
+import hero3 from '@/assets/hero3.webp';
+import hero4 from '@/assets/hero4.webp';
+import CountUp from '@/components/CountUp';
+import Reveal from '@/components/Reveal';
+import { Button } from '@/components/ui/button';
+import { useParallax } from '@/hooks/use-parallax';
+
+const values = [
+  { icon: Leaf, title: 'Sustainable materials', text: 'We choose environmentally friendly resources, and wood from forests that are replanted.' },
+  { icon: ShieldCheck, title: 'Trusted quality', text: 'Craftsmanship and attention to detail, backed by a two-year warranty.' },
+  { icon: Truck, title: 'Fast delivery', text: 'Most orders arrive within 48 hours, and returns are free for thirty days.' },
+  { icon: Sparkles, title: 'Timeless design', text: 'Forms that never go out of style, in colours that sit well together.' },
+];
+
+const stats: { label: string; count?: number; text: string }[] = [
+  { label: 'happy customers', count: 10, text: 'k+' },
+  { label: 'average rating', text: '4.9/5' },
+  { label: 'delivery time', count: 48, text: 'h' },
+];
 
 const About = () => {
+  const bandRef = useParallax<HTMLImageElement>(60);
   return (
-    <section className="space-y-10">
-      <SectionTitle text="About us" />
+    <div>
+      <header className="max-w-4xl">
+        <p className="eyebrow animate-fade-up">About us</p>
+        <h1 className="display mt-6 text-[clamp(2.75rem,6.5vw,6rem)] leading-[0.95]">
+          <span className="line-mask">
+            <span>We design comfort</span>
+          </span>
+          <span className="line-mask">
+            <span style={{ animationDelay: '90ms' }}>
+              that looks as good <em className="text-brand">as it feels.</em>
+            </span>
+          </span>
+        </h1>
+        <p className="mt-8 max-w-xl animate-fade-up text-lg leading-relaxed text-muted-foreground [animation-delay:300ms]">
+          From concept to delivery — we obsess over the details. Our products blend function with aesthetics so everyday
+          life simply feels better.
+        </p>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        {/* Copy & features */}
+      <Reveal className="mt-16 aspect-[16/10] overflow-hidden rounded-[2rem] bg-muted md:aspect-[21/9]">
+        <img ref={bandRef} src={hero3} alt="A living room with a corner sofa and a wooden wall" className="h-full w-full scale-[1.12] object-cover" />
+      </Reveal>
+
+      <dl className="mt-16 grid gap-8 border-y py-12 sm:grid-cols-3">
+        {stats.map((stat, index) => (
+          <Reveal key={stat.label} delay={index * 100} className="flex flex-col-reverse items-center text-center">
+            <dt className="eyebrow mt-3">{stat.label}</dt>
+            <dd className="display text-6xl md:text-7xl">
+              {stat.count !== undefined && <CountUp value={stat.count} />}
+              {stat.text}
+            </dd>
+          </Reveal>
+        ))}
+      </dl>
+
+      <section className="mt-24 grid items-center gap-16 lg:grid-cols-2">
         <div>
-          <h1 className="font-bold text-4xl tracking-tight sm:text-5xl leading-tight">
-            We design comfort that looks as good as it feels
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">
-            From concept to delivery — we obsess over the details. Our products
-            blend function with aesthetics so everyday life simply feels better.
-          </p>
-
-          <ul className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <li className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                <Leaf className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="font-medium">Sustainable materials</p>
-                <p className="text-sm text-muted-foreground">
-                  We choose environmentally friendly resources.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                <ShieldCheck className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="font-medium">Trusted quality</p>
-                <p className="text-sm text-muted-foreground">
-                  Craftsmanship and attention to detail.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                <Truck className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="font-medium">Fast delivery</p>
-                <p className="text-sm text-muted-foreground">
-                  Fast delivery and hassle-free returns.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="font-medium">Timeless design</p>
-                <p className="text-sm text-muted-foreground">
-                  Forms that never go out of style.
-                </p>
-              </div>
-            </li>
+          <Reveal>
+            <p className="eyebrow">What we care about</p>
+            <h2 className="display mt-3 text-4xl leading-[1.05] md:text-5xl">
+              Four things we <em>never</em> compromise on.
+            </h2>
+          </Reveal>
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+            {values.map(({ icon: Icon, title, text }, index) => (
+              <Reveal as="li" key={title} delay={index * 80} className="rounded-2xl border bg-card p-6 transition-colors hover:border-foreground/30">
+                <span className="grid h-11 w-11 place-items-center rounded-full bg-secondary">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <p className="mt-5 font-medium">{title}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{text}</p>
+              </Reveal>
+            ))}
           </ul>
-
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-3xl font-bold tracking-tight">10k+</p>
-        <p className="text-sm text-muted-foreground">happy customers</p>
-              </CardContent>
-            </Card>
-      <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-3xl font-bold tracking-tight">4.9/5</p>
-        <p className="text-sm text-muted-foreground">average rating</p>
-              </CardContent>
-            </Card>
-      <Card>
-              <CardContent className="pt-6 text-center">
-    <p className="text-3xl font-bold tracking-tight">48h</p>
-  <p className="text-sm text-muted-foreground">delivery time</p>
-              </CardContent>
-            </Card>
-          </div>
         </div>
-
-        {/* Visual collage */}
-        <div>
-          {/* Simple grid collage for all screens */}
-          <div className="relative rounded-2xl p-3 bg-gradient-to-br from-primary/10 via-accent/20 to-transparent">
-            <div className="grid grid-cols-2 gap-3">
-              <img
-                src={hero1}
-                alt="Cozy armchair in a modern interior"
-                className="col-span-1 aspect-[3/4] w-full rounded-xl object-cover shadow-sm"
-                loading="lazy"
-              />
-              <img
-                src={hero2}
-                alt="Material details and finish"
-                className="col-span-1 aspect-[3/4] w-full rounded-xl object-cover shadow-sm"
-                loading="lazy"
-              />
-              <div className="col-span-2">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs sm:text-sm text-secondary-foreground">
-                    <Leaf className="h-4 w-4" aria-hidden />
-                    Ethically sourced
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs sm:text-sm text-secondary-foreground">
-                    <ShieldCheck className="h-4 w-4" aria-hidden />
-                    2-year warranty
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs sm:text-sm text-secondary-foreground">
-                    <Truck className="h-4 w-4" aria-hidden />
-                    Free returns
-                  </span>
-                </div>
-              </div>
-            </div>
+        <Reveal className="relative">
+          <div className="aspect-[4/5] overflow-hidden rounded-[2rem] bg-muted">
+            <img src={hero4} alt="A bedroom with a white headboard and an oak wardrobe" loading="lazy" className="h-full w-full object-cover" />
           </div>
+          <div className="absolute -bottom-6 left-6 flex flex-wrap gap-2">
+            {['Ethically sourced', '2-year warranty', 'Free returns'].map((tag) => (
+              <span key={tag} className="rounded-full bg-background/90 px-4 py-2 text-xs font-medium shadow-lg backdrop-blur">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </Reveal>
+      </section>
 
-          {/* Enhanced layered collage removed for xl screens */}
-        </div>
-      </div>
-    </section>
+      <Reveal className="mt-28 flex flex-col items-center text-center">
+        <h2 className="display max-w-2xl text-4xl md:text-6xl">
+          Ready to find <em>your</em> piece?
+        </h2>
+        <Button asChild size="lg" className="group mt-8">
+          <Link to="/products">
+            Explore the shop
+            <ArrowUpRight className="transition-transform duration-500 ease-smooth group-hover:rotate-45" />
+          </Link>
+        </Button>
+      </Reveal>
+    </div>
   );
 };
 export default About;

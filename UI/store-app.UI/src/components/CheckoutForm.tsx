@@ -46,12 +46,15 @@ const CheckoutForm = () => {
   };
 
   return (
-    <form method="post" className="flex flex-col gap-y-4" onSubmit={handleSubmit}>
-      <h4 className="font-medium text-xl mb-4">Delivery Information</h4>
+    <form method="post" className="flex flex-col gap-y-5" onSubmit={handleSubmit}>
+      <div className="mb-2">
+        <h2 className="display text-3xl">Delivery details</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Where should we bring your order? We will call before we come.</p>
+      </div>
       <FormInput label="user name" name="name" type="text" defaultValue={defaultUserName} readOnly={isDemo} />
       <FormInput label="address" name="address" type="text" defaultValue={defaultAddress} readOnly={isDemo} />
       {!isDemo && <FormCheckbox name="saveAddress" label="save address to my profile" />}
-      <SubmitBtn text="Place Your Order" className="mt-4" isSubmitting={isLoading} />
+      <SubmitBtn text="Place Your Order" className="mt-4 w-full" isSubmitting={isLoading} />
     </form>
   );
 };

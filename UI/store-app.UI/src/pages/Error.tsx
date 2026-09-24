@@ -1,32 +1,37 @@
 import { useRouteError, Link, isRouteErrorResponse } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Logo from "@/components/Logo";
 
 const Error = () => {
   const error = useRouteError();
-  if (isRouteErrorResponse(error) && error.status === 404) {
-    return (
-      <main className="grid min-h-[100vh] place-items-center px-8">
-        <div className="text-center">
-          <p className="text-9xl font-semibold text-primary">404</p>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
-            Page not found
-          </h1>
-          <p className="mt-6 text-lg leading-7">
-            Sorry, we could not find the page you are looking for.
-          </p>
-          <div className="mt-10">
-            <Button asChild size="lg" variant="secondary">
-              <Link to="/"> Go back home</Link>
-            </Button>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  const notFound = isRouteErrorResponse(error) && error.status === 404;
 
   return (
-    <main className="grid min-h-[100vh] place-items-center px-8">
-      <h4 className="text-center font-bold text-4xl">there was an error...</h4>
+    <main className="relative grid min-h-[100vh] place-items-center overflow-hidden px-6">
+      <Logo className="absolute left-6 top-6 sm:left-10 sm:top-8" />
+      <p aria-hidden className="display pointer-events-none absolute select-none text-[42vw] leading-none text-foreground/[0.04]">
+        {notFound ? "404" : "oops"}
+      </p>
+      <div className="relative text-center">
+        <p className="eyebrow animate-fade-up">{notFound ? "Error 404" : "Something went wrong"}</p>
+        <h1 className="display mt-4 animate-fade-up text-5xl [animation-delay:80ms] sm:text-7xl">
+          {notFound ? <>This room is <em className="text-brand">empty.</em></> : <>There was an <em className="text-brand">error…</em></>}
+        </h1>
+        <p className="mx-auto mt-6 max-w-md animate-fade-up text-lg text-muted-foreground [animation-delay:160ms]">
+          {notFound
+            ? "Sorry, we could not find the page you are looking for."
+            : "The page could not be shown. Try again in a moment, or start over from the home page."}
+        </p>
+        <div className="mt-10 animate-fade-up [animation-delay:240ms]">
+          <Button asChild size="lg" className="group">
+            <Link to="/">
+              <ArrowLeft className="transition-transform duration-300 group-hover:-translate-x-1" />
+              Go back home
+            </Link>
+          </Button>
+        </div>
+      </div>
     </main>
   );
 }

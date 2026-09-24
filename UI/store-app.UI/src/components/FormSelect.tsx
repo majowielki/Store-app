@@ -8,6 +8,7 @@ import {
 } from "./ui/select";
 
 import { Label } from "./ui/label";
+import { fieldLabelClass } from "./FormInput";
 
 type OptionType = string | { value: string; label: string };
 interface SelectInputProps {
@@ -57,8 +58,8 @@ const FormSelect = ({ label, name, options, defaultValue, includeAll = false, va
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultValue, includeAll, JSON.stringify(options)]);
   return (
-    <div className="mb-2">
-      <Label htmlFor={name} className="capitalize">
+    <div className="grid gap-2">
+      <Label htmlFor={name} className={fieldLabelClass}>
         {label || name}
       </Label>
       {/* hidden input to participate in native form submission */}

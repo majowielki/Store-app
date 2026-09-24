@@ -16,3 +16,7 @@ export const categories: Category[] = [
   { slug: 'garden', label: 'Garden', group: 'garden' },
   { slug: 'sale', label: 'Sale', group: 'sale' },
 ];
+
+/** Where a navigation category leads: the listing of its group, or every product on sale. */
+export const categoryHref = (category: Category): string =>
+  category.group === 'sale' ? '/products?sale=on' : `/products?group=${encodeURIComponent(category.group)}`;

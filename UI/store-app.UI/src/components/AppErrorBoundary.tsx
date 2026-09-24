@@ -31,11 +31,11 @@ export class AppErrorBoundary extends Component<Props, State> {
     return (
       <main className="grid min-h-[100vh] place-items-center px-8 text-center">
         <div>
-          <h1 className="text-3xl font-bold">Something went wrong</h1>
+          <h1 className="font-display text-5xl">Something went wrong</h1>
           <p className="mt-4">Reload the page to continue.</p>
           <button
             type="button"
-            className="mt-8 rounded-md border px-4 py-2"
+            className="mt-8 rounded-full border px-6 py-2.5 text-sm font-medium"
             onClick={() => window.location.reload()}
           >
             Reload

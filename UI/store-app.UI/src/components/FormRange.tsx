@@ -3,12 +3,16 @@ import { useEffect, useState } from "react";
 
 import { Label } from "@/components/ui/label";
 import { Slider } from "./ui/slider";
+import { fieldLabelClass } from "./FormInput";
 
 interface FormRangeProps {
   name: string; // expected to be "price"
   label?: string;
   defaultValue?: string; // "min,max" or "min-max"
 };
+
+const numberClass =
+  "h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm tabular-nums transition-[border-color,box-shadow] focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/10";
 
 const FormRange = ({ name, label, defaultValue }: FormRangeProps) => {
   const step = 1;
@@ -31,15 +35,15 @@ const FormRange = ({ name, label, defaultValue }: FormRangeProps) => {
   }, [range]);
 
   return (
-    <div className="mb-2">
-      <Label htmlFor={name} className="capitalize flex justify-between">
-        {label || name}
-        <span>
-          {formatAsDollars(range[0])} - {formatAsDollars(range[1])}
+    <div className="grid gap-2">
+      <Label htmlFor={name} className="flex items-baseline justify-between">
+        <span className={fieldLabelClass}>{label || name}</span>
+        <span className="text-xs tabular-nums text-foreground">
+          {formatAsDollars(range[0])} – {formatAsDollars(range[1])}
         </span>
       </Label>
 
-      <div className="mt-4">
+      <div className="py-3">
         <Slider
           id={name}
           step={step}
@@ -49,7 +53,7 @@ const FormRange = ({ name, label, defaultValue }: FormRangeProps) => {
           onValueChange={(value) => setRange([value[0], value[1] ?? value[0]])}
         />
       </div>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <input
           type="number"
           min={min}
@@ -61,10 +65,10 @@ const FormRange = ({ name, label, defaultValue }: FormRangeProps) => {
             const lo = Math.min(Math.max(min, v), range[1]);
             setRange([lo, range[1]]);
           }}
-          className="w-24 rounded-md border border-input bg-background px-2 py-1 text-sm"
+          className={numberClass}
           aria-label="Minimum price"
         />
-        <span className="text-sm text-muted-foreground">to</span>
+        <span className="text-muted-foreground">–</span>
         <input
           type="number"
           min={min}
@@ -76,7 +80,7 @@ const FormRange = ({ name, label, defaultValue }: FormRangeProps) => {
             const hi = Math.max(Math.min(max, v), range[0]);
             setRange([range[0], hi]);
           }}
-          className="w-24 rounded-md border border-input bg-background px-2 py-1 text-sm"
+          className={numberClass}
           aria-label="Maximum price"
         />
       </div>

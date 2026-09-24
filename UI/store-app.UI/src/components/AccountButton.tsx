@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { UserCircle2 } from 'lucide-react';
+import { LayoutDashboard, LogIn, LogOut, Package, UserPlus, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -57,56 +58,71 @@ const AccountButton = () => {
   };
 
   return (
-    <div className="flex items-center gap-2 sm:gap-3">
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="gap-2"
-            aria-haspopup="menu"
-            ref={triggerRef}
-            onMouseEnter={() => setOpen(true)}
-            onClick={() => setOpen((v) => !v)}
-          >
-            <UserCircle2 className="h-5 w-5" />
-            <span className="hidden sm:inline">My Account</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[180px]" ref={contentRef} onInteractOutside={() => setOpen(false)}>
-          {!user ? (
-            <>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-haspopup="menu"
+          ref={triggerRef}
+          onMouseEnter={() => setOpen(true)}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <UserRound className="!h-[1.15rem] !w-[1.15rem]" />
+          <span className="sr-only">My Account</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[220px]" ref={contentRef} onInteractOutside={() => setOpen(false)}>
+        {!user ? (
+          <>
+            <DropdownMenuLabel className="font-normal">
+              <p className="display text-lg">Welcome</p>
+              <p className="text-xs text-muted-foreground">Sign in to see your orders</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/login" onClick={() => setOpen(false)}>
+                <LogIn />
+                Sign in / Guest
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/register" onClick={() => setOpen(false)}>
+                <UserPlus />
+                Register
+              </Link>
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuLabel className="font-normal">
+              <p className="display text-lg">Hi, {user.firstName || user.userName}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {admin && (
               <DropdownMenuItem asChild>
-                <Link to="/login" onClick={() => setOpen(false)}>
-                  Sign in / Guest
+                <Link to="/admin" onClick={() => setOpen(false)}>
+                  <LayoutDashboard />
+                  Dashboard
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/register" onClick={() => setOpen(false)}>
-                  Register
-                </Link>
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <>
-              {admin && (
-                <DropdownMenuItem asChild>
-                  <Link to="/admin" onClick={() => setOpen(false)}>
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem asChild>
-                <Link to="/orders" onClick={() => setOpen(false)}>
-                  Orders
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+            )}
+            <DropdownMenuItem asChild>
+              <Link to="/orders" onClick={() => setOpen(false)}>
+                <Package />
+                Orders
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

@@ -26,7 +26,7 @@ describe('Cart page', () => {
     await userEvent.click(screen.getByRole('button', { name: 'remove' }));
 
     expect(store.getState().guestCart.items).toEqual([]);
-    expect(screen.getByRole('heading', { name: /empty cart/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /cart is empty/i })).toBeInTheDocument();
   });
 
   it('lists the server cart for a signed-in user and offers the checkout', async () => {
@@ -42,7 +42,7 @@ describe('Cart page', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'remove' }));
 
-    expect(await screen.findByRole('heading', { name: /empty cart/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /cart is empty/i })).toBeInTheDocument();
     expect(await screen.findByText('Item removed from the cart')).toBeInTheDocument();
   });
 

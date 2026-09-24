@@ -1,17 +1,16 @@
-import { Separator } from "./ui/separator";
-
 interface SectionTitleProps {
   text: string;
+  /** A small line above the title. */
+  eyebrow?: string;
 }
 
-const SectionTitle = ({ text }: SectionTitleProps) => {
+/** The title of a page of the shop, in the display serif over a hairline. */
+const SectionTitle = ({ text, eyebrow }: SectionTitleProps) => {
   return (
-    <div>
-      <h2 className="text-3xl font-medium tracking-wider capitalize mb-8">
-        {text}
-      </h2>
-      <Separator />
-    </div>
+    <header className="animate-fade-up border-b pb-8">
+      {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
+      <h2 className="display text-5xl first-letter:uppercase md:text-6xl">{text}</h2>
+    </header>
   );
 };
 

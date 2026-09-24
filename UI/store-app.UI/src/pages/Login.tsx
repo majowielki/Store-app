@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SubmitBtn, FormInput } from '@/components';
+import AuthShell from '@/components/AuthShell';
+import hero4 from '@/assets/hero4.webp';
 import { isAdmin } from '@/features/session/roles';
 import { signIn, type SignInRequest } from '@/features/session/sessionThunks';
 import { useAppDispatch } from '@/hooks';
 import { toast } from '@/hooks/use-toast';
 import { validateLogin } from '@/utils/validation';
-import { closeAuthPage } from '@/utils/closeAuthPage';
+
+const FieldError = ({ message }: { message?: string }) =>
+  message ? <p className="-mt-2 animate-fade-up text-xs text-destructive">{message}</p> : null;
 
 const Login = () => {
   const dispatch = useAppDispatch();
@@ -42,57 +45,36 @@ const Login = () => {
   };
 
   return (
-    <section className="h-screen grid place-items-center">
-      <Card className="w-96 bg-muted relative">
-        <button
-          type="button"
-          onClick={closeAuthPage}
-          className="absolute top-2 right-2 text-xl px-2 py-1 rounded hover:bg-gray-200"
-          title="Close"
-          aria-label="Close"
-        >
-          ×
-        </button>
-        <CardHeader>
-          <CardTitle className="text-center">Login</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form method="post" className="space-y-4" onSubmit={handleSubmit}>
-            <FormInput type="email" name="email" value={form.email} onChange={handleChange} autoComplete="email" />
-            {errors.email && <div className="text-red-500 text-xs mb-1">{errors.email}</div>}
-            <FormInput type="password" name="password" value={form.password} onChange={handleChange} autoComplete="current-password" />
-            {errors.password && <div className="text-red-500 text-xs mb-1">{errors.password}</div>}
-            <SubmitBtn text="Login" className="w-full mt-4" isSubmitting={busy === 'login'} disabled={busy !== null} />
-            <div className="flex gap-2 mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-1/2"
-                disabled={busy !== null}
-                onClick={() => start({ kind: 'demoUser' }, 'Demo user logged in!')}
-              >
-                Demo User
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-1/2"
-                disabled={busy !== null}
-                onClick={() => start({ kind: 'demoAdmin' }, 'Demo admin logged in!')}
-              >
-                Demo Admin
-              </Button>
-            </div>
-            <p className="text-center mt-4">
-              Not a member?{' '}
-              <Button type="button" asChild variant="link">
-                <Link to="/register">Register</Link>
-              </Button>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
-    </section>
+    <AuthShell eyebrow="Sign in" title={<>Welcome <em>back.</em></>} lead="Sign in to see your orders and check out faster." image={hero4}>
+      <form method="post" className="grid gap-5" onSubmit={handleSubmit} noValidate>
+        <FormInput type="email" name="email" value={form.email} onChange={handleChange} autoComplete="email" />
+        <FieldError message={errors.email} />
+        <FormInput type="password" name="password" value={form.password} onChange={handleChange} autoComplete="current-password" />
+        <FieldError message={errors.password} />
+        <SubmitBtn text="Login" className="mt-2 w-full" isSubmitting={busy === 'login'} disabled={busy !== null} />
+      </form>
+
+      <div className="my-8 flex items-center gap-4 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        or look around first
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Button type="button" variant="outline" disabled={busy !== null} onClick={() => start({ kind: 'demoUser' }, 'Demo user logged in!')}>
+          Demo User
+        </Button>
+        <Button type="button" variant="outline" disabled={busy !== null} onClick={() => start({ kind: 'demoAdmin' }, 'Demo admin logged in!')}>
+          Demo Admin
+        </Button>
+      </div>
+
+      <p className="mt-10 text-center text-sm text-muted-foreground">
+        Not a member?{' '}
+        <Link to="/register" className="link-underline font-medium text-foreground">
+          Register
+        </Link>
+      </p>
+    </AuthShell>
   );
 };
 export default Login;

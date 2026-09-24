@@ -22,11 +22,11 @@ export const findProducts = async (request: APIRequestContext, query: Record<str
 
 export const register = async (page: Page, email: string) => {
   await page.goto('/register');
-  await page.getByLabel('firstName', { exact: true }).fill('E2e');
-  await page.getByLabel('lastName', { exact: true }).fill('Tester');
+  await page.getByLabel('first name', { exact: true }).fill('E2e');
+  await page.getByLabel('last name', { exact: true }).fill('Tester');
   await page.getByLabel('email', { exact: true }).fill(email);
   await page.getByLabel('password', { exact: true }).fill(password);
-  await page.getByLabel('confirmPassword', { exact: true }).fill(password);
+  await page.getByLabel('confirm password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Register' }).click();
   await expectToast(page, 'Successfully registered!');
 };

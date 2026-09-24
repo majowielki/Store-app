@@ -8,7 +8,7 @@ const OrderDetail = () => {
 
   if (isLoading) return <div>Loading...</div>;
   if (!order) return <div>Order not found.</div>;
-  return <OrderSummary title={`Order #${order.id}`} order={order} showStatus />;
+  return <OrderSummary title="Order details" order={order} showStatus />;
 };
 
 export default OrderDetail;

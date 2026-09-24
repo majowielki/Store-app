@@ -1,41 +1,96 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { ArrowUpRight } from 'lucide-react';
+import { useOpenProduct } from '@/hooks/use-open-product';
+import { cn } from '@/lib/utils';
 import { formatAsDollars, priceTag, type Product } from '@/utils';
 import SaleBadge from './SaleBadge';
 
 /** The price as every listing shows it: the sale price first, the list price struck through. */
-export const ProductPrice = ({ product }: { product: Product }) => {
+export const ProductPrice = ({ product, stacked = false }: { product: Product; stacked?: boolean }) => {
   const { price, effectivePrice, hasSale } = priceTag(product);
   return hasSale ? (
-    <>
-      <span className="text-primary font-semibold mr-2">{formatAsDollars(effectivePrice)}</span>
-      <span className="line-through text-muted-foreground">{formatAsDollars(price)}</span>
-    </>
+    <span className={cn('inline-flex gap-x-2', stacked ? 'flex-col items-end' : 'items-baseline')}>
+      <span className="font-medium text-brand">{formatAsDollars(effectivePrice)}</span>
+      <span className="text-sm text-muted-foreground line-through">{formatAsDollars(price)}</span>
+    </span>
   ) : (
-    <span className="text-primary font-light">{formatAsDollars(price)}</span>
+    <span className="font-medium">{formatAsDollars(price)}</span>
   );
 };
 
-/** A product tile of the grid listings (landing page, catalogue grid). */
-const ProductCard = ({ product }: { product: Product }) => {
-  const { title, image } = product;
-  const { hasSale, percent } = priceTag(product);
+/** The first few colours a product comes in, as small swatches. */
+export const ColorDots = ({ colors, className }: { colors: string[]; className?: string }) => {
+  if (colors.length === 0) return null;
+  const shown = colors.slice(0, 5);
   return (
-    <Link to={`/products/${product.id}`}>
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative w-full aspect-[4/3] bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
-            <img src={image} alt={title} className="w-full h-full object-cover" style={{ aspectRatio: '4/3' }} />
-            {hasSale && <SaleBadge percent={percent} />}
-          </div>
-          <div className="mt-4 text-center">
-            <h2 className="text-xl font-semibold capitalize">{title}</h2>
-            <p className="mt-2">
-              <ProductPrice product={product} />
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+    <div className={cn('flex items-center gap-1.5', className)} aria-label={`Colours: ${colors.join(', ')}`}>
+      {shown.map((color) => (
+        <span key={color} className="h-3 w-3 rounded-full border border-foreground/15" style={{ backgroundColor: color }} />
+      ))}
+      {colors.length > shown.length && <span className="text-xs text-muted-foreground">+{colors.length - shown.length}</span>}
+    </div>
+  );
+};
+
+interface ProductCardProps {
+  product: Product;
+  /**
+   * The image travels to the product page (a view transition). Off for tiles on a product
+   * page, whose own image already carries the transition's name.
+   */
+  transition?: boolean;
+  className?: string;
+}
+
+/** A product tile of the grid listings (landing page, catalogue grid, related products). */
+const ProductCard = ({ product, transition = true, className }: ProductCardProps) => {
+  const { title, image, company, colors, newArrival } = product;
+  const { hasSale, percent } = priceTag(product);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const openProduct = useOpenProduct();
+
+  return (
+    <Link
+      to={`/products/${product.id}`}
+      viewTransition={transition}
+      onClick={() => openProduct(product, transition ? imageRef.current : null)}
+      className={cn('group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4', className)}
+    >
+      <div className="relative aspect-[5/4] overflow-hidden rounded-2xl bg-muted">
+        <img
+          ref={imageRef}
+          src={image}
+          alt={title}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-[1.06]"
+        />
+        <div className="absolute left-3 top-3 flex gap-1.5">
+          {hasSale && <SaleBadge percent={percent} />}
+          {newArrival && (
+            <span className="inline-flex items-center rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none tracking-wide backdrop-blur">
+              New
+            </span>
+          )}
+        </div>
+        <span
+          aria-hidden
+          className="absolute bottom-3 right-3 grid h-11 w-11 translate-y-3 place-items-center rounded-full bg-background text-foreground opacity-0 shadow-lg transition-all duration-500 ease-smooth group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+        >
+          <ArrowUpRight className="h-5 w-5 transition-transform duration-500 ease-smooth group-hover:rotate-45" />
+        </span>
+      </div>
+      <div className="mt-4 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="eyebrow">{company}</p>
+          <h3 className="mt-1.5 font-medium leading-snug">{title}</h3>
+        </div>
+        <p className="shrink-0 text-right">
+          <ProductPrice product={product} stacked />
+        </p>
+      </div>
+      <ColorDots colors={colors} className="mt-3" />
     </Link>
   );
 };

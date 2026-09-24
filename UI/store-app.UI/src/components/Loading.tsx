@@ -1,16 +1,15 @@
 import { Skeleton } from "./ui/skeleton";
 
+/** Placeholders shaped like the product tiles, while a page's data is on its way. */
 const Loading = () => {
   return (
-    <div className="pt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 3 }).map((_, index) => {
+    <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading">
+      {Array.from({ length: 6 }).map((_, index) => {
         return (
-          <div key={index} className="flex flex-col space-y-3">
-            <Skeleton className="h-[125px] w-full rounded-xl" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 mx-auto w-[250px]" />
-              <Skeleton className="h-4 mx-auto w-[250px]" />
-            </div>
+          <div key={index} className="flex flex-col">
+            <Skeleton className="aspect-[5/4] w-full rounded-2xl" />
+            <Skeleton className="mt-4 h-3 w-16" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
           </div>
         );
       })}

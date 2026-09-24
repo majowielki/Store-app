@@ -39,11 +39,15 @@ export const ordersApi = api.injectEndpoints({
       query: (params) => ({ url: '/orders/my-orders', params }),
       providesTags: ['Orders'],
     }),
-    /** The rules the order service prices by; the cart page previews the amounts with them. */
+    /**
+     * The rules the order service prices by; the cart page previews the amounts with them and
+     * the shop's banners quote them. Silent: every page that shows them does without.
+     */
     getPricingRules: build.query<PricingRules, void>({
       query: () => '/orders/pricing-rules',
       // Configuration of the store, not data of a user: kept for the whole visit
       keepUnusedDataFor: 24 * 60 * 60,
+      extraOptions: { silent: true },
     }),
     /** Whether the customer has ordered before: the first order is discounted. */
     getHasOrders: build.query<HasOrdersResponse, void>({

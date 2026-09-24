@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Layers, Ruler, Scale } from 'lucide-react';
-import { useGetProductQuery } from '@/api/catalog';
+import { Check, ChevronRight, ShoppingBag } from 'lucide-react';
+import { useGetProductQuery, useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
 import { isApiError } from '@/api/problem';
-import { Loading, SectionTitle, SelectProductAmount, SelectProductColor } from '@/components';
+import { Loading, ProductCard, SelectProductAmount, SelectProductColor } from '@/components';
+import Reveal from '@/components/Reveal';
+import SaleBadge from '@/components/SaleBadge';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { usePerks } from '@/content/perks';
 import { useCartActions } from '@/features/cart/useCart';
 import { toast } from '@/hooks/use-toast';
 import { formatAsDollars, priceTag, type Product } from '@/utils';
@@ -17,105 +19,208 @@ const SingleProduct = () => {
 
   if (isLoading) return <Loading />;
   if (!product) {
-    return <SectionTitle text={isApiError(error) && error.status === 404 ? 'Product not found' : 'Product unavailable'} />;
+    const notFound = isApiError(error) && error.status === 404;
+    return (
+      <div className="grid place-items-center py-24 text-center">
+        <p className="eyebrow">{notFound ? '404' : 'Unavailable'}</p>
+        <h1 className="display mt-4 text-5xl">{notFound ? 'Product not found' : 'Product unavailable'}</h1>
+        <Button asChild variant="outline" className="mt-8">
+          <Link to="/products">Back to the shop</Link>
+        </Button>
+      </div>
+    );
   }
-  return <ProductDetails product={product} />;
+  // Keyed, so moving to another product starts with its own colour and amount
+  return <ProductDetails key={product.id} product={product} />;
+};
+
+/** The product photograph, magnified under the pointer; it is also where the listing's tile lands. */
+const ZoomImage = ({ src, alt }: { src: string; alt: string }) => {
+  const [zoomed, setZoomed] = useState(false);
+  const [origin, setOrigin] = useState('50% 50%');
+  return (
+    <div
+      className="relative aspect-[5/4] cursor-zoom-in overflow-hidden rounded-[2rem] bg-muted"
+      onMouseEnter={() => setZoomed(true)}
+      onMouseLeave={() => setZoomed(false)}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setOrigin(`${((e.clientX - rect.left) / rect.width) * 100}% ${((e.clientY - rect.top) / rect.height) * 100}%`);
+      }}
+    >
+      <img
+        data-vt="product-image"
+        src={src}
+        alt={alt}
+        className="h-full w-full object-cover transition-transform duration-500 ease-smooth"
+        style={{ transformOrigin: origin, transform: zoomed ? 'scale(1.8)' : 'scale(1)' }}
+      />
+    </div>
+  );
+};
+
+/** Up to four products from the same category, topped up from the same room. */
+const RelatedProducts = ({ product }: { product: Product }) => {
+  const group = product.groups[0];
+  const { data: sameCategory } = useGetProductsQuery({ category: product.category, pageSize: 5 });
+  const others = (sameCategory?.items ?? []).filter((p) => p.id !== product.id);
+  const { data: sameGroup } = useGetProductsQuery({ group, pageSize: 8 }, { skip: !sameCategory || others.length >= 4 || !group });
+  const related = [...others, ...(sameGroup?.items ?? []).filter((p) => p.id !== product.id && !others.some((o) => o.id === p.id))].slice(0, 4);
+
+  if (related.length === 0) return null;
+  return (
+    <section className="mt-24 border-t pt-16 md:mt-32">
+      <Reveal as="header">
+        <p className="eyebrow">Keep browsing</p>
+        <h2 className="display mt-3 text-4xl md:text-5xl">You may also like</h2>
+      </Reveal>
+      <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+        {related.map((p, index) => (
+          <Reveal key={p.id} delay={index * 80}>
+            <ProductCard product={p} transition={false} />
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
 };
 
 const ProductDetails = ({ product }: { product: Product }) => {
-  const { image, title, description, colors, company, widthCm, heightCm, depthCm, weightKg, materials } = product;
-  const companyLabel = company ? company.charAt(0).toUpperCase() + company.slice(1) : '';
+  const { image, title, description, colors, company, widthCm, heightCm, depthCm, weightKg, materials, groups } = product;
   const materialsText = (materials ?? []).filter(Boolean).join(', ');
-  const { price, effectivePrice, hasSale } = priceTag(product);
+  const { price, effectivePrice, hasSale, percent } = priceTag(product);
   const [productColor, setProductColor] = useState(colors[0]);
   const [amount, setAmount] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   const { add } = useCartActions();
+  const perks = usePerks().filter((perk) => perk.key !== 'welcome');
+  const { data: meta } = useGetProductsMetaQuery();
+  const group = meta?.groupCategoryMap.find((g) => g.key === groups[0]);
+
+  // The tick on the button fades back to the bag after a moment
+  useEffect(() => {
+    if (!added) return;
+    const timer = window.setTimeout(() => setAdded(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [added]);
 
   const addToCart = async () => {
+    setAdding(true);
     try {
       // The cart charges what the page shows: the sale price when the product is on sale
       await add({ productId: product.id, title, image, company, color: productColor, unitPrice: effectivePrice, quantity: amount });
       toast({ description: 'Item added to cart' });
+      setAdded(true);
     } catch {
       // Reported by the error middleware
+    } finally {
+      setAdding(false);
     }
   };
 
-  return (
-    <section>
-      <div className="flex gap-x-2 h-6 items-center">
-        <Button asChild variant="link" size="sm">
-          <Link to="/">Home</Link>
-        </Button>
-        <Separator orientation="vertical" />
-        <Button asChild variant="link" size="sm">
-          <Link to="/products">Products</Link>
-        </Button>
-      </div>
-      <div className="mt-6 grid gap-y-8 lg:grid-cols-2 lg:gap-x-16">
-        <div className="w-full max-w-[500px] mx-auto aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center sm:max-w-[400px] lg:max-w-full">
-          <img src={image} alt={title} className="w-full h-full object-cover" style={{ aspectRatio: '4/3' }} />
-        </div>
-        <div>
-          <h1 className="capitalize text-3xl font-bold">{title}</h1>
-          <h4 className="text-xl mt-2">{companyLabel}</h4>
-          <p className="mt-3 text-md bg-muted inline-block p-2 rounded-md">
-            {hasSale ? (
-              <>
-                <span className="text-primary font-semibold mr-2">{formatAsDollars(effectivePrice)}</span>
-                <span className="line-through text-muted-foreground">{formatAsDollars(price)}</span>
-              </>
-            ) : (
-              <span className="text-primary font-light">{formatAsDollars(price)}</span>
-            )}
-          </p>
-          <p className="mt-6 leading-8">{description}</p>
+  const specs = [
+    { label: 'Width', value: typeof widthCm === 'number' ? `${widthCm} cm` : null },
+    { label: 'Height', value: typeof heightCm === 'number' ? `${heightCm} cm` : null },
+    { label: 'Depth', value: typeof depthCm === 'number' ? `${depthCm} cm` : null },
+    { label: 'Weight', value: typeof weightKg === 'number' ? `${weightKg} kg` : null },
+  ].filter((spec) => spec.value);
 
-          {(widthCm ?? heightCm ?? depthCm ?? weightKg ?? materialsText) && (
-            <div className="mt-6 border rounded-md p-4 bg-muted/40">
-              <h3 className="font-semibold mb-3">Specifications</h3>
-              <ul className="grid gap-3 text-sm md:grid-cols-2 lg:grid-cols-3">
-                {typeof widthCm === 'number' && (
-                  <li className="flex items-center gap-2">
-                    <Ruler className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Width:</span> {widthCm} cm
-                  </li>
-                )}
-                {typeof heightCm === 'number' && (
-                  <li className="flex items-center gap-2">
-                    <Ruler className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Height:</span> {heightCm} cm
-                  </li>
-                )}
-                {typeof depthCm === 'number' && (
-                  <li className="flex items-center gap-2">
-                    <Ruler className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Depth:</span> {depthCm} cm
-                  </li>
-                )}
-                {typeof weightKg === 'number' && (
-                  <li className="flex items-center gap-2">
-                    <Scale className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Weight:</span> {weightKg} kg
-                  </li>
-                )}
+  return (
+    <>
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+        <Link to="/" className="transition-colors hover:text-foreground">
+          Home
+        </Link>
+        <ChevronRight className="h-3 w-3" />
+        <Link to="/products" className="transition-colors hover:text-foreground">
+          Shop
+        </Link>
+        {group && (
+          <>
+            <ChevronRight className="h-3 w-3" />
+            <Link to={`/products?group=${encodeURIComponent(group.key)}`} className="transition-colors hover:text-foreground">
+              {group.name}
+            </Link>
+          </>
+        )}
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-foreground">{title}</span>
+      </nav>
+
+      <section className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-7">
+          <div className="lg:sticky lg:top-24">
+            <ZoomImage src={image} alt={title} />
+          </div>
+        </div>
+
+        <div className="lg:col-span-5">
+          <p className="eyebrow animate-fade-up">{company}</p>
+          <h1 className="display mt-3 animate-fade-up text-4xl leading-[1.02] [animation-delay:60ms] md:text-5xl">{title}</h1>
+          <div className="mt-6 flex animate-fade-up flex-wrap items-center gap-3 [animation-delay:120ms]">
+            <span className={hasSale ? 'text-3xl text-brand' : 'text-3xl'}>{formatAsDollars(effectivePrice)}</span>
+            {hasSale && (
+              <>
+                <span className="text-lg text-muted-foreground line-through">{formatAsDollars(price)}</span>
+                <SaleBadge percent={percent} />
+              </>
+            )}
+          </div>
+          <p className="mt-6 animate-fade-up leading-relaxed text-muted-foreground [animation-delay:180ms]">{description}</p>
+
+          <div className="mt-8 grid animate-fade-up gap-8 border-t pt-8 [animation-delay:240ms]">
+            <SelectProductColor colors={colors} productColor={productColor} setProductColor={setProductColor} />
+            <div>
+              <h4 className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">Quantity</h4>
+              <div className="mt-3 flex gap-3">
+                <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} />
+                <Button size="lg" className="group h-12 flex-1" onClick={addToCart} disabled={adding}>
+                  <span className="relative h-4 w-4">
+                    <ShoppingBag className={`absolute inset-0 transition-all duration-300 ${added ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`} />
+                    <Check className={`absolute inset-0 transition-all duration-300 ${added ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} />
+                  </span>
+                  Add to bag
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <ul className="mt-8 grid gap-3 rounded-2xl bg-secondary/60 p-5 text-sm">
+            {perks.map(({ key, icon: Icon, title: perkTitle, description: perkText }) => (
+              <li key={key} className="flex items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0" />
+                <span>
+                  <span className="font-medium">{perkTitle}</span> <span className="text-muted-foreground">— {perkText.charAt(0).toLowerCase() + perkText.slice(1)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {(specs.length > 0 || materialsText) && (
+            <div className="mt-10">
+              <h3 className="display text-2xl">Specifications</h3>
+              <dl className="mt-4 grid grid-cols-2 border-t">
+                {specs.map((spec) => (
+                  <div key={spec.label} className="border-b py-4 odd:pr-4">
+                    <dt className="eyebrow">{spec.label}</dt>
+                    <dd className="mt-1 tabular-nums">{spec.value}</dd>
+                  </div>
+                ))}
                 {materialsText && (
-                  <li className="flex items-center gap-2 md:col-span-2 lg:col-span-3">
-                    <Layers className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Materials:</span> {materialsText}
-                  </li>
+                  <div className="col-span-2 border-b py-4">
+                    <dt className="eyebrow">Materials</dt>
+                    <dd className="mt-1 capitalize">{materialsText}</dd>
+                  </div>
                 )}
-              </ul>
+              </dl>
             </div>
           )}
-          <SelectProductColor colors={colors} productColor={productColor} setProductColor={setProductColor} />
-          <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} />
-          <Button size="lg" className="mt-10" onClick={addToCart}>
-            Add to bag
-          </Button>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <RelatedProducts product={product} />
+    </>
   );
 };
 export default SingleProduct;

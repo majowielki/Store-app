@@ -11,9 +11,9 @@ const FormCheckbox = ({ name, label, defaultValue }: FormCheckboxProps) => {
   const defaultChecked = defaultValue === "on" ? true : false;
 
   return (
-    <div className="mb-2 flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <Checkbox id={name} name={name} defaultChecked={defaultChecked} />
-      <Label htmlFor={name} className="capitalize cursor-pointer">
+      <Label htmlFor={name} className="cursor-pointer text-sm font-normal first-letter:uppercase">
         {label || name}
       </Label>
     </div>

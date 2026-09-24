@@ -1,19 +1,22 @@
-import React from "react";
-import { Badge } from "@/components/ui/badge";
+import { cn } from '@/lib/utils';
 
 interface SaleBadgeProps {
   percent: number;
   className?: string;
 }
 
-const SaleBadge: React.FC<SaleBadgeProps> = ({ percent, className }) => {
+/** The discount as a small terracotta pill, e.g. "-20%". */
+const SaleBadge = ({ percent, className }: SaleBadgeProps) => {
   if (!Number.isFinite(percent) || percent <= 0) return null;
   return (
-    <div className={"absolute top-2 right-2 " + (className ?? "") }>
-      <Badge variant="destructive" className="rounded-md shadow">
-        -{Math.round(percent)}%
-      </Badge>
-    </div>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full bg-brand px-2.5 py-1 text-[11px] font-semibold leading-none tracking-wide text-brand-foreground',
+        className,
+      )}
+    >
+      -{Math.round(percent)}%
+    </span>
   );
 };
 

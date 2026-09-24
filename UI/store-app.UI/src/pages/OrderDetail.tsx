@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useGetOrderQuery } from '@/api/orders';
 import { Loading, OrderSummary, SectionTitle } from '@/components';
 
@@ -8,7 +8,14 @@ const OrderDetail = () => {
 
   if (isLoading) return <Loading />;
   if (!order) return <SectionTitle text="Order not found" />;
-  return <OrderSummary title="Your order" order={order} />;
+  return (
+    <>
+      <Link to="/orders" className="link-underline mb-8 inline-block text-sm text-muted-foreground hover:text-foreground">
+        ← All orders
+      </Link>
+      <OrderSummary title="Your order" order={order} />
+    </>
+  );
 };
 
 export default OrderDetail;

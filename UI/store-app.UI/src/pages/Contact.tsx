@@ -1,6 +1,18 @@
-import { Card, CardContent } from '@/components/ui/card';
 import { useState } from 'react';
+import { Clock, Mail, MapPin, Phone } from 'lucide-react';
+import { fieldLabelClass } from '@/components/FormInput';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+
+const details = [
+  { icon: MapPin, label: 'Visit', value: 'Strzegomska 140A, 54-429 Wrocław' },
+  { icon: Phone, label: 'Call', value: '+48 000 000 000' },
+  { icon: Mail, label: 'Write', value: 'contact@store.com', href: 'mailto:contact@store.com' },
+  { icon: Clock, label: 'Hours', value: 'Mon–Fri, 9:00–17:00' },
+];
 
 const Contact = () => {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
@@ -31,58 +43,75 @@ const Contact = () => {
     setErrors({});
   };
 
+  const error = (message?: string) => (message ? <p className="animate-fade-up text-xs text-destructive">{message}</p> : null);
+
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-xl font-semibold">Contact</h2>
-          <p className="text-muted-foreground mt-2">Have questions? Send us a message.</p>
-          <form className="mt-4 grid gap-3" onSubmit={handleSubmit} noValidate>
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Full name"
-              value={form.name}
-              onChange={handleChange}
-              name="name"
-            />
-            {errors.name && <div className="text-xs text-red-500">{errors.name}</div>}
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              name="email"
-            />
-            {errors.email && <div className="text-xs text-red-500">{errors.email}</div>}
-            <textarea
-              className="border rounded px-3 py-2"
-              placeholder="Message"
-              rows={5}
-              value={form.message}
-              onChange={handleChange}
-              name="message"
-            />
-            {errors.message && <div className="text-xs text-red-500">{errors.message}</div>}
-            <button className="bg-primary text-primary-foreground px-4 py-2 rounded" type="submit">Send</button>
-          </form>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="font-semibold">Company details</h3>
-          <p className="text-sm text-muted-foreground mt-2">Strzegomska 140A 54-429 Wrocław</p>
-          <p className="text-sm text-muted-foreground">+48 000 000 000</p>
-          <p className="text-sm text-muted-foreground">contact@store.com</p>
-          <div className="mt-4">
+    <div>
+      <header className="max-w-3xl animate-fade-up">
+        <p className="eyebrow">Contact</p>
+        <h1 className="display mt-4 text-5xl leading-[0.95] md:text-7xl">
+          Let&apos;s <em className="text-brand">talk.</em>
+        </h1>
+        <p className="mt-6 max-w-lg text-lg text-muted-foreground">
+          Have a question about a piece, a delivery or an order? Send us a message and we will answer within a working day.
+        </p>
+      </header>
+
+      <div className="mt-14 grid items-start gap-8 lg:grid-cols-12">
+        <form className="grid gap-5 rounded-3xl border bg-card p-6 md:p-10 lg:col-span-7" onSubmit={handleSubmit} noValidate>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="contact-name" className={fieldLabelClass}>
+                Full name
+              </Label>
+              <Input id="contact-name" name="name" value={form.name} onChange={handleChange} autoComplete="name" />
+              {error(errors.name)}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="contact-email" className={fieldLabelClass}>
+                Email
+              </Label>
+              <Input id="contact-email" name="email" type="email" value={form.email} onChange={handleChange} autoComplete="email" />
+              {error(errors.email)}
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="contact-message" className={fieldLabelClass}>
+              Message
+            </Label>
+            <Textarea id="contact-message" name="message" rows={6} value={form.message} onChange={handleChange} placeholder="How can we help?" />
+            {error(errors.message)}
+          </div>
+          <Button type="submit" size="lg" className="justify-self-start">
+            Send message
+          </Button>
+        </form>
+
+        <aside className="grid gap-6 lg:col-span-5">
+          <ul className="grid gap-px overflow-hidden rounded-3xl border bg-border sm:grid-cols-2">
+            {details.map(({ icon: Icon, label, value, href }) => (
+              <li key={label} className="bg-card p-6">
+                <Icon className="h-5 w-5 text-brand" />
+                <p className="eyebrow mt-4">{label}</p>
+                {href ? (
+                  <a href={href} className="link-underline mt-1 inline-block text-sm">
+                    {value}
+                  </a>
+                ) : (
+                  <p className="mt-1 text-sm">{value}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="overflow-hidden rounded-3xl border">
             <iframe
               title="Mapa"
               src="https://maps.google.com/maps?q=Strzegomska%20140A%2054-429%20Wrocław&t=&z=15&ie=UTF8&iwloc=&output=embed"
-              className="w-full h-64 border rounded"
+              className="h-72 w-full grayscale transition-[filter] duration-700 hover:grayscale-0"
             />
           </div>
-        </CardContent>
-      </Card>
+        </aside>
+      </div>
     </div>
   );
 };

@@ -1,0 +1,31 @@
+import type { CSSProperties, ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+
+interface MarqueeProps {
+  children: ReactNode;
+  /** One full loop; longer is calmer. */
+  duration?: string;
+  reverse?: boolean;
+  className?: string;
+}
+
+/**
+ * An endless horizontal ticker: the content twice in a row, moved left by one copy's width.
+ * The copy is hidden from assistive technology and from the tab order; hovering pauses it.
+ * Each copy must be at least as wide as the screen, so pass enough content.
+ */
+const Marquee = ({ children, duration = '40s', reverse = false, className }: MarqueeProps) => (
+  <div className={cn('group flex overflow-hidden', className)}>
+    <div
+      className="flex w-max shrink-0 animate-marquee group-hover:[animation-play-state:paused]"
+      style={{ '--marquee-duration': duration, animationDirection: reverse ? 'reverse' : undefined } as CSSProperties}
+    >
+      <div className="flex shrink-0 items-center">{children}</div>
+      <div className="flex shrink-0 items-center" aria-hidden {...({ inert: '' } as object)}>
+        {children}
+      </div>
+    </div>
+  </div>
+);
+
+export default Marquee;
