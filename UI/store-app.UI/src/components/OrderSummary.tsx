@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { formatAsDollars, type Order } from '@/utils';
+import { formatAsDollars, formatDateTime, type Order } from '@/utils';
 
 interface OrderSummaryProps {
   title: string;
@@ -25,7 +25,7 @@ const OrderSummary = ({ title, order, showStatus = false }: OrderSummaryProps) =
         <p className="eyebrow">Order #{order.id}</p>
         <h1 className="display mt-3 text-5xl md:text-6xl">{title}</h1>
       </div>
-      <p className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleString()}</p>
+      <p className="text-sm text-muted-foreground">{formatDateTime(order.createdAt)}</p>
     </header>
 
     <div className="mt-10 grid items-start gap-8 lg:grid-cols-12">
@@ -72,7 +72,7 @@ const OrderSummary = ({ title, order, showStatus = false }: OrderSummaryProps) =
           <Line label="Name" value={order.customerName} />
           <Line label="Email" value={order.userEmail} />
           {order.deliveryAddress && <Line label="Address" value={order.deliveryAddress} />}
-          <Line label="Date" value={new Date(order.createdAt).toLocaleString()} />
+          <Line label="Date" value={formatDateTime(order.createdAt)} />
           {showStatus && <Line label="Status" value={order.status} />}
         </div>
         <div className="rounded-2xl bg-secondary/60 p-6">

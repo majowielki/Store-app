@@ -39,6 +39,26 @@ and the container's nginx does the same (`docker/`), so the refresh cookie needs
 - `src/routes/guards.ts` - route loaders that wait for the session check and redirect; the admin
   routes are loaded lazily (`App.tsx`), so the admin bundle (charts included) stays out of the shop.
 - `src/pages/`, `src/components/` - the screens; `components/ui/` are shadcn/ui primitives.
+- `src/utils/` - formatting shared by every screen: `formatAsDollars` for amounts (USD) and
+  `formatDate` / `formatDateTime` for dates, always in English whatever the browser's language.
+
+## Look and feel
+
+The shop is built from shadcn/ui primitives only, restyled through the theme rather than per
+screen:
+
+- **Colours** are the shadcn tokens in `src/index.css` - a warm light theme (linen and ink) and a
+  dark one (warm charcoal), plus a `brand` token (terracotta) for sales, the cart count and
+  highlighted words, and `success` for discounts. `tailwind.config.js` maps them to classes.
+- **Type** is Fraunces (display headings, the `display` class) and Geist (everything else), both
+  bundled from `@fontsource-variable`, so the content security policy needs no font host.
+- **Motion** comes from a few pieces: `components/Reveal` fades sections in as they scroll into
+  view, the keyframes in `tailwind.config.js` (marquee, line reveal, float), `components/Marquee`
+  and the view transition that carries a product image from a listing to the product page
+  (`hooks/use-open-product`). Everything stops for visitors who ask for reduced motion.
+- **Layout**: `pages/HomeLayout` puts the announcement bar, the header (with `DesktopNav`,
+  `SearchDialog` on Ctrl+K and `MobileMenu`), the page and the footer together; phones get the
+  floating `MobileBottomBar` instead of the header's account and cart buttons.
 
 ## Tests
 

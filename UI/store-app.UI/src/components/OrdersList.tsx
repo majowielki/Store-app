@@ -10,9 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatAsDollars, type OrdersResponse } from '@/utils';
+import { formatAsDollars, formatDate, type OrdersResponse } from '@/utils';
 
-const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const OrdersList = ({ orders }: { orders: OrdersResponse }) => {
   const navigate = useNavigate();

@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatAsDollars } from '@/utils';
+import { formatAsDollars, formatDateTime } from '@/utils';
 
 const PAGE_SIZE = 20;
 
@@ -50,7 +50,7 @@ const Orders = () => {
                   <TableCell>{o.customerName}</TableCell>
                   <TableCell>{o.totalItems}</TableCell>
                   <TableCell>{formatAsDollars(o.total)}</TableCell>
-                  <TableCell>{new Date(o.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>{formatDateTime(o.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

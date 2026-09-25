@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatDateTime } from '@/utils';
 
 const PAGE_SIZE = 20;
 
@@ -81,7 +82,7 @@ const Users = () => {
                   <TableCell>
                     {u.isActive ? <span className="text-green-600">Active</span> : <span className="text-muted-foreground">Inactive</span>}
                   </TableCell>
-                  <TableCell>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'never'}</TableCell>
+                  <TableCell>{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : 'never'}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button asChild size="sm" variant="outline">
                       <Link to={`/admin/users/${u.id}/orders`}>Orders</Link>

@@ -5,7 +5,7 @@ import PageNumbers from '@/components/PageNumbers';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatAsDollars } from '@/utils';
+import { formatAsDollars, formatDateTime } from '@/utils';
 
 const PAGE_SIZE = 20;
 
@@ -47,7 +47,7 @@ const UserOrders = () => {
                   <TableCell>{o.userEmail}</TableCell>
                   <TableCell>{o.totalItems}</TableCell>
                   <TableCell>{formatAsDollars(o.total)}</TableCell>
-                  <TableCell>{new Date(o.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>{formatDateTime(o.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm">
                       <Link to={`/admin/orders/${o.id}`}>View</Link>

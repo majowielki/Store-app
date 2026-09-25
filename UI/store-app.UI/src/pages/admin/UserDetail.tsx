@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useGetAdminUserQuery } from '@/api/admin';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateTime } from '@/utils';
 
 const UserDetail = () => {
   const { id = '' } = useParams<{ id: string }>();
@@ -25,7 +26,7 @@ const UserDetail = () => {
           <div>
             <div>Roles: {user.roles.join(', ')}</div>
             <div>Status: {user.isActive ? 'Active' : 'Inactive'}</div>
-            <div>Joined: {new Date(user.createdAt).toLocaleString()}</div>
+            <div>Joined: {formatDateTime(user.createdAt)}</div>
           </div>
           <div className="md:col-span-2 mt-2">
             <Button asChild variant="outline" size="sm">
