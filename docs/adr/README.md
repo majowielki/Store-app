@@ -15,3 +15,7 @@ what it costs.
 | [007](007-demo-admin-masking.md) | The demo administrator sees masked data and may change nothing |
 | [008](008-demo-accounts.md) | Demo accounts exist only where they are switched on |
 | [009](009-session-tokens.md) | Access token in memory, refresh token in an httpOnly cookie |
+| [010](010-content-service.md) | The shop's content lives in its own service |
+| [011](011-simulated-payments.md) | Payments go through a simulated payment provider |
+| [012](012-moderated-reviews.md) | Reviews are published only after moderation |
+| [013](013-order-saga.md) | An order is a saga |
