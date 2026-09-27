@@ -259,13 +259,20 @@ public class ProductService : IProductService
         }
 
         // Checkbox-style values from the UI: "true", "on", "1"
-        if (queryParams.Sale?.Trim().ToLowerInvariant() is "true" or "on" or "1")
+        if (IsChecked(queryParams.Sale))
         {
             query = query.Where(p => (p.SalePrice.HasValue && p.SalePrice.Value > 0) || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0));
         }
 
+        if (IsChecked(queryParams.NewArrival))
+        {
+            query = query.Where(p => p.NewArrival);
+        }
+
         return query;
     }
+
+    private static bool IsChecked(string? value) => value?.Trim().ToLowerInvariant() is "true" or "on" or "1";
 
     private static async Task<PagedResponse<ProductResponse>> PageAsync(IQueryable<Product> query, ProductQueryParams queryParams, int defaultPageSize)
     {

@@ -71,6 +71,14 @@
             }
           },
           {
+            "name": "newArrival",
+            "in": "query",
+            "description": "\"true\", \"on\" or \"1\" keeps only the new arrivals; anything else does not filter.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -406,6 +414,14 @@
           {
             "name": "sale",
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newArrival",
+            "in": "query",
+            "description": "\"true\", \"on\" or \"1\" keeps only the new arrivals; anything else does not filter.",
             "schema": {
               "type": "string"
             }

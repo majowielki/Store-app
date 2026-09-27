@@ -24,6 +24,8 @@ export interface paths {
                     order?: string;
                     price?: string;
                     sale?: string;
+                    /** @description "true", "on" or "1" keeps only the new arrivals; anything else does not filter. */
+                    newArrival?: string;
                     page?: number;
                     pageSize?: number;
                     materials?: string;
@@ -320,6 +322,8 @@ export interface paths {
                     order?: string;
                     price?: string;
                     sale?: string;
+                    /** @description "true", "on" or "1" keeps only the new arrivals; anything else does not filter. */
+                    newArrival?: string;
                     page?: number;
                     pageSize?: number;
                     materials?: string;

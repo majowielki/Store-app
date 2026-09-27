@@ -13,6 +13,9 @@ public class ProductQueryParams
     public string? Price { get; set; }
     // Accept common truthy strings like "on", "true", "1" from UI checkboxes
     public string? Sale { get; set; }
+
+    /// <summary>"true", "on" or "1" keeps only the new arrivals; anything else does not filter.</summary>
+    public string? NewArrival { get; set; }
     // Nullable to allow empty "page=" to bind as null instead of causing 400 with [ApiController]
     public int? Page { get; set; }
     // Optional page size for admin or custom UI

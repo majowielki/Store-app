@@ -48,6 +48,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     [InlineData("category=sofas&company=modenza")]
     [InlineData("price=100-5000&order=high")]
     [InlineData("sale=true")]
+    [InlineData("newArrival=true")]
     public async Task List_attribute_filters_execute_in_the_database(string query)
     {
         using var client = _factory.CreateClient();
@@ -118,6 +119,21 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
 
         Assert.True(lower.GetProperty("items").GetArrayLength() > 0);
         Assert.Equal(lower.GetProperty("totalCount").GetInt32(), upper.GetProperty("totalCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task New_arrivals_filter_returns_only_new_arrivals()
+    {
+        using var client = _factory.CreateClient();
+
+        var newArrivals = await GetJson(client, "/api/v1/products?newArrival=true&pageSize=100");
+        var fromCheckbox = await GetJson(client, "/api/v1/products?newArrival=on&pageSize=100");
+        var everything = await GetJson(client, "/api/v1/products?newArrival=false&pageSize=100");
+
+        Assert.True(newArrivals.GetProperty("totalCount").GetInt32() > 0);
+        Assert.All(newArrivals.GetProperty("items").EnumerateArray(), p => Assert.True(p.GetProperty("newArrival").GetBoolean()));
+        Assert.Equal(newArrivals.GetProperty("totalCount").GetInt32(), fromCheckbox.GetProperty("totalCount").GetInt32());
+        Assert.True(everything.GetProperty("totalCount").GetInt32() > newArrivals.GetProperty("totalCount").GetInt32());
     }
 
     // Regression: the sale price was shown on the page but never charged
