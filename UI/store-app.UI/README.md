@@ -1,9 +1,9 @@
 # Store UI
 
-React 18 + TypeScript + Vite single-page app for the store. It talks to the API gateway under
+React 19 + TypeScript + Vite 8 single-page app for the store. It talks to the API gateway under
 `/api/v1` on its own origin: the Vite dev server proxies that path to the gateway (`vite.config.ts`)
-and the container's nginx does the same (`docker/`), so the refresh cookie needs no CORS. Node 22
-(`.nvmrc`, which CI reads; the image builds on `node:22-alpine`).
+and the container's nginx does the same (`docker/`), so the refresh cookie needs no CORS. Node 22.12
+or newer, which Vite 8 needs (`.nvmrc` names 22, CI and the `node:22-alpine` image take its latest release).
 
 ## Commands
 

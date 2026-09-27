@@ -21,7 +21,7 @@ const Marquee = ({ children, duration = '40s', reverse = false, className }: Mar
       style={{ '--marquee-duration': duration, animationDirection: reverse ? 'reverse' : undefined } as CSSProperties}
     >
       <div className="flex shrink-0 items-center">{children}</div>
-      <div className="flex shrink-0 items-center" aria-hidden {...({ inert: '' } as object)}>
+      <div className="flex shrink-0 items-center" aria-hidden inert>
         {children}
       </div>
     </div>

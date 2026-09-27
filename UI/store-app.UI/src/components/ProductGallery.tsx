@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react';
 import type { ProductDetail } from '@/api/types';
@@ -57,16 +57,8 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
   const [current, setCurrent] = useState(0);
   const [enlarged, setEnlarged] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
-  const slidesRef = useRef<(HTMLDivElement | null)[]>([]);
   // While the gallery scrolls to a picture, the pictures it passes do not become the current one
   const scrollingTo = useRef<number | null>(null);
-
-  // Only the picture in view takes part in the tab order
-  useEffect(() => {
-    slidesRef.current.forEach((slide, index) => {
-      if (slide) slide.inert = index !== current;
-    });
-  }, [current, count]);
 
   const goTo = (index: number) => {
     const next = (index + count) % count;
@@ -121,9 +113,8 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
           {pictures.map((picture, index) => (
             <div
               key={`${index}-${picture.url}`}
-              ref={(slide) => {
-                slidesRef.current[index] = slide;
-              }}
+              // Only the picture in view takes part in the tab order
+              inert={index !== current}
               role="group"
               aria-roledescription="slide"
               aria-label={`${index + 1} of ${count}`}

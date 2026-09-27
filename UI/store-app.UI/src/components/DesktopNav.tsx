@@ -127,7 +127,7 @@ const InspirationPanel = ({ onNavigate }: { onNavigate: () => void }) => {
 /** The shop's sections in the header (wide screens), each group opening its panel on hover. */
 const DesktopNav = ({ className }: { className?: string }) => {
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const closeTimer = useRef<number>();
+  const closeTimer = useRef<number | undefined>(undefined);
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
