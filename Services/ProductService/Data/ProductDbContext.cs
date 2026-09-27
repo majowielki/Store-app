@@ -28,6 +28,8 @@ public class ProductDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(ProductConstraints.TitleMaxLength);
+            entity.Property(e => e.Slug).IsRequired().HasMaxLength(ProductConstraints.SlugMaxLength);
+            entity.HasIndex(e => e.Slug).IsUnique();
             entity.Property(e => e.Description).IsRequired().HasMaxLength(ProductConstraints.DescriptionMaxLength);
             entity.Property(e => e.DiscountPercent).HasPrecision(5, 2);
             entity.Property(e => e.Image).IsRequired();

@@ -338,6 +338,7 @@ public static class DemoCatalogue
         bool isNew = false) => new()
     {
         Title = title,
+        Slug = ProductSlug.From(title),
         Description = description,
         Price = price,
         SalePrice = salePrice,

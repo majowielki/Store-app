@@ -78,6 +78,7 @@ public class DemoCatalogueTests
         var titles = DemoCatalogue.Products().Select(p => p.Title).ToList();
 
         Assert.Equal(titles.Count, titles.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(titles.Count, DemoCatalogue.Products().Select(p => p.Slug).Distinct(StringComparer.Ordinal).Count());
         Assert.Empty(titles.Intersect(DemoCatalogue.RetiredTitles, StringComparer.OrdinalIgnoreCase));
     }
 

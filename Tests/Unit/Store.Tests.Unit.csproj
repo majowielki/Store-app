@@ -43,6 +43,7 @@
     <ProjectReference Include="..\..\Services\OrderService\Store.OrderService.csproj" />
     <ProjectReference Include="..\..\Services\ProductService\Store.ProductService.csproj" />
     <ProjectReference Include="..\..\Services\AuditLogService\Store.AuditLogService.csproj" />
+    <ProjectReference Include="..\..\Services\ContentService\Store.ContentService.csproj" />
   </ItemGroup>
 
 </Project>

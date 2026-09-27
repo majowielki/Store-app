@@ -7,6 +7,8 @@ public static class ProductConstraints
 {
     public const int TitleMinLength = 3;
     public const int TitleMaxLength = 200;
+    /// <summary>A title's worth of slug plus the "-2" that tells two equal titles apart.</summary>
+    public const int SlugMaxLength = 220;
     public const int DescriptionMinLength = 10;
     public const int DescriptionMaxLength = 4000;
     public const int EnumMaxLength = 50;

@@ -8,6 +8,7 @@ using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 using Store.ContentService.Data;
+using Store.ContentService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,9 @@ builder.Services.AddStoreAuthorization();
 
 // Message bus: content changes reach the audit service as events, through the outbox
 builder.Services.AddStoreMessaging<ContentDbContext>(builder.Configuration, serviceName: "content");
+
+// Reading and editing each kind of content (makers, collections, articles, lookbooks)
+builder.Services.AddScoped(typeof(ContentStore<>));
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());
@@ -55,8 +59,10 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapStoreHealthChecks();
 
-// Migrations: applied here in Development, by "--migrate" in a deployment; pending ones stop the start
-if (await app.PrepareDatabaseAsync<ContentDbContext>(args))
+// Migrations and the demo content: applied here in Development, by "--migrate" in a deployment;
+// pending migrations stop the start
+if (await app.PrepareDatabaseAsync<ContentDbContext>(args,
+        seed: services => ContentSeeder.SeedAsync(services.GetRequiredService<ContentDbContext>(), services.GetRequiredService<TimeProvider>())))
 {
     return;
 }

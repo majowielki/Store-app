@@ -30,6 +30,8 @@ export interface paths {
                     pageSize?: number;
                     materials?: string;
                     colors?: string;
+                    /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
+                    slugs?: string;
                 };
                 header?: never;
                 path?: never;
@@ -328,6 +330,8 @@ export interface paths {
                     pageSize?: number;
                     materials?: string;
                     colors?: string;
+                    /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
+                    slugs?: string;
                     sortBy?: string;
                     sortDir?: string;
                 };
@@ -498,6 +502,8 @@ export interface components {
             /** Format: int32 */
             id: number;
             title: string;
+            /** @description Stable, address-friendly name; content (collections, lookbooks) refers to products by it. */
+            slug: string;
             description: string;
             /** Format: double */
             price: number;

@@ -6,6 +6,8 @@ public class ProductResponse
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
+    /// <summary>Stable, address-friendly name; content (collections, lookbooks) refers to products by it.</summary>
+    public string Slug { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public decimal? SalePrice { get; set; }

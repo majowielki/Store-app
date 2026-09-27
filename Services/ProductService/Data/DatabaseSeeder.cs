@@ -55,7 +55,9 @@ public static class DatabaseSeeder
             seed.AppliedAt = now;
         }
 
-        context.Products.AddRange(demo.Where(product => !existing.ContainsKey(product.Title)));
+        // A product an administrator created under a similar title may hold a demo slug already
+        var slugs = existing.Values.Select(p => p.Slug).ToHashSet(StringComparer.Ordinal);
+        context.Products.AddRange(demo.Where(product => !existing.ContainsKey(product.Title) && slugs.Add(product.Slug)));
         await context.SaveChangesAsync();
     }
 

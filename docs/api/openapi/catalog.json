@@ -107,6 +107,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "slugs",
+            "in": "query",
+            "description": "Comma-separated product slugs: only these products (the ones a collection or a lookbook shows).",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -457,6 +465,14 @@
             }
           },
           {
+            "name": "slugs",
+            "in": "query",
+            "description": "Comma-separated product slugs: only these products (the ones a collection or a lookbook shows).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "sortBy",
             "in": "query",
             "schema": {
@@ -754,6 +770,7 @@
           "materials",
           "newArrival",
           "price",
+          "slug",
           "title"
         ],
         "type": "object",
@@ -764,6 +781,10 @@
           },
           "title": {
             "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Stable, address-friendly name; content (collections, lookbooks) refers to products by it."
           },
           "description": {
             "type": "string"

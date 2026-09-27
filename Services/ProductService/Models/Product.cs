@@ -14,6 +14,12 @@ public class Product
 
     public string Title { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Unique, address-friendly name made from the title at creation (<see cref="ProductSlug"/>);
+    /// it does not follow later renames, because content refers to products by it.
+    /// </summary>
+    public string Slug { get; set; } = string.Empty;
+
     public string Description { get; set; } = string.Empty;
 
     /// <summary>List price.</summary>

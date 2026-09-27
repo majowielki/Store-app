@@ -19,3 +19,4 @@ what it costs.
 | [011](011-simulated-payments.md) | Payments go through a simulated payment provider |
 | [012](012-moderated-reviews.md) | Reviews are published only after moderation |
 | [013](013-order-saga.md) | An order is a saga |
+| [014](014-product-slugs.md) | Content names products by slug, not by id |

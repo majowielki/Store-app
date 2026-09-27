@@ -77,6 +77,11 @@ const ProductForm = () => {
     <Card>
       <CardHeader>
         <CardTitle>{editing ? 'Edit' : 'Add'} Product</CardTitle>
+        {editing && product && (
+          <p className="text-sm text-muted-foreground">
+            Slug <code className="font-mono">{product.slug}</code> - made from the first title, kept when the title changes.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {editing && (isLoading || !product) ? (

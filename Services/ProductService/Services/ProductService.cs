@@ -41,6 +41,7 @@ public class ProductService : IProductService
         var product = new Product
         {
             Title = request.Title,
+            Slug = await UniqueSlugAsync(request.Title),
             Description = request.Description,
             Price = request.Price,
             SalePrice = request.SalePrice,
@@ -269,7 +270,32 @@ public class ProductService : IProductService
             query = query.Where(p => p.NewArrival);
         }
 
+        if (!string.IsNullOrWhiteSpace(queryParams.Slugs))
+        {
+            var slugs = queryParams.Slugs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            query = query.Where(p => slugs.Contains(p.Slug));
+        }
+
         return query;
+    }
+
+    /// <summary>The slug of the title, or the same with "-2", "-3"... when another product has it.</summary>
+    private async Task<string> UniqueSlugAsync(string title)
+    {
+        var slug = ProductSlug.From(title);
+        var taken = (await _context.Products
+                .Where(p => p.Slug == slug || p.Slug.StartsWith(slug + "-"))
+                .Select(p => p.Slug)
+                .ToListAsync())
+            .ToHashSet(StringComparer.Ordinal);
+
+        var candidate = slug;
+        for (var n = 2; taken.Contains(candidate); n++)
+        {
+            candidate = $"{slug}-{n}";
+        }
+
+        return candidate;
     }
 
     private static bool IsChecked(string? value) => value?.Trim().ToLowerInvariant() is "true" or "on" or "1";
@@ -300,6 +326,7 @@ public class ProductService : IProductService
         {
             Id = product.Id,
             Title = product.Title,
+            Slug = product.Slug,
             Description = product.Description,
             Price = product.Price,
             SalePrice = product.SalePrice,

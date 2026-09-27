@@ -63,6 +63,7 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
         db.Products.Add(new Product
         {
             Title = "Memory Foam Mattress",
+            Slug = "memory-foam-mattress",
             Description = "Queen size memory foam mattress with cooling gel layer.",
             Price = 499.99m,
             Category = Category.Mattresses,

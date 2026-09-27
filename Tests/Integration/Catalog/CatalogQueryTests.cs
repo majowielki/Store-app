@@ -136,6 +136,32 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
         Assert.True(everything.GetProperty("totalCount").GetInt32() > newArrivals.GetProperty("totalCount").GetInt32());
     }
 
+    [Fact]
+    public async Task Products_get_a_unique_slug_and_can_be_listed_by_it()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        var product = new
+        {
+            title = $"Rattan Pendant {tag}",
+            description = "A pendant lamp that exists only so its slug can be looked at.",
+            price = 89.99m,
+            category = "decor",
+            company = "artifex",
+            image = "https://example.test/pendant.jpg",
+            colors = new[] { "Brown" }
+        };
+        var first = await CreateProduct(product);
+        var second = await CreateProduct(product);
+        using var client = _factory.CreateClient();
+
+        var listed = await GetJson(client, $"/api/v1/products?slugs=rattan-pendant-{tag},rattan-pendant-{tag}-2,unknown-slug");
+
+        var slugs = listed.GetProperty("items").EnumerateArray().ToDictionary(p => p.GetProperty("id").GetInt32(), p => p.GetProperty("slug").GetString());
+        Assert.Equal(2, slugs.Count);
+        Assert.Equal($"rattan-pendant-{tag}", slugs[first]);
+        Assert.Equal($"rattan-pendant-{tag}-2", slugs[second]);
+    }
+
     // Regression: the sale price was shown on the page but never charged
     [Fact]
     public async Task Effective_price_reflects_sale_price_and_discount()

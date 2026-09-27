@@ -24,4 +24,7 @@ public class ProductQueryParams
     // Added new fields for filtering
     public string? Materials { get; set; }
     public string? Colors { get; set; }
+
+    /// <summary>Comma-separated product slugs: only these products (the ones a collection or a lookbook shows).</summary>
+    public string? Slugs { get; set; }
 }

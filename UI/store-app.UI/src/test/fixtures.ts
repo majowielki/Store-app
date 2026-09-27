@@ -35,6 +35,7 @@ export const session = (who: UserResponse = user): AuthResponse => ({
 export const product = (overrides: Partial<Product> = {}): Product => ({
   id: 7,
   title: 'Oak Table',
+  slug: 'oak-table',
   description: 'A sturdy oak table for six.',
   price: 400,
   salePrice: 320,

@@ -1,6 +1,6 @@
 # 010 - The shop's content lives in its own service
 
-**Status**: accepted
+**Status**: accepted; products are referred to by slug since [014](014-product-slugs.md)
 
 ## Context
 

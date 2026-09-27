@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const documents = resolve(here, '../../../docs/api/openapi');
 const output = resolve(here, '../src/api/schema');
 const check = process.argv.includes('--check');
-const names = ['identity', 'catalog', 'cart', 'orders', 'audit'];
+const names = ['identity', 'catalog', 'cart', 'orders', 'audit', 'content'];
 
 mkdirSync(output, { recursive: true });
 const stale = [];
