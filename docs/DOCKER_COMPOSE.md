@@ -5,7 +5,7 @@ Three files in the repository root; the first is the base, the others are overri
 | File | What it adds |
 |------|--------------|
 | `docker-compose.yml` | the whole store the way it runs in production: `Production` environment, the UI on <http://localhost:8081> and nothing else on the host, no default passwords, CPU and memory limits, migrations as one-shot containers |
-| `docker-compose.dev.yml` | `Development` environment (Swagger per service), the demo accounts, every port on the host (gateway 5000, services 5001–5006, PostgreSQL 5432, RabbitMQ 5672 / 15672) and the Aspire dashboard on <http://localhost:18888> |
+| `docker-compose.dev.yml` | `Development` environment (Swagger per service), the demo accounts, every port on the host (gateway 5000, services 5001–5006, PostgreSQL 5432, RabbitMQ 5672 / 15672), the Aspire dashboard on <http://localhost:18888> and the Azurite blob emulator on 10000 filled with the product pictures |
 | `docker-compose.tools.yml` | pgAdmin on <http://localhost:8080>, behind the `tools` profile |
 
 ```bash
@@ -33,6 +33,21 @@ and so on) and there is nothing to pull.
 No service waits for another service: a slow or failing neighbour is handled by the retries and
 circuit breakers of the typed clients, and events wait in the outbox until the broker takes them.
 
+## Product pictures
+
+The catalogue points at `http://localhost:10000/devstoreaccount1/product-images/<name>.webp`. In
+development Azurite serves them: on every `up` the one-shot `blobs-seed` container uploads the
+WebP files from `Blobs/` (and replaces what is there, so a regenerated picture shows up without
+resetting the volume). The repository keeps only these WebP files; the generated originals stay
+in `Blobs/` on the machine that made them, ignored by git. A new or regenerated picture goes
+through
+
+```bash
+dotnet run Scripts/optimize-images.cs     # JPEG/PNG in Blobs/ -> WebP, 1600 px (products) or 2000 px (covers)
+```
+
+and `Scripts/Upload-Blobs.ps1 -AccountName <account>` does the upload for a real storage account.
+
 ## Images
 
 Every .NET host is built from the repository root (`Services/<Name>/Dockerfile`,
@@ -54,7 +69,8 @@ for the end-to-end tests), `OTEL_EXPORTER_OTLP_ENDPOINT`, the host ports.
 
 ## Data
 
-Two named volumes, `store_postgres_data` and `store_rabbitmq_data`. `docker compose down -v`
+Three named volumes, `store_postgres_data`, `store_rabbitmq_data` and, with the dev override,
+`store_azurite_data`. `docker compose down -v`
 removes them; the next `up` recreates the databases from the migrations and the seed. To reset a
 single service's database while the stack is down, `Scripts/Reset-Local-Databases.ps1` does the
 same with the dev override's PostgreSQL port.

@@ -12,6 +12,8 @@ public class ProductDbContext : DbContext
 
     public DbSet<Product> Products => Set<Product>();
 
+    public DbSet<CatalogueSeed> CatalogueSeeds => Set<CatalogueSeed>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Money and dimensions: two decimal places everywhere unless a property says otherwise
@@ -54,6 +56,12 @@ public class ProductDbContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+        });
+
+        modelBuilder.Entity<CatalogueSeed>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
         });
 
         // Outbox of the message bus: catalogue changes leave as audit events

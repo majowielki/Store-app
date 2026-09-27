@@ -1,8 +1,9 @@
 # gitleaks configuration (the "Secrets scan" job in CI and `gitleaks git .` locally).
 # The default rules apply; only the fixtures below are excluded. They are the signing and
 # internal keys the test projects hand to the hosts under test, the throw-away values the
-# end-to-end workflow starts docker compose with and the placeholders the OpenAPI export
-# gives a host that never connects to anything. None of them protects anything.
+# end-to-end workflow starts docker compose with, the placeholders the OpenAPI export
+# gives a host that never connects to anything and the account key every Azurite emulator
+# ships with. None of them protects anything.
 
 title = "store-app"
 
@@ -17,4 +18,7 @@ paths = [
   '''^Tests/Unit/Shared/InternalApiKeyAuthenticationTests\.cs$''',
   '''^\.github/workflows/e2e\.yml$''',
   '''^Scripts/Export-OpenApi\.ps1$''',
+]
+regexes = [
+  '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''',
 ]

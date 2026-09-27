@@ -496,3 +496,12 @@ Thumbs.db
 !Gateway/APIGateway/appsettings.Production.json
 .env.*.local
 coverage/
+
+##
+## Product pictures: only the WebP files made by Scripts/optimize-images.cs are committed;
+## the generated originals (2-3 MB each) and the pictures no longer used stay local
+##
+Blobs/*.jpg
+Blobs/*.jpeg
+Blobs/*.png
+Blobs/old pictures/
