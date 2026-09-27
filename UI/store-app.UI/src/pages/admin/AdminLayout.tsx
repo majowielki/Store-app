@@ -17,7 +17,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Card } from '@/components/ui/card';
-import { LayoutDashboard, PackageSearch, UsersRound, ShoppingCart } from 'lucide-react';
+import { BookOpenText, Images, LayoutDashboard, Layers, PackageSearch, Store, UsersRound, ShoppingCart } from 'lucide-react';
 import AdminHeader from '@/components/AdminHeader';
 import AdminBottomBar from '@/components/AdminBottomBar';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -28,6 +28,13 @@ const AdminLayout = () => {
     { to: '/admin/orders', label: 'Orders', icon: <ShoppingCart /> },
     { to: '/admin/products', label: 'Products', icon: <PackageSearch /> },
     { to: '/admin/users', label: 'Users', icon: <UsersRound /> },
+  ];
+  // The shop's editorial content, kept by the content service
+  const content = [
+    { to: '/admin/content/collections', label: 'Collections', icon: <Layers /> },
+    { to: '/admin/content/lookbooks', label: 'Lookbooks', icon: <Images /> },
+    { to: '/admin/content/articles', label: 'Journal', icon: <BookOpenText /> },
+    { to: '/admin/content/makers', label: 'Makers', icon: <Store /> },
   ];
   const isMobile = useIsMobile();
 
@@ -58,6 +65,23 @@ const AdminLayout = () => {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+            <SidebarGroup>
+              <SidebarGroupLabel>Content</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {content.map((n) => (
+                    <SidebarMenuItem key={n.to}>
+                      <SidebarMenuButton asChild isActive={false}>
+                        <NavLink to={n.to} className={({ isActive }) => isActive ? 'data-[active=true]' : ''}>
+                          {n.icon}
+                          <span>{n.label}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
           </SidebarContent>
           <SidebarFooter>
             <Card className="p-2 text-xs">Use Ctrl+B to toggle</Card>
@@ -66,7 +90,7 @@ const AdminLayout = () => {
         </Sidebar>
         <SidebarInset>
           <AdminHeader />
-          <main className="p-4">
+          <main className="p-4 pb-24 md:pb-4">
             <Outlet />
           </main>
           {isMobile && <AdminBottomBar />}

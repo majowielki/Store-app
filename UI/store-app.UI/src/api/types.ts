@@ -4,6 +4,7 @@
 import type { components as Audit } from './schema/audit';
 import type { components as Cart } from './schema/cart';
 import type { components as Catalog, paths as CatalogPaths } from './schema/catalog';
+import type { components as Content } from './schema/content';
 import type { components as Identity } from './schema/identity';
 import type { components as Orders } from './schema/orders';
 
@@ -51,6 +52,17 @@ export type CreateOrderFromCartRequest = Orders['schemas']['CreateOrderFromCartR
 export type OrderStatsResponse = Orders['schemas']['OrderStatsResponse'];
 export type HasOrdersResponse = Orders['schemas']['HasOrdersResponse'];
 export type PricingRules = Orders['schemas']['PricingRulesResponse'];
+
+// Content: makers, collections, journal articles and lookbooks
+export type Maker = Content['schemas']['MakerResponse'];
+export type MakerPayload = Content['schemas']['MakerRequest'];
+export type Collection = Content['schemas']['CollectionResponse'];
+export type CollectionPayload = Content['schemas']['CollectionRequest'];
+export type Article = Content['schemas']['ArticleResponse'];
+export type ArticlePayload = Content['schemas']['ArticleRequest'];
+export type Lookbook = Content['schemas']['LookbookResponse'];
+export type LookbookPayload = Content['schemas']['LookbookRequest'];
+export type Hotspot = Content['schemas']['HotspotDto'];
 
 // Audit trail
 export type AuditLog = Audit['schemas']['AuditLog'];

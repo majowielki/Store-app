@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
+import { useGetArticlesQuery, useGetLookbooksQuery } from '@/api/content';
+import { inspirationPages } from '@/content/pages';
 import { cn } from '@/lib/utils';
 import { categories, categoryHref } from '@/utils/categories';
 import { ProductPrice } from './ProductCard';
@@ -81,6 +83,47 @@ const MegaPanel = ({ group, onNavigate }: { group: string; onNavigate: () => voi
   );
 };
 
+const INSPIRATION = 'inspiration';
+
+/** The editorial sections and, next to them, the first look and the newest journal article. */
+const InspirationPanel = ({ onNavigate }: { onNavigate: () => void }) => {
+  const { data: looks } = useGetLookbooksQuery();
+  const { data: articles } = useGetArticlesQuery();
+  const picks = [
+    looks?.[0] && { to: `/looks/${looks[0].slug}`, image: looks[0].image, eyebrow: 'Shop the look', title: looks[0].title },
+    articles?.[0] && { to: `/journal/${articles[0].slug}`, image: articles[0].coverImage, eyebrow: 'Journal', title: articles[0].title },
+  ].filter((pick): pick is { to: string; image: string; eyebrow: string; title: string } => Boolean(pick));
+
+  return (
+    <div className="align-element grid grid-cols-12 gap-10 py-10">
+      <div className="col-span-3">
+        <p className="eyebrow">Ideas and stories</p>
+        <p className="display mt-3 text-5xl">Inspiration</p>
+      </div>
+      <ul className="col-span-3 grid content-start gap-3 border-l pl-10">
+        {inspirationPages.map((page, index) => (
+          <li key={page.to} className="animate-fade-up" style={{ animationDelay: `${index * 30}ms` }}>
+            <Link to={page.to} onClick={onNavigate} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              {page.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div className="col-span-6 grid grid-cols-2 gap-5">
+        {picks.map((pick) => (
+          <Link key={pick.to} to={pick.to} onClick={onNavigate} className="group/pick block">
+            <div className="aspect-[16/10] overflow-hidden rounded-xl bg-muted">
+              <img src={pick.image} alt="" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover/pick:scale-105" />
+            </div>
+            <p className="eyebrow mt-3">{pick.eyebrow}</p>
+            <p className="mt-1 text-sm font-medium">{pick.title}</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 /** The shop's sections in the header (wide screens), each group opening its panel on hover. */
 const DesktopNav = ({ className }: { className?: string }) => {
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -137,7 +180,11 @@ const DesktopNav = ({ className }: { className?: string }) => {
       </ul>
       {openGroup && (
         <div className="absolute inset-x-0 top-full border-b bg-background/95 shadow-[0_32px_64px_-32px_rgba(0,0,0,0.25)] backdrop-blur-xl animate-in fade-in-0 slide-in-from-top-1 duration-300">
-          <MegaPanel key={openGroup} group={openGroup} onNavigate={() => setOpenGroup(null)} />
+          {openGroup === INSPIRATION ? (
+            <InspirationPanel onNavigate={() => setOpenGroup(null)} />
+          ) : (
+            <MegaPanel key={openGroup} group={openGroup} onNavigate={() => setOpenGroup(null)} />
+          )}
         </div>
       )}
     </nav>

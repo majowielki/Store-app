@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUp } from 'lucide-react';
+import { infoPages, inspirationPages } from '@/content/pages';
 import { categories, categoryHref } from '@/utils/categories';
 import { Button } from './ui/button';
 
@@ -12,6 +13,7 @@ const columns = [
       { to: '/products?sale=on', label: 'Sale' },
     ],
   },
+  { title: 'Inspiration', links: inspirationPages },
   {
     title: 'Store',
     links: [
@@ -21,10 +23,8 @@ const columns = [
       { to: '/cart', label: 'Cart' },
     ],
   },
+  { title: 'Help', links: infoPages },
 ];
-
-// Pages the shop does not have yet; listed so the footer reads like a real one, but not links
-const help = ['Shipping & payments', 'Returns & complaints', 'Terms & conditions', 'Privacy policy'];
 
 /** An inverted footer: a last call to shop, the site map, the address and an oversized wordmark. */
 const Footer = () => (
@@ -45,7 +45,7 @@ const Footer = () => (
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-10 sm:grid-cols-4 lg:col-span-7">
+      <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:col-span-7">
         {columns.map((column) => (
           <div key={column.title}>
             <h4 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">{column.title}</h4>
@@ -60,14 +60,6 @@ const Footer = () => (
             </ul>
           </div>
         ))}
-        <div>
-          <h4 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">Help</h4>
-          <ul className="mt-5 space-y-3 text-sm text-primary-foreground/60 dark:text-muted-foreground">
-            {help.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
         <div>
           <h4 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">Visit</h4>
           <address className="mt-5 space-y-3 text-sm not-italic text-primary-foreground/60 dark:text-muted-foreground">

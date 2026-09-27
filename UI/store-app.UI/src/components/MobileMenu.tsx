@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/
 import { isAdmin } from '@/features/session/roles';
 import { useSignOut } from '@/features/session/useSignOut';
 import { useAppSelector } from '@/hooks';
+import { inspirationPages } from '@/content/pages';
 import { categories, categoryHref } from '@/utils/categories';
 import Logo from './Logo';
 import { ThemeSwitch } from './ModeToggle';
@@ -85,6 +86,17 @@ const MobileMenu = ({ open, onOpenChange }: MobileMenuProps) => {
                 <ArrowUpRight className="h-5 w-5" />
               </Link>
             </li>
+          </ul>
+
+          <p className="eyebrow mt-8">Inspiration</p>
+          <ul className="mt-3 grid grid-cols-2 gap-3">
+            {inspirationPages.map((item) => (
+              <li key={item.to}>
+                <Link to={item.to} onClick={close} className="text-sm font-medium">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
           </ul>
 
           <ul className="mt-8 grid gap-3">

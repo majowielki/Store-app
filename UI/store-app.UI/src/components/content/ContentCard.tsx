@@ -1,0 +1,33 @@
+import { Link } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface ContentCardProps {
+  to: string;
+  image: string;
+  title: string;
+  eyebrow?: string;
+  text?: string;
+  className?: string;
+  /** Wider picture for a featured card. */
+  wide?: boolean;
+}
+
+/** A picture, a title and a line of text leading to an editorial page. */
+const ContentCard = ({ to, image, title, eyebrow, text, className, wide = false }: ContentCardProps) => (
+  <Link to={to} className={cn('group block rounded-[1.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4', className)}>
+    <div className={cn('overflow-hidden rounded-[1.5rem] bg-muted', wide ? 'aspect-[16/9]' : 'aspect-[4/3]')}>
+      <img src={image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-105" />
+    </div>
+    <div className="mt-5 flex items-start justify-between gap-4">
+      <div>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        <h3 className="display mt-2 text-3xl leading-tight">{title}</h3>
+        {text && <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">{text}</p>}
+      </div>
+      <ArrowUpRight className="mt-2 h-5 w-5 shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+    </div>
+  </Link>
+);
+
+export default ContentCard;
