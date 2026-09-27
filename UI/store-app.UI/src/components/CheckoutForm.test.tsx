@@ -1,9 +1,10 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { cartApi } from '@/api/cart';
+import { ordersApi } from '@/api/orders';
 import type { CreateOrderFromCartRequest } from '@/api/types';
 import { order, user } from '@/test/fixtures';
 import { api, json, problemResponse } from '@/test/handlers';
@@ -53,6 +54,26 @@ describe('CheckoutForm', () => {
     expect(await screen.findByText('Oak Table is no longer available')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /place your order/i })).toBeInTheDocument();
     expect(store.getState().session.user?.simpleAddress).toBe(user.simpleAddress);
+  });
+
+  it('sends the discount code the cart accepted and forgets it once the order is placed', async () => {
+    const bodies: CreateOrderFromCartRequest[] = [];
+    server.use(
+      http.get(api('/orders/discount-codes/:code'), () => json({ code: 'OAK50', kind: 'Amount', value: 50, discountAmount: 50 })),
+      http.post(api('/orders/from-cart'), async ({ request }) => {
+        bodies.push((await request.json()) as CreateOrderFromCartRequest);
+        return json(order({ discountCode: 'OAK50', discountReason: 'code' }), { status: 201 });
+      }),
+    );
+    const { store } = renderWithStore(<App />, { user, route: '/checkout', preloadedState: { discountCode: { code: 'OAK50' } } });
+    await store.dispatch(cartApi.endpoints.getCart.initiate());
+    await waitFor(() => expect(ordersApi.endpoints.checkDiscountCode.select({ code: 'OAK50', subtotal: 320 })(store.getState()).data).toBeDefined());
+
+    await userEvent.click(screen.getByRole('button', { name: /place your order/i }));
+
+    expect(await screen.findByRole('heading', { name: 'Your Orders' })).toBeInTheDocument();
+    expect(bodies[0].discountCode).toBe('OAK50');
+    expect(store.getState().discountCode.code).toBeNull();
   });
 
   it('does not offer to change the shared profile of a demo account', () => {

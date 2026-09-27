@@ -15,6 +15,7 @@ public class OrderDbContext : DbContext
     public DbSet<OrderStatusChange> OrderStatusChanges => Set<OrderStatusChange>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
+    public DbSet<DiscountCode> DiscountCodes => Set<DiscountCode>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -34,6 +35,7 @@ public class OrderDbContext : DbContext
             entity.Property(o => o.DeliveryAddress).HasMaxLength(300);
             entity.Property(o => o.Notes).HasMaxLength(500);
             entity.Property(o => o.DiscountReason).HasMaxLength(50);
+            entity.Property(o => o.DiscountCode).HasMaxLength(DiscountCode.MaxCodeLength);
             entity.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
 
             // The user's order history and the admin statistics window
@@ -72,6 +74,14 @@ public class OrderDbContext : DbContext
         {
             entity.HasKey(c => c.UserId);
             entity.Property(c => c.UserId).HasMaxLength(450);
+        });
+
+        modelBuilder.Entity<DiscountCode>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Code).IsRequired().HasMaxLength(DiscountCode.MaxCodeLength);
+            entity.HasIndex(c => c.Code).IsUnique();
+            entity.Property(c => c.Kind).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<IdempotencyKey>(entity =>

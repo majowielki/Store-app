@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlaceOrderMutation } from '@/api/orders';
+import { codeRemoved } from '@/features/cart/discountCodeSlice';
+import { useDiscountCode } from '@/features/cart/useDiscountCode';
 import { addressSaved } from '@/features/session/sessionSlice';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { toast } from '@/hooks/use-toast';
@@ -13,6 +15,7 @@ const CheckoutForm = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.session.user);
   const [placeOrder, { isLoading }] = usePlaceOrderMutation();
+  const discount = useDiscountCode();
   // One key per visit of the checkout page: a retry after a timeout or a double click
   // returns the order created the first time instead of charging twice
   const [idempotencyKey] = useState(() => crypto.randomUUID());
@@ -35,9 +38,12 @@ const CheckoutForm = () => {
     }
 
     try {
-      await placeOrder({ order: { customerName, deliveryAddress, saveAddress }, idempotencyKey }).unwrap();
+      // Only a code the order service accepted goes with the order; it is checked once more there
+      const discountCode = discount.check?.code;
+      await placeOrder({ order: { customerName, deliveryAddress, saveAddress, discountCode }, idempotencyKey }).unwrap();
       // The identity service stores the address a moment later; the profile shown here is updated now
       if (saveAddress) dispatch(addressSaved(deliveryAddress));
+      dispatch(codeRemoved());
       toast({ description: 'Order placed' });
       navigate('/orders');
     } catch {

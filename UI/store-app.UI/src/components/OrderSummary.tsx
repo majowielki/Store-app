@@ -84,7 +84,9 @@ const OrderSummary = ({ title, order, actions }: OrderSummaryProps) => (
           <h2 className="eyebrow mb-3">Summary</h2>
           <Line label="Total Items" value={String(order.totalItems)} />
           <Line label="Subtotal" value={formatAsDollars(order.subtotal)} />
-          {order.discountAmount > 0 && <Line label="Order Discount" value={`-${formatAsDollars(order.discountAmount)}`} />}
+          {order.discountAmount > 0 && (
+            <Line label={order.discountCode ? `Code ${order.discountCode}` : 'Order Discount'} value={`-${formatAsDollars(order.discountAmount)}`} />
+          )}
           <Line label="Delivery" value={formatAsDollars(order.deliveryFee)} />
           <Line label="Order Total" value={formatAsDollars(order.total)} strong />
         </div>

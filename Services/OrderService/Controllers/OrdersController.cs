@@ -50,6 +50,16 @@ public class OrdersController : ControllerBase
         };
     }
 
+    /// <summary>
+    /// What a discount code takes off <paramref name="subtotal"/>, for the cart to preview; a
+    /// code that cannot be used (unknown, expired, used up, below its minimum) is 422 saying why.
+    /// The order checks the code again when it is placed.
+    /// </summary>
+    [HttpGet("discount-codes/{code}")]
+    [AllowAnonymous]
+    public Task<DiscountCodeCheckResponse> CheckDiscountCode(string code, [FromQuery] decimal subtotal, [FromServices] DiscountCodeService codes)
+        => codes.CheckAsync(code, Math.Max(0m, subtotal));
+
     private string UserId => User.GetRequiredUserId();
 
     /// <summary>

@@ -6,6 +6,252 @@
     "version": "v1"
   },
   "paths": {
+    "/api/v1/admin/discount-codes": {
+      "get": {
+        "tags": [
+          "AdminDiscountCodes"
+        ],
+        "summary": "Every code, active or not, in alphabetical order.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiscountCodeResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "AdminDiscountCodes"
+        ],
+        "summary": "A new code; 409 when another code has the same letters.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscountCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountCodeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/discount-codes/{id}": {
+      "get": {
+        "tags": [
+          "AdminDiscountCodes"
+        ],
+        "summary": "One code; 404 when the id is unknown.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountCodeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "AdminDiscountCodes"
+        ],
+        "summary": "Replaces a code's rules; the count of its uses stays.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscountCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountCodeResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "AdminDiscountCodes"
+        ],
+        "summary": "Deletes a code no order used; a used one is 409 and can be switched off instead.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/admin/orders": {
       "get": {
         "tags": [
@@ -327,6 +573,54 @@
         }
       }
     },
+    "/api/v1/orders/discount-codes/{code}": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "What a discount code takes off subtotal, for the cart to preview; a\ncode that cannot be used (unknown, expired, used up, below its minimum) is 422 saying why.\nThe order checks the code again when it is placed.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subtotal",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountCodeCheckResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/orders/from-cart": {
       "post": {
         "tags": [
@@ -559,6 +853,11 @@
             "type": "string",
             "nullable": true
           },
+          "discountCode": {
+            "type": "string",
+            "description": "A discount code the customer typed; the order is refused when it cannot be used.",
+            "nullable": true
+          },
           "saveAddress": {
             "type": "boolean",
             "description": "Also store the delivery address in the user profile."
@@ -566,6 +865,152 @@
         },
         "additionalProperties": false,
         "description": "Body of POST /api/v1/orders/from-cart. Rules: `CreateOrderFromCartRequestValidator`."
+      },
+      "DiscountCodeCheckResponse": {
+        "required": [
+          "code",
+          "discountAmount",
+          "kind",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "discountAmount": {
+            "type": "number",
+            "description": "The amount the code takes off the subtotal it was checked with.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What a code takes off a subtotal, for the cart to preview before the checkout."
+      },
+      "DiscountCodeRequest": {
+        "required": [
+          "code",
+          "isActive",
+          "kind",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Letters, digits and dashes; stored in upper case."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Percent or Amount."
+          },
+          "value": {
+            "type": "number",
+            "description": "The percentage (1-100) or the amount in dollars.",
+            "format": "double"
+          },
+          "minimumSubtotal": {
+            "type": "number",
+            "description": "The smallest subtotal the code works on; none for any order.",
+            "format": "double",
+            "nullable": true
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "usageLimit": {
+            "type": "integer",
+            "description": "How many orders in total may use the code; none for no limit.",
+            "format": "int32",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST and PUT /api/v1/admin/discount-codes. Rules: `DiscountCodeRequestValidator`."
+      },
+      "DiscountCodeResponse": {
+        "required": [
+          "code",
+          "createdAt",
+          "id",
+          "isActive",
+          "kind",
+          "timesUsed",
+          "updatedAt",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "code": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "minimumSubtotal": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "usageLimit": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "timesUsed": {
+            "type": "integer",
+            "description": "Orders the code was applied to.",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A discount code as the admin panel sees it."
       },
       "HasOrdersResponse": {
         "required": [
@@ -690,6 +1135,11 @@
           },
           "discountReason": {
             "type": "string",
+            "nullable": true
+          },
+          "discountCode": {
+            "type": "string",
+            "description": "The discount code the order was discounted by, if any.",
             "nullable": true
           },
           "deliveryFee": {
@@ -1002,6 +1452,10 @@
     }
   },
   "tags": [
+    {
+      "name": "AdminDiscountCodes",
+      "description": "Discount codes in the admin panel. Both administrators see them; only the true one may\ncreate, change or delete a code."
+    },
     {
       "name": "AdminOrders",
       "description": "Orders as the admin panel sees them. The demo administrator sees the panel but not the\ncustomers' data."

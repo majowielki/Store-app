@@ -2,7 +2,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQuery } from './baseQuery';
 
 /** What a mutation can make stale: every query of a resource carries one of these. */
-const tagTypes = ['Cart', 'Orders', 'Products', 'Users', 'Stats', 'Content'] as const;
+const tagTypes = ['Cart', 'Orders', 'Products', 'Users', 'Stats', 'Content', 'DiscountCodes'] as const;
 export type ApiTag = (typeof tagTypes)[number];
 
 /**

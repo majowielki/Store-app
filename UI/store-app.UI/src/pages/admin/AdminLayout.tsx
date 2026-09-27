@@ -17,7 +17,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Card } from '@/components/ui/card';
-import { BookOpenText, Images, LayoutDashboard, Layers, PackageSearch, Store, UsersRound, ShoppingCart } from 'lucide-react';
+import { BookOpenText, Images, LayoutDashboard, Layers, PackageSearch, Store, TicketPercent, UsersRound, ShoppingCart } from 'lucide-react';
 import AdminHeader from '@/components/AdminHeader';
 import AdminBottomBar from '@/components/AdminBottomBar';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -26,6 +26,7 @@ const AdminLayout = () => {
   const nav = [
     { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard /> },
     { to: '/admin/orders', label: 'Orders', icon: <ShoppingCart /> },
+    { to: '/admin/discount-codes', label: 'Discount codes', icon: <TicketPercent /> },
     { to: '/admin/products', label: 'Products', icon: <PackageSearch /> },
     { to: '/admin/users', label: 'Users', icon: <UsersRound /> },
   ];

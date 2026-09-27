@@ -14,6 +14,9 @@ public class OrderResponse
     public decimal Subtotal { get; set; }
     public decimal DiscountAmount { get; set; }
     public string? DiscountReason { get; set; }
+
+    /// <summary>The discount code the order was discounted by, if any.</summary>
+    public string? DiscountCode { get; set; }
     public decimal DeliveryFee { get; set; }
 
     /// <summary>What the customer pays.</summary>

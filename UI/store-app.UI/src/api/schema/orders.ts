@@ -4,6 +4,265 @@
  */
 
 export interface paths {
+    "/api/v1/admin/discount-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every code, active or not, in alphabetical order. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscountCodeResponse"][];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** A new code; 409 when another code has the same letters. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DiscountCodeRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscountCodeResponse"];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discount-codes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One code; 404 when the id is unknown. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscountCodeResponse"];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        /** Replaces a code's rules; the count of its uses stays. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DiscountCodeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscountCodeResponse"];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Deletes a code no order used; a used one is 409 and can be switched off instead. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/orders": {
         parameters: {
             query?: never;
@@ -369,6 +628,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/discount-codes/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a discount code takes off subtotal, for the cart to preview; a
+         *     code that cannot be used (unknown, expired, used up, below its minimum) is 422 saying why.
+         *     The order checks the code again when it is placed.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    subtotal?: number;
+                };
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DiscountCodeCheckResponse"];
+                    };
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/from-cart": {
         parameters: {
             query?: never;
@@ -628,8 +940,76 @@ export interface components {
             deliveryAddress?: string | null;
             customerName: string;
             notes?: string | null;
+            /** @description A discount code the customer typed; the order is refused when it cannot be used. */
+            discountCode?: string | null;
             /** @description Also store the delivery address in the user profile. */
             saveAddress: boolean;
+        };
+        /** @description What a code takes off a subtotal, for the cart to preview before the checkout. */
+        DiscountCodeCheckResponse: {
+            code: string;
+            kind: string;
+            /** Format: double */
+            value: number;
+            /**
+             * Format: double
+             * @description The amount the code takes off the subtotal it was checked with.
+             */
+            discountAmount: number;
+        };
+        /** @description Body of POST and PUT /api/v1/admin/discount-codes. Rules: `DiscountCodeRequestValidator`. */
+        DiscountCodeRequest: {
+            /** @description Letters, digits and dashes; stored in upper case. */
+            code: string;
+            /** @description Percent or Amount. */
+            kind: string;
+            /**
+             * Format: double
+             * @description The percentage (1-100) or the amount in dollars.
+             */
+            value: number;
+            /**
+             * Format: double
+             * @description The smallest subtotal the code works on; none for any order.
+             */
+            minimumSubtotal?: number | null;
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            expiresAt?: string | null;
+            /**
+             * Format: int32
+             * @description How many orders in total may use the code; none for no limit.
+             */
+            usageLimit?: number | null;
+            isActive: boolean;
+        };
+        /** @description A discount code as the admin panel sees it. */
+        DiscountCodeResponse: {
+            /** Format: int32 */
+            id: number;
+            code: string;
+            kind: string;
+            /** Format: double */
+            value: number;
+            /** Format: double */
+            minimumSubtotal?: number | null;
+            /** Format: date-time */
+            startsAt?: string | null;
+            /** Format: date-time */
+            expiresAt?: string | null;
+            /** Format: int32 */
+            usageLimit?: number | null;
+            /**
+             * Format: int32
+             * @description Orders the code was applied to.
+             */
+            timesUsed: number;
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         HasOrdersResponse: {
             hasOrders: boolean;
@@ -670,6 +1050,8 @@ export interface components {
             /** Format: double */
             discountAmount: number;
             discountReason?: string | null;
+            /** @description The discount code the order was discounted by, if any. */
+            discountCode?: string | null;
             /** Format: double */
             deliveryFee: number;
             /**

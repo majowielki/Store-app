@@ -30,18 +30,27 @@ public readonly record struct OrderTotals(decimal Subtotal, decimal DiscountAmou
 public static class PricingPolicy
 {
     public const string FirstOrderDiscountReason = "first-order";
+    public const string CodeDiscountReason = "code";
 
-    public static OrderTotals Calculate(decimal subtotal, bool isFirstOrder, PricingOptions options)
+    /// <remarks>
+    /// Discounts do not add up: the first-order discount and what a usable discount code takes
+    /// off (<c>codeDiscount</c>) compete, and the larger one is taken - the first-order discount
+    /// on a tie, so the code stays unused.
+    /// </remarks>
+    public static OrderTotals Calculate(decimal subtotal, bool isFirstOrder, PricingOptions options, decimal codeDiscount = 0m)
     {
-        var discount = isFirstOrder
+        var firstOrder = isFirstOrder
             ? Math.Round(subtotal * options.FirstOrderDiscountPercent / 100m, 2, MidpointRounding.AwayFromZero)
             : 0m;
+        var (discount, reason) = codeDiscount > firstOrder
+            ? (codeDiscount, CodeDiscountReason)
+            : (firstOrder, firstOrder > 0 ? FirstOrderDiscountReason : null);
         var deliveryFee = subtotal > 0 && subtotal < options.FreeDeliveryThreshold ? options.DeliveryFee : 0m;
 
         return new OrderTotals(
             Subtotal: subtotal,
             DiscountAmount: discount,
-            DiscountReason: discount > 0 ? FirstOrderDiscountReason : null,
+            DiscountReason: reason,
             DeliveryFee: deliveryFee,
             Total: subtotal - discount + deliveryFee);
     }

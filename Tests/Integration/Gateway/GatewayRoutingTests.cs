@@ -38,6 +38,8 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
     [InlineData("/api/v1/admin/users", Roles.TrueAdmin, PassedTheGateway)]
     [InlineData("/api/v1/admin/orders", Roles.User, HttpStatusCode.Forbidden)]
     [InlineData("/api/v1/admin/orders/1", Roles.DemoAdmin, PassedTheGateway)]
+    [InlineData("/api/v1/admin/discount-codes", Roles.User, HttpStatusCode.Forbidden)]
+    [InlineData("/api/v1/admin/discount-codes/1", Roles.DemoAdmin, PassedTheGateway)]
     [InlineData("/api/v1/auditlog", Roles.User, HttpStatusCode.Forbidden)]
     [InlineData("/api/v1/auditlog", Roles.TrueAdmin, PassedTheGateway)]
     [InlineData("/api/v1/products", "anonymous", PassedTheGateway)]
@@ -162,13 +164,14 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
         Assert.Equal(PassedTheGateway, (await client.GetAsync("/api/v1/products")).StatusCode);
     }
 
-    // The cart page needs the pricing rules before anyone signs in; the rest of /orders stays private
+    // The cart page needs the pricing rules and the discount check before anyone signs in; the rest of /orders stays private
     [Fact]
     public async Task Pricing_rules_are_public_while_orders_are_not()
     {
         using var client = ClientFrom("10.0.8.1");
 
         Assert.Equal(PassedTheGateway, (await client.GetAsync("/api/v1/orders/pricing-rules")).StatusCode);
+        Assert.Equal(PassedTheGateway, (await client.GetAsync("/api/v1/orders/discount-codes/OAK50?subtotal=500")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/orders/my-orders")).StatusCode);
     }
 

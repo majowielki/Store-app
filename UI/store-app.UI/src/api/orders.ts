@@ -1,6 +1,17 @@
 import { api, unlessFailed } from './api';
 import { cartApi, emptyCart } from './cart';
-import type { CreateOrderFromCartRequest, HasOrdersResponse, Order, OrderStatsResponse, OrderStatus, OrdersResponse, PricingRules } from './types';
+import type {
+  CreateOrderFromCartRequest,
+  DiscountCode,
+  DiscountCodeCheck,
+  DiscountCodePayload,
+  HasOrdersResponse,
+  Order,
+  OrderStatsResponse,
+  OrderStatus,
+  OrdersResponse,
+  PricingRules,
+} from './types';
 
 export type PageQuery = {
   page?: number;
@@ -21,7 +32,7 @@ export const ordersApi = api.injectEndpoints({
         body: order,
         headers: { 'Idempotency-Key': idempotencyKey },
       }),
-      invalidatesTags: unlessFailed(['Orders', 'Stats']),
+      invalidatesTags: unlessFailed(['Orders', 'Stats', 'DiscountCodes']),
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
@@ -73,6 +84,28 @@ export const ordersApi = api.injectEndpoints({
       query: (params) => ({ url: '/admin/orders/stats', params }),
       providesTags: ['Stats'],
     }),
+    /**
+     * What a discount code takes off the subtotal, or why it cannot be used (422 with the
+     * reason). Silent: the cart shows the reason next to the field, not in a toast.
+     */
+    checkDiscountCode: build.query<DiscountCodeCheck, { code: string; subtotal: number }>({
+      query: ({ code, subtotal }) => ({ url: `/orders/discount-codes/${encodeURIComponent(code)}`, params: { subtotal } }),
+      providesTags: ['DiscountCodes'],
+      extraOptions: { silent: true },
+    }),
+    getDiscountCodes: build.query<DiscountCode[], void>({
+      query: () => '/admin/discount-codes',
+      providesTags: ['DiscountCodes'],
+    }),
+    saveDiscountCode: build.mutation<DiscountCode, { id?: number; body: DiscountCodePayload }>({
+      query: ({ id, body }) =>
+        id === undefined ? { url: '/admin/discount-codes', method: 'POST', body } : { url: `/admin/discount-codes/${id}`, method: 'PUT', body },
+      invalidatesTags: unlessFailed(['DiscountCodes']),
+    }),
+    deleteDiscountCode: build.mutation<void, number>({
+      query: (id) => ({ url: `/admin/discount-codes/${id}`, method: 'DELETE' }),
+      invalidatesTags: unlessFailed(['DiscountCodes']),
+    }),
     /** Moves an order on (paid, shipped) or cancels it; only the true administrator may. */
     changeOrderStatus: build.mutation<Order, { id: number; status: OrderStatus }>({
       query: ({ id, status }) => ({ url: `/admin/orders/${id}/status`, method: 'PATCH', body: { status } }),
@@ -92,4 +125,8 @@ export const {
   useGetOrdersByUserQuery,
   useGetOrderStatsQuery,
   useChangeOrderStatusMutation,
+  useCheckDiscountCodeQuery,
+  useGetDiscountCodesQuery,
+  useSaveDiscountCodeMutation,
+  useDeleteDiscountCodeMutation,
 } = ordersApi;

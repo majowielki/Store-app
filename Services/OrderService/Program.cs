@@ -50,6 +50,7 @@ builder.Services.AddStoreOptions<PricingOptions>(builder.Configuration, PricingO
 builder.Services.AddStoreOptions<DeliveryOptions>(builder.Configuration, DeliveryOptions.SectionName);
 builder.Services.AddSingleton<DeliveryEstimator>();
 builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
+builder.Services.AddScoped<DiscountCodeService>();
 builder.Services.AddHostedService<IdempotencyKeyCleanupService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
@@ -76,8 +77,10 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapStoreHealthChecks();
 
-// Migrations: applied here in Development, by "--migrate" in a deployment; pending ones stop the start
-if (await app.PrepareDatabaseAsync<OrderDbContext>(args))
+// Migrations and the demo discount codes: applied here in Development, by "--migrate" in a deployment;
+// pending migrations stop the start
+if (await app.PrepareDatabaseAsync<OrderDbContext>(args,
+        seed: services => DiscountCodeSeeder.SeedAsync(services.GetRequiredService<OrderDbContext>(), services.GetRequiredService<TimeProvider>())))
 {
     return;
 }

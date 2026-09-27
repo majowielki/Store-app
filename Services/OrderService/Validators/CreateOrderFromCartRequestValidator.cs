@@ -17,5 +17,8 @@ public class CreateOrderFromCartRequestValidator : AbstractValidator<CreateOrder
 
         RuleFor(x => x.Notes)
             .MaximumLength(500).WithMessage("Notes must be at most 500 characters.");
+
+        RuleFor(x => x.DiscountCode)
+            .MaximumLength(Models.DiscountCode.MaxCodeLength).WithMessage($"DiscountCode must be at most {Models.DiscountCode.MaxCodeLength} characters.");
     }
 }

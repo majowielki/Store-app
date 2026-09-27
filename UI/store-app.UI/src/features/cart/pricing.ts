@@ -10,15 +10,25 @@ export type PricingAmounts = Pick<PricingRules, 'freeDeliveryThreshold' | 'deliv
 export interface CartPreview {
   subtotal: number;
   discount: number;
+  /** Which discount is taken: the first-order one or the code's; none without a discount. */
+  discountReason: 'first-order' | 'code' | null;
   deliveryFee: number;
   total: number;
 }
 
-/** The amounts the cart page shows; the delivery threshold is compared with the subtotal before the discount. */
-export const previewTotals = (subtotal: number, firstOrder: boolean, rules: PricingAmounts): CartPreview => {
-  const discount = firstOrder && subtotal > 0 ? round(subtotal * (rules.firstOrderDiscountPercent / 100)) : 0;
+/**
+ * The amounts the cart page shows; the delivery threshold is compared with the subtotal before
+ * the discount. The first-order discount and a code's (codeDiscount, as the order
+ * service computed it) do not add up: the larger is taken, the first-order one on a tie.
+ */
+export const previewTotals = (subtotal: number, firstOrder: boolean, rules: PricingAmounts, codeDiscount = 0): CartPreview => {
+  const firstOrderDiscount = firstOrder && subtotal > 0 ? round(subtotal * (rules.firstOrderDiscountPercent / 100)) : 0;
+  const [discount, discountReason] =
+    codeDiscount > firstOrderDiscount
+      ? ([codeDiscount, 'code'] as const)
+      : ([firstOrderDiscount, firstOrderDiscount > 0 ? ('first-order' as const) : null] as const);
   const deliveryFee = subtotal > 0 && subtotal < rules.freeDeliveryThreshold ? rules.deliveryFee : 0;
-  return { subtotal, discount, deliveryFee, total: round(subtotal - discount + deliveryFee) };
+  return { subtotal, discount, discountReason, deliveryFee, total: round(subtotal - discount + deliveryFee) };
 };
 
 const round = (amount: number) => Math.round(amount * 100) / 100;

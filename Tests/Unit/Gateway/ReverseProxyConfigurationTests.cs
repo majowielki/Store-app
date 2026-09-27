@@ -19,7 +19,8 @@ public class ReverseProxyConfigurationTests
 
     private static readonly string[] ExpectedRoutes =
     {
-        "identity-route", "products-route", "cart-route", "pricing-rules-route", "orders-route", "content-admin-route", "content-route", "audit-route", "admin-orders-route", "admin-route"
+        "identity-route", "products-route", "cart-route", "pricing-rules-route", "discount-check-route", "orders-route", "content-admin-route", "content-route",
+        "audit-route", "admin-orders-route", "admin-discount-codes-route", "admin-route"
     };
 
     public static TheoryData<string> Environments => new() { "Development", "Production" };
@@ -88,11 +89,11 @@ public class ReverseProxyConfigurationTests
 
         Assert.Equal("auth", routes["identity-route"].RateLimiterPolicy);
         // Every proxied route is rate limited: the shop ones per user, the admin ones stricter
-        foreach (var route in new[] { "products-route", "cart-route", "orders-route", "pricing-rules-route" })
+        foreach (var route in new[] { "products-route", "cart-route", "orders-route", "pricing-rules-route", "discount-check-route" })
         {
             Assert.Equal("api", routes[route].RateLimiterPolicy);
         }
-        foreach (var route in new[] { "audit-route", "admin-orders-route", "admin-route" })
+        foreach (var route in new[] { "audit-route", "admin-orders-route", "admin-discount-codes-route", "admin-route" })
         {
             Assert.Equal("admin", routes[route].RateLimiterPolicy);
         }
@@ -107,6 +108,12 @@ public class ReverseProxyConfigurationTests
         // The more specific admin route must win over the identity catch-all
         Assert.Equal("orders-cluster", routes["admin-orders-route"].ClusterId);
         Assert.True(routes["admin-orders-route"].Order < routes["admin-route"].Order);
+        Assert.Equal("orders-cluster", routes["admin-discount-codes-route"].ClusterId);
+        Assert.Equal(Policies.Admin, routes["admin-discount-codes-route"].AuthorizationPolicy);
+        Assert.True(routes["admin-discount-codes-route"].Order < routes["admin-route"].Order);
+        // The cart checks a discount code before anyone signs in
+        Assert.Null(routes["discount-check-route"].AuthorizationPolicy);
+        Assert.True(routes["discount-check-route"].Order < routes["orders-route"].Order);
     }
 
     [Theory]

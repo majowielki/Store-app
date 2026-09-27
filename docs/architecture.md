@@ -69,8 +69,10 @@ messaging, telemetry - lives in `Store.BuildingBlocks` and every host composes i
 2. The order service reads the cart snapshot from the cart service and the current price of every
    product from the catalogue (over HTTP, before any transaction).
 3. In one transaction: the customer row is locked, the idempotency key is checked (a duplicate
-   returns the order created before), the totals are computed by `PricingPolicy`, the order and
-   the key are written and `OrderPlaced` goes into the outbox.
+   returns the order created before), a discount code the customer typed is locked and checked
+   (`DiscountCodePolicy`: dates, minimum, usage limit), the totals are computed by `PricingPolicy`
+   (the larger of the first-order discount and the code, never both), the order and the key are
+   written and `OrderPlaced` goes into the outbox.
 4. The outbox delivers `OrderPlaced` to RabbitMQ; the cart service empties the cart, the identity
    service stores the delivery address when asked to, the audit service records the order. Each
    consumer's inbox makes a redelivery harmless.

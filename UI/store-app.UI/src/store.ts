@@ -3,17 +3,20 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 import { api } from './api/api';
 import { errorToasts } from './api/errorToasts';
 import { onSessionEnded } from './api/session';
+import discountCodeReducer, { loadDiscountCode, saveDiscountCode } from './features/cart/discountCodeSlice';
 import guestCartReducer, { loadGuestCart, saveGuestCart } from './features/cart/guestCartSlice';
 import sessionReducer, { sessionEnded } from './features/session/sessionSlice';
 import themeReducer from './features/theme/themeSlice';
 import { toast } from './hooks/use-toast';
 
 // Everything the API answers lives in the RTK Query cache; the store keeps only what the
-// UI owns itself: the session (who is signed in), the visitor's cart and the theme.
+// UI owns itself: the session (who is signed in), the visitor's cart, the discount code typed in
+// the cart and the theme.
 const rootReducer = combineReducers({
   [api.reducerPath]: api.reducer,
   session: sessionReducer,
   guestCart: guestCartReducer,
+  discountCode: discountCodeReducer,
   theme: themeReducer,
 });
 
@@ -29,18 +32,23 @@ export const createAppStore = (preloadedState?: Partial<RootState>) =>
 export type AppStore = ReturnType<typeof createAppStore>;
 export type AppDispatch = AppStore['dispatch'];
 
-export const store = createAppStore({ guestCart: loadGuestCart() });
+export const store = createAppStore({ guestCart: loadGuestCart(), discountCode: loadDiscountCode() });
 
 // Refetch on focus and reconnect, for the queries that ask for it
 setupListeners(store.dispatch);
 
-// The visitor's cart outlives the page
+// The visitor's cart outlives the page, the typed discount code a reload of the tab
 let lastGuestCart = store.getState().guestCart;
+let lastDiscountCode = store.getState().discountCode;
 store.subscribe(() => {
-  const guestCart = store.getState().guestCart;
+  const { guestCart, discountCode } = store.getState();
   if (guestCart !== lastGuestCart) {
     lastGuestCart = guestCart;
     saveGuestCart(guestCart);
+  }
+  if (discountCode !== lastDiscountCode) {
+    lastDiscountCode = discountCode;
+    saveDiscountCode(discountCode);
   }
 });
 

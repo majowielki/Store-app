@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Lock, ShoppingBag } from 'lucide-react';
 import { CartItemsList, Loading, CartTotals } from '@/components';
+import DiscountCodeField from '@/components/DiscountCodeField';
 import FreeDeliveryProgress from '@/components/FreeDeliveryProgress';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/features/cart/useCart';
@@ -54,6 +55,7 @@ const Cart = () => {
           <div className="rounded-3xl border bg-card p-6 md:p-8">
             <h2 className="display text-3xl">Order summary</h2>
             <FreeDeliveryProgress subtotal={subtotal} />
+            <DiscountCodeField className="mt-6" />
             <CartTotals className="mt-6" />
             <Button asChild size="lg" className="group mt-8 w-full">
               {user ? (

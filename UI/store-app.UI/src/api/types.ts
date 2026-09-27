@@ -53,6 +53,9 @@ export type OrderStatsResponse = Orders['schemas']['OrderStatsResponse'];
 export type HasOrdersResponse = Orders['schemas']['HasOrdersResponse'];
 export type PricingRules = Orders['schemas']['PricingRulesResponse'];
 export type OrderStatus = 'Placed' | 'Paid' | 'Shipped' | 'Cancelled';
+export type DiscountCodeCheck = Orders['schemas']['DiscountCodeCheckResponse'];
+export type DiscountCode = Orders['schemas']['DiscountCodeResponse'];
+export type DiscountCodePayload = Orders['schemas']['DiscountCodeRequest'];
 
 // Content: makers, collections, journal articles and lookbooks
 export type Maker = Content['schemas']['MakerResponse'];

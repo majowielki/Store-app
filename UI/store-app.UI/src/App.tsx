@@ -62,6 +62,7 @@ const router = createBrowserRouter([
       { index: true, lazy: page(() => import('./pages/admin/Dashboard')), errorElement: <ErrorElement /> },
       { path: 'orders', lazy: page(() => import('./pages/admin/Orders')), errorElement: <ErrorElement /> },
       { path: 'orders/:id', lazy: page(() => import('./pages/admin/OrderDetail')), errorElement: <ErrorElement /> },
+      { path: 'discount-codes', lazy: page(() => import('./pages/admin/DiscountCodes')), errorElement: <ErrorElement /> },
       { path: 'products', lazy: page(() => import('./pages/admin/Products')), errorElement: <ErrorElement /> },
       { path: 'products/new', lazy: page(() => import('./pages/admin/ProductForm')), errorElement: <ErrorElement /> },
       { path: 'products/:id', lazy: page(() => import('./pages/admin/ProductForm')), errorElement: <ErrorElement /> },

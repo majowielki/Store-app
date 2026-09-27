@@ -1,6 +1,7 @@
 import { useGetHasOrdersQuery, useGetPricingRulesQuery } from '@/api/orders';
 import { previewTotals } from '@/features/cart/pricing';
 import { useCart } from '@/features/cart/useCart';
+import { useDiscountCode } from '@/features/cart/useDiscountCode';
 import { useAppSelector } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { formatAsDollars } from '@/utils';
@@ -39,6 +40,7 @@ const CartTotals = ({ className }: { className?: string }) => {
   // Only a signed-in customer can be on their first order; a visitor sees the plain total
   const { data: orders } = useGetHasOrdersQuery(undefined, { skip: !user });
   const firstOrder = !!user && orders?.ordersCount === 0;
+  const { check } = useDiscountCode();
 
   if (!rules) {
     return (
@@ -51,11 +53,18 @@ const CartTotals = ({ className }: { className?: string }) => {
     );
   }
 
-  const totals = previewTotals(subtotal, firstOrder, rules);
+  const totals = previewTotals(subtotal, firstOrder, rules, check?.discountAmount ?? 0);
   return (
     <div className={className}>
       <CartTotalRow label="Subtotal" amount={totals.subtotal} />
-      {totals.discount > 0 && <CartTotalRow label="First order discount" amount={-totals.discount} isDiscount />}
+      {totals.discount > 0 && (
+        <CartTotalRow label={totals.discountReason === 'code' ? `Code ${check?.code}` : 'First order discount'} amount={-totals.discount} isDiscount />
+      )}
+      {check && totals.discountReason === 'first-order' && (
+        <p className="pb-1.5 text-xs text-muted-foreground">
+          Your first-order discount is larger, so {check.code} is kept for another order.
+        </p>
+      )}
       <CartTotalRow label="Delivery" amount={totals.deliveryFee} />
       <CartTotalRow label="Order Total" amount={totals.total} total />
     </div>

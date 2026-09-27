@@ -19,6 +19,9 @@ public class CreateOrderFromCartRequest
 
     public string? Notes { get; set; }
 
+    /// <summary>A discount code the customer typed; the order is refused when it cannot be used.</summary>
+    public string? DiscountCode { get; set; }
+
     /// <summary>Also store the delivery address in the user profile.</summary>
     public bool SaveAddress { get; set; }
 }

@@ -33,3 +33,39 @@ test('11. the true administrator ships an order and the customer follows every s
   await page.goto('/orders');
   await expect(page.getByRole('row').nth(1)).toContainText('Shipped');
 });
+
+test('12. a returning customer applies a discount code in the cart and the order keeps it', async ({ page, request }) => {
+  const [first] = await findProducts(request, { pageSize: '1' });
+  const [big] = await findProducts(request, { price: '450,5000', pageSize: '1' });
+  expect(big.effectivePrice).toBeGreaterThanOrEqual(400);
+
+  // The first order takes the first-order discount; the code is for the next one
+  await register(page, uniqueEmail('code'));
+  await addToCart(page, first.id);
+  await checkout(page);
+
+  await addToCart(page, big.id);
+  await page.goto('/cart');
+  const field = page.getByLabel('Discount code');
+  await field.fill('summer25');
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByRole('alert')).toHaveText('This code expired on Sep 1, 2026.');
+
+  await field.fill('OAK50');
+  await page.getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByText('Code OAK50')).toBeVisible();
+  await expect(page.getByText('$50.00 off')).toBeVisible();
+
+  await page.getByRole('link', { name: /Proceed to checkout/ }).click();
+  await expect(page.getByText('Code OAK50')).toBeVisible();
+  // The typed code survives a reload of the tab
+  await page.reload();
+  await expect(page.getByText('Code OAK50')).toBeVisible();
+  await page.getByLabel('address', { exact: true }).fill('E2E Street 2');
+  await page.getByRole('button', { name: 'Place Your Order' }).click();
+  await expectToast(page, 'Order placed');
+
+  await page.getByRole('row').nth(1).click();
+  await expect(page.getByText('Code OAK50:')).toBeVisible();
+  await expect(page.getByText('-$50.00')).toBeVisible();
+});

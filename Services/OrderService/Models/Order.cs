@@ -25,8 +25,11 @@ public class Order
 
     public decimal DiscountAmount { get; set; }
 
-    /// <summary>Why the discount was granted, e.g. <see cref="PricingPolicy.FirstOrderDiscountReason"/>.</summary>
+    /// <summary>Why the discount was granted: <see cref="PricingPolicy.FirstOrderDiscountReason"/> or <see cref="PricingPolicy.CodeDiscountReason"/>.</summary>
     public string? DiscountReason { get; set; }
+
+    /// <summary>The discount code the order was discounted by; none when there was none or the first-order discount was larger.</summary>
+    public string? DiscountCode { get; set; }
 
     public decimal DeliveryFee { get; set; }
 

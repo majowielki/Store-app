@@ -132,7 +132,9 @@ public class OrderService : IOrderService
             }
         }
 
-        var totals = PricingPolicy.Calculate(lines.Sum(l => l.LineTotal), isFirstOrder: customer.OrdersPlaced == 0, _pricing);
+        var subtotal = lines.Sum(l => l.LineTotal);
+        var code = await LockDiscountCodeAsync(request.DiscountCode, subtotal, now);
+        var totals = PricingPolicy.Calculate(subtotal, isFirstOrder: customer.OrdersPlaced == 0, _pricing, code?.Discount ?? 0m);
         var delivery = _delivery.EstimateNow();
 
         var order = new Order
@@ -154,6 +156,13 @@ public class OrderService : IOrderService
             DeliveryTo = delivery.To,
             CreatedAt = now
         };
+
+        // The code counts as used only when it, not the first-order discount, took the money off
+        if (code is { } applied && totals.DiscountReason == PricingPolicy.CodeDiscountReason)
+        {
+            applied.Entry.TimesUsed++;
+            order.DiscountCode = applied.Entry.Code;
+        }
 
         customer.OrdersPlaced++;
         customer.FirstOrderAt ??= now;
@@ -198,6 +207,31 @@ public class OrderService : IOrderService
     }
 
     /// <summary>
+    /// The discount code the customer typed, locked until the order commits so its usage limit
+    /// holds when many checkouts use it at once, with what it takes off the subtotal. A code
+    /// that cannot be used refuses the order with the reason, rather than charging more than the
+    /// cart promised.
+    /// </summary>
+    private async Task<(DiscountCode Entry, decimal Discount)?> LockDiscountCodeAsync(string? typed, decimal subtotal, DateTime now)
+    {
+        if (string.IsNullOrWhiteSpace(typed))
+        {
+            return null;
+        }
+
+        var normalized = DiscountCode.Normalize(typed);
+        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "DiscountCodes" WHERE "Code" = {normalized} FOR UPDATE""");
+        var entry = await _context.DiscountCodes.FirstOrDefaultAsync(c => c.Code == normalized);
+        var check = DiscountCodePolicy.Check(entry, subtotal, now);
+        if (!check.IsUsable)
+        {
+            throw new DomainValidationException(check.Refusal!);
+        }
+
+        return (entry!, check.Amount);
+    }
+
+    /// <summary>
     /// The order an earlier request with this key received, or null when the key is new. The
     /// same key with a different body or from a different customer is rejected.
     /// </summary>
@@ -227,7 +261,8 @@ public class OrderService : IOrderService
             request.CustomerName,
             request.DeliveryAddress,
             request.Notes,
-            request.SaveAddress
+            request.SaveAddress,
+            request.DiscountCode
         }, JsonOptions);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
@@ -402,6 +437,7 @@ public class OrderService : IOrderService
             Subtotal = order.Subtotal,
             DiscountAmount = order.DiscountAmount,
             DiscountReason = order.DiscountReason,
+            DiscountCode = order.DiscountCode,
             DeliveryFee = order.DeliveryFee,
             Total = order.Total,
             Status = order.Status.ToString(),
