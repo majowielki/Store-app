@@ -9,8 +9,8 @@ public static class DatabaseSeeder
     /// Brings the database to the current <see cref="DemoCatalogue"/>:
     /// <list type="bullet">
     /// <item>once per catalogue version, demo products seeded by an earlier version get the
-    /// current data (description, pictures, colours...) and the retired ones are deactivated;
-    /// what an administrator changes after that stays as it is</item>
+    /// current data (description, pictures and their points, colours...) and the retired ones
+    /// are deactivated; what an administrator changes after that stays as it is</item>
     /// <item>every time, the demo products the catalogue does not have yet are added, matched by
     /// title - so products added to the list later reach a database seeded earlier. Products
     /// already there, edited or deactivated (a delete only deactivates), are not added again; a
@@ -20,7 +20,7 @@ public static class DatabaseSeeder
     public static async Task SeedAsync(ProductDbContext context)
     {
         var demo = DemoCatalogue.Products();
-        var existing = (await context.Products.ToListAsync())
+        var existing = (await context.Products.Include(p => p.Images).ToListAsync())
             .GroupBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
@@ -79,6 +79,9 @@ public static class DatabaseSeeder
         to.HeightCm = from.HeightCm;
         to.DepthCm = from.DepthCm;
         to.WeightKg = from.WeightKg;
+        to.Hotspots = from.Hotspots;
+        to.Images.Clear();
+        to.Images.AddRange(from.Images);
         to.UpdatedAt = now;
     }
 }

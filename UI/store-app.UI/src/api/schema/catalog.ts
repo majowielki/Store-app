@@ -82,7 +82,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProductResponse"];
+                        "application/json": components["schemas"]["ProductDetailResponse"];
                     };
                 };
                 /** @description No valid access token */
@@ -141,7 +141,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProductResponse"];
+                        "application/json": components["schemas"]["ProductDetailResponse"];
                     };
                 };
                 /** @description Error, as an RFC 9457 problem (application/problem+json) */
@@ -177,7 +177,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProductResponse"];
+                        "application/json": components["schemas"]["ProductDetailResponse"];
                     };
                 };
                 /** @description No valid access token */
@@ -484,6 +484,10 @@ export interface components {
             /** Format: double */
             weightKg?: number | null;
             materials?: string[] | null;
+            /** @description Pictures shown after the main one, in order; none leaves the product with its main picture only. */
+            images?: components["schemas"]["ProductImageDto"][] | null;
+            /** @description Points on the main picture leading to other products. */
+            hotspots?: components["schemas"]["ProductHotspotDto"][] | null;
         };
         /**
          * Format: double
@@ -501,6 +505,66 @@ export interface components {
         OptionItem: {
             key: string;
             name: string;
+        };
+        /**
+         * @description One product as its own page shows it: everything of a catalogue entry plus the gallery and
+         *     the points on the main picture. The points are returned as stored; one leading to a product
+         *     the catalogue does not list (retired, or not added yet) is for the client to leave out.
+         */
+        ProductDetailResponse: {
+            /** Format: int32 */
+            id: number;
+            title: string;
+            /** @description Stable, address-friendly name; content (collections, lookbooks) refers to products by it. */
+            slug: string;
+            description: string;
+            /** Format: double */
+            price: number;
+            /** Format: double */
+            salePrice?: number | null;
+            /** Format: double */
+            discountPercent?: number | null;
+            /**
+             * Format: double
+             * @description Price the customer pays (sale price or discounted price, else the list price).
+             */
+            effectivePrice: number;
+            category: components["schemas"]["Category"];
+            company: components["schemas"]["Company"];
+            newArrival: boolean;
+            image: string;
+            colors: string[];
+            groups: string[];
+            /** Format: double */
+            widthCm?: number | null;
+            /** Format: double */
+            heightCm?: number | null;
+            /** Format: double */
+            depthCm?: number | null;
+            /** Format: double */
+            weightKg?: number | null;
+            materials: string[];
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Pictures shown after the main one (image), in order. */
+            images: components["schemas"]["ProductImageDto"][];
+            hotspots: components["schemas"]["ProductHotspotDto"][];
+        };
+        /** @description A point on the main picture, in percent of its width (x) and height (y), and the product it leads to. */
+        ProductHotspotDto: {
+            /** Format: double */
+            x: number;
+            /** Format: double */
+            y: number;
+            productSlug: string;
+        };
+        /** @description A gallery picture and what it shows. */
+        ProductImageDto: {
+            url: string;
+            alt: string;
         };
         ProductResponse: {
             /** Format: int32 */
@@ -654,6 +718,10 @@ export interface components {
             weightKg?: components["schemas"]["DecimalNullableOptional"];
             /** @description Replaces the whole list when present; an empty list removes every material. */
             materials?: string[] | null;
+            /** @description Replaces the gallery when present; an empty list leaves the main picture only. */
+            images?: components["schemas"]["ProductImageDto"][] | null;
+            /** @description Replaces the points on the main picture when present; an empty list removes them all. */
+            hotspots?: components["schemas"]["ProductHotspotDto"][] | null;
             /** @description False hides the product from the public catalogue, true brings a deleted one back. */
             isActive?: boolean | null;
         };

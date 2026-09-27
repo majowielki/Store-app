@@ -25,3 +25,6 @@ services is checked against each other by a unit test.
 - A product keeps its slug for life. Renaming it does not change its address, so content never
   points at nothing because of a new title; the admin panel shows the slug, it cannot edit it.
 - The slug is ready to serve as the product's public address when product pages move to one.
+- The points on a product's main picture (the other products the room shows) follow the same
+  rule inside the catalogue: a point stores the slug, so the seed can name a product of a later
+  photo round before it exists, and the point appears once that product is added.

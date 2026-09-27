@@ -8,6 +8,7 @@ import type {
   Order,
   PricingRules,
   Product,
+  ProductDetail,
   ProblemDetails,
   ProductsMeta,
   UserResponse,
@@ -67,6 +68,20 @@ export const product = (overrides: Partial<Product> = {}): Product => ({
   isActive: true,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
+  ...overrides,
+});
+
+/** The same table as its page loads it: two more pictures and a point on the chair in the room. */
+export const productDetail = (overrides: Partial<ProductDetail> = {}): ProductDetail => ({
+  ...product(),
+  images: [
+    { url: 'https://images.example.com/oak-table-2.jpg', alt: 'The oak grain up close' },
+    { url: 'https://images.example.com/oak-table-3.jpg', alt: 'The Oak Table on its own' },
+  ],
+  hotspots: [
+    { x: 30, y: 60, productSlug: 'pine-chair' },
+    { x: 80, y: 20, productSlug: 'retired-lamp' },
+  ],
   ...overrides,
 });
 

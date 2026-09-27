@@ -168,7 +168,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductResponse"
+                  "$ref": "#/components/schemas/ProductDetailResponse"
                 }
               }
             }
@@ -220,7 +220,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductResponse"
+                  "$ref": "#/components/schemas/ProductDetailResponse"
                 }
               }
             }
@@ -268,7 +268,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProductResponse"
+                  "$ref": "#/components/schemas/ProductDetailResponse"
                 }
               }
             }
@@ -720,6 +720,22 @@
               "type": "string"
             },
             "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductImageDto"
+            },
+            "description": "Pictures shown after the main one, in order; none leaves the product with its main picture only.",
+            "nullable": true
+          },
+          "hotspots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductHotspotDto"
+            },
+            "description": "Points on the main picture leading to other products.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -770,6 +786,180 @@
         },
         "additionalProperties": false,
         "description": "Option of a dropdown: the key sent back in queries and the label to show."
+      },
+      "ProductDetailResponse": {
+        "required": [
+          "category",
+          "colors",
+          "company",
+          "createdAt",
+          "description",
+          "effectivePrice",
+          "groups",
+          "hotspots",
+          "id",
+          "image",
+          "images",
+          "isActive",
+          "materials",
+          "newArrival",
+          "price",
+          "slug",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Stable, address-friendly name; content (collections, lookbooks) refers to products by it."
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "salePrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "discountPercent": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "effectivePrice": {
+            "type": "number",
+            "description": "Price the customer pays (sale price or discounted price, else the list price).",
+            "format": "double"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "company": {
+            "$ref": "#/components/schemas/Company"
+          },
+          "newArrival": {
+            "type": "boolean"
+          },
+          "image": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "widthCm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "heightCm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "depthCm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "materials": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductImageDto"
+            },
+            "description": "Pictures shown after the main one (image), in order."
+          },
+          "hotspots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductHotspotDto"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "One product as its own page shows it: everything of a catalogue entry plus the gallery and\nthe points on the main picture. The points are returned as stored; one leading to a product\nthe catalogue does not list (retired, or not added yet) is for the client to leave out."
+      },
+      "ProductHotspotDto": {
+        "required": [
+          "productSlug",
+          "x",
+          "y"
+        ],
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "productSlug": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A point on the main picture, in percent of its width (x) and height (y), and the product it leads to."
+      },
+      "ProductImageDto": {
+        "required": [
+          "alt",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A gallery picture and what it shows."
       },
       "ProductResponse": {
         "required": [
@@ -1156,6 +1346,22 @@
               "type": "string"
             },
             "description": "Replaces the whole list when present; an empty list removes every material.",
+            "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductImageDto"
+            },
+            "description": "Replaces the gallery when present; an empty list leaves the main picture only.",
+            "nullable": true
+          },
+          "hotspots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductHotspotDto"
+            },
+            "description": "Replaces the points on the main picture when present; an empty list removes them all.",
             "nullable": true
           },
           "isActive": {

@@ -44,8 +44,8 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
         Assert.False(stillDeactivated.IsActive);
     }
 
-    // A database seeded with the first catalogue (grey laminate dresser, JPEG pictures, the
-    // memory foam mattress) is brought to the current one once; after that the seeder leaves
+    // A database seeded with the first catalogue (grey laminate dresser, JPEG pictures, no gallery,
+    // the memory foam mattress) is brought to the current one once; after that the seeder leaves
     // what an administrator changes alone
     [Fact]
     public async Task A_catalogue_seeded_by_an_earlier_version_is_brought_up_to_date_once()
@@ -55,7 +55,9 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
         await using var transaction = await db.Database.BeginTransactionAsync();
 
         await db.CatalogueSeeds.ExecuteDeleteAsync();
-        var dresser = await db.Products.SingleAsync(p => p.Title == "8-Drawer Dresser");
+        var dresser = await db.Products.Include(p => p.Images).SingleAsync(p => p.Title == "8-Drawer Dresser");
+        dresser.Images.Clear();
+        dresser.Hotspots = [];
         dresser.Image = "http://localhost:10000/devstoreaccount1/product-images/8DrawerDresser.jpg";
         dresser.Colors = ["Gray"];
         dresser.Materials = ["engineered-wood", "metal"];
@@ -81,6 +83,8 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
         Assert.EndsWith("/8DrawerDresser-1.webp", updated.Image, StringComparison.Ordinal);
         Assert.Equal(new[] { "Brown" }, updated.Colors);
         Assert.Contains("brass", updated.Materials);
+        Assert.Equal(2, await db.Set<ProductImage>().CountAsync(i => i.ProductId == updated.Id));
+        Assert.Contains(updated.Hotspots, point => point.ProductSlug == "rattan-round-wall-mirror");
         var mattress = await db.Products.SingleAsync(p => p.Title == "Memory Foam Mattress");
         Assert.False(mattress.IsActive);
         Assert.Equal(DemoCatalogue.Version, (await db.CatalogueSeeds.SingleAsync()).Version);

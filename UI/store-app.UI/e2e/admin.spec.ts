@@ -12,7 +12,7 @@ const fillProductForm = async (page: Page, title: string, price: string) => {
   await page.getByLabel(/^description/).fill('A table created by the end-to-end tests; safe to delete.');
 };
 
-test('5. the true administrator adds a product, sees it listed, edits and deletes it', async ({ page }) => {
+test('5. the true administrator adds a product, sees it listed, edits it (a second picture shows on its page) and deletes it', async ({ page }) => {
   const title = `E2E Table ${Date.now()}`;
   await login(page, trueAdmin.email, trueAdmin.password);
   await expect(page).toHaveURL(/\/admin$/);
@@ -31,9 +31,18 @@ test('5. the true administrator adds a product, sees it listed, edits and delete
 
   await row.getByRole('link', { name: 'Edit' }).click();
   await expect(page.getByLabel('title', { exact: true })).toHaveValue(title);
+  const id = new URL(page.url()).pathname.split('/').pop();
   await page.getByLabel('price', { exact: true }).fill('150');
+  await page.getByRole('button', { name: 'Add a picture' }).click();
+  await page.getByLabel('Picture 2: address').fill('https://images.example.com/e2e-table-2.jpg');
+  await page.getByLabel('Picture 2: what it shows').fill('The table top up close');
   await page.getByRole('button', { name: 'Save' }).click();
   await expectToast(page, 'Product updated.');
+
+  await page.goto(`/products/${id}`);
+  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Show picture/ })).toHaveCount(2);
+  await page.goto('/admin/products');
   await page.getByRole('button', { name: 'Sort by ID' }).click();
   await expect(page.getByRole('row', { name: new RegExp(title) })).toContainText('$150.00');
 

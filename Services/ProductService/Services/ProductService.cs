@@ -36,7 +36,7 @@ public class ProductService : IProductService
         _time = time;
     }
 
-    public async Task<ProductResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null)
+    public async Task<ProductDetailResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null)
     {
         var product = new Product
         {
@@ -57,6 +57,8 @@ public class ProductService : IProductService
             DepthCm = request.DepthCm,
             WeightKg = request.WeightKg,
             Materials = NormalizeList(request.Materials),
+            Images = ToGallery(request.Images ?? []),
+            Hotspots = ToHotspots(request.Hotspots ?? []),
             CreatedAt = _time.GetUtcNow().UtcDateTime,
             UpdatedAt = _time.GetUtcNow().UtcDateTime
         };
@@ -66,12 +68,12 @@ public class ProductService : IProductService
 
         _logger.LogInformation("Product created successfully with ID: {ProductId}", product.Id);
         await _auditTrail.RecordAsync("PRODUCT_CREATED", nameof(Product), product.Id.ToString(), actorId, newValues: product);
-        return MapToProductResponse(product);
+        return MapToDetailResponse(product);
     }
 
-    public async Task<ProductResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null)
+    public async Task<ProductDetailResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null)
     {
-        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id)
+        var product = await _context.Products.Include(p => p.Images).FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException("Product", id);
 
         var oldValues = JsonSerializer.Serialize(product, AuditJsonOptions);
@@ -95,12 +97,21 @@ public class ProductService : IProductService
         if (request.Materials is not null) product.Materials = NormalizeList(request.Materials);
         if (request.IsActive.HasValue) product.IsActive = request.IsActive.Value;
 
+        if (request.Images is not null)
+        {
+            // The pictures left out are deleted with the relationship
+            product.Images.Clear();
+            product.Images.AddRange(ToGallery(request.Images));
+        }
+
+        if (request.Hotspots is not null) product.Hotspots = ToHotspots(request.Hotspots);
+
         product.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
         await _auditTrail.RecordAsync("PRODUCT_UPDATED", nameof(Product), product.Id.ToString(), actorId, oldValues: oldValues, newValues: product);
-        return MapToProductResponse(product);
+        return MapToDetailResponse(product);
     }
 
     public async Task DeleteProductAsync(int id, string? actorId = null)
@@ -134,14 +145,15 @@ public class ProductService : IProductService
         return PageAsync(query, queryParams, PublicPageSize);
     }
 
-    public async Task<ProductResponse> GetProductAsync(int id)
+    public async Task<ProductDetailResponse> GetProductAsync(int id)
     {
         var product = await _context.Products
             .AsNoTracking()
+            .Include(p => p.Images.OrderBy(i => i.SortOrder))
             .FirstOrDefaultAsync(p => p.Id == id && p.IsActive)
             ?? throw new NotFoundException("Product", id);
 
-        return MapToProductResponse(product);
+        return MapToDetailResponse(product);
     }
 
     public ProductsMeta GetProductsMeta()
@@ -331,32 +343,51 @@ public class ProductService : IProductService
     private static List<string> NormalizeList(IEnumerable<string>? values)
         => values?.Select(v => v.Trim().ToLowerInvariant()).Where(v => v.Length > 0).Distinct().ToList() ?? new List<string>();
 
-    private static ProductResponse MapToProductResponse(Product product)
+    private static List<ProductImage> ToGallery(IEnumerable<ProductImageDto> images)
+        => images.Select((image, index) => new ProductImage { Url = image.Url.Trim(), Alt = image.Alt.Trim(), SortOrder = index }).ToList();
+
+    private static List<ProductHotspot> ToHotspots(IEnumerable<ProductHotspotDto> points)
+        => points.Select(point => new ProductHotspot { X = point.X, Y = point.Y, ProductSlug = point.ProductSlug }).ToList();
+
+    private static ProductDetailResponse MapToDetailResponse(Product product)
     {
-        return new ProductResponse
-        {
-            Id = product.Id,
-            Title = product.Title,
-            Slug = product.Slug,
-            Description = product.Description,
-            Price = product.Price,
-            SalePrice = product.SalePrice,
-            DiscountPercent = product.DiscountPercent,
-            EffectivePrice = product.EffectivePrice,
-            Category = product.Category,
-            Company = product.Company,
-            NewArrival = product.NewArrival,
-            Image = product.Image,
-            Colors = product.Colors.Select(c => c.ToLowerInvariant()).ToList(),
-            Groups = product.Groups,
-            WidthCm = product.WidthCm,
-            HeightCm = product.HeightCm,
-            DepthCm = product.DepthCm,
-            WeightKg = product.WeightKg,
-            Materials = product.Materials,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt
-        };
+        var response = Map(product, new ProductDetailResponse());
+        response.Images = product.Images
+            .OrderBy(image => image.SortOrder)
+            .Select(image => new ProductImageDto { Url = image.Url, Alt = image.Alt })
+            .ToList();
+        response.Hotspots = product.Hotspots
+            .Select(point => new ProductHotspotDto { X = point.X, Y = point.Y, ProductSlug = point.ProductSlug })
+            .ToList();
+        return response;
+    }
+
+    private static ProductResponse MapToProductResponse(Product product) => Map(product, new ProductResponse());
+
+    private static TResponse Map<TResponse>(Product product, TResponse response) where TResponse : ProductResponse
+    {
+        response.Id = product.Id;
+        response.Title = product.Title;
+        response.Slug = product.Slug;
+        response.Description = product.Description;
+        response.Price = product.Price;
+        response.SalePrice = product.SalePrice;
+        response.DiscountPercent = product.DiscountPercent;
+        response.EffectivePrice = product.EffectivePrice;
+        response.Category = product.Category;
+        response.Company = product.Company;
+        response.NewArrival = product.NewArrival;
+        response.Image = product.Image;
+        response.Colors = product.Colors.Select(c => c.ToLowerInvariant()).ToList();
+        response.Groups = product.Groups;
+        response.WidthCm = product.WidthCm;
+        response.HeightCm = product.HeightCm;
+        response.DepthCm = product.DepthCm;
+        response.WeightKg = product.WeightKg;
+        response.Materials = product.Materials;
+        response.IsActive = product.IsActive;
+        response.CreatedAt = product.CreatedAt;
+        response.UpdatedAt = product.UpdatedAt;
+        return response;
     }
 }

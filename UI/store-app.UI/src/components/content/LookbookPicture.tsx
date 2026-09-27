@@ -18,15 +18,49 @@ interface LookbookPictureProps {
   className?: string;
   /** The picture is the page's first image: load it right away. */
   priority?: boolean;
+  /** Classes of the picture itself (it keeps its own proportions by default). */
+  imageClassName?: string;
+  /** Names the picture for the view transition that brings it from a product card. */
+  viewTransition?: string;
 }
+
+interface Box {
+  width: number;
+  height: number;
+}
+
+// The card of a point: at most 16rem wide, about this tall, this far from its point
+const cardWidth = 256;
+const cardHeight = 104;
+const gap = 24;
+const margin = 8;
+// The button of a point takes this much room below the point itself
+const pointSize = 32;
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
+
+/**
+ * Where the card of a point goes, relative to the point, so that it stays inside the picture: to
+ * the side away from the nearer edge, below the point unless there is more room above it.
+ */
+const cardPlacement = (point: Hotspot, box: Box) => {
+  const width = Math.min(cardWidth, box.width - 2 * margin);
+  const x = (point.x / 100) * box.width;
+  const y = (point.y / 100) * box.height;
+  const left = clamp(point.x > 60 ? x - gap - width : x + gap, margin, box.width - width - margin);
+  const below = y + gap + cardHeight <= box.height - margin || y < box.height / 2;
+  return { width, left: left - x, ...(below ? { top: gap } : { bottom: gap + pointSize }) };
+};
 
 /**
  * A room picture with a button on every product in it. A button names its product and price for
  * screen readers; pressing it opens a small card with a link to the product. Escape, a click
  * elsewhere or the same button closes the card again.
  */
-const LookbookPicture = ({ image, alt, hotspots, products, className, priority = false }: LookbookPictureProps) => {
+const LookbookPicture = ({ image, alt, hotspots, products, className, priority = false, imageClassName, viewTransition }: LookbookPictureProps) => {
   const [open, setOpen] = useState<string | null>(null);
+  // The size of the picture when a card opened; the card is placed to fit in it
+  const [box, setBox] = useState<Box | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const baseId = useId();
 
@@ -48,7 +82,13 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
 
   return (
     <div ref={containerRef} className={cn('relative overflow-hidden rounded-[2rem] bg-muted', className)}>
-      <img src={image} alt={alt} loading={priority ? 'eager' : 'lazy'} className="block h-auto w-full" />
+      <img
+        src={image}
+        alt={alt}
+        loading={priority ? 'eager' : 'lazy'}
+        data-vt={viewTransition}
+        className={cn('block h-auto w-full', imageClassName)}
+      />
       {points.map((point, index) => {
         const product = products.get(point.productSlug)!;
         const isOpen = open === point.productSlug;
@@ -61,7 +101,11 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
               aria-label={`${product.title}, ${formatAsDollars(effectivePrice)}`}
               aria-expanded={isOpen}
               aria-controls={cardId}
-              onClick={() => setOpen(isOpen ? null : point.productSlug)}
+              onClick={() => {
+                const rect = containerRef.current?.getBoundingClientRect();
+                setBox(rect && rect.width > 0 ? { width: rect.width, height: rect.height } : null);
+                setOpen(isOpen ? null : point.productSlug);
+              }}
               className="group relative grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <span className="absolute inset-0 animate-ping rounded-full bg-white/60 motion-reduce:hidden [animation-duration:2.4s]" />
@@ -79,10 +123,11 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
                 id={cardId}
                 role="dialog"
                 aria-label={product.title}
+                style={box ? cardPlacement(point, box) : undefined}
                 className={cn(
                   'absolute z-10 w-64 rounded-2xl border bg-background/95 p-3 text-left shadow-xl backdrop-blur animate-in fade-in-0 zoom-in-95',
-                  point.x > 60 ? 'right-6' : 'left-6',
-                  point.y > 60 ? 'bottom-6' : 'top-6',
+                  !box && (point.x > 60 ? 'right-6' : 'left-6'),
+                  !box && (point.y > 60 ? 'bottom-6' : 'top-6'),
                 )}
               >
                 <Link to={`/products/${product.id}`} className="group/card flex gap-3">

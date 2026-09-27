@@ -34,7 +34,7 @@ public class ProductsController : ControllerBase
 
     /// <summary>One active product; 404 for an unknown or deleted id.</summary>
     [HttpGet("{id:int}")]
-    public Task<ProductResponse> GetProduct(int id)
+    public Task<ProductDetailResponse> GetProduct(int id)
         => _productService.GetProductAsync(id);
 
     /// <summary>The values the catalogue can be filtered by.</summary>
@@ -57,8 +57,8 @@ public class ProductsController : ControllerBase
     /// <summary>Creates a product; the body is validated before the action runs.</summary>
     [HttpPost]
     [Authorize(Policy = Policies.AdminWrite)]
-    [ProducesResponseType<ProductResponse>(StatusCodes.Status201Created)]
-    public async Task<ActionResult<ProductResponse>> CreateProduct([FromBody] CreateProductRequest request)
+    [ProducesResponseType<ProductDetailResponse>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<ProductDetailResponse>> CreateProduct([FromBody] CreateProductRequest request)
     {
         var product = await _productService.CreateProductAsync(request, ActorId);
         return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
@@ -67,7 +67,7 @@ public class ProductsController : ControllerBase
     /// <summary>Partial update: absent fields keep their value, the nullable ones can be cleared with null.</summary>
     [HttpPut("{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
-    public Task<ProductResponse> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
+    public Task<ProductDetailResponse> UpdateProduct(int id, [FromBody] UpdateProductRequest request)
         => _productService.UpdateProductAsync(id, request, ActorId);
 
     /// <summary>

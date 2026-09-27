@@ -12,13 +12,13 @@ namespace Store.ProductService.Services;
 public interface IProductService
 {
     // Changes (true-admin only); actorId is the administrator recorded in the audit trail
-    Task<ProductResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null);
-    Task<ProductResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null);
+    Task<ProductDetailResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null);
+    Task<ProductDetailResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null);
     Task DeleteProductAsync(int id, string? actorId = null);
 
     // The public catalogue: active products only
     Task<PagedResponse<ProductResponse>> GetProductsAsync(ProductQueryParams queryParams);
-    Task<ProductResponse> GetProductAsync(int id);
+    Task<ProductDetailResponse> GetProductAsync(int id);
     ProductsMeta GetProductsMeta();
 
     // What other services may know about a product

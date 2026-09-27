@@ -1,7 +1,7 @@
 import { api, unlessFailed } from './api';
 import type {
   AdminProductQuery,
-  Product,
+  ProductDetail,
   ProductPayload,
   ProductQuery,
   ProductUpdatePayload,
@@ -24,7 +24,7 @@ export const catalogApi = api.injectEndpoints({
       query: (params) => ({ url: '/products', params }),
       providesTags: ['Products'],
     }),
-    getProduct: build.query<Product, number>({
+    getProduct: build.query<ProductDetail, number>({
       query: (id) => `/products/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Products', id }],
     }),
@@ -39,11 +39,11 @@ export const catalogApi = api.injectEndpoints({
       query: (params) => ({ url: '/products/admin', params }),
       providesTags: ['Products'],
     }),
-    createProduct: build.mutation<Product, ProductPayload>({
+    createProduct: build.mutation<ProductDetail, ProductPayload>({
       query: (body) => ({ url: '/products', method: 'POST', body }),
       invalidatesTags: unlessFailed(['Products']),
     }),
-    updateProduct: build.mutation<Product, { id: number; body: ProductUpdatePayload }>({
+    updateProduct: build.mutation<ProductDetail, { id: number; body: ProductUpdatePayload }>({
       query: ({ id, body }) => ({ url: `/products/${id}`, method: 'PUT', body }),
       invalidatesTags: unlessFailed(['Products']),
     }),

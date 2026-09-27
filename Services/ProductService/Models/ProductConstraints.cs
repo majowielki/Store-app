@@ -15,6 +15,13 @@ public static class ProductConstraints
     public const int ColorMaxLength = 50;
     public const int GroupMaxLength = 100;
     public const int MaterialMaxLength = 100;
+    public const int ImageUrlMaxLength = 2048;
+    public const int ImageAltMaxLength = 200;
+    /// <summary>Pictures after the main one.</summary>
+    public const int MaxGalleryImages = 12;
+    public const int MaxHotspots = 20;
+    /// <summary>Lowercase letters and digits in dash-separated runs, the shape <see cref="ProductSlug"/> makes.</summary>
+    public const string SlugPattern = "^[a-z0-9]+(?:-[a-z0-9]+)*$";
 
     public const decimal MinPrice = 0.01m;
     public const decimal MaxPrice = 999999.99m;

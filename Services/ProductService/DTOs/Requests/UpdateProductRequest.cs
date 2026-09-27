@@ -1,5 +1,6 @@
 using Store.BuildingBlocks.Api;
 using Store.Contracts.Catalog;
+using Store.ProductService.DTOs.Responses;
 
 namespace Store.ProductService.DTOs.Requests;
 
@@ -44,6 +45,12 @@ public class UpdateProductRequest
 
     /// <summary>Replaces the whole list when present; an empty list removes every material.</summary>
     public List<string>? Materials { get; set; }
+
+    /// <summary>Replaces the gallery when present; an empty list leaves the main picture only.</summary>
+    public List<ProductImageDto>? Images { get; set; }
+
+    /// <summary>Replaces the points on the main picture when present; an empty list removes them all.</summary>
+    public List<ProductHotspotDto>? Hotspots { get; set; }
 
     /// <summary>False hides the product from the public catalogue, true brings a deleted one back.</summary>
     public bool? IsActive { get; set; }

@@ -27,5 +27,7 @@ public class UpdateProductRequestValidator : AbstractValidator<UpdateProductRequ
         RuleFor(x => x.DepthCm.Value).Dimension("DepthCm").When(x => x.DepthCm is { IsSet: true, Value: not null });
         RuleFor(x => x.WeightKg.Value).Dimension("WeightKg").When(x => x.WeightKg is { IsSet: true, Value: not null });
         RuleFor(x => x.Materials).ProductMaterials().When(x => x.Materials is not null);
+        RuleFor(x => x.Images).ProductGallery().When(x => x.Images is not null);
+        RuleFor(x => x.Hotspots).ProductHotspots().When(x => x.Hotspots is not null);
     }
 }

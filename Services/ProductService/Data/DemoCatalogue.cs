@@ -5,7 +5,8 @@ namespace Store.ProductService.Data;
 
 /// <summary>
 /// The demo catalogue: every product the seeder puts into a database, each with its pictures in
-/// the product-images container ("Name-1.webp" is the main one; the files live in Blobs/).
+/// the product-images container ("Name-1.webp" is the main one, a room; "-2" a detail and "-3"
+/// the product on its own make the gallery; the files live in Blobs/).
 /// <see cref="Version"/> goes up whenever products already seeded change, so that
 /// <see cref="DatabaseSeeder"/> brings a database seeded by an earlier version up to date once.
 /// </summary>
@@ -13,9 +14,11 @@ public static class DemoCatalogue
 {
     /// <summary>
     /// 1 - the first catalogue of 38 products; 2 - the catalogue rebuilt around the shop's warm,
-    /// natural look: new products, restyled old ones, WebP pictures, eight products retired.
+    /// natural look: new products, restyled old ones, WebP pictures, eight products retired;
+    /// 3 - a gallery for every product (a detail and the product on its own after the room
+    /// picture) and points on the room pictures leading to the other products they show.
     /// </summary>
-    public const int Version = 2;
+    public const int Version = 3;
 
     private const string Pictures = "http://localhost:10000/devstoreaccount1/product-images/";
 
@@ -31,6 +34,102 @@ public static class DemoCatalogue
         "Glass Top Coffee Table",
         "Entryway Bench with Storage",
     ];
+
+    /// <summary>
+    /// Products of the next round of pictures, not in the catalogue yet. Pictures taken for other
+    /// products already show them, so points name them now and appear once they are added.
+    /// </summary>
+    public static IReadOnlyList<string> AwaitedSlugs { get; } =
+    [
+        "round-oak-coffee-table",
+        "oak-ladder-shelf",
+        "oak-sideboard",
+        "low-oak-platform-bed",
+        "oak-bedside-table",
+        "brass-reading-lamp",
+        "terracotta-stoneware-vase",
+        "abstract-print-set-2-frames",
+        "waffle-cotton-towel-set",
+        "linen-napkin-set-4-pieces",
+        "sheer-linen-curtains-pair",
+    ];
+
+    /// <summary>
+    /// The points on each main picture: the other products it shows and where they stand, in
+    /// percent of the picture's width and height, read off the pictures themselves. The pictures of
+    /// the Mid-Century Accent Chair, the Walnut Sideboard and the Birch Book Display Shelf show no
+    /// other product of the shop and have none.
+    /// </summary>
+    private static readonly Dictionary<string, (string Product, decimal X, decimal Y)[]> Points = new()
+    {
+        ["3SeaterSectionalSofa"] = [("jute-rug-200x300", 50m, 88m), ("oak-pedestal-side-table", 13m, 72m), ("stonewashed-linen-throw", 33m, 62m), ("terracotta-stoneware-vase", 13m, 55m)],
+        ["8DrawerDresser"] = [("stoneware-drum-table-lamp", 33m, 36m), ("rattan-round-wall-mirror", 96m, 22m), ("stonewashed-linen-bedding-set", 88m, 56m)],
+        ["AbstractCeramicSculpture"] = [("8-drawer-dresser", 40m, 92m), ("rattan-round-wall-mirror", 96m, 22m), ("stonewashed-linen-bedding-set", 88m, 56m)],
+        ["AcaciaGardenBench"] = [("terracotta-planter-set-3-pieces", 86m, 85m)],
+        ["BacklessOakCounterStool"] = [("open-oak-wall-shelves", 76m, 28m), ("olive-wood-serving-boards-set-of-3", 34m, 40m), ("stoneware-dinner-set-16-pieces", 61m, 9m)],
+        ["BalconyFoldingSet"] = [("terracotta-planter-set-3-pieces", 11m, 69m)],
+        ["BambooTowelLadder"] = [("round-brass-wall-mirror", 95m, 20m), ("waffle-cotton-towel-set", 52m, 62m)],
+        ["BathroomLinenCabinet"] = [("oak-bath-stool", 20m, 70m), ("waffle-cotton-towel-set", 90m, 78m)],
+        ["BathroomVanity"] = [("round-brass-wall-mirror", 54m, 20m), ("oak-bath-stool", 22m, 72m), ("waffle-cotton-towel-set", 40m, 60m)],
+        ["BathroomWallMirrorCabinet"] = [("waffle-cotton-towel-set", 95m, 90m)],
+        ["BentwoodDiningChair"] = [("oak-sideboard", 85m, 50m), ("terracotta-stoneware-vase", 87m, 34m), ("jute-rug-200x300", 50m, 90m)],
+        ["BerberStyleRug"] = [("oatmeal-linen-sofa", 67m, 21m), ("oak-plank-coffee-table", 48m, 43m), ("linen-cushion-cover-set", 52m, 26m), ("stonewashed-linen-throw", 84m, 35m)],
+        ["BoucleModularSofa"] = [("round-oak-coffee-table", 66m, 72m), ("jute-round-rug-160", 52m, 87m), ("linen-cushion-cover-set", 37m, 57m), ("oak-ladder-shelf", 92m, 56m), ("stoneware-drum-table-lamp", 3.5m, 62m), ("sheer-linen-curtains-pair", 40m, 25m)],
+        ["BoucleSwivelTubChair"] = [("oak-pedestal-side-table", 77m, 60m), ("stoneware-drum-table-lamp", 77m, 38m), ("berber-style-rug-200x300", 40m, 88m)],
+        ["CeramicTableLamp"] = [("oak-bedside-table", 50m, 88m), ("stonewashed-linen-bedding-set", 88m, 85m), ("terracotta-stoneware-vase", 5m, 50m)],
+        ["ContemporaryWalnutSideboard"] = [("stoneware-drum-table-lamp", 27m, 44m), ("abstract-print-set-2-frames", 42m, 25m)],
+        ["DecorativeVaseSet"] = [("oak-sideboard", 45m, 85m)],
+        ["ErgonomicCornerDesk"] = [("oak-desk-chair", 58m, 65m), ("jute-rug-200x300", 88m, 88m)],
+        ["FloatingOakNightstand"] = [("stonewashed-linen-bedding-set", 85m, 55m), ("terracotta-stoneware-vase", 73m, 35m)],
+        ["FlutedOakMediaConsole"] = [("oak-ladder-shelf", 92m, 55m), ("stoneware-drum-table-lamp", 3m, 58m)],
+        ["GardenBistroSet"] = [("terracotta-planter-set-3-pieces", 57m, 63m)],
+        ["HangingRattanEggChair"] = [("terracotta-planter-set-3-pieces", 26m, 76m)],
+        ["HouseWallShelf"] = [("pine-kids-daybed", 65m, 78m)],
+        ["IndustrialConsoleTable"] = [("stoneware-drum-table-lamp", 43m, 28m), ("terracotta-stoneware-vase", 71m, 34m), ("seagrass-basket-set", 46m, 68m)],
+        ["JuteRoundRug160"] = [("oak-bath-stool", 80m, 68m)],
+        ["JuteRug200x300"] = [("oak-plank-coffee-table", 45m, 43m), ("oatmeal-linen-sofa", 80m, 20m), ("stonewashed-linen-throw", 50m, 20m)],
+        ["KidsPlayTable"] = [("birch-book-display-shelf", 90m, 25m)],
+        ["KingSizePlatformBed"] = [("stonewashed-linen-bedding-set", 25m, 57m), ("oak-bedside-table", 38m, 45m), ("stoneware-drum-table-lamp", 36m, 28m)],
+        ["LinenCushionCoverSet"] = [("oatmeal-linen-sofa", 40m, 85m), ("stoneware-drum-table-lamp", 15m, 28m)],
+        ["LinenLoungeArmchair"] = [("arched-oak-bookcase", 20m, 15m), ("oak-pedestal-side-table", 35m, 66m), ("stonewashed-linen-throw", 82m, 62m)],
+        ["LinenSlipcoverSofa"] = [("oak-ladder-shelf", 34m, 30m)],
+        ["MarbleTopKitchenIsland"] = [("backless-oak-counter-stool", 75m, 60m)],
+        ["MinimalistTVStand"] = [("jute-rug-200x300", 80m, 93m)],
+        ["ModernOakDiningTable"] = [("leather-dining-chair", 20m, 62m), ("stoneware-dinner-set-16-pieces", 43m, 45m)],
+        ["MoroccanPatternRug"] = [("oak-pedestal-side-table", 90m, 50m), ("stonewashed-linen-throw", 63m, 28m)],
+        ["NaturalLatexMattress"] = [("low-oak-platform-bed", 50m, 75m), ("stonewashed-linen-bedding-set", 60m, 40m), ("jute-rug-200x300", 15m, 92m)],
+        ["OakBathStool"] = [("waffle-cotton-towel-set", 42m, 41m)],
+        ["OakDeskChair"] = [("compact-oak-desk", 88m, 45m), ("ceramic-table-lamp", 75m, 22m)],
+        ["OakDiningChair"] = [("round-oak-kitchen-table", 42m, 46m), ("oak-sideboard", 88m, 45m), ("terracotta-stoneware-vase", 51m, 29m), ("jute-rug-200x300", 92m, 80m)],
+        ["OakEntrywayBench"] = [("seagrass-basket-set", 76m, 51m)],
+        ["OakPedestalSideTable"] = [("ceramic-table-lamp", 50m, 38m), ("linen-lounge-armchair", 33m, 36m)],
+        ["OakPlankCoffeeTable"] = [("decorative-vase-set", 38m, 40m), ("linen-slipcover-sofa", 65m, 30m), ("jute-rug-200x300", 20m, 85m)],
+        ["OakWritingDesk"] = [("oak-desk-chair", 62m, 63m), ("brass-reading-lamp", 31m, 22m), ("seagrass-basket-set", 86m, 60m)],
+        ["OatmealLinenSofa"] = [("linen-cushion-cover-set", 43m, 42m), ("oak-plank-coffee-table", 60m, 68m), ("jute-rug-200x300", 20m, 85m)],
+        ["OpenBackBookcase"] = [("linen-lounge-armchair", 80m, 82m), ("oak-pedestal-side-table", 95m, 87m)],
+        ["OpenClothesRail"] = [("oak-bedside-table", 20m, 58m), ("stonewashed-linen-bedding-set", 8m, 68m)],
+        ["OpenOakWallShelves"] = [("stoneware-dinner-set-16-pieces", 40m, 45m)],
+        ["PaperArcFloorLamp"] = [("boucle-swivel-tub-chair", 38m, 67m), ("oak-pedestal-side-table", 25m, 72m), ("stonewashed-linen-throw", 58m, 64m)],
+        ["PineKidsDaybed"] = [("kids-toy-storage-shelf", 75m, 38m), ("moroccan-pattern-rug", 25m, 80m)],
+        ["RattanFrontDresser"] = [("stoneware-drum-table-lamp", 30m, 32m), ("terracotta-stoneware-vase", 38.5m, 37m)],
+        ["RattanRoundWallMirror"] = [("rattan-front-dresser", 50m, 88m), ("ceramic-table-lamp", 30m, 66m), ("terracotta-stoneware-vase", 38.5m, 75m)],
+        ["RoundBrassWallMirror"] = [("waffle-cotton-towel-set", 82m, 88m)],
+        ["RoundDiningTable"] = [("bentwood-dining-chair", 22m, 68m), ("oak-sideboard", 88m, 50m), ("terracotta-stoneware-vase", 6m, 50m), ("linen-napkin-set-4-pieces", 56m, 52m)],
+        ["RoundOakKitchenTable"] = [("bentwood-dining-chair", 80m, 55m), ("stoneware-dinner-set-16-pieces", 66m, 42m), ("terracotta-stoneware-vase", 44m, 40m)],
+        ["SlidingDoorWardrobe"] = [("oak-bedside-table", 87m, 75m), ("terracotta-stoneware-vase", 17m, 82m)],
+        ["StonewareDinnerSet"] = [("linen-napkin-set-4-pieces", 73m, 75m), ("terracotta-stoneware-vase", 28m, 45m)],
+        ["StonewareDrumTableLamp"] = [("8-drawer-dresser", 40m, 92m), ("terracotta-stoneware-vase", 90m, 68m)],
+        ["StonewashedLinenBeddingSet"] = [("upholstered-linen-bed", 50m, 18m), ("oak-bedside-table", 95m, 52m), ("terracotta-stoneware-vase", 3m, 43m)],
+        ["StonewashedLinenThrow"] = [("mid-century-accent-chair", 40m, 30m)],
+        ["StorageBedFrame"] = [("oak-bedside-table", 30m, 33m), ("stonewashed-linen-bedding-set", 45m, 50m)],
+        ["TeakGardenLounger"] = [("terracotta-planter-set-3-pieces", 64m, 50m)],
+        ["TeakShowerBench"] = [("waffle-cotton-towel-set", 84m, 32m)],
+        ["TravertineBathSet"] = [("waffle-cotton-towel-set", 88m, 70m)],
+        ["TravertineCoffeeTable"] = [("oatmeal-linen-sofa", 78m, 48m), ("jute-rug-200x300", 20m, 85m), ("linen-cushion-cover-set", 92m, 40m), ("stoneware-drum-table-lamp", 40m, 33m)],
+        ["TripodFloorLamp"] = [("linen-lounge-armchair", 72m, 70m), ("stonewashed-linen-throw", 84m, 66m), ("jute-rug-200x300", 50m, 93m)],
+        ["TwoDrawerNightstand"] = [("stoneware-drum-table-lamp", 54m, 30m), ("stonewashed-linen-bedding-set", 20m, 60m), ("linen-cushion-cover-set", 10m, 32m)],
+        ["UpholsteredLinenBed"] = [("oak-bedside-table", 95m, 60m), ("stonewashed-linen-bedding-set", 50m, 55m)],
+    };
 
     public static List<Product> Products() =>
     [
@@ -347,6 +446,14 @@ public static class DemoCatalogue
         Company = company,
         NewArrival = isNew,
         Image = Pictures + picture + "-1.webp",
+        Images =
+        [
+            new() { Url = Pictures + picture + "-2.webp", Alt = $"A closer look at the {title}", SortOrder = 0 },
+            new() { Url = Pictures + picture + "-3.webp", Alt = $"The {title} on its own", SortOrder = 1 },
+        ],
+        Hotspots = Points.TryGetValue(picture, out var points)
+            ? points.Select(point => new ProductHotspot { ProductSlug = point.Product, X = point.X, Y = point.Y }).ToList()
+            : [],
         Colors = colors.Select(color => color.ToString()).ToList(),
         Groups = [.. groups],
         // Lowercase, the way the API stores what an administrator types

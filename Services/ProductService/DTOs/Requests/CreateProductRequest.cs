@@ -1,4 +1,5 @@
 using Store.Contracts.Catalog;
+using Store.ProductService.DTOs.Responses;
 
 namespace Store.ProductService.DTOs.Requests;
 
@@ -36,4 +37,10 @@ public class CreateProductRequest
     public decimal? WeightKg { get; set; }
 
     public List<string>? Materials { get; set; }
+
+    /// <summary>Pictures shown after the main one, in order; none leaves the product with its main picture only.</summary>
+    public List<ProductImageDto>? Images { get; set; }
+
+    /// <summary>Points on the main picture leading to other products.</summary>
+    public List<ProductHotspotDto>? Hotspots { get; set; }
 }

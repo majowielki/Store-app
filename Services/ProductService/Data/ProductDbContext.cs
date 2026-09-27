@@ -58,6 +58,22 @@ public class ProductDbContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+
+            // The gallery is read only with one product, so it gets its own table; a picture
+            // taken out of the list is deleted with it
+            entity.HasMany(e => e.Images).WithOne().HasForeignKey(i => i.ProductId).OnDelete(DeleteBehavior.Cascade);
+
+            // The points belong to the main picture and are always read with it: one jsonb column
+            entity.OwnsMany(e => e.Hotspots, hotspot => hotspot.ToJson());
+        });
+
+        modelBuilder.Entity<ProductImage>(entity =>
+        {
+            entity.ToTable("ProductImages");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Url).IsRequired().HasMaxLength(ProductConstraints.ImageUrlMaxLength);
+            entity.Property(e => e.Alt).IsRequired().HasMaxLength(ProductConstraints.ImageAltMaxLength);
+            entity.HasIndex(e => new { e.ProductId, e.SortOrder });
         });
 
         modelBuilder.Entity<CatalogueSeed>(entity =>

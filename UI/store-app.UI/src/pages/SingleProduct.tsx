@@ -7,6 +7,7 @@ import { Loading, ProductCard, SelectProductAmount, SelectProductColor } from '@
 import Reveal from '@/components/Reveal';
 import CompareToggle from '@/components/CompareToggle';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
+import ProductGallery from '@/components/ProductGallery';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import SaleBadge from '@/components/SaleBadge';
 import WishlistButton from '@/components/WishlistButton';
@@ -15,11 +16,13 @@ import { Button } from '@/components/ui/button';
 import { usePerks } from '@/content/perks';
 import { useAddToBag } from '@/features/cart/useAddToBag';
 import { useTrackProductView } from '@/features/recent/useRecentlyViewed';
+import type { ProductDetail } from '@/api/types';
 import { formatAsDollars, priceTag, type Product } from '@/utils';
 
 const SingleProduct = () => {
   const { id } = useParams<{ id: string }>();
-  const { data: product, isLoading, error } = useGetProductQuery(Number(id));
+  // A card puts what the listing knows into the cache (no gallery); the page always asks for the rest
+  const { data: product, isLoading, error } = useGetProductQuery(Number(id), { refetchOnMountOrArgChange: true });
 
   if (isLoading) return <Loading />;
   if (!product) {
@@ -36,31 +39,6 @@ const SingleProduct = () => {
   }
   // Keyed, so moving to another product starts with its own colour and amount
   return <ProductDetails key={product.id} product={product} />;
-};
-
-/** The product photograph, magnified under the pointer; it is also where the listing's tile lands. */
-const ZoomImage = ({ src, alt }: { src: string; alt: string }) => {
-  const [zoomed, setZoomed] = useState(false);
-  const [origin, setOrigin] = useState('50% 50%');
-  return (
-    <div
-      className="relative aspect-[5/4] cursor-zoom-in overflow-hidden rounded-[2rem] bg-muted"
-      onMouseEnter={() => setZoomed(true)}
-      onMouseLeave={() => setZoomed(false)}
-      onMouseMove={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        setOrigin(`${((e.clientX - rect.left) / rect.width) * 100}% ${((e.clientY - rect.top) / rect.height) * 100}%`);
-      }}
-    >
-      <img
-        data-vt="product-image"
-        src={src}
-        alt={alt}
-        className="h-full w-full object-cover transition-transform duration-500 ease-smooth"
-        style={{ transformOrigin: origin, transform: zoomed ? 'scale(1.8)' : 'scale(1)' }}
-      />
-    </div>
-  );
 };
 
 /** Up to four products from the same category, topped up from the same room. */
@@ -89,8 +67,8 @@ const RelatedProducts = ({ product }: { product: Product }) => {
   );
 };
 
-const ProductDetails = ({ product }: { product: Product }) => {
-  const { image, title, description, colors, company, widthCm, heightCm, depthCm, weightKg, materials, groups } = product;
+const ProductDetails = ({ product }: { product: ProductDetail }) => {
+  const { title, description, colors, company, widthCm, heightCm, depthCm, weightKg, materials, groups } = product;
   const materialsText = (materials ?? []).filter(Boolean).join(', ');
   const { price, effectivePrice, hasSale, percent } = priceTag(product);
   const [productColor, setProductColor] = useState(colors[0]);
@@ -156,7 +134,7 @@ const ProductDetails = ({ product }: { product: Product }) => {
       <section className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">
           <div className="lg:sticky lg:top-24">
-            <ZoomImage src={image} alt={title} />
+            <ProductGallery product={product} />
           </div>
         </div>
 

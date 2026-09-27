@@ -37,7 +37,14 @@ public class Product
 
     public bool NewArrival { get; set; }
 
+    /// <summary>The main picture: the first of the gallery and the one cards, carts and orders show.</summary>
     public string Image { get; set; } = string.Empty;
+
+    /// <summary>The pictures shown after the main one (a detail, the product on its own...).</summary>
+    public List<ProductImage> Images { get; set; } = new();
+
+    /// <summary>Points on the main picture leading to the other products it shows.</summary>
+    public List<ProductHotspot> Hotspots { get; set; } = new();
 
     public List<string> Colors { get; set; } = new();
 

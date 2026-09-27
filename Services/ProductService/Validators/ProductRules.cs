@@ -1,4 +1,5 @@
 using FluentValidation;
+using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Models;
 
 namespace Store.ProductService.Validators;
@@ -52,6 +53,33 @@ internal static class ProductRules
         .ForEach(group => group
             .NotEmpty().WithMessage("Group cannot be empty.")
             .MaximumLength(ProductConstraints.GroupMaxLength).WithMessage($"Group must be at most {ProductConstraints.GroupMaxLength} characters."));
+
+    public static IRuleBuilderOptions<T, IEnumerable<ProductImageDto>> ProductGallery<T>(this IRuleBuilder<T, List<ProductImageDto>?> rule) => rule
+        .Must(images => images!.Count <= ProductConstraints.MaxGalleryImages)
+        .WithMessage($"At most {ProductConstraints.MaxGalleryImages} pictures besides the main one.")
+        .ForEach(image => image.ChildRules(picture =>
+        {
+            picture.RuleFor(p => p.Url)
+                .NotEmpty().WithMessage("A gallery picture needs a URL.")
+                .MaximumLength(ProductConstraints.ImageUrlMaxLength)
+                .Must(IsAbsoluteUrl).WithMessage("A gallery picture must be a valid http(s) URL.");
+            picture.RuleFor(p => p.Alt)
+                .NotEmpty().WithMessage("Say what the picture shows.")
+                .MaximumLength(ProductConstraints.ImageAltMaxLength);
+        }));
+
+    public static IRuleBuilderOptions<T, IEnumerable<ProductHotspotDto>> ProductHotspots<T>(this IRuleBuilder<T, List<ProductHotspotDto>?> rule) => rule
+        .Must(points => points!.Count <= ProductConstraints.MaxHotspots)
+        .WithMessage($"At most {ProductConstraints.MaxHotspots} points.")
+        .ForEach(hotspot => hotspot.ChildRules(point =>
+        {
+            point.RuleFor(p => p.X).InclusiveBetween(0, 100);
+            point.RuleFor(p => p.Y).InclusiveBetween(0, 100);
+            point.RuleFor(p => p.ProductSlug)
+                .NotEmpty()
+                .MaximumLength(ProductConstraints.SlugMaxLength)
+                .Matches(ProductConstraints.SlugPattern).WithMessage("A point must name a product by its slug.");
+        }));
 
     public static IRuleBuilderOptions<T, IEnumerable<string>> ProductMaterials<T>(this IRuleBuilder<T, List<string>?> rule) => rule
         .ForEach(material => material

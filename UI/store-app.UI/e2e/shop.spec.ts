@@ -168,3 +168,24 @@ test('15. a visitor compares pieces side by side and sees what they viewed befor
   await expect(page.getByRole('columnheader')).toHaveCount(4);
   await expect(page.getByRole('row', { name: /^Price/ })).toBeVisible();
 });
+
+test('16. a product page shows its gallery, and a point on the room picture leads to the piece it shows', async ({ page, request }) => {
+  const [sofa] = await findProducts(request, { slugs: 'boucle-modular-sofa' });
+  await page.goto(`/products/${sofa.id}`);
+  await expect(page.getByRole('heading', { level: 1, name: sofa.title })).toBeVisible();
+
+  const thumbnails = page.getByRole('button', { name: /^Show picture/ });
+  await expect(thumbnails).toHaveCount(3);
+  await thumbnails.first().click();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('button', { name: 'Show picture 2 of 3' })).toHaveAttribute('aria-current', 'true');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.getByRole('button', { name: 'Show picture 1 of 3' })).toHaveAttribute('aria-current', 'true');
+
+  // The coffee table on the picture is not in the shop yet: no point for it
+  const gallery = page.getByRole('region', { name: `Pictures of the ${sofa.title}` });
+  await expect(gallery.getByRole('button', { name: /Round Oak Coffee Table/ })).toHaveCount(0);
+  await gallery.getByRole('button', { name: /^Linen Cushion Cover Set, / }).click();
+  await gallery.getByRole('dialog', { name: 'Linen Cushion Cover Set' }).getByRole('link').click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Linen Cushion Cover Set' })).toBeVisible();
+});

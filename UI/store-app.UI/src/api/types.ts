@@ -20,6 +20,10 @@ export type PagedResponse<T> = Omit<ProductsResponse, 'items'> & { items: T[] };
 
 // Catalogue
 export type Product = Catalog['schemas']['ProductResponse'];
+/** One product as its page shows it: the catalogue entry plus the gallery and the points on its main picture. */
+export type ProductDetail = Catalog['schemas']['ProductDetailResponse'];
+export type ProductImage = Catalog['schemas']['ProductImageDto'];
+export type ProductHotspot = Catalog['schemas']['ProductHotspotDto'];
 export type ProductCategory = Catalog['schemas']['Category'];
 export type ProductCompany = Catalog['schemas']['Company'];
 export type ProductPayload = Catalog['schemas']['CreateProductRequest'];

@@ -22,5 +22,7 @@ public class CreateProductRequestValidator : AbstractValidator<CreateProductRequ
         RuleFor(x => x.DepthCm).Dimension("DepthCm").When(x => x.DepthCm.HasValue);
         RuleFor(x => x.WeightKg).Dimension("WeightKg").When(x => x.WeightKg.HasValue);
         RuleFor(x => x.Materials).ProductMaterials();
+        RuleFor(x => x.Images).ProductGallery().When(x => x.Images is not null);
+        RuleFor(x => x.Hotspots).ProductHotspots().When(x => x.Hotspots is not null);
     }
 }
