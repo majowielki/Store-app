@@ -7,7 +7,7 @@ the portal after the one-time preparation below.
 ## One-time preparation
 
 1. **PostgreSQL** - an Azure Database for PostgreSQL flexible server with the five databases
-   (`store_identity_db`, `store_product_db`, `store_cart_db`, `store_order_db`, `store_audit_db`)
+   (`store_identity_db`, `store_product_db`, `store_cart_db`, `store_order_db`, `store_audit_db`, `store_content_db`)
    owned by the application user; `Infrastructure/scripts/init-databases.sql` creates them.
    Automatic backups: 7 days at least, geo-redundant for production (see
    [database-restore.md](database-restore.md)). Allow the Container Apps environment's outbound

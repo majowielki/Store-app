@@ -148,7 +148,7 @@ resource secretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-var databases = ['identity', 'product', 'cart', 'order', 'audit']
+var databases = ['identity', 'product', 'cart', 'order', 'audit', 'content']
 
 resource connectionSecrets 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = [
   for db in databases: {
@@ -420,6 +420,15 @@ var services = [
     env: []
     secrets: []
   }
+  {
+    name: 'contentservice'
+    image: 'store/content'
+    db: 'content'
+    callsCatalog: false
+    callsCart: false
+    env: []
+    secrets: []
+  }
 ]
 
 var catalogAddress = [{ name: 'Services__ProductService', value: 'http://productservice.${internal}' }]
@@ -502,6 +511,7 @@ module gateway 'app.bicep' = {
       { name: 'ReverseProxy__Clusters__cart-cluster__Destinations__destination1__Address', value: 'http://cartservice.${internal}/' }
       { name: 'ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address', value: 'http://orderservice.${internal}/' }
       { name: 'ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address', value: 'http://auditlogservice.${internal}/' }
+      { name: 'ReverseProxy__Clusters__content-cluster__Destinations__destination1__Address', value: 'http://contentservice.${internal}/' }
     ], corsEnv)
     keyVaultSecrets: [
       { name: 'jwt-secret-key', keyVaultUrl: '${vaultUri}secrets/jwt-secret-key' }

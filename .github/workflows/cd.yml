@@ -56,6 +56,7 @@ jobs:
           build cart     Services/CartService/Dockerfile .
           build order    Services/OrderService/Dockerfile .
           build audit    Services/AuditLogService/Dockerfile .
+          build content  Services/ContentService/Dockerfile .
           build gateway  Gateway/APIGateway/Dockerfile .
           build ui       UI/store-app.UI/Dockerfile UI/store-app.UI
 
@@ -94,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           registry="${{ vars.AZURE_CONTAINER_REGISTRY }}"
-          for service in identityservice:identity productservice:product cartservice:cart orderservice:order auditlogservice:audit; do
+          for service in identityservice:identity productservice:product cartservice:cart orderservice:order auditlogservice:audit contentservice:content; do
             job="${service%%:*}-migrate"
             image="$registry/store/${service##*:}:$IMAGE_TAG"
             if ! az containerapp job show -g "$RESOURCE_GROUP" -n "$job" -o none 2>/dev/null; then
@@ -130,7 +131,7 @@ jobs:
         # Only when a job was missing above: the template has just created it
         run: |
           set -euo pipefail
-          for service in identityservice productservice cartservice orderservice auditlogservice; do
+          for service in identityservice productservice cartservice orderservice auditlogservice contentservice; do
             job="$service-migrate"
             if [ "$(az containerapp job execution list -g "$RESOURCE_GROUP" -n "$job" --query 'length(@)' -o tsv)" = "0" ]; then
               execution=$(az containerapp job start -g "$RESOURCE_GROUP" -n "$job" --query name -o tsv)

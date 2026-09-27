@@ -19,7 +19,7 @@ public class ReverseProxyConfigurationTests
 
     private static readonly string[] ExpectedRoutes =
     {
-        "identity-route", "products-route", "cart-route", "pricing-rules-route", "orders-route", "audit-route", "admin-orders-route", "admin-route"
+        "identity-route", "products-route", "cart-route", "pricing-rules-route", "orders-route", "content-route", "audit-route", "admin-orders-route", "admin-route"
     };
 
     public static TheoryData<string> Environments => new() { "Development", "Production" };

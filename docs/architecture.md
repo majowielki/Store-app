@@ -11,6 +11,7 @@ flowchart LR
     GW --> CA[Cart]
     GW --> OR[Orders]
     GW --> AU[Audit read API]
+    GW --> CO[Content]
     CA -->|product snapshots<br/>typed client, internal key| PR
     OR -->|cart snapshot| CA
     OR -->|product snapshots| PR
@@ -20,10 +21,10 @@ flowchart LR
     MQ -- OrderPlaced --> CA
     MQ -- OrderPlaced --> ID
     MQ -- OrderPlaced --> AU
-    ID & PR & CA & OR -- AuditEvent --> MQ
+    ID & PR & CA & OR & CO -- AuditEvent --> MQ
     MQ -- AuditEvent --> AU
   end
-  GW & ID & PR & CA & OR & AU -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
+  GW & ID & PR & CA & OR & AU & CO -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
 ```
 
 Each service has its own PostgreSQL database and its own entities; what crosses a boundary is a

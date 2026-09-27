@@ -155,6 +155,7 @@ jobs:
           - { name: cart, dockerfile: Services/CartService/Dockerfile }
           - { name: order, dockerfile: Services/OrderService/Dockerfile }
           - { name: auditlog, dockerfile: Services/AuditLogService/Dockerfile }
+          - { name: content, dockerfile: Services/ContentService/Dockerfile }
           - { name: ui, dockerfile: UI/store-app.UI/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

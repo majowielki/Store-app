@@ -63,6 +63,10 @@ x-audit-env: &audit-env
   <<: *service-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_audit_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
 
+x-content-env: &content-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_content_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+
 x-infrastructure-ready: &infrastructure-ready
   postgres:
     condition: service_healthy
@@ -236,6 +240,30 @@ services:
     networks:
       - store
 
+  # --- content -------------------------------------------------------------------------------
+  content-migrate:
+    image: store/content
+    environment: *content-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
+    networks:
+      - store
+
+  contentservice:
+    build:
+      context: .
+      dockerfile: Services/ContentService/Dockerfile
+    image: store/content
+    <<: *limits
+    restart: unless-stopped
+    environment: *content-env
+    depends_on:
+      content-migrate:
+        condition: service_completed_successfully
+    networks:
+      - store
+
   # --- gateway and UI ------------------------------------------------------------------------
   gateway:
     build:
@@ -254,6 +282,7 @@ services:
       ReverseProxy__Clusters__products-cluster__Destinations__destination1__Address: http://productservice:8080/
       ReverseProxy__Clusters__cart-cluster__Destinations__destination1__Address: http://cartservice:8080/
       ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address: http://orderservice:8080/
+      ReverseProxy__Clusters__content-cluster__Destinations__destination1__Address: http://contentservice:8080/
       ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address: http://auditlogservice:8080/
       # Sign-ins per minute per client; the end-to-end tests raise it, every scenario signs in on its own
       RateLimiting__Auth__CredentialPermitLimit: ${AUTH_CREDENTIAL_LIMIT:-10}

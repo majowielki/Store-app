@@ -1,0 +1,19 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Content Service API",
+    "description": "Content Service API API documentation",
+    "version": "v1"
+  },
+  "paths": { },
+  "components": {
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Access token issued by the identity service",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

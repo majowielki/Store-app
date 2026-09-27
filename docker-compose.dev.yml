@@ -3,7 +3,7 @@
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 #
 # Development environment (Swagger on every service, migrations applied by the service itself
-# too), the demo accounts, every port on the host (services 5001-5006, gateway 5000, PostgreSQL,
+# too), the demo accounts, every port on the host (services 5001-5007, gateway 5000, PostgreSQL,
 # RabbitMQ with its management UI) and the Aspire dashboard on http://localhost:18888 receiving
 # the traces, metrics and logs of every host.
 
@@ -110,6 +110,13 @@ services:
     environment: *dev-env
     ports:
       - "${AUDIT_SERVICE_PORT:-5004}:8080"
+
+  content-migrate:
+    environment: *dev-env
+  contentservice:
+    environment: *dev-env
+    ports:
+      - "${CONTENT_SERVICE_PORT:-5007}:8080"
 
   gateway:
     environment: *dev-env

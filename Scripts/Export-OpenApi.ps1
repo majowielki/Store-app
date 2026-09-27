@@ -37,6 +37,7 @@ $services = [ordered]@{
     cart     = 'CartService'
     orders   = 'OrderService'
     audit    = 'AuditLogService'
+    content  = 'ContentService'
 }
 
 if (-not $NoBuild) {

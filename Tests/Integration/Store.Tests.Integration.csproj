@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\Services\CartService\Store.CartService.csproj" />
     <ProjectReference Include="..\..\Services\OrderService\Store.OrderService.csproj" />
     <ProjectReference Include="..\..\Services\AuditLogService\Store.AuditLogService.csproj" />
+    <ProjectReference Include="..\..\Services\ContentService\Store.ContentService.csproj" />
     <ProjectReference Include="..\..\Gateway\APIGateway\Store.GatewayService.csproj" />
   </ItemGroup>
 

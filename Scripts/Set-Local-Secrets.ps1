@@ -71,6 +71,7 @@ $projects = [ordered]@{
   "Services/CartService/Store.CartService.csproj"           = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/OrderService/Store.OrderService.csproj"         = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/AuditLogService/Store.AuditLogService.csproj"   = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
+  "Services/ContentService/Store.ContentService.csproj"     = @{ "JwtSettings:SecretKey" = $JwtSecretKey }
 }
 
 if ($TrueAdminPassword) {
