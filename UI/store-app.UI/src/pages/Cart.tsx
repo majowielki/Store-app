@@ -3,6 +3,7 @@ import { ArrowRight, Lock, ShoppingBag } from 'lucide-react';
 import { CartItemsList, Loading, CartTotals } from '@/components';
 import DiscountCodeField from '@/components/DiscountCodeField';
 import FreeDeliveryProgress from '@/components/FreeDeliveryProgress';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/features/cart/useCart';
 import { useAppSelector } from '@/hooks';
@@ -28,6 +29,7 @@ const Cart = () => {
             <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
         </Button>
+        <RecentlyViewed title="Still thinking about these?" className="mt-20 max-w-4xl text-left" />
       </div>
     );
   }

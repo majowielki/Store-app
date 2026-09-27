@@ -5,7 +5,8 @@ import { useGetProductsQuery } from '@/api/catalog';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { useOpenProduct } from '@/hooks/use-open-product';
 import { categories, categoryHref } from '@/utils/categories';
-import { ProductPrice } from './ProductCard';
+import ProductPrice from './ProductPrice';
+import RecentlyViewed from './RecentlyViewed';
 
 const useDebounced = (value: string, delay: number) => {
   const [debounced, setDebounced] = useState(value);
@@ -86,6 +87,7 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
                   </li>
                 ))}
               </ul>
+              <RecentlyViewed className="mt-10" onNavigate={close} />
             </div>
           ) : results.length === 0 ? (
             !isFetching && (

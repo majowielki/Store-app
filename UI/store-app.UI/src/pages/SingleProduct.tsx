@@ -5,13 +5,16 @@ import { useGetProductQuery, useGetProductsMetaQuery, useGetProductsQuery } from
 import { isApiError } from '@/api/problem';
 import { Loading, ProductCard, SelectProductAmount, SelectProductColor } from '@/components';
 import Reveal from '@/components/Reveal';
+import CompareToggle from '@/components/CompareToggle';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import SaleBadge from '@/components/SaleBadge';
 import WishlistButton from '@/components/WishlistButton';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
 import { usePerks } from '@/content/perks';
 import { useAddToBag } from '@/features/cart/useAddToBag';
+import { useTrackProductView } from '@/features/recent/useRecentlyViewed';
 import { formatAsDollars, priceTag, type Product } from '@/utils';
 
 const SingleProduct = () => {
@@ -95,6 +98,7 @@ const ProductDetails = ({ product }: { product: Product }) => {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const addToBag = useAddToBag();
+  useTrackProductView(product.id);
   const perks = usePerks().filter((perk) => perk.key !== 'welcome');
   const { data: meta } = useGetProductsMetaQuery();
   const group = meta?.groupCategoryMap.find((g) => g.key === groups[0]);
@@ -185,7 +189,10 @@ const ProductDetails = ({ product }: { product: Product }) => {
                 </Button>
                 <WishlistButton product={product} className="h-12 w-12 shrink-0 border bg-transparent shadow-none" />
               </div>
-              <DeliveryEstimate className="mt-4" />
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <DeliveryEstimate />
+                <CompareToggle product={product} className="-mr-2.5" />
+              </div>
             </div>
           </div>
 
@@ -223,6 +230,7 @@ const ProductDetails = ({ product }: { product: Product }) => {
       </section>
 
       <RelatedProducts product={product} />
+      <RecentlyViewed excludeId={product.id} className="mt-20 border-t pt-10" />
     </>
   );
 };

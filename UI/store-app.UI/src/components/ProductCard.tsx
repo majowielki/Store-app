@@ -4,6 +4,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { useOpenProduct } from '@/hooks/use-open-product';
 import { cn } from '@/lib/utils';
 import { priceTag, type Product } from '@/utils';
+import CompareToggle from './CompareToggle';
 import ProductPrice from './ProductPrice';
 import QuickView from './QuickView';
 import SaleBadge from './SaleBadge';
@@ -83,6 +84,7 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
         </div>
         <ColorDots colors={colors} className="mt-3" />
       </Link>
+      <CompareToggle product={product} className="-ml-2.5 mt-2" />
       {/* Over the picture but outside the link: a button may not sit inside a link */}
       <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[5/4]">
         <WishlistButton product={product} className="pointer-events-auto absolute right-3 top-3" />

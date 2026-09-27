@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Heart, ShoppingBag, X } from 'lucide-react';
-import { useGetProductsQuery } from '@/api/catalog';
 import Loading from '@/components/Loading';
 import ProductPrice from '@/components/ProductPrice';
 import { Button } from '@/components/ui/button';
 import { useAddToBag } from '@/features/cart/useAddToBag';
 import { useWishlist } from '@/features/wishlist/useWishlist';
 import { useAppSelector } from '@/hooks';
+import { useProductsById } from '@/hooks/use-products-by-id';
 import type { Product } from '@/utils';
 
 /** One piece on the list: into the bag in its first colour (and off the list), or just off the list. */
@@ -62,14 +62,8 @@ const WishlistRow = ({ product }: { product: Product }) => {
 const Wishlist = () => {
   const user = useAppSelector((state) => state.session.user);
   const { productIds } = useWishlist();
-  const ids = productIds.join(',');
-  const { data, isLoading } = useGetProductsQuery({ ids, pageSize: 100 }, { skip: ids.length === 0 });
-
-  // The catalogue answers in its own order and leaves out what it no longer sells
-  const products = useMemo(() => {
-    const byId = new Map((data?.items ?? []).map((product) => [product.id, product]));
-    return productIds.map((id) => byId.get(id)).filter((product): product is Product => product !== undefined);
-  }, [data, productIds]);
+  // In the list's order, without what the catalogue no longer sells
+  const { products, isLoading } = useProductsById(productIds);
 
   if (isLoading) return <Loading />;
 

@@ -146,3 +146,25 @@ test('14. a visitor keeps pieces on the wishlist, signs up and finds them on the
   await page.keyboard.press('Escape');
   await expect(page.getByRole('heading', { name: 'Your wishlist is empty' })).toBeVisible();
 });
+
+test('15. a visitor compares pieces side by side and sees what they viewed before', async ({ page, request }) => {
+  const [first, second] = await findProducts(request, { pageSize: '2' });
+  await page.goto(`/products/${first.id}`);
+  await expect(page.getByRole('heading', { level: 1, name: first.title })).toBeVisible();
+  await page.goto(`/products/${second.id}`);
+  const recent = page.getByRole('region', { name: 'Recently viewed' });
+  await expect(recent).toContainText(first.title);
+  await expect(recent).not.toContainText(second.title);
+
+  await page.goto('/products');
+  const toggles = page.getByRole('button', { name: /^Compare / });
+  for (let i = 0; i < 4; i++) await toggles.nth(0).click(); // each press turns the next card's button on
+  await expect(page.getByRole('button', { name: /^Remove .* from the comparison$/ })).toHaveCount(4 * 2); // card + bar
+  await toggles.nth(0).click();
+  await expectToast(page, `You can compare up to 4 pieces. Remove one to add ${(await toggles.nth(0).getAttribute('aria-label'))!.replace('Compare ', '')}.`);
+
+  await page.getByRole('complementary', { name: 'Comparison' }).getByRole('link', { name: 'Compare 4' }).click();
+  await expect(page).toHaveURL(/\/compare$/);
+  await expect(page.getByRole('columnheader')).toHaveCount(4);
+  await expect(page.getByRole('row', { name: /^Price/ })).toBeVisible();
+});
