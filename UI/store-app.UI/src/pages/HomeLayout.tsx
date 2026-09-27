@@ -1,6 +1,7 @@
 import { Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router-dom';
 import { Header, Loading } from '@/components';
 import AnnouncementBar from '@/components/AnnouncementBar';
+import CartDrawer from '@/components/CartDrawer';
 import Footer from '@/components/Footer';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ const HomeLayout = () => {
       <Header />
       <main className={cn('flex-1', !fullBleed && 'align-element py-8 md:py-12')}>{isPageLoading ? <Loading /> : <Outlet />}</main>
       <Footer />
+      <CartDrawer />
       {/* A new page starts at the top; Back returns to where the visitor was */}
       <ScrollRestoration />
     </div>

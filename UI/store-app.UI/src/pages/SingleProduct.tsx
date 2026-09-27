@@ -10,8 +10,7 @@ import SaleBadge from '@/components/SaleBadge';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
 import { usePerks } from '@/content/perks';
-import { useCartActions } from '@/features/cart/useCart';
-import { toast } from '@/hooks/use-toast';
+import { useAddToBag } from '@/features/cart/useAddToBag';
 import { formatAsDollars, priceTag, type Product } from '@/utils';
 
 const SingleProduct = () => {
@@ -94,7 +93,7 @@ const ProductDetails = ({ product }: { product: Product }) => {
   const [amount, setAmount] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
-  const { add } = useCartActions();
+  const addToBag = useAddToBag();
   const perks = usePerks().filter((perk) => perk.key !== 'welcome');
   const { data: meta } = useGetProductsMetaQuery();
   const group = meta?.groupCategoryMap.find((g) => g.key === groups[0]);
@@ -106,12 +105,12 @@ const ProductDetails = ({ product }: { product: Product }) => {
     return () => window.clearTimeout(timer);
   }, [added]);
 
-  const addToCart = async () => {
+  const addToCart = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const button = event.currentTarget;
     setAdding(true);
     try {
-      // The cart charges what the page shows: the sale price when the product is on sale
-      await add({ productId: product.id, title, image, company, color: productColor, unitPrice: effectivePrice, quantity: amount });
-      toast({ description: 'Item added to cart' });
+      // The cart charges what the page shows (the sale price on a sale); the bag slides in
+      await addToBag(product, productColor, amount, button);
       setAdded(true);
     } catch {
       // Reported by the error middleware

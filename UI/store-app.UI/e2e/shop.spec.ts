@@ -19,7 +19,12 @@ test('1. a visitor browses, filters by colour, opens a product and adds it to th
   await expect(page.getByRole('heading', { name: gray.title })).toBeVisible();
   await page.getByRole('button', { name: 'Add to bag' }).click();
 
-  await expectToast(page, 'Item added to cart');
+  // The bag slides in with the line; Escape closes it and the focus is back on the button
+  const bag = page.getByRole('dialog', { name: 'Added to your bag' });
+  await expect(bag.getByRole('list', { name: 'In your bag' })).toContainText(gray.title);
+  await page.keyboard.press('Escape');
+  await expect(bag).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Add to bag' })).toBeFocused();
   await expect(page.getByRole('link', { name: 'Cart, 1 items' })).toBeVisible();
   await page.goto('/cart');
   await expect(page.getByRole('heading', { name: gray.title })).toBeVisible();
@@ -97,4 +102,24 @@ test.describe('signing in again', () => {
     await login(page, email, 'E2e-Password-1!');
     await expect(page).toHaveURL(/\/$/);
   });
+});
+
+test('13. a quick view puts a product in the bag without leaving the catalogue', async ({ page }) => {
+  await page.goto('/products');
+  const quickView = page.getByRole('button', { name: /^Quick view: / }).first();
+  const title = (await quickView.getAttribute('aria-label'))!.replace('Quick view: ', '');
+  await quickView.focus();
+  await page.keyboard.press('Enter');
+
+  const window = page.getByRole('dialog', { name: title });
+  await expect(window).toBeVisible();
+  await window.getByRole('button', { name: 'Add to bag' }).click();
+
+  const bag = page.getByRole('dialog', { name: 'Added to your bag' });
+  await expect(bag.getByRole('list', { name: 'In your bag' })).toContainText(title);
+  await expect(bag.getByRole('heading', { name: 'Complete the look' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(bag).toBeHidden();
+  await expect(quickView).toBeFocused();
+  await expect(page).toHaveURL(/\/products$/);
 });

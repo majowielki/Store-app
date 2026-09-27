@@ -3,21 +3,10 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { useOpenProduct } from '@/hooks/use-open-product';
 import { cn } from '@/lib/utils';
-import { formatAsDollars, priceTag, type Product } from '@/utils';
+import { priceTag, type Product } from '@/utils';
+import ProductPrice from './ProductPrice';
+import QuickView from './QuickView';
 import SaleBadge from './SaleBadge';
-
-/** The price as every listing shows it: the sale price first, the list price struck through. */
-export const ProductPrice = ({ product, stacked = false }: { product: Product; stacked?: boolean }) => {
-  const { price, effectivePrice, hasSale } = priceTag(product);
-  return hasSale ? (
-    <span className={cn('inline-flex gap-x-2', stacked ? 'flex-col items-end' : 'items-baseline')}>
-      <span className="font-medium text-brand">{formatAsDollars(effectivePrice)}</span>
-      <span className="text-sm text-muted-foreground line-through">{formatAsDollars(price)}</span>
-    </span>
-  ) : (
-    <span className="font-medium">{formatAsDollars(price)}</span>
-  );
-};
 
 /** The first few colours a product comes in, as small swatches. */
 export const ColorDots = ({ colors, className }: { colors: string[]; className?: string }) => {
@@ -51,48 +40,60 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
   const openProduct = useOpenProduct();
 
   return (
-    <Link
-      to={`/products/${product.id}`}
-      viewTransition={transition}
-      onClick={() => openProduct(product, transition ? imageRef.current : null)}
-      className={cn('group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4', className)}
-    >
-      <div className="relative aspect-[5/4] overflow-hidden rounded-2xl bg-muted">
-        <img
-          ref={imageRef}
-          src={image}
-          alt={title}
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-[1.06]"
+    <div className={cn('group relative', className)}>
+      <Link
+        to={`/products/${product.id}`}
+        viewTransition={transition}
+        onClick={() => openProduct(product, transition ? imageRef.current : null)}
+        className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
+      >
+        <div className="relative aspect-[5/4] overflow-hidden rounded-2xl bg-muted">
+          <img
+            ref={imageRef}
+            src={image}
+            alt={title}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-[1.06]"
+          />
+          <div className="absolute left-3 top-3 flex gap-1.5">
+            {hasSale && <SaleBadge percent={percent} />}
+            {newArrival && (
+              <span className="inline-flex items-center rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none tracking-wide backdrop-blur">
+                New
+              </span>
+            )}
+          </div>
+          <span
+            aria-hidden
+            className="absolute bottom-3 right-3 grid h-11 w-11 translate-y-3 place-items-center rounded-full bg-background text-foreground opacity-0 shadow-lg transition-all duration-500 ease-smooth group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+          >
+            <ArrowUpRight className="h-5 w-5 transition-transform duration-500 ease-smooth group-hover:rotate-45" />
+          </span>
+        </div>
+        <div className="mt-4 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="eyebrow">{company}</p>
+            <h3 className="mt-1.5 font-medium leading-snug">{title}</h3>
+          </div>
+          <p className="shrink-0 text-right">
+            <ProductPrice product={product} stacked />
+          </p>
+        </div>
+        <ColorDots colors={colors} className="mt-3" />
+      </Link>
+      {/* Over the picture but outside the link: a button may not sit inside a link */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[5/4]">
+        <QuickView
+          product={product}
+          className="pointer-events-auto absolute bottom-3 left-3 translate-y-2 opacity-0 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
         />
-        <div className="absolute left-3 top-3 flex gap-1.5">
-          {hasSale && <SaleBadge percent={percent} />}
-          {newArrival && (
-            <span className="inline-flex items-center rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none tracking-wide backdrop-blur">
-              New
-            </span>
-          )}
-        </div>
-        <span
-          aria-hidden
-          className="absolute bottom-3 right-3 grid h-11 w-11 translate-y-3 place-items-center rounded-full bg-background text-foreground opacity-0 shadow-lg transition-all duration-500 ease-smooth group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
-        >
-          <ArrowUpRight className="h-5 w-5 transition-transform duration-500 ease-smooth group-hover:rotate-45" />
-        </span>
       </div>
-      <div className="mt-4 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="eyebrow">{company}</p>
-          <h3 className="mt-1.5 font-medium leading-snug">{title}</h3>
-        </div>
-        <p className="shrink-0 text-right">
-          <ProductPrice product={product} stacked />
-        </p>
-      </div>
-      <ColorDots colors={colors} className="mt-3" />
-    </Link>
+    </div>
   );
 };
+
+// Listings import the price with the card
+export { ProductPrice };
 
 export default ProductCard;

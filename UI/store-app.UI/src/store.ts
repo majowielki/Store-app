@@ -3,6 +3,7 @@ import { setupListeners } from '@reduxjs/toolkit/query';
 import { api } from './api/api';
 import { errorToasts } from './api/errorToasts';
 import { onSessionEnded } from './api/session';
+import cartDrawerReducer from './features/cart/cartDrawerSlice';
 import discountCodeReducer, { loadDiscountCode, saveDiscountCode } from './features/cart/discountCodeSlice';
 import guestCartReducer, { loadGuestCart, saveGuestCart } from './features/cart/guestCartSlice';
 import sessionReducer, { sessionEnded } from './features/session/sessionSlice';
@@ -11,12 +12,13 @@ import { toast } from './hooks/use-toast';
 
 // Everything the API answers lives in the RTK Query cache; the store keeps only what the
 // UI owns itself: the session (who is signed in), the visitor's cart, the discount code typed in
-// the cart and the theme.
+// the cart, whether the cart drawer is open and the theme.
 const rootReducer = combineReducers({
   [api.reducerPath]: api.reducer,
   session: sessionReducer,
   guestCart: guestCartReducer,
   discountCode: discountCodeReducer,
+  cartDrawer: cartDrawerReducer,
   theme: themeReducer,
 });
 

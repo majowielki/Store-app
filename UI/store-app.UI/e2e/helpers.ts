@@ -54,7 +54,15 @@ export const addToCart = async (page: Page, productId: number, quantity = 1) => 
     await page.getByRole('option', { name: String(quantity), exact: true }).click();
   }
   await page.getByRole('button', { name: 'Add to bag' }).click();
-  await expectToast(page, 'Item added to cart');
+  await closeBag(page);
+};
+
+/** The bag slides in after "Add to bag"; Escape closes it and the focus goes back to the button. */
+export const closeBag = async (page: Page) => {
+  const bag = page.getByRole('dialog', { name: 'Added to your bag' });
+  await expect(bag).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(bag).toBeHidden();
 };
 
 /** Places the order from the checkout page and lands on the orders list. */
