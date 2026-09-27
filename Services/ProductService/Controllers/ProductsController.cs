@@ -54,6 +54,12 @@ public class ProductsController : ControllerBase
         [FromQuery] string? sortDir = null)
         => _productService.GetProductsForAdminAsync(queryParams, sortBy, sortDir);
 
+    /// <summary>One product with its gallery and points, inactive ones too, for the admin form; 404 for an unknown id.</summary>
+    [HttpGet("admin/{id:int}")]
+    [Authorize(Policy = Policies.Admin)]
+    public Task<ProductDetailResponse> GetProductAdmin(int id)
+        => _productService.GetProductForAdminAsync(id);
+
     /// <summary>Creates a product; the body is validated before the action runs.</summary>
     [HttpPost]
     [Authorize(Policy = Policies.AdminWrite)]

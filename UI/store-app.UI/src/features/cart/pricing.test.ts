@@ -32,5 +32,8 @@ describe('cart preview totals', () => {
 
   it('rounds to cents', () => {
     expect(previewTotals(10.01, true, rules)).toEqual({ subtotal: 10.01, discount: 2, discountReason: 'first-order', deliveryFee: 10, total: 18.01 });
+    // Half a cent goes up, as on the server, even where binary fractions fall just short of it
+    expect(previewTotals(0.58, true, { ...rules, firstOrderDiscountPercent: 25 }).discount).toBe(0.15);
+    expect(previewTotals(6.85, true, { ...rules, firstOrderDiscountPercent: 30 }).discount).toBe(2.06);
   });
 });

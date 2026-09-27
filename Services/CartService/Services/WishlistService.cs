@@ -62,6 +62,24 @@ public sealed class WishlistService
 
     private async Task AddMissingAsync(string userId, IReadOnlyCollection<int> productIds, bool refuseUnavailable)
     {
+        // A second try when the same product was added at the same moment from another tab: the
+        // first try's rows are dropped with the one that clashed, the second adds what is still missing
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await TryAddMissingAsync(userId, productIds, refuseUnavailable);
+                return;
+            }
+            catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } && attempt < 2)
+            {
+                _context.ChangeTracker.Clear();
+            }
+        }
+    }
+
+    private async Task TryAddMissingAsync(string userId, IReadOnlyCollection<int> productIds, bool refuseUnavailable)
+    {
         var known = (await _context.WishlistItems.Where(w => w.UserId == userId).Select(w => w.ProductId).ToListAsync()).ToHashSet();
         var missing = productIds.Distinct().Where(id => !known.Contains(id)).ToList();
         if (missing.Count == 0)
@@ -75,30 +93,25 @@ public sealed class WishlistService
             throw new DomainValidationException($"A wishlist holds at most {WishlistItem.MaxItems} products. Remove one to add another.");
         }
 
+        // The catalogue is asked about every product at once, not one after another
+        var candidates = missing.Take(Math.Max(room, 0)).ToList();
+        var products = await Task.WhenAll(candidates.Select(id => _catalog.GetSnapshotAsync(id)));
+
         var now = _time.GetUtcNow().UtcDateTime;
-        foreach (var productId in missing.Take(Math.Max(room, 0)))
+        for (var i = 0; i < candidates.Count; i++)
         {
-            var product = await _catalog.GetSnapshotAsync(productId);
-            if (product is null || !product.IsActive)
+            if (products[i] is not { IsActive: true })
             {
                 if (refuseUnavailable)
                 {
-                    throw new DomainValidationException($"Product {productId} is not available");
+                    throw new DomainValidationException($"Product {candidates[i]} is not available");
                 }
                 continue;
             }
 
-            _context.WishlistItems.Add(new WishlistItem { UserId = userId, ProductId = productId, AddedAt = now });
+            _context.WishlistItems.Add(new WishlistItem { UserId = userId, ProductId = candidates[i], AddedAt = now });
         }
 
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
-        {
-            // The same product added twice at once, from two tabs: it is on the list either way
-            _context.ChangeTracker.Clear();
-        }
+        await _context.SaveChangesAsync();
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useCreateProductMutation, useGetProductQuery, useGetProductsMetaQuery, useUpdateProductMutation } from '@/api/catalog';
+import { useCreateProductMutation, useGetProductForAdminQuery, useGetProductsMetaQuery, useUpdateProductMutation } from '@/api/catalog';
 import type { ProductCategory, ProductCompany, ProductDetail, ProductHotspot, ProductImage, ProductPayload, ProductsMeta } from '@/api/types';
 import FormCheckbox from '@/components/FormCheckbox';
 import FormInput from '@/components/FormInput';
@@ -47,8 +47,8 @@ const toPayload = (fd: FormData): ProductPayload => ({
 const ProductForm = () => {
   const { id } = useParams<{ id: string }>();
   const editing = id !== undefined && id !== 'new';
-  // Always the whole product: the cache may hold what a listing knew, without the gallery
-  const { data: product, isFetching } = useGetProductQuery(Number(id), { skip: !editing, refetchOnMountOrArgChange: true });
+  // Always a fresh read, inactive products too: the form is filled once, from what it returns
+  const { data: product, isFetching } = useGetProductForAdminQuery(Number(id), { skip: !editing, refetchOnMountOrArgChange: true });
   // Meta is only used for hints; the form still works without it
   const { data: meta } = useGetProductsMetaQuery();
 

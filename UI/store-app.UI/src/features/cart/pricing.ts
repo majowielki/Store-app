@@ -22,7 +22,7 @@ export interface CartPreview {
  * service computed it) do not add up: the larger is taken, the first-order one on a tie.
  */
 export const previewTotals = (subtotal: number, firstOrder: boolean, rules: PricingAmounts, codeDiscount = 0): CartPreview => {
-  const firstOrderDiscount = firstOrder && subtotal > 0 ? round(subtotal * (rules.firstOrderDiscountPercent / 100)) : 0;
+  const firstOrderDiscount = firstOrder && subtotal > 0 ? percentOf(subtotal, rules.firstOrderDiscountPercent) : 0;
   const [discount, discountReason] =
     codeDiscount > firstOrderDiscount
       ? ([codeDiscount, 'code'] as const)
@@ -32,3 +32,9 @@ export const previewTotals = (subtotal: number, firstOrder: boolean, rules: Pric
 };
 
 const round = (amount: number) => Math.round(amount * 100) / 100;
+
+/**
+ * A percentage of an amount, to the cent, half a cent going up as on the server. Counted in
+ * whole cents: 0.58 * 25 % is 0.145 on paper but 0.14499... in binary fractions.
+ */
+const percentOf = (amount: number, percent: number) => Math.round((Math.round(amount * 100) * percent) / 100) / 100;

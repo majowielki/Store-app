@@ -177,6 +177,11 @@ public sealed class ProductLifecycleTests : IClassFixture<CatalogApiFactory>
         var adminList = await ReadJson(await trueAdmin.GetAsync("/api/v1/products/admin?search=Soft%20deleted%20sofa"));
         var row = adminList.GetProperty("items").EnumerateArray().Single(p => p.GetProperty("id").GetInt32() == id);
         Assert.False(row.GetProperty("isActive").GetBoolean());
+        // The admin form still opens it, for both administrators and nobody else
+        Assert.Equal(HttpStatusCode.OK, (await trueAdmin.GetAsync($"/api/v1/products/admin/{id}")).StatusCode);
+        using var demoAdmin = _factory.CreateClient().AsDemoAdmin();
+        Assert.Equal(HttpStatusCode.OK, (await demoAdmin.GetAsync($"/api/v1/products/admin/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anyone.GetAsync($"/api/v1/products/admin/{id}")).StatusCode);
 
         var restored = await trueAdmin.PutAsJsonAsync($"/api/v1/products/{id}", new { isActive = true });
         Assert.Equal(HttpStatusCode.OK, restored.StatusCode);

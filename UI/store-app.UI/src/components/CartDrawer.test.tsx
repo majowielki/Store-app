@@ -58,6 +58,19 @@ describe('CartDrawer', () => {
     expect(queries).toContain('?category=tables&pageSize=12');
   });
 
+  it('turns to the category when the rest of the collection is in the bag already', async () => {
+    server.use(
+      http.get(api('/content/collections'), () => json([collection({ productSlugs: ['oak-table'] })])),
+      http.get(api('/products'), ({ request }) =>
+        json(page(new URL(request.url).searchParams.has('slugs') ? [oakTable] : [oakTable, oakShelf])),
+      ),
+    );
+    renderOpenDrawer();
+
+    expect(await screen.findByText('More like this')).toBeInTheDocument();
+    expect(suggestions()).toEqual([expect.stringContaining('Oak Shelf')]);
+  });
+
   it('closes with Escape', async () => {
     server.use(
       http.get(api('/content/collections'), () => json([])),

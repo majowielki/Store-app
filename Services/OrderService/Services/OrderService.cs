@@ -309,6 +309,11 @@ public class OrderService : IOrderService
                 : $"An order that is {Describe(previous)} cannot be marked {Describe(status)}.");
         }
 
+        if (status == OrderStatus.Cancelled && order.DiscountCode is { } used)
+        {
+            await ReleaseDiscountCodeAsync(used);
+        }
+
         var now = _time.GetUtcNow().UtcDateTime;
         order.Status = status;
         order.StatusHistory.Add(new OrderStatusChange { Status = status, ChangedAt = now, ChangedBy = actorId });
@@ -321,6 +326,20 @@ public class OrderService : IOrderService
 
         _logger.LogInformation("Order {OrderId} moved from {Previous} to {Status} by {ActorId}", order.Id, previous, status, actorId);
         return MapToOrderResponse(order);
+    }
+
+    /// <summary>
+    /// Gives a cancelled order's code its use back, so a code limited to a few orders is not used
+    /// up by orders that never went through. The order keeps naming the code it was placed with.
+    /// </summary>
+    private async Task ReleaseDiscountCodeAsync(string code)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "DiscountCodes" WHERE "Code" = {code} FOR UPDATE""");
+        var entry = await _context.DiscountCodes.FirstOrDefaultAsync(c => c.Code == code);
+        if (entry is { TimesUsed: > 0 })
+        {
+            entry.TimesUsed--;
+        }
     }
 
     private static string Describe(OrderStatus status) => status.ToString().ToLowerInvariant();

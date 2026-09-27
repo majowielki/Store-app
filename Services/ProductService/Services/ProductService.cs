@@ -145,12 +145,16 @@ public class ProductService : IProductService
         return PageAsync(query, queryParams, PublicPageSize);
     }
 
-    public async Task<ProductDetailResponse> GetProductAsync(int id)
+    public Task<ProductDetailResponse> GetProductAsync(int id) => GetDetailAsync(id, activeOnly: true);
+
+    public Task<ProductDetailResponse> GetProductForAdminAsync(int id) => GetDetailAsync(id, activeOnly: false);
+
+    private async Task<ProductDetailResponse> GetDetailAsync(int id, bool activeOnly)
     {
         var product = await _context.Products
             .AsNoTracking()
             .Include(p => p.Images.OrderBy(i => i.SortOrder))
-            .FirstOrDefaultAsync(p => p.Id == id && p.IsActive)
+            .FirstOrDefaultAsync(p => p.Id == id && (p.IsActive || !activeOnly))
             ?? throw new NotFoundException("Product", id);
 
         return MapToDetailResponse(product);

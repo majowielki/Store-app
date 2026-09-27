@@ -8,7 +8,8 @@ import { formatDayRange } from '@/utils';
  * service estimates it. Nothing is shown until the estimate is known.
  */
 const DeliveryEstimate = ({ className }: { className?: string }) => {
-  const { data: rules } = useGetPricingRulesQuery();
+  // The window moves at the day's cut-off hour: asked again when it is a few minutes old
+  const { data: rules } = useGetPricingRulesQuery(undefined, { refetchOnMountOrArgChange: 300, pollingInterval: 600_000, skipPollingIfUnfocused: true });
   if (!rules) return null;
   return (
     <p className={cn('flex items-center gap-2 text-sm', className)}>

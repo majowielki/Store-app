@@ -28,6 +28,11 @@ export const catalogApi = api.injectEndpoints({
       query: (id) => `/products/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Products', id }],
     }),
+    /** One product for the admin form: with its gallery and points, and an inactive one as well. */
+    getProductForAdmin: build.query<ProductDetail, number>({
+      query: (id) => `/products/admin/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Products', id }],
+    }),
     /** The values the catalogue can be filtered by; a page still renders without them. */
     getProductsMeta: build.query<ProductsMeta, void>({
       query: () => '/products/meta',
@@ -57,6 +62,7 @@ export const catalogApi = api.injectEndpoints({
 export const {
   useGetProductsQuery,
   useGetProductQuery,
+  useGetProductForAdminQuery,
   useGetProductsMetaQuery,
   useGetProductsAdminQuery,
   useCreateProductMutation,

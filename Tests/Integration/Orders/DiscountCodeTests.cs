@@ -90,6 +90,26 @@ public sealed class DiscountCodeTests : IClassFixture<OrderApiFactory>
         Assert.Equal(1, (await ReadJson(await admin.GetAsync($"/api/v1/admin/discount-codes/{id}"))).GetProperty("timesUsed").GetInt32());
     }
 
+    // An order that never went through does not use up a code limited to one order
+    [Fact]
+    public async Task Cancelling_an_order_gives_its_code_the_use_back()
+    {
+        var id = await CreateCodeAsync(new { code = "IT-ONCE", kind = "Amount", value = 15m, usageLimit = 1 });
+        using var client = await ReturningCustomerAsync("code-cancelled", 203, 150m);
+        var order = await ReadJson(await client.PostAsJsonAsync("/api/v1/orders/from-cart", new { customerName = "Code Buyer", discountCode = "IT-ONCE" }));
+        using var admin = _factory.CreateClient().AsTrueAdmin();
+        Assert.Equal(1, (await ReadJson(await admin.GetAsync($"/api/v1/admin/discount-codes/{id}"))).GetProperty("timesUsed").GetInt32());
+
+        var cancelled = await admin.PatchAsJsonAsync($"/api/v1/admin/orders/{order.GetProperty("id").GetInt32()}/status", new { status = "Cancelled" });
+
+        Assert.Equal(HttpStatusCode.OK, cancelled.StatusCode);
+        Assert.Equal("IT-ONCE", (await ReadJson(cancelled)).GetProperty("discountCode").GetString());
+        Assert.Equal(0, (await ReadJson(await admin.GetAsync($"/api/v1/admin/discount-codes/{id}"))).GetProperty("timesUsed").GetInt32());
+        _factory.Upstreams.SetCart("code-cancelled", (203, 1, 150m));
+        var again = await client.PostAsJsonAsync("/api/v1/orders/from-cart", new { customerName = "Code Buyer", discountCode = "IT-ONCE" });
+        Assert.Equal(HttpStatusCode.Created, again.StatusCode);
+    }
+
     [Fact]
     public async Task On_a_first_order_the_larger_discount_wins_and_a_smaller_code_stays_unused()
     {

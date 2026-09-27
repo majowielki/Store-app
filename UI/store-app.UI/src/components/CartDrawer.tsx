@@ -23,17 +23,20 @@ const SUGGESTIONS = 3;
 const useCompleteTheLook = (added: AddedProduct | null, inBag: Set<number>) => {
   const { data: collections, isLoading } = useGetCollectionsQuery(undefined, { skip: !added });
   const collection = added ? collections?.find((c) => c.productSlugs.includes(added.slug)) : undefined;
-  const { products: fromCollection } = useProductsBySlug(collection?.productSlugs);
+  const { products: fromCollection, isLoading: collectionLoading } = useProductsBySlug(collection?.productSlugs);
+  const wanted = (p: Product) => p.id !== added?.productId && !inBag.has(p.id);
+  const collectionHasMore = fromCollection.some(wanted);
   const { data: sameCategory } = useGetProductsQuery(
     { category: added?.category, pageSize: 12 },
-    // Without the content service the category still has suggestions
-    { skip: !added || isLoading || collection !== undefined },
+    // Without the content service, or with the whole collection in the bag, the category suggests
+    { skip: !added || isLoading || collectionLoading || collectionHasMore },
   );
 
   return useMemo(() => {
-    const pool: Product[] = collection ? fromCollection : (sameCategory?.items ?? []);
-    const products = pool.filter((p) => p.id !== added?.productId && !inBag.has(p.id)).slice(0, SUGGESTIONS);
-    return { products, source: collection ? `From the ${collection.title} collection` : 'More like this' };
+    const fromCollectionLeft = fromCollection.filter((p) => p.id !== added?.productId && !inBag.has(p.id));
+    const showCollection = collection !== undefined && fromCollectionLeft.length > 0;
+    const pool: Product[] = showCollection ? fromCollectionLeft : (sameCategory?.items ?? []).filter((p) => p.id !== added?.productId && !inBag.has(p.id));
+    return { products: pool.slice(0, SUGGESTIONS), source: showCollection ? `From the ${collection.title} collection` : 'More like this' };
   }, [collection, fromCollection, sameCategory, added, inBag]);
 };
 

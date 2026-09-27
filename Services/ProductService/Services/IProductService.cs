@@ -25,5 +25,6 @@ public interface IProductService
     Task<ProductSnapshot?> GetSnapshotAsync(int id);
 
     // The admin listing: inactive products too, sortable
+    Task<ProductDetailResponse> GetProductForAdminAsync(int id);
     Task<PagedResponse<ProductResponse>> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir);
 }
