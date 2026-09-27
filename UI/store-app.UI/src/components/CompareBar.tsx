@@ -20,7 +20,7 @@ const CompareBar = () => {
   return (
     <aside
       aria-label="Comparison"
-      className="fixed inset-x-3 bottom-24 z-40 mx-auto flex max-w-2xl animate-fade-up items-center gap-3 rounded-2xl border bg-background/95 p-3 shadow-2xl backdrop-blur md:bottom-6"
+      className="fixed inset-x-3 bottom-24 z-40 mx-auto flex max-w-2xl animate-fade-up items-center gap-3 rounded-2xl border bg-background/95 p-3 shadow-2xl backdrop-blur-sm md:bottom-6"
     >
       <ul className="flex flex-1 gap-2 overflow-x-auto pr-1.5 pt-1.5">
         {products.map((product) => (

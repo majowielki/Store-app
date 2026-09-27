@@ -42,7 +42,7 @@ const About = () => {
         </p>
       </header>
 
-      <Reveal className="mt-16 aspect-[16/10] overflow-hidden rounded-[2rem] bg-muted md:aspect-[21/9]">
+      <Reveal className="mt-16 aspect-16/10 overflow-hidden rounded-4xl bg-muted md:aspect-21/9">
         <img ref={bandRef} src={joinery} alt="The corner of an oak dining table, where the top meets its angled leg" className="h-full w-full scale-[1.12] object-cover" />
       </Reveal>
 
@@ -79,12 +79,12 @@ const About = () => {
           </ul>
         </div>
         <Reveal className="relative">
-          <div className="aspect-[4/5] overflow-hidden rounded-[2rem] bg-muted">
+          <div className="aspect-4/5 overflow-hidden rounded-4xl bg-muted">
             <img src={linen} alt="Stonewashed linen bedding up close" loading="lazy" className="h-full w-full object-cover" />
           </div>
           <div className="absolute -bottom-6 left-6 flex flex-wrap gap-2">
             {['Ethically sourced', '2-year warranty', 'Free returns'].map((tag) => (
-              <span key={tag} className="rounded-full bg-background/90 px-4 py-2 text-xs font-medium shadow-lg backdrop-blur">
+              <span key={tag} className="rounded-full bg-background/90 px-4 py-2 text-xs font-medium shadow-lg backdrop-blur-sm">
                 {tag}
               </span>
             ))}

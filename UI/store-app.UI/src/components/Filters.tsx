@@ -111,7 +111,7 @@ const Filters = (props: FiltersProps) => {
           Filters &amp; sorting
         </Button>
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto rounded-t-[2rem] px-5 pb-8 pt-6">
+          <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto rounded-t-4xl px-5 pb-8 pt-6">
             <SheetTitle className="display mb-5 text-3xl font-normal">Filters</SheetTitle>
             <SheetDescription className="sr-only">Narrow the products down and choose their order</SheetDescription>
             <FiltersForm {...props} onSubmitted={() => setOpen(false)} />

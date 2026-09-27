@@ -47,9 +47,9 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
         to={`/products/${product.id}`}
         viewTransition={transition}
         onClick={() => openProduct(product, transition ? imageRef.current : null)}
-        className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
+        className="block rounded-2xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
       >
-        <div className="relative aspect-[5/4] overflow-hidden rounded-2xl bg-muted">
+        <div className="relative aspect-5/4 overflow-hidden rounded-2xl bg-muted">
           <img
             ref={imageRef}
             src={image}
@@ -61,7 +61,7 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
           <div className="absolute left-3 top-3 flex gap-1.5">
             {hasSale && <SaleBadge percent={percent} />}
             {newArrival && (
-              <span className="inline-flex items-center rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none tracking-wide backdrop-blur">
+              <span className="inline-flex items-center rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none tracking-wide backdrop-blur-sm">
                 New
               </span>
             )}
@@ -86,7 +86,7 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
       </Link>
       <CompareToggle product={product} className="-ml-2.5 mt-2" />
       {/* Over the picture but outside the link: a button may not sit inside a link */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[5/4]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 aspect-5/4">
         <WishlistButton product={product} className="pointer-events-auto absolute right-3 top-3" />
         <QuickView
           product={product}

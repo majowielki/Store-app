@@ -79,7 +79,7 @@ const QuickView = ({ product, className }: { product: Product; className?: strin
           type="button"
           aria-label={`Quick view: ${product.title}`}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3.5 py-2 text-xs font-medium shadow-lg backdrop-blur transition-all duration-500 ease-smooth hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            'inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3.5 py-2 text-xs font-medium shadow-lg backdrop-blur-sm transition-all duration-500 ease-smooth hover:bg-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
             className,
           )}
         >
@@ -88,10 +88,10 @@ const QuickView = ({ product, className }: { product: Product; className?: strin
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border bg-background p-5 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6">
           <QuickViewContent product={product} trigger={triggerRef} onAdding={() => setOpen(false)} />
-          <Dialog.Close className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-background/80 opacity-80 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Dialog.Close className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-background/80 opacity-80 transition-opacity hover:opacity-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </Dialog.Close>

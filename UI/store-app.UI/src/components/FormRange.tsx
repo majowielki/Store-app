@@ -12,7 +12,7 @@ interface FormRangeProps {
 };
 
 const numberClass =
-  "h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm tabular-nums transition-[border-color,box-shadow] focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foreground/10";
+  "h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm tabular-nums transition-[border-color,box-shadow] focus-visible:border-foreground focus-visible:outline-hidden focus-visible:ring-4 focus-visible:ring-foreground/10";
 
 const FormRange = ({ name, label, defaultValue }: FormRangeProps) => {
   const step = 1;

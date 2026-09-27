@@ -93,7 +93,7 @@ const Footer = () => (
     </div>
 
     <div aria-hidden className="overflow-hidden">
-      <p className="display select-none text-center text-[27vw] leading-[0.72] tracking-tighter text-primary-foreground/[0.07] dark:text-foreground/[0.06]">
+      <p className="display select-none text-center text-[27vw] leading-[0.72] tracking-tighter text-primary-foreground/[0.07] dark:text-foreground/6">
         store.
       </p>
     </div>

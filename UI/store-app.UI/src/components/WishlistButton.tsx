@@ -28,7 +28,7 @@ const WishlistButton = ({ product, className }: { product: Pick<Product, 'id' | 
       aria-label={saved ? `Remove ${product.title} from your wishlist` : `Save ${product.title} to your wishlist`}
       onClick={onClick}
       className={cn(
-        'grid h-10 w-10 place-items-center rounded-full bg-background/90 shadow-md backdrop-blur transition-transform duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'grid h-10 w-10 place-items-center rounded-full bg-background/90 shadow-md backdrop-blur-sm transition-transform duration-300 hover:scale-110 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
         className,
       )}
     >

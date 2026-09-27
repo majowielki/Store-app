@@ -14,7 +14,7 @@ interface Picture {
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 const roundButton =
-  'grid h-10 w-10 place-items-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur transition-opacity hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'grid h-10 w-10 place-items-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur-sm transition-opacity hover:bg-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring';
 
 /** A picture magnified under the mouse; a finger scrolls the gallery instead. */
 const ZoomPicture = ({ picture }: { picture: Picture }) => {
@@ -108,7 +108,7 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
           onScroll={onScroll}
           onPointerDown={() => (scrollingTo.current = null)}
           onWheel={() => (scrollingTo.current = null)}
-          className="flex aspect-[4/3] snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-[2rem] bg-muted [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex aspect-4/3 snap-x snap-mandatory overflow-x-auto overflow-y-hidden rounded-4xl bg-muted scrollbar-none [&::-webkit-scrollbar]:hidden"
         >
           {pictures.map((picture, index) => (
             <div
@@ -153,7 +153,7 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
               aria-current={index === current ? 'true' : undefined}
               onClick={() => goTo(index)}
               className={cn(
-                'aspect-[4/3] w-20 overflow-hidden rounded-xl border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-24',
+                'aspect-4/3 w-20 overflow-hidden rounded-xl border-2 transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring sm:w-24',
                 index === current ? 'border-foreground' : 'border-transparent opacity-70 hover:opacity-100',
               )}
             >
@@ -169,7 +169,7 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
           <Dialog.Content
             aria-describedby={undefined}
             onKeyDown={onKeyDown}
-            className="fixed inset-0 z-50 grid place-items-center p-4 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:p-10"
+            className="fixed inset-0 z-50 grid place-items-center p-4 focus:outline-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:p-10"
           >
             <Dialog.Title className="sr-only">{`${product.title}, picture ${current + 1} of ${count}`}</Dialog.Title>
             <img src={pictures[current].url} alt={pictures[current].alt} className="max-h-full max-w-full rounded-2xl object-contain" />

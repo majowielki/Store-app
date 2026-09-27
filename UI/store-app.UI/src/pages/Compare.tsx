@@ -80,16 +80,16 @@ const Compare = () => {
       {products.length === 1 && <p className="mt-4 text-sm text-muted-foreground">Pick another piece to compare it with.</p>}
 
       <div className="mt-10 overflow-x-auto rounded-2xl border">
-        <table className="w-full min-w-[36rem] border-collapse text-sm">
+        <table className="w-full min-w-xl border-collapse text-sm">
           <caption className="sr-only">The pieces picked for comparison</caption>
           <thead>
             <tr>
               <td className="sticky left-0 z-10 w-28 bg-background" />
               {products.map((product) => (
-                <th key={product.id} scope="col" className="min-w-[10rem] p-4 text-left align-top font-normal">
+                <th key={product.id} scope="col" className="min-w-40 p-4 text-left align-top font-normal">
                   <div className="relative">
                     <Link to={`/products/${product.id}`} className="group block">
-                      <div className="aspect-[5/4] overflow-hidden rounded-xl bg-muted">
+                      <div className="aspect-5/4 overflow-hidden rounded-xl bg-muted">
                         <img src={product.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                       </div>
                       <span className="mt-3 block font-medium leading-snug">{product.title}</span>
@@ -98,7 +98,7 @@ const Compare = () => {
                       type="button"
                       aria-label={`Remove ${product.title} from the comparison`}
                       onClick={() => dispatch(removedFromCompare(product.id))}
-                      className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-background/90 shadow"
+                      className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-background/90 shadow-sm"
                     >
                       <X className="h-4 w-4" />
                     </button>

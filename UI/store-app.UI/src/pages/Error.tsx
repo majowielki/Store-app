@@ -8,9 +8,9 @@ const Error = () => {
   const notFound = isRouteErrorResponse(error) && error.status === 404;
 
   return (
-    <main className="relative grid min-h-[100vh] place-items-center overflow-hidden px-6">
+    <main className="relative grid min-h-screen place-items-center overflow-hidden px-6">
       <Logo className="absolute left-6 top-6 sm:left-10 sm:top-8" />
-      <p aria-hidden className="display pointer-events-none absolute select-none text-[42vw] leading-none text-foreground/[0.04]">
+      <p aria-hidden className="display pointer-events-none absolute select-none text-[42vw] leading-none text-foreground/4">
         {notFound ? "404" : "oops"}
       </p>
       <div className="relative text-center">

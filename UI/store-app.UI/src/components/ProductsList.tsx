@@ -20,7 +20,7 @@ const ProductRow = ({ product }: { product: Product }) => {
       onClick={() => openProduct(product, imageRef.current)}
       className="group grid grid-cols-[7.5rem_1fr] items-center gap-5 py-5 sm:grid-cols-[13rem_1fr_auto] sm:gap-8"
     >
-      <div className="relative aspect-[5/4] overflow-hidden rounded-xl bg-muted">
+      <div className="relative aspect-5/4 overflow-hidden rounded-xl bg-muted">
         <img ref={imageRef} src={image} alt={title} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-105" />
         {hasSale && <SaleBadge percent={percent} className="absolute left-2 top-2" />}
       </div>

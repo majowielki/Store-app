@@ -8,9 +8,9 @@ import type { Product } from '@/utils';
 
 /** The first new arrival, large: the picture fills its half of the section. */
 const Lead = ({ product }: { product: Product }) => (
-  <Link to={`/products/${product.id}`} className="group relative block h-full min-h-[26rem] overflow-hidden rounded-[2rem] bg-muted">
+  <Link to={`/products/${product.id}`} className="group relative block h-full min-h-104 overflow-hidden rounded-4xl bg-muted">
     <img src={product.image} alt={product.title} className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-smooth group-hover:scale-105" />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
     <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-6 text-white md:p-8">
       <div>
         <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/70">New · {product.company}</p>
@@ -48,10 +48,10 @@ const NewArrivals = () => {
       <div className="mt-12 grid gap-6 lg:grid-cols-2">
         {isLoading || !lead ? (
           <>
-            <Skeleton className="min-h-[26rem] rounded-[2rem]" />
+            <Skeleton className="min-h-104 rounded-4xl" />
             <div className="grid grid-cols-2 gap-6">
               {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton key={index} className="aspect-[5/4] rounded-2xl" />
+                <Skeleton key={index} className="aspect-5/4 rounded-2xl" />
               ))}
             </div>
           </>

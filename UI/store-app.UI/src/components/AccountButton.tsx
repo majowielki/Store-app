@@ -68,7 +68,7 @@ const AccountButton = () => {
           onMouseEnter={() => setOpen(true)}
           onClick={() => setOpen((v) => !v)}
         >
-          <UserRound className="!h-[1.15rem] !w-[1.15rem]" />
+          <UserRound className="h-[1.15rem]! w-[1.15rem]!" />
           <span className="sr-only">My Account</span>
         </Button>
       </DropdownMenuTrigger>

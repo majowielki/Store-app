@@ -29,7 +29,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (!this.state.failed) return this.props.children;
     return (
-      <main className="grid min-h-[100vh] place-items-center px-8 text-center">
+      <main className="grid min-h-screen place-items-center px-8 text-center">
         <div>
           <h1 className="font-display text-5xl">Something went wrong</h1>
           <p className="mt-4">Reload the page to continue.</p>

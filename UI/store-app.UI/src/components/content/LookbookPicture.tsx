@@ -81,7 +81,7 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
   const points = hotspots.filter((point) => products.has(point.productSlug));
 
   return (
-    <div ref={containerRef} className={cn('relative overflow-hidden rounded-[2rem] bg-muted', className)}>
+    <div ref={containerRef} className={cn('relative overflow-hidden rounded-4xl bg-muted', className)}>
       <img
         src={image}
         alt={alt}
@@ -106,16 +106,16 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
                 setBox(rect && rect.width > 0 ? { width: rect.width, height: rect.height } : null);
                 setOpen(isOpen ? null : point.productSlug);
               }}
-              className="group relative grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="group relative grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <span className="absolute inset-0 animate-ping rounded-full bg-white/60 motion-reduce:hidden [animation-duration:2.4s]" />
               <span
                 className={cn(
-                  'relative grid h-7 w-7 place-items-center rounded-full border border-white/70 bg-white/90 shadow-lg backdrop-blur transition-transform duration-300 group-hover:scale-110',
+                  'relative grid h-7 w-7 place-items-center rounded-full border border-white/70 bg-white/90 shadow-lg backdrop-blur-sm transition-transform duration-300 group-hover:scale-110',
                   isOpen && 'scale-110 bg-brand',
                 )}
               >
-                <span className={cn('h-2 w-2 rounded-full bg-foreground', isOpen && 'bg-white')} />
+                <span className={cn('h-2 w-2 rounded-full bg-stone-900', isOpen && 'bg-white')} />
               </span>
             </button>
             {isOpen && (
@@ -125,7 +125,7 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
                 aria-label={product.title}
                 style={box ? cardPlacement(point, box) : undefined}
                 className={cn(
-                  'absolute z-10 w-64 rounded-2xl border bg-background/95 p-3 text-left shadow-xl backdrop-blur animate-in fade-in-0 zoom-in-95',
+                  'absolute z-10 w-64 rounded-2xl border bg-background/95 p-3 text-left shadow-xl backdrop-blur-sm animate-in fade-in-0 zoom-in-95',
                   !box && (point.x > 60 ? 'right-6' : 'left-6'),
                   !box && (point.y > 60 ? 'bottom-6' : 'top-6'),
                 )}

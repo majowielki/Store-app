@@ -18,8 +18,8 @@ const WelcomeBand = () => {
 
   return (
     <section className="align-element py-10" aria-labelledby="welcome">
-      <Reveal className="relative grid gap-12 overflow-hidden rounded-[2rem] bg-brand px-6 py-14 text-brand-foreground sm:px-10 md:px-16 md:py-20 lg:grid-cols-2">
-        <span aria-hidden className="absolute -right-24 -top-24 h-[26rem] w-[26rem] rounded-full border border-current opacity-20" />
+      <Reveal className="relative grid gap-12 overflow-hidden rounded-4xl bg-brand px-6 py-14 text-brand-foreground sm:px-10 md:px-16 md:py-20 lg:grid-cols-2">
+        <span aria-hidden className="absolute -right-24 -top-24 h-104 w-104 rounded-full border border-current opacity-20" />
         <span aria-hidden className="absolute -bottom-40 left-1/3 h-80 w-80 rounded-full bg-brand-foreground opacity-[0.07] blur-2xl" />
         <div className="relative">
           <p className="eyebrow text-current opacity-75">{user ? 'With every order' : 'New here?'}</p>

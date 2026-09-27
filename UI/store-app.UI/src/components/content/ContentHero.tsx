@@ -31,7 +31,7 @@ const ContentHero = ({ eyebrow, title, lead, image, back, meta }: ContentHeroPro
         </div>
       )}
     </div>
-    <div className="mt-10 aspect-[3/2] animate-fade-up overflow-hidden rounded-[2rem] bg-muted [animation-delay:220ms] md:aspect-[21/9]">
+    <div className="mt-10 aspect-3/2 animate-fade-up overflow-hidden rounded-4xl bg-muted [animation-delay:220ms] md:aspect-21/9">
       <img src={image} alt="" className="h-full w-full object-cover" />
     </div>
   </header>

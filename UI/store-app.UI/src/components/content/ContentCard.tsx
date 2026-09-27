@@ -15,8 +15,8 @@ interface ContentCardProps {
 
 /** A picture, a title and a line of text leading to an editorial page. */
 const ContentCard = ({ to, image, title, eyebrow, text, className, wide = false }: ContentCardProps) => (
-  <Link to={to} className={cn('group block rounded-[1.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4', className)}>
-    <div className={cn('overflow-hidden rounded-[1.5rem] bg-muted', wide ? 'aspect-[16/9]' : 'aspect-[4/3]')}>
+  <Link to={to} className={cn('group block rounded-3xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4', className)}>
+    <div className={cn('overflow-hidden rounded-3xl bg-muted', wide ? 'aspect-video' : 'aspect-4/3')}>
       <img src={image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-105" />
     </div>
     <div className="mt-5 flex items-start justify-between gap-4">

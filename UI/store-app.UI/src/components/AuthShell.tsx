@@ -16,7 +16,7 @@ const AuthShell = ({ eyebrow, title, lead, image, children }: AuthShellProps) =>
   <main className="grid min-h-screen lg:grid-cols-2">
     <div className="relative hidden overflow-hidden bg-muted lg:block">
       <img src={image} alt="" className="absolute inset-0 h-full w-full animate-zoom-out object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/30" />
+      <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-black/30" />
       <Logo className="absolute left-10 top-8 text-white" />
       <figure className="absolute inset-x-10 bottom-10 max-w-lg animate-fade-up text-white [animation-delay:300ms]">
         <blockquote className="display text-4xl leading-[1.1]">Good rooms are made slowly — one well-chosen piece at a time.</blockquote>

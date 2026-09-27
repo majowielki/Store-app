@@ -89,7 +89,7 @@ const HotspotEditor = ({ image, hotspots, onChange }: HotspotEditorProps) => {
             onKeyDown={onKey(index)}
             onFocus={() => setSelected(index)}
             className={cn(
-              'absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-full border-2 border-white text-xs font-semibold shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-full border-2 border-white text-xs font-semibold shadow-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
               selected === index ? 'bg-brand text-white' : point.productSlug ? 'bg-white text-foreground' : 'bg-destructive text-white',
             )}
             style={{ left: `${point.x}%`, top: `${point.y}%` }}

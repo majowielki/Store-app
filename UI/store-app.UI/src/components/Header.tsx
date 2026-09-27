@@ -48,10 +48,10 @@ const Header = () => {
           hidden && !menuOpen && !searchOpen ? '-translate-y-full' : 'translate-y-0',
         )}
       >
-        <div className="align-element flex h-16 items-center gap-2 md:h-[4.5rem] xl:grid xl:grid-cols-[1fr_auto_1fr]">
+        <div className="align-element flex h-16 items-center gap-2 md:h-18 xl:grid xl:grid-cols-[1fr_auto_1fr]">
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="-ml-2 hidden md:inline-flex xl:hidden" onClick={() => setMenuOpen(true)} aria-label="Menu">
-              <Menu className="!h-5 !w-5" />
+              <Menu className="h-5! w-5!" />
             </Button>
             <Logo />
           </div>
@@ -69,7 +69,7 @@ const Header = () => {
               <kbd className="rounded border bg-muted px-1.5 font-sans text-[10px] font-medium">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
             </button>
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSearchOpen(true)} aria-label="Search">
-              <Search className="!h-5 !w-5" />
+              <Search className="h-5! w-5!" />
             </Button>
             <WishlistLink />
             {!isMobile && (

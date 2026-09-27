@@ -23,7 +23,7 @@ const RecentlyViewed = ({ excludeId, title = 'Recently viewed', className, onNav
       <ul className="-mx-1 mt-4 flex snap-x gap-4 overflow-x-auto px-1 pb-2">
         {products.map((product) => (
           <li key={product.id} className="w-36 shrink-0 snap-start sm:w-44">
-            <Link to={`/products/${product.id}`} onClick={onNavigate} className="group block rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Link to={`/products/${product.id}`} onClick={onNavigate} className="group block rounded-xl text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
               <div className="aspect-square overflow-hidden rounded-xl bg-muted">
                 <img src={product.image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               </div>

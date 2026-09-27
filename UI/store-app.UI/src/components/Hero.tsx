@@ -60,7 +60,7 @@ const Stats = () => {
 };
 
 const Hero = () => (
-  <section className="align-element grid items-center gap-16 pb-20 pt-10 lg:grid-cols-12 lg:gap-8 lg:pb-28 lg:pt-14">
+  <section className="align-element grid items-center gap-16 overflow-x-clip pb-20 pt-10 lg:grid-cols-12 lg:gap-8 lg:pb-28 lg:pt-14">
     <div className="lg:col-span-7">
       <p className="eyebrow flex animate-fade-up items-center gap-3">
         <span className="h-px w-8 bg-foreground/40" />
@@ -100,7 +100,7 @@ const Hero = () => (
     </div>
 
     <div className="relative mx-auto w-full max-w-md lg:col-span-5 lg:max-w-none">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-muted">
+      <div className="relative aspect-4/5 overflow-hidden rounded-4xl bg-muted">
         <img
           src={hero1}
           alt="A light linen sofa with a woven pouf and brass side tables"
@@ -109,7 +109,7 @@ const Hero = () => (
       </div>
       <div className="absolute -bottom-8 -left-6 w-36 animate-fade-up [animation-delay:700ms] md:-left-12 md:w-44">
         <div className="animate-float overflow-hidden rounded-2xl border-[6px] border-background shadow-2xl">
-          <img src={hero2} alt="" className="aspect-[4/5] w-full object-cover" />
+          <img src={hero2} alt="" className="aspect-4/5 w-full object-cover" />
         </div>
       </div>
       <RotatingBadge />

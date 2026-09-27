@@ -17,7 +17,7 @@ interface MarqueeProps {
 const Marquee = ({ children, duration = '40s', reverse = false, className }: MarqueeProps) => (
   <div className={cn('group flex overflow-hidden', className)}>
     <div
-      className="flex w-max shrink-0 animate-marquee group-hover:[animation-play-state:paused]"
+      className="flex w-max shrink-0 animate-marquee group-hover:paused"
       style={{ '--marquee-duration': duration, animationDirection: reverse ? 'reverse' : undefined } as CSSProperties}
     >
       <div className="flex shrink-0 items-center">{children}</div>

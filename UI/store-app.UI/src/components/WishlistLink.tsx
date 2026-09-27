@@ -10,7 +10,7 @@ const WishlistLink = () => {
   return (
     <Button asChild variant="ghost" size="icon" className="relative">
       <Link to="/wishlist" aria-label={`Wishlist, ${productIds.length} items`}>
-        <Heart className="!h-[1.15rem] !w-[1.15rem]" />
+        <Heart className="h-[1.15rem]! w-[1.15rem]!" />
         <CartCount count={productIds.length} />
       </Link>
     </Button>

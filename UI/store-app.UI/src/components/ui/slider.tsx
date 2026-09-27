@@ -30,7 +30,7 @@ const Slider = React.forwardRef<
       {Array.from({ length: Math.max(1, thumbCount) }).map((_, i) => (
         <SliderPrimitive.Thumb
           key={i}
-          className="block h-5 w-5 cursor-grab rounded-full border-2 border-foreground bg-background shadow-md ring-offset-background transition-[transform,box-shadow] duration-200 hover:scale-110 active:cursor-grabbing active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          className="block h-5 w-5 cursor-grab rounded-full border-2 border-foreground bg-background shadow-md ring-offset-background transition-[transform,box-shadow] duration-200 hover:scale-110 active:cursor-grabbing active:scale-95 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>

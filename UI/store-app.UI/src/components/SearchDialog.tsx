@@ -62,7 +62,7 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
               onChange={(e) => setText(e.target.value)}
               placeholder="What are you looking for?"
               aria-label="Search products"
-              className="display w-full min-w-0 bg-transparent text-3xl outline-none placeholder:text-muted-foreground/50 md:text-5xl [&::-webkit-search-cancel-button]:hidden"
+              className="display w-full min-w-0 bg-transparent text-3xl outline-hidden placeholder:text-muted-foreground/50 md:text-5xl [&::-webkit-search-cancel-button]:hidden"
             />
             {isFetching && <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" aria-label="Searching" />}
           </form>

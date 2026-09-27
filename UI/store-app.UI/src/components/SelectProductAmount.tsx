@@ -38,7 +38,7 @@ const SelectProductAmount = ({
       defaultValue={amount.toString()}
       onValueChange={(value) => setAmount(Number(value))}
     >
-      <SelectTrigger aria-label="Amount" className={cn(cartItem ? "h-9 w-[4.5rem] rounded-full" : "h-12 w-24 rounded-full", className)}>
+      <SelectTrigger aria-label="Amount" className={cn(cartItem ? "h-9 w-18 rounded-full" : "h-12 w-24 rounded-full", className)}>
         <SelectValue placeholder={amount} />
       </SelectTrigger>
       <SelectContent>

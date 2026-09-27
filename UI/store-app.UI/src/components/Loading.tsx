@@ -7,7 +7,7 @@ const Loading = () => {
       {Array.from({ length: 6 }).map((_, index) => {
         return (
           <div key={index} className="flex flex-col">
-            <Skeleton className="aspect-[5/4] w-full rounded-2xl" />
+            <Skeleton className="aspect-5/4 w-full rounded-2xl" />
             <Skeleton className="mt-4 h-3 w-16" />
             <Skeleton className="mt-2 h-4 w-2/3" />
           </div>

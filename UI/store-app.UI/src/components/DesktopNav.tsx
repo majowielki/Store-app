@@ -65,7 +65,7 @@ const MegaPanel = ({ group, onNavigate }: { group: string; onNavigate: () => voi
             }}
             className="group/pick block"
           >
-            <div className="aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+            <div className="aspect-4/3 overflow-hidden rounded-xl bg-muted">
               <img
                 src={product.image}
                 alt={product.title}
@@ -112,7 +112,7 @@ const InspirationPanel = ({ onNavigate }: { onNavigate: () => void }) => {
       <div className="col-span-6 grid grid-cols-2 gap-5">
         {picks.map((pick) => (
           <Link key={pick.to} to={pick.to} onClick={onNavigate} className="group/pick block">
-            <div className="aspect-[16/10] overflow-hidden rounded-xl bg-muted">
+            <div className="aspect-16/10 overflow-hidden rounded-xl bg-muted">
               <img src={pick.image} alt="" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover/pick:scale-105" />
             </div>
             <p className="eyebrow mt-3">{pick.eyebrow}</p>

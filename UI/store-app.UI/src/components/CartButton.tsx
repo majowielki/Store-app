@@ -24,7 +24,7 @@ const CartButton = () => {
   return (
     <Button asChild variant="ghost" size="icon" className="relative">
       <Link to="/cart" aria-label={`Cart, ${totalItems} items`}>
-        <ShoppingBag className="!h-[1.15rem] !w-[1.15rem]" />
+        <ShoppingBag className="h-[1.15rem]! w-[1.15rem]!" />
         <CartCount count={totalItems} />
       </Link>
     </Button>
