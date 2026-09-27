@@ -19,8 +19,25 @@ public class OrderResponse
     /// <summary>What the customer pays.</summary>
     public decimal Total { get; set; }
     public string Status { get; set; } = string.Empty;
+
+    /// <summary>Every status the order has been in, oldest first, with the time it changed.</summary>
+    public List<OrderStatusChangeResponse> StatusHistory { get; set; } = new();
+
+    /// <summary>The statuses the order may still move to; empty once it is shipped or cancelled.</summary>
+    public List<string> NextStatuses { get; set; } = new();
+
+    /// <summary>First and last day of the delivery window promised at checkout; null for older orders.</summary>
+    public DateOnly? DeliveryFrom { get; set; }
+    public DateOnly? DeliveryTo { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public string? Notes { get; set; }
+}
+
+public class OrderStatusChangeResponse
+{
+    public string Status { get; set; } = string.Empty;
+    public DateTime ChangedAt { get; set; }
 }
 
 public class OrderItemResponse

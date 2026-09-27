@@ -29,6 +29,7 @@ public class OrderService : IOrderService
     private readonly PricingOptions _pricing;
     private readonly StoreMetrics _metrics;
     private readonly TimeProvider _time;
+    private readonly DeliveryEstimator _delivery;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -39,6 +40,7 @@ public class OrderService : IOrderService
         IOptions<PricingOptions> pricing,
         StoreMetrics metrics,
         TimeProvider time,
+        DeliveryEstimator delivery,
         ILogger<OrderService> logger)
     {
         _context = context;
@@ -48,6 +50,7 @@ public class OrderService : IOrderService
         _pricing = pricing.Value;
         _metrics = metrics;
         _time = time;
+        _delivery = delivery;
         _logger = logger;
     }
 
@@ -130,6 +133,7 @@ public class OrderService : IOrderService
         }
 
         var totals = PricingPolicy.Calculate(lines.Sum(l => l.LineTotal), isFirstOrder: customer.OrdersPlaced == 0, _pricing);
+        var delivery = _delivery.EstimateNow();
 
         var order = new Order
         {
@@ -145,6 +149,9 @@ public class OrderService : IOrderService
             DeliveryFee = totals.DeliveryFee,
             Total = totals.Total,
             Status = OrderStatus.Placed,
+            StatusHistory = [new OrderStatusChange { Status = OrderStatus.Placed, ChangedAt = now, ChangedBy = request.UserId }],
+            DeliveryFrom = delivery.From,
+            DeliveryTo = delivery.To,
             CreatedAt = now
         };
 
@@ -207,7 +214,7 @@ public class OrderService : IOrderService
             throw new DomainValidationException("Idempotency-Key was already used for a different request");
         }
 
-        var order = await _context.Orders.AsNoTracking().Include(o => o.Lines).SingleAsync(o => o.Id == answered.OrderId);
+        var order = await _context.Orders.AsNoTracking().Include(o => o.Lines).Include(o => o.StatusHistory).SingleAsync(o => o.Id == answered.OrderId);
         _logger.LogInformation("Checkout with Idempotency-Key {Key} replayed order {OrderId}", idempotencyKey, order.Id);
         return MapToOrderResponse(order);
     }
@@ -243,10 +250,51 @@ public class OrderService : IOrderService
     public async Task<OrderResponse> GetOrderForAdminAsync(int orderId)
         => MapToOrderResponse(await FindOrderAsync(orderId));
 
+    /// <summary>
+    /// Moves an order to another status along <see cref="OrderStatusFlow"/>. The order row is
+    /// locked for the change, so two administrators pressing buttons at once cannot both move
+    /// it from the same status; the change, its history row and the event commit together.
+    /// </summary>
+    public async Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "Orders" WHERE "Id" = {orderId} FOR UPDATE""");
+        var order = await _context.Orders
+            .Include(o => o.Lines)
+            .Include(o => o.StatusHistory)
+            .SingleOrDefaultAsync(o => o.Id == orderId)
+            ?? throw new NotFoundException("Order", orderId);
+
+        var previous = order.Status;
+        if (!OrderStatusFlow.CanMove(previous, status))
+        {
+            throw new ConflictException(previous == status
+                ? $"The order is already {Describe(status)}."
+                : $"An order that is {Describe(previous)} cannot be marked {Describe(status)}.");
+        }
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        order.Status = status;
+        order.StatusHistory.Add(new OrderStatusChange { Status = status, ChangedAt = now, ChangedBy = actorId });
+
+        // With the change in the outbox: the audit service records it once the transaction commits
+        await _publishEndpoint.Publish(new OrderStatusChanged(order.Id, order.UserId, previous.ToString(), status.ToString(), actorId, now));
+
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        _logger.LogInformation("Order {OrderId} moved from {Previous} to {Status} by {ActorId}", order.Id, previous, status, actorId);
+        return MapToOrderResponse(order);
+    }
+
+    private static string Describe(OrderStatus status) => status.ToString().ToLowerInvariant();
+
     private async Task<Order> FindOrderAsync(int orderId)
         => await _context.Orders
             .AsNoTracking()
             .Include(o => o.Lines)
+            .Include(o => o.StatusHistory)
             .FirstOrDefaultAsync(o => o.Id == orderId)
             ?? throw new NotFoundException("Order", orderId);
 
@@ -264,7 +312,11 @@ public class OrderService : IOrderService
         var orders = await query
             .AsNoTracking()
             .Include(o => o.Lines)
+            .Include(o => o.StatusHistory)
+            // Two collections: one query each instead of their product; the order must be unique for the pages to agree
+            .AsSplitQuery()
             .OrderByDescending(o => o.CreatedAt)
+            .ThenByDescending(o => o.Id)
             .Skip(paging.Skip)
             .Take(paging.PageSize)
             .ToListAsync();
@@ -353,6 +405,14 @@ public class OrderService : IOrderService
             DeliveryFee = order.DeliveryFee,
             Total = order.Total,
             Status = order.Status.ToString(),
+            StatusHistory = order.StatusHistory
+                .OrderBy(c => c.ChangedAt)
+                .ThenBy(c => c.Id)
+                .Select(c => new OrderStatusChangeResponse { Status = c.Status.ToString(), ChangedAt = c.ChangedAt })
+                .ToList(),
+            NextStatuses = OrderStatusFlow.NextFrom(order.Status).Select(s => s.ToString()).ToList(),
+            DeliveryFrom = order.DeliveryFrom,
+            DeliveryTo = order.DeliveryTo,
             CreatedAt = order.CreatedAt,
             Notes = order.Notes
         };

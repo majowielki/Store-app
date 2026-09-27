@@ -47,6 +47,8 @@ builder.Services.AddStoreMessaging<OrderDbContext>(builder.Configuration, servic
 
 // Services
 builder.Services.AddStoreOptions<PricingOptions>(builder.Configuration, PricingOptions.SectionName);
+builder.Services.AddStoreOptions<DeliveryOptions>(builder.Configuration, DeliveryOptions.SectionName);
+builder.Services.AddSingleton<DeliveryEstimator>();
 builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
 builder.Services.AddHostedService<IdempotencyKeyCleanupService>();
 

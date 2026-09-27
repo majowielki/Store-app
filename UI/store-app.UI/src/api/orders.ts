@@ -1,6 +1,6 @@
 import { api, unlessFailed } from './api';
 import { cartApi, emptyCart } from './cart';
-import type { CreateOrderFromCartRequest, HasOrdersResponse, Order, OrderStatsResponse, OrdersResponse, PricingRules } from './types';
+import type { CreateOrderFromCartRequest, HasOrdersResponse, Order, OrderStatsResponse, OrderStatus, OrdersResponse, PricingRules } from './types';
 
 export type PageQuery = {
   page?: number;
@@ -45,7 +45,7 @@ export const ordersApi = api.injectEndpoints({
      */
     getPricingRules: build.query<PricingRules, void>({
       query: () => '/orders/pricing-rules',
-      // Configuration of the store, not data of a user: kept for the whole visit
+      // Configuration of the store (and today's delivery window), not data of a user: kept for the whole visit
       keepUnusedDataFor: 24 * 60 * 60,
       extraOptions: { silent: true },
     }),
@@ -73,6 +73,11 @@ export const ordersApi = api.injectEndpoints({
       query: (params) => ({ url: '/admin/orders/stats', params }),
       providesTags: ['Stats'],
     }),
+    /** Moves an order on (paid, shipped) or cancels it; only the true administrator may. */
+    changeOrderStatus: build.mutation<Order, { id: number; status: OrderStatus }>({
+      query: ({ id, status }) => ({ url: `/admin/orders/${id}/status`, method: 'PATCH', body: { status } }),
+      invalidatesTags: (_result, error, { id }) => (error ? [] : [{ type: 'Orders', id }, 'Orders']),
+    }),
   }),
 });
 
@@ -86,4 +91,5 @@ export const {
   useGetAdminOrderQuery,
   useGetOrdersByUserQuery,
   useGetOrderStatsQuery,
+  useChangeOrderStatusMutation,
 } = ordersApi;

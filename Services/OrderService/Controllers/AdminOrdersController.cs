@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Authorization;
 using Store.Contracts.Authorization;
+using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
+using Store.OrderService.Models;
 using Store.OrderService.Services;
 
 namespace Store.OrderService.Controllers;
@@ -37,6 +40,15 @@ public class AdminOrdersController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<OrderResponse> GetOrder(int id)
         => (await _orderService.GetOrderForAdminAsync(id)).ForViewer(User);
+
+    /// <summary>
+    /// Moves an order on: placed → paid → shipped, or cancelled while it is placed or paid. A move
+    /// the order's status does not allow is 409; only the true administrator may change orders.
+    /// </summary>
+    [HttpPatch("{id:int}/status")]
+    [Authorize(Policy = Policies.AdminWrite)]
+    public Task<OrderResponse> ChangeStatus(int id, [FromBody] UpdateOrderStatusRequest request)
+        => _orderService.ChangeStatusAsync(id, Enum.Parse<OrderStatus>(request.Status), User.GetRequiredUserId());
 
     /// <summary>Orders and revenue per day, per week and per product over the last <paramref name="days"/> days.</summary>
     [HttpGet("stats")]

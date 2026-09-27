@@ -21,25 +21,34 @@ public class OrdersController : ControllerBase
 
     private readonly IOrderService _orderService;
     private readonly PricingOptions _pricing;
+    private readonly DeliveryEstimator _delivery;
 
-    public OrdersController(IOrderService orderService, IOptions<PricingOptions> pricing)
+    public OrdersController(IOrderService orderService, IOptions<PricingOptions> pricing, DeliveryEstimator delivery)
     {
         _orderService = orderService;
         _pricing = pricing.Value;
+        _delivery = delivery;
     }
 
     /// <summary>
     /// The rules an order is priced by (delivery fee and its free-delivery threshold, first-order
-    /// discount), for the cart page to preview the amounts the way the checkout will compute them.
+    /// discount), for the cart page to preview the amounts the way the checkout will compute them,
+    /// and the days an order placed now should arrive between.
     /// </summary>
     [HttpGet("pricing-rules")]
     [AllowAnonymous]
-    public PricingRulesResponse GetPricingRules() => new()
+    public PricingRulesResponse GetPricingRules()
     {
-        FreeDeliveryThreshold = _pricing.FreeDeliveryThreshold,
-        DeliveryFee = _pricing.DeliveryFee,
-        FirstOrderDiscountPercent = _pricing.FirstOrderDiscountPercent
-    };
+        var delivery = _delivery.EstimateNow();
+        return new PricingRulesResponse
+        {
+            FreeDeliveryThreshold = _pricing.FreeDeliveryThreshold,
+            DeliveryFee = _pricing.DeliveryFee,
+            FirstOrderDiscountPercent = _pricing.FirstOrderDiscountPercent,
+            DeliveryFrom = delivery.From,
+            DeliveryTo = delivery.To
+        };
+    }
 
     private string UserId => User.GetRequiredUserId();
 

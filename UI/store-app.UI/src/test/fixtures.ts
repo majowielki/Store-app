@@ -113,7 +113,13 @@ export const meta: ProductsMeta = {
 };
 
 /** The store's pricing as the order service publishes it. */
-export const pricingRules: PricingRules = { freeDeliveryThreshold: 299, deliveryFee: 10, firstOrderDiscountPercent: 20 };
+export const pricingRules: PricingRules = {
+  freeDeliveryThreshold: 299,
+  deliveryFee: 10,
+  firstOrderDiscountPercent: 20,
+  deliveryFrom: '2026-09-30',
+  deliveryTo: '2026-10-02',
+};
 
 export const order = (overrides: Partial<Order> = {}): Order => ({
   id: 100,
@@ -128,6 +134,10 @@ export const order = (overrides: Partial<Order> = {}): Order => ({
   total: 320,
   totalItems: 1,
   status: 'Placed',
+  statusHistory: [{ status: 'Placed', changedAt: '2026-01-02T00:00:00Z' }],
+  nextStatuses: ['Paid', 'Cancelled'],
+  deliveryFrom: '2026-01-06',
+  deliveryTo: '2026-01-08',
   createdAt: '2026-01-02T00:00:00Z',
   orderItems: [
     {

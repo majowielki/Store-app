@@ -8,6 +8,7 @@ using Store.BuildingBlocks.Observability;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
+using Store.OrderService.Services;
 using Xunit;
 
 namespace Store.Tests.Unit.OrderService;
@@ -33,6 +34,7 @@ public class OrderServiceTests
             Options.Create(new PricingOptions()),
             new StoreMetrics(),
             TimeProvider.System,
+            new DeliveryEstimator(Options.Create(new DeliveryOptions()), TimeProvider.System),
             _loggerMock.Object
         );
     }

@@ -184,6 +184,67 @@
         ]
       }
     },
+    "/api/v1/admin/orders/{id}/status": {
+      "patch": {
+        "tags": [
+          "AdminOrders"
+        ],
+        "summary": "Moves an order on: placed → paid → shipped, or cancelled while it is placed or paid. A move\nthe order's status does not allow is 409; only the true administrator may change orders.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/admin/orders/stats": {
       "get": {
         "tags": [
@@ -241,7 +302,7 @@
         "tags": [
           "Orders"
         ],
-        "summary": "The rules an order is priced by (delivery fee and its free-delivery threshold, first-order\ndiscount), for the cart page to preview the amounts the way the checkout will compute them.",
+        "summary": "The rules an order is priced by (delivery fee and its free-delivery threshold, first-order\ndiscount), for the cart page to preview the amounts the way the checkout will compute them,\nand the days an order placed now should arrive between.",
         "responses": {
           "200": {
             "description": "OK",
@@ -579,8 +640,10 @@
           "deliveryFee",
           "discountAmount",
           "id",
+          "nextStatuses",
           "orderItems",
           "status",
+          "statusHistory",
           "subtotal",
           "total",
           "totalItems",
@@ -640,6 +703,31 @@
           },
           "status": {
             "type": "string"
+          },
+          "statusHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderStatusChangeResponse"
+            },
+            "description": "Every status the order has been in, oldest first, with the time it changed."
+          },
+          "nextStatuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The statuses the order may still move to; empty once it is shipped or cancelled."
+          },
+          "deliveryFrom": {
+            "type": "string",
+            "description": "First and last day of the delivery window promised at checkout; null for older orders.",
+            "format": "date",
+            "nullable": true
+          },
+          "deliveryTo": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
           },
           "createdAt": {
             "type": "string",
@@ -739,9 +827,28 @@
         },
         "additionalProperties": false
       },
+      "OrderStatusChangeResponse": {
+        "required": [
+          "changedAt",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "PricingRulesResponse": {
         "required": [
           "deliveryFee",
+          "deliveryFrom",
+          "deliveryTo",
           "firstOrderDiscountPercent",
           "freeDeliveryThreshold"
         ],
@@ -761,6 +868,16 @@
             "type": "number",
             "description": "Percentage taken off the subtotal of a customer's first order.",
             "format": "double"
+          },
+          "deliveryFrom": {
+            "type": "string",
+            "description": "First day an order placed now should arrive on.",
+            "format": "date"
+          },
+          "deliveryTo": {
+            "type": "string",
+            "description": "Last day an order placed now should arrive on.",
+            "format": "date"
           }
         },
         "additionalProperties": false,
@@ -859,6 +976,20 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdateOrderStatusRequest": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "The status to move the order to: Paid, Shipped or Cancelled."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of PATCH /api/v1/admin/orders/{id}/status. Rules: `UpdateOrderStatusRequestValidator`."
       }
     },
     "securitySchemes": {

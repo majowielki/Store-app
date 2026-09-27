@@ -1,6 +1,7 @@
 using Store.BuildingBlocks.Api;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
+using Store.OrderService.Models;
 
 namespace Store.OrderService.Services;
 
@@ -20,6 +21,12 @@ public interface IOrderService
 
     /// <summary>Any order, for the admin panel.</summary>
     Task<OrderResponse> GetOrderForAdminAsync(int orderId);
+
+    /// <summary>
+    /// Moves an order to <paramref name="status"/>; a move the order's status does not allow is
+    /// a <c>ConflictException</c>.
+    /// </summary>
+    Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId);
 
     Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging);
     Task<PagedResponse<OrderResponse>> GetAllOrdersAsync(PagedQuery paging);

@@ -25,3 +25,19 @@ export const formatDateTime = (value: string | Date): string => {
   const date = toDate(value);
   return date ? dateTimeFormat.format(date) : '';
 };
+
+const dayFormat = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+/** A calendar date from the API ("2026-09-30") as that day in the visitor's zone, not UTC midnight. */
+const toDay = (value: string): Date | null => {
+  const [year, month, day] = value.split('-').map(Number);
+  return year && month && day ? new Date(year, month - 1, day) : null;
+};
+
+/** "Wed, Sep 30 – Fri, Oct 2" for a delivery window, "Wed, Sep 30" when it is one day. */
+export const formatDayRange = (from: string, to: string): string => {
+  const first = toDay(from);
+  const last = toDay(to);
+  if (!first || !last) return '';
+  return from === to ? dayFormat.format(first) : `${dayFormat.format(first)} – ${dayFormat.format(last)}`;
+};

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime } from './formatDate';
+import { formatDate, formatDateTime, formatDayRange } from './formatDate';
 
 // Newer ICU puts a narrow no-break space before AM/PM; the tests read any space as a space
 const plain = (text: string) => text.replace(/\s/g, ' ');
@@ -26,5 +26,20 @@ describe('formatDateTime', () => {
 
   it('gives an empty string for a value that is not a date', () => {
     expect(formatDateTime('')).toBe('');
+  });
+});
+
+describe('formatDayRange', () => {
+  it('writes a delivery window with the days of the week', () => {
+    expect(formatDayRange('2026-09-30', '2026-10-02')).toBe('Wed, Sep 30 – Fri, Oct 2');
+  });
+
+  it('reads the dates as calendar days, not as UTC midnight', () => {
+    // A zone west of UTC would turn midnight UTC into the day before
+    expect(formatDayRange('2026-10-05', '2026-10-05')).toBe('Mon, Oct 5');
+  });
+
+  it('gives an empty string for a value that is not a date', () => {
+    expect(formatDayRange('soon', '2026-10-05')).toBe('');
   });
 });

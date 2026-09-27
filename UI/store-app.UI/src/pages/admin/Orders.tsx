@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { useGetAdminOrdersQuery } from '@/api/orders';
+import { OrderStatusBadge } from '@/components/OrderTimeline';
 import PageNumbers from '@/components/PageNumbers';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -40,6 +41,7 @@ const Orders = () => {
                 <TableHead>Total Items</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -51,6 +53,9 @@ const Orders = () => {
                   <TableCell>{o.totalItems}</TableCell>
                   <TableCell>{formatAsDollars(o.total)}</TableCell>
                   <TableCell>{formatDateTime(o.createdAt)}</TableCell>
+                  <TableCell>
+                    <OrderStatusBadge status={o.status} />
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { CheckoutForm, Loading, CartTotals } from '@/components';
+import DeliveryEstimate from '@/components/DeliveryEstimate';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/features/cart/useCart';
 import { cn } from '@/lib/utils';
@@ -77,6 +78,7 @@ const Checkout = () => {
             ))}
           </ul>
           <CartTotals className="mt-6 border-t pt-4" />
+          <DeliveryEstimate className="mt-4 border-t pt-4" />
         </aside>
       </div>
     </>

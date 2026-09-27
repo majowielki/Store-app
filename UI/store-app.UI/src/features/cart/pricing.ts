@@ -4,6 +4,9 @@ import type { PricingRules } from '@/api/types';
 // (GET /orders/pricing-rules); the order itself is always priced by the server. No number
 // of the store's pricing is written here.
 
+/** The part of the rules that sets the amounts; the delivery window does not. */
+export type PricingAmounts = Pick<PricingRules, 'freeDeliveryThreshold' | 'deliveryFee' | 'firstOrderDiscountPercent'>;
+
 export interface CartPreview {
   subtotal: number;
   discount: number;
@@ -12,7 +15,7 @@ export interface CartPreview {
 }
 
 /** The amounts the cart page shows; the delivery threshold is compared with the subtotal before the discount. */
-export const previewTotals = (subtotal: number, firstOrder: boolean, rules: PricingRules): CartPreview => {
+export const previewTotals = (subtotal: number, firstOrder: boolean, rules: PricingAmounts): CartPreview => {
   const discount = firstOrder && subtotal > 0 ? round(subtotal * (rules.firstOrderDiscountPercent / 100)) : 0;
   const deliveryFee = subtotal > 0 && subtotal < rules.freeDeliveryThreshold ? rules.deliveryFee : 0;
   return { subtotal, discount, deliveryFee, total: round(subtotal - discount + deliveryFee) };

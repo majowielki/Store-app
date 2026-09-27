@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { PricingRules } from '@/api/types';
-import { previewTotals } from './pricing';
+import { previewTotals, type PricingAmounts } from './pricing';
 
-const rules: PricingRules = { freeDeliveryThreshold: 299, deliveryFee: 10, firstOrderDiscountPercent: 20 };
+const rules: PricingAmounts = { freeDeliveryThreshold: 299, deliveryFee: 10, firstOrderDiscountPercent: 20 };
 
 describe('cart preview totals', () => {
   it('charges delivery below the threshold and nothing at or above it', () => {

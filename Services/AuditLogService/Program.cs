@@ -35,6 +35,7 @@ builder.Services.AddStoreMessaging<AuditLogDbContext>(builder.Configuration, ser
 {
     bus.AddConsumer<AuditEventConsumer>();
     bus.AddConsumer<OrderPlacedConsumer>();
+    bus.AddConsumer<OrderStatusChangedConsumer>();
 });
 
 // Entries older than AuditRetention:RetentionDays are deleted once a day

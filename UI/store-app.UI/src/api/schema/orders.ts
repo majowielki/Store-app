@@ -191,6 +191,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/orders/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Moves an order on: placed → paid → shipped, or cancelled while it is placed or paid. A move
+         *     the order's status does not allow is 409; only the true administrator may change orders.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateOrderStatusRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrderResponse"];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/v1/admin/orders/stats": {
         parameters: {
             query?: never;
@@ -261,7 +329,8 @@ export interface paths {
         };
         /**
          * The rules an order is priced by (delivery fee and its free-delivery threshold, first-order
-         *     discount), for the cart page to preview the amounts the way the checkout will compute them.
+         *     discount), for the cart page to preview the amounts the way the checkout will compute them,
+         *     and the days an order placed now should arrive between.
          */
         get: {
             parameters: {
@@ -609,6 +678,17 @@ export interface components {
              */
             total: number;
             status: string;
+            /** @description Every status the order has been in, oldest first, with the time it changed. */
+            statusHistory: components["schemas"]["OrderStatusChangeResponse"][];
+            /** @description The statuses the order may still move to; empty once it is shipped or cancelled. */
+            nextStatuses: string[];
+            /**
+             * Format: date
+             * @description First and last day of the delivery window promised at checkout; null for older orders.
+             */
+            deliveryFrom?: string | null;
+            /** Format: date */
+            deliveryTo?: string | null;
             /** Format: date-time */
             createdAt: string;
             notes?: string | null;
@@ -639,6 +719,11 @@ export interface components {
             weekly: components["schemas"]["TimeBucketStats"][];
             topProducts: components["schemas"]["TopProductStats"][];
         };
+        OrderStatusChangeResponse: {
+            status: string;
+            /** Format: date-time */
+            changedAt: string;
+        };
         /**
          * @description The rules the order service prices an order by, so the cart page can preview the amounts
          *     the same way instead of keeping its own copy of the numbers. The order itself is always
@@ -660,6 +745,16 @@ export interface components {
              * @description Percentage taken off the subtotal of a customer's first order.
              */
             firstOrderDiscountPercent: number;
+            /**
+             * Format: date
+             * @description First day an order placed now should arrive on.
+             */
+            deliveryFrom: string;
+            /**
+             * Format: date
+             * @description Last day an order placed now should arrive on.
+             */
+            deliveryTo: string;
         };
         /**
          * @description The error response as this store fills it, for the document only: the RFC 9457 members
@@ -697,6 +792,11 @@ export interface components {
             quantity: number;
             /** Format: double */
             revenue: number;
+        };
+        /** @description Body of PATCH /api/v1/admin/orders/{id}/status. Rules: `UpdateOrderStatusRequestValidator`. */
+        UpdateOrderStatusRequest: {
+            /** @description The status to move the order to: Paid, Shipped or Cancelled. */
+            status: string;
         };
     };
     responses: never;

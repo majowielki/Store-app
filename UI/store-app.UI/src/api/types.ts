@@ -52,6 +52,7 @@ export type CreateOrderFromCartRequest = Orders['schemas']['CreateOrderFromCartR
 export type OrderStatsResponse = Orders['schemas']['OrderStatsResponse'];
 export type HasOrdersResponse = Orders['schemas']['HasOrdersResponse'];
 export type PricingRules = Orders['schemas']['PricingRulesResponse'];
+export type OrderStatus = 'Placed' | 'Paid' | 'Shipped' | 'Cancelled';
 
 // Content: makers, collections, journal articles and lookbooks
 export type Maker = Content['schemas']['MakerResponse'];

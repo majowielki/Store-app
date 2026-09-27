@@ -12,6 +12,7 @@ public class OrderDbContext : DbContext
 
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
+    public DbSet<OrderStatusChange> OrderStatusChanges => Set<OrderStatusChange>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
 
@@ -43,6 +44,19 @@ public class OrderDbContext : DbContext
                   .WithOne(l => l.Order)
                   .HasForeignKey(l => l.OrderId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(o => o.StatusHistory)
+                  .WithOne()
+                  .HasForeignKey(c => c.OrderId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrderStatusChange>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(c => c.ChangedBy).HasMaxLength(450);
+            entity.HasIndex(c => c.OrderId);
         });
 
         modelBuilder.Entity<OrderLine>(entity =>

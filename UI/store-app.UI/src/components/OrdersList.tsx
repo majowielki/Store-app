@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { OrderStatusBadge } from './OrderTimeline';
 import { formatAsDollars, formatDate, type OrdersResponse } from '@/utils';
 
 
@@ -29,6 +30,7 @@ const OrdersList = ({ orders }: { orders: OrdersResponse }) => {
               <TableHead className="w-[100px]">Products</TableHead>
               <TableHead className="w-[120px]">Cost</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -40,6 +42,9 @@ const OrdersList = ({ orders }: { orders: OrdersResponse }) => {
                 <TableCell className="text-center tabular-nums">{order.totalItems}</TableCell>
                 <TableCell className="tabular-nums">{formatAsDollars(order.total)}</TableCell>
                 <TableCell className="text-muted-foreground">{formatDate(order.createdAt)}</TableCell>
+                <TableCell>
+                  <OrderStatusBadge status={order.status} />
+                </TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

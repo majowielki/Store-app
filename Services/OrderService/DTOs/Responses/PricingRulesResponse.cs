@@ -15,4 +15,10 @@ public class PricingRulesResponse
 
     /// <summary>Percentage taken off the subtotal of a customer's first order.</summary>
     public decimal FirstOrderDiscountPercent { get; set; }
+
+    /// <summary>First day an order placed now should arrive on.</summary>
+    public DateOnly DeliveryFrom { get; set; }
+
+    /// <summary>Last day an order placed now should arrive on.</summary>
+    public DateOnly DeliveryTo { get; set; }
 }

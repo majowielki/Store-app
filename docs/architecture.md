@@ -21,6 +21,8 @@ flowchart LR
     MQ -- OrderPlaced --> CA
     MQ -- OrderPlaced --> ID
     MQ -- OrderPlaced --> AU
+    OR -- OrderStatusChanged --> MQ
+    MQ -- OrderStatusChanged --> AU
     ID & PR & CA & OR & CO -- AuditEvent --> MQ
     MQ -- AuditEvent --> AU
   end
@@ -74,6 +76,12 @@ messaging, telemetry - lives in `Store.BuildingBlocks` and every host composes i
    consumer's inbox makes a redelivery harmless.
 5. The UI, having received 201, empties its cached cart and updates the profile at once rather
    than waiting for the events.
+
+After that the true administrator moves the order on - paid, shipped, or cancelled while it is
+not shipped yet (`OrderStatusFlow`); a move the status does not allow is 409. Each change locks the
+order row, adds a dated row to its history (the customer's timeline) and publishes
+`OrderStatusChanged` through the outbox. The delivery window the checkout promises comes from
+`DeliveryPolicy` (cut-off hour, business days) and is served with the pricing rules.
 
 ## Who may do what
 

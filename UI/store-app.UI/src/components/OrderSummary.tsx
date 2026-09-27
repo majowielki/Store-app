@@ -1,13 +1,15 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import OrderTimeline from './OrderTimeline';
 import { formatAsDollars, formatDateTime, type Order } from '@/utils';
 
 interface OrderSummaryProps {
   title: string;
   order: Order;
-  /** The admin views also show the order status. */
-  showStatus?: boolean;
+  /** Buttons under the progress, for the admin view. */
+  actions?: ReactNode;
 }
 
 /** One "Label: value" line; the label and the value stay in one element, the way the page reads it. */
@@ -17,8 +19,8 @@ const Line = ({ label, value, strong = false }: { label: string; value: string; 
   </p>
 );
 
-/** One order in full: the customer, the amounts and the lines. Shared by the customer's and the admin's view. */
-const OrderSummary = ({ title, order, showStatus = false }: OrderSummaryProps) => (
+/** One order in full: its progress, the customer, the amounts and the lines. Shared by the customer's and the admin's view. */
+const OrderSummary = ({ title, order, actions }: OrderSummaryProps) => (
   <div className="animate-fade-up">
     <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-8">
       <div>
@@ -67,13 +69,16 @@ const OrderSummary = ({ title, order, showStatus = false }: OrderSummaryProps) =
       </div>
 
       <aside className="grid gap-6 lg:col-span-4">
+        <div className="grid gap-3">
+          <OrderTimeline order={order} />
+          {actions}
+        </div>
         <div className="rounded-2xl border bg-card p-6">
           <h2 className="eyebrow mb-3">Delivery</h2>
           <Line label="Name" value={order.customerName} />
           <Line label="Email" value={order.userEmail} />
           {order.deliveryAddress && <Line label="Address" value={order.deliveryAddress} />}
           <Line label="Date" value={formatDateTime(order.createdAt)} />
-          {showStatus && <Line label="Status" value={order.status} />}
         </div>
         <div className="rounded-2xl bg-secondary/60 p-6">
           <h2 className="eyebrow mb-3">Summary</h2>

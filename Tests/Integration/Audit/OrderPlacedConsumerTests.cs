@@ -44,4 +44,22 @@ public sealed class OrderPlacedConsumerTests : IClassFixture<AuditApiFactory>
         Assert.DoesNotContain("Private Street", details);
         Assert.DoesNotContain("buyer@test.local", details);
     }
+
+    [Fact]
+    public async Task A_status_change_is_recorded_with_the_administrator_and_both_statuses()
+    {
+        await _factory.Bus.Bus.Publish(new OrderStatusChanged(702, "audit-status-customer", "Paid", "Shipped", "true-admin-1", DateTime.UtcNow));
+
+        using var admin = _factory.CreateClient().AsTrueAdmin();
+        JsonElement entry = default;
+        await Eventually.AssertAsync(async () =>
+        {
+            var page = JsonSerializer.Deserialize<JsonElement>(await admin.GetStringAsync("/api/v1/auditlog?entityName=Order&entityId=702"), Json);
+            entry = Assert.Single(page.GetProperty("items").EnumerateArray());
+        });
+        Assert.Equal("ORDER_STATUS_CHANGED", entry.GetProperty("action").GetString());
+        Assert.Equal("true-admin-1", entry.GetProperty("userId").GetString());
+        Assert.Contains("Paid", entry.GetProperty("oldValues").GetString());
+        Assert.Contains("Shipped", entry.GetProperty("newValues").GetString());
+    }
 }

@@ -5,6 +5,7 @@ import { useGetProductQuery, useGetProductsMetaQuery, useGetProductsQuery } from
 import { isApiError } from '@/api/problem';
 import { Loading, ProductCard, SelectProductAmount, SelectProductColor } from '@/components';
 import Reveal from '@/components/Reveal';
+import DeliveryEstimate from '@/components/DeliveryEstimate';
 import SaleBadge from '@/components/SaleBadge';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
@@ -183,6 +184,7 @@ const ProductDetails = ({ product }: { product: Product }) => {
                   Add to bag
                 </Button>
               </div>
+              <DeliveryEstimate className="mt-4" />
             </div>
           </div>
 

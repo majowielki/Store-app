@@ -35,6 +35,14 @@ public class Order
 
     public OrderStatus Status { get; set; } = OrderStatus.Placed;
 
+    /// <summary>Every status the order has been in, "placed" first.</summary>
+    public List<OrderStatusChange> StatusHistory { get; set; } = new();
+
+    /// <summary>The delivery window promised at checkout (<see cref="DeliveryPolicy"/>); none for older orders.</summary>
+    public DateOnly? DeliveryFrom { get; set; }
+
+    public DateOnly? DeliveryTo { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public int TotalItems => Lines.Sum(line => line.Quantity);
