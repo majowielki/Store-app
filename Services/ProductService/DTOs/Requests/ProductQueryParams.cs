@@ -27,4 +27,7 @@ public class ProductQueryParams
 
     /// <summary>Comma-separated product slugs: only these products (the ones a collection or a lookbook shows).</summary>
     public string? Slugs { get; set; }
+
+    /// <summary>Comma-separated product ids: only these products (the ones a wishlist holds).</summary>
+    public string? Ids { get; set; }
 }

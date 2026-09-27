@@ -12,6 +12,7 @@ public class CartDbContext : DbContext
 
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -44,6 +45,14 @@ public class CartDbContext : DbContext
             entity.Property(ci => ci.Company).IsRequired().HasMaxLength(100);
             entity.Property(ci => ci.Color).IsRequired().HasMaxLength(50);
             entity.HasIndex(ci => new { ci.CartId, ci.ProductId, ci.Color }).IsUnique();
+        });
+
+        // A product is on a customer's list once; the list is read by customer
+        modelBuilder.Entity<WishlistItem>(entity =>
+        {
+            entity.HasKey(w => w.Id);
+            entity.Property(w => w.UserId).IsRequired().HasMaxLength(450);
+            entity.HasIndex(w => new { w.UserId, w.ProductId }).IsUnique();
         });
 
         // Inbox of the message bus (the cart consumes OrderPlaced) and outbox for what it publishes

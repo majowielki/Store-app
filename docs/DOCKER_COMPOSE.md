@@ -64,8 +64,9 @@ every image: configuration and secrets reach a container only through its enviro
 
 See `.env.example`. Required: `POSTGRES_PASSWORD`, `RABBITMQ_PASSWORD`, `JWT_SECRET_KEY`,
 `INTERNAL_API_KEY`, `TRUE_ADMIN_PASSWORD`. Optional: `ASPNETCORE_ENVIRONMENT` (the dev override
-sets `Development`), `DEMO_ENABLED`, `AUTH_CREDENTIAL_LIMIT` (sign-ins per minute per client, raised
-for the end-to-end tests), `OTEL_EXPORTER_OTLP_ENDPOINT`, the host ports.
+sets `Development`), `DEMO_ENABLED`, `AUTH_CREDENTIAL_LIMIT` (sign-ins per minute per client) and `AUTH_PERMIT_LIMIT`
+(other /auth calls, such as the session renewal on every page load; both raised for the end-to-end
+tests), `OTEL_EXPORTER_OTLP_ENDPOINT`, the host ports.
 
 ## Data
 

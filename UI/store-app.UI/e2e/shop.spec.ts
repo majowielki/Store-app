@@ -123,3 +123,26 @@ test('13. a quick view puts a product in the bag without leaving the catalogue',
   await expect(quickView).toBeFocused();
   await expect(page).toHaveURL(/\/products$/);
 });
+
+test('14. a visitor keeps pieces on the wishlist, signs up and finds them on the account', async ({ page }) => {
+  await page.goto('/products');
+  const heart = page.getByRole('button', { name: /^Save .* to your wishlist$/ }).first();
+  const title = (await heart.getAttribute('aria-label'))!.replace(/^Save | to your wishlist$/g, '');
+  await heart.click();
+  await expect(page.getByRole('button', { name: `Remove ${title} from your wishlist` }).first()).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('link', { name: 'Wishlist, 1 items' })).toBeVisible();
+
+  // The list waits in the browser and joins the new account at sign-up
+  await register(page, uniqueEmail('wishlist'));
+  await page.goto('/wishlist');
+  const list = page.getByRole('list', { name: 'Wishlist' });
+  await expect(list).toContainText(title);
+  await page.reload();
+  await expect(list).toContainText(title);
+
+  await list.getByRole('button', { name: 'Move to bag' }).click();
+  const bag = page.getByRole('dialog', { name: 'Added to your bag' });
+  await expect(bag.getByRole('list', { name: 'In your bag' })).toContainText(title);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('heading', { name: 'Your wishlist is empty' })).toBeVisible();
+});

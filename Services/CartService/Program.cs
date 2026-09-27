@@ -49,6 +49,7 @@ builder.Services.AddStoreMessaging<CartDbContext>(builder.Configuration, service
 // Services
 builder.Services.AddStoreOptions<CartOptions>(builder.Configuration, CartOptions.SectionName);
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<WishlistService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());

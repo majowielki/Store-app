@@ -7,6 +7,7 @@ import { priceTag, type Product } from '@/utils';
 import ProductPrice from './ProductPrice';
 import QuickView from './QuickView';
 import SaleBadge from './SaleBadge';
+import WishlistButton from './WishlistButton';
 
 /** The first few colours a product comes in, as small swatches. */
 export const ColorDots = ({ colors, className }: { colors: string[]; className?: string }) => {
@@ -84,6 +85,7 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
       </Link>
       {/* Over the picture but outside the link: a button may not sit inside a link */}
       <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[5/4]">
+        <WishlistButton product={product} className="pointer-events-auto absolute right-3 top-3" />
         <QuickView
           product={product}
           className="pointer-events-auto absolute bottom-3 left-3 translate-y-2 opacity-0 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"

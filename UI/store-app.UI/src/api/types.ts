@@ -36,6 +36,7 @@ export type ApiCartItemResponse = Cart['schemas']['CartItemResponse'];
 export type AddCartItemRequest = Cart['schemas']['AddCartItemRequest'];
 export type UpdateCartItemRequest = Cart['schemas']['UpdateCartItemRequest'];
 export type SyncCartRequest = Cart['schemas']['SyncCartRequest'];
+export type Wishlist = Cart['schemas']['WishlistResponse'];
 
 // Users and sessions
 export type LoginRequest = Identity['schemas']['LoginRequest'];

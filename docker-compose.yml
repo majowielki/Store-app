@@ -284,8 +284,10 @@ services:
       ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address: http://orderservice:8080/
       ReverseProxy__Clusters__content-cluster__Destinations__destination1__Address: http://contentservice:8080/
       ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address: http://auditlogservice:8080/
-      # Sign-ins per minute per client; the end-to-end tests raise it, every scenario signs in on its own
+      # Sign-ins, and other /auth calls (a page load renews the session), per minute per client; the
+      # end-to-end tests raise both, every scenario signs in on its own and reloads pages
       RateLimiting__Auth__CredentialPermitLimit: ${AUTH_CREDENTIAL_LIMIT:-10}
+      RateLimiting__Auth__PermitLimit: ${AUTH_PERMIT_LIMIT:-60}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     # The services are not dependencies: the gateway starts, probes them and routes to the
     # ones that answer

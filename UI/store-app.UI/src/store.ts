@@ -6,17 +6,19 @@ import { onSessionEnded } from './api/session';
 import cartDrawerReducer from './features/cart/cartDrawerSlice';
 import discountCodeReducer, { loadDiscountCode, saveDiscountCode } from './features/cart/discountCodeSlice';
 import guestCartReducer, { loadGuestCart, saveGuestCart } from './features/cart/guestCartSlice';
+import guestWishlistReducer, { loadGuestWishlist, saveGuestWishlist } from './features/wishlist/guestWishlistSlice';
 import sessionReducer, { sessionEnded } from './features/session/sessionSlice';
 import themeReducer from './features/theme/themeSlice';
 import { toast } from './hooks/use-toast';
 
 // Everything the API answers lives in the RTK Query cache; the store keeps only what the
-// UI owns itself: the session (who is signed in), the visitor's cart, the discount code typed in
-// the cart, whether the cart drawer is open and the theme.
+// UI owns itself: the session (who is signed in), the visitor's cart and wishlist, the discount
+// code typed in the cart, whether the cart drawer is open and the theme.
 const rootReducer = combineReducers({
   [api.reducerPath]: api.reducer,
   session: sessionReducer,
   guestCart: guestCartReducer,
+  guestWishlist: guestWishlistReducer,
   discountCode: discountCodeReducer,
   cartDrawer: cartDrawerReducer,
   theme: themeReducer,
@@ -34,19 +36,24 @@ export const createAppStore = (preloadedState?: Partial<RootState>) =>
 export type AppStore = ReturnType<typeof createAppStore>;
 export type AppDispatch = AppStore['dispatch'];
 
-export const store = createAppStore({ guestCart: loadGuestCart(), discountCode: loadDiscountCode() });
+export const store = createAppStore({ guestCart: loadGuestCart(), guestWishlist: loadGuestWishlist(), discountCode: loadDiscountCode() });
 
 // Refetch on focus and reconnect, for the queries that ask for it
 setupListeners(store.dispatch);
 
-// The visitor's cart outlives the page, the typed discount code a reload of the tab
+// The visitor's cart and wishlist outlive the page, the typed discount code a reload of the tab
 let lastGuestCart = store.getState().guestCart;
+let lastGuestWishlist = store.getState().guestWishlist;
 let lastDiscountCode = store.getState().discountCode;
 store.subscribe(() => {
-  const { guestCart, discountCode } = store.getState();
+  const { guestCart, guestWishlist, discountCode } = store.getState();
   if (guestCart !== lastGuestCart) {
     lastGuestCart = guestCart;
     saveGuestCart(guestCart);
+  }
+  if (guestWishlist !== lastGuestWishlist) {
+    lastGuestWishlist = guestWishlist;
+    saveGuestWishlist(guestWishlist);
   }
   if (discountCode !== lastDiscountCode) {
     lastDiscountCode = discountCode;

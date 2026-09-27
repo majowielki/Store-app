@@ -20,6 +20,7 @@ const columns = [
       { to: '/about', label: 'About us' },
       { to: '/contact', label: 'Contact' },
       { to: '/orders', label: 'Your orders' },
+      { to: '/wishlist', label: 'Wishlist' },
       { to: '/cart', label: 'Cart' },
     ],
   },

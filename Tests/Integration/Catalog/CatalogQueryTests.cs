@@ -160,6 +160,10 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
         Assert.Equal(2, slugs.Count);
         Assert.Equal($"rattan-pendant-{tag}", slugs[first]);
         Assert.Equal($"rattan-pendant-{tag}-2", slugs[second]);
+
+        // A wishlist lists its products by id; what is not a number is ignored
+        var byId = await GetJson(client, $"/api/v1/products?ids={first},x,{second},0,999999");
+        Assert.Equal([first, second], byId.GetProperty("items").EnumerateArray().Select(p => p.GetProperty("id").GetInt32()).Order());
     }
 
     // Regression: the sale price was shown on the page but never charged

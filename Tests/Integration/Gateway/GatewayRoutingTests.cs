@@ -30,6 +30,8 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
     [Theory]
     [InlineData("/api/v1/cart", "anonymous", HttpStatusCode.Unauthorized)]
     [InlineData("/api/v1/cart", Roles.User, PassedTheGateway)]
+    [InlineData("/api/v1/wishlist", "anonymous", HttpStatusCode.Unauthorized)]
+    [InlineData("/api/v1/wishlist", Roles.User, PassedTheGateway)]
     [InlineData("/api/v1/orders", "anonymous", HttpStatusCode.Unauthorized)]
     [InlineData("/api/v1/orders", Roles.User, PassedTheGateway)]
     [InlineData("/api/v1/admin/users", "anonymous", HttpStatusCode.Unauthorized)]

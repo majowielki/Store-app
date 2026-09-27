@@ -32,6 +32,8 @@ export interface paths {
                     colors?: string;
                     /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
                     slugs?: string;
+                    /** @description Comma-separated product ids: only these products (the ones a wishlist holds). */
+                    ids?: string;
                 };
                 header?: never;
                 path?: never;
@@ -332,6 +334,8 @@ export interface paths {
                     colors?: string;
                     /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
                     slugs?: string;
+                    /** @description Comma-separated product ids: only these products (the ones a wishlist holds). */
+                    ids?: string;
                     sortBy?: string;
                     sortDir?: string;
                 };

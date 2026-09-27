@@ -46,6 +46,13 @@ export const handlers = [
   http.delete(api('/cart/items/:id'), () => json(emptyCart)),
   http.post(api('/cart/sync'), () => json(cartWithTable())),
 
+  http.get(api('/wishlist'), () => json({ items: [] })),
+  http.post(api('/wishlist/items'), async ({ request }) => json({ items: [{ productId: ((await request.json()) as { productId: number }).productId, addedAt: '2026-01-01T00:00:00Z' }] })),
+  http.delete(api('/wishlist/items/:id'), () => json({ items: [] })),
+  http.post(api('/wishlist/sync'), async ({ request }) =>
+    json({ items: ((await request.json()) as { productIds: number[] }).productIds.map((productId) => ({ productId, addedAt: '2026-01-01T00:00:00Z' })) }),
+  ),
+
   http.get(api('/orders/pricing-rules'), () => json(pricingRules)),
   http.get(api('/orders/has-orders'), () => json({ hasOrders: false, ordersCount: 0 })),
   http.get(api('/orders/my-orders'), () => json(page([order()]))),

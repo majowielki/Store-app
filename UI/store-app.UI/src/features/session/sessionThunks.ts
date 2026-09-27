@@ -8,6 +8,8 @@ import type { AuthResponse, LoginRequest, RegisterRequest, UserResponse } from '
 import type { ApiError } from '@/api/problem';
 import type { AppDispatch, RootState } from '@/store';
 import { cleared } from '@/features/cart/guestCartSlice';
+import { wishlistCleared } from '@/features/wishlist/guestWishlistSlice';
+import { wishlistApi } from '@/api/wishlist';
 import { profileLoaded, sessionEnded, sessionStarted } from './sessionSlice';
 
 type ThunkConfig = { state: RootState; dispatch: AppDispatch; rejectValue: ApiError };
@@ -56,8 +58,22 @@ const mergeGuestCart = async (dispatch: AppDispatch, getState: () => RootState):
 };
 
 /**
- * Signs in (any of the four ways), merges the guest cart and only then tells the app the
- * session is on - so the cart the pages read next is the merged one. The rejection carries the
+ * The same for the wishlist a visitor kept: merged into the account's list once, then dropped.
+ */
+const mergeGuestWishlist = async (dispatch: AppDispatch, getState: () => RootState): Promise<void> => {
+  const productIds = getState().guestWishlist.productIds;
+  if (productIds.length === 0) return;
+  try {
+    await dispatch(wishlistApi.endpoints.syncWishlist.initiate(productIds, untracked)).unwrap();
+    dispatch(wishlistCleared());
+  } catch {
+    // Already reported by the error middleware
+  }
+};
+
+/**
+ * Signs in (any of the four ways), merges the guest cart and wishlist and only then tells the
+ * app the session is on - so the cart and the list the pages read next are the merged ones. The rejection carries the
  * ApiError of the sign-in request; the toast for it has been shown by then.
  */
 export const signIn = createAsyncThunk<UserResponse, SignInRequest, ThunkConfig>(
@@ -72,8 +88,9 @@ export const signIn = createAsyncThunk<UserResponse, SignInRequest, ThunkConfig>
     setAccessToken(session.accessToken);
     rememberSession(true);
     // Whatever another account left in the cache must not be shown to this one
-    dispatch(api.util.invalidateTags(['Cart', 'Orders', 'Users', 'Stats']));
+    dispatch(api.util.invalidateTags(['Cart', 'Wishlist', 'Orders', 'Users', 'Stats']));
     await mergeGuestCart(dispatch, getState);
+    await mergeGuestWishlist(dispatch, getState);
     dispatch(sessionStarted(session.user));
     return session.user;
   },

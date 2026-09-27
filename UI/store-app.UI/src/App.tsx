@@ -31,6 +31,7 @@ const router = createBrowserRouter([
       { path: 'products', element: <Products />, errorElement: <ErrorElement /> },
       { path: 'products/:id', element: <SingleProduct />, errorElement: <ErrorElement /> },
       { path: 'cart', element: <Cart />, errorElement: <ErrorElement /> },
+      { path: 'wishlist', lazy: page(() => import('./pages/Wishlist')), errorElement: <ErrorElement /> },
       { path: 'about', element: <About />, errorElement: <ErrorElement /> },
       { path: 'contact', element: <Contact />, errorElement: <ErrorElement /> },
       { path: 'checkout', element: <Checkout />, errorElement: <ErrorElement />, loader: requireUser },

@@ -7,6 +7,7 @@ import { Loading, ProductCard, SelectProductAmount, SelectProductColor } from '@
 import Reveal from '@/components/Reveal';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
 import SaleBadge from '@/components/SaleBadge';
+import WishlistButton from '@/components/WishlistButton';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
 import { usePerks } from '@/content/perks';
@@ -182,6 +183,7 @@ const ProductDetails = ({ product }: { product: Product }) => {
                   </span>
                   Add to bag
                 </Button>
+                <WishlistButton product={product} className="h-12 w-12 shrink-0 border bg-transparent shadow-none" />
               </div>
               <DeliveryEstimate className="mt-4" />
             </div>

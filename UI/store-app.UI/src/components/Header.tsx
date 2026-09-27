@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import AccountButton from './AccountButton';
 import CartButton from './CartButton';
+import WishlistLink from './WishlistLink';
 import DesktopNav from './DesktopNav';
 import Logo from './Logo';
 import MobileBottomBar from './MobileBottomBar';
@@ -70,6 +71,7 @@ const Header = () => {
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSearchOpen(true)} aria-label="Search">
               <Search className="!h-5 !w-5" />
             </Button>
+            <WishlistLink />
             {!isMobile && (
               <>
                 <AccountButton />

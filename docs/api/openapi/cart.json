@@ -424,6 +424,199 @@
           }
         ]
       }
+    },
+    "/api/v1/wishlist": {
+      "get": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "The product ids on the list, the one added last first.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/wishlist/items": {
+      "post": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "Adds a product; one already on the list stays as it is. 422 for a product that is not for sale.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddWishlistItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/wishlist/items/{productId}": {
+      "delete": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "Removes a product; one that is not on the list changes nothing.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/wishlist/sync": {
+      "post": {
+        "tags": [
+          "Wishlist"
+        ],
+        "summary": "Merges the list a visitor kept in the browser, in one request.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncWishlistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishlistResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -450,6 +643,20 @@
         },
         "additionalProperties": false,
         "description": "Body of POST /api/v1/cart/items. Rules: `AddCartItemRequestValidator`."
+      },
+      "AddWishlistItemRequest": {
+        "required": [
+          "productId"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/wishlist/items."
       },
       "CartItemResponse": {
         "required": [
@@ -716,6 +923,23 @@
         "additionalProperties": false,
         "description": "Body of POST /api/v1/cart/sync. Rules: `SyncCartRequestValidator`."
       },
+      "SyncWishlistRequest": {
+        "required": [
+          "productIds"
+        ],
+        "type": "object",
+        "properties": {
+          "productIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/wishlist/sync: the list a visitor kept in the browser, merged at sign-in."
+      },
       "UpdateCartItemRequest": {
         "type": "object",
         "properties": {
@@ -731,6 +955,40 @@
         },
         "additionalProperties": false,
         "description": "Body of PUT /api/v1/cart/items/{id}; absent fields keep their value. Rules: `UpdateCartItemRequestValidator`."
+      },
+      "WishlistItemResponse": {
+        "required": [
+          "addedAt",
+          "productId"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WishlistResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WishlistItemResponse"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "The customer's wishlist, the piece added last first."
       }
     },
     "securitySchemes": {
@@ -750,6 +1008,10 @@
     {
       "name": "InternalCart",
       "description": "Endpoints for other services, authenticated with the shared internal key instead of a\nuser token: the order service reads a cart at checkout without carrying the customer's\ncredentials around. Emptying the cart afterwards happens through the order-placed event."
+    },
+    {
+      "name": "Wishlist",
+      "description": "The signed-in customer's wishlist. A visitor keeps theirs in the browser and it is merged\nhere at sign-in. Every change answers with the whole list afterwards."
     }
   ]
 }

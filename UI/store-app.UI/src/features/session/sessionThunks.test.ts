@@ -8,6 +8,8 @@ import { admin, cartWithTable, session, user } from '@/test/fixtures';
 import { api, json, problemResponse } from '@/test/handlers';
 import { server } from '@/test/server';
 import { itemAdded } from '@/features/cart/guestCartSlice';
+import { wished } from '@/features/wishlist/guestWishlistSlice';
+import { wishlistApi } from '@/api/wishlist';
 import { isAdmin } from './roles';
 import { restoreSession, signIn, signOut } from './sessionThunks';
 
@@ -35,6 +37,26 @@ describe('signing in', () => {
     expect(store.getState().session).toEqual({ user, checked: true });
     // The merged cart is what the pages read next
     expect(cartApi.endpoints.getCart.select()(store.getState()).data?.totalItems).toBe(2);
+  });
+
+  it('merges the wishlist a visitor kept and forgets the local copy', async () => {
+    const synced: unknown[] = [];
+    server.use(
+      http.post(api('/wishlist/sync'), async ({ request }) => {
+        const body = (await request.json()) as { productIds: number[] };
+        synced.push(body);
+        return json({ items: body.productIds.map((productId) => ({ productId, addedAt: '2026-01-01T00:00:00Z' })) });
+      }),
+    );
+    const store = createAppStore();
+    store.dispatch(wished(7));
+    store.dispatch(wished(9));
+
+    await store.dispatch(signIn({ kind: 'demoUser' })).unwrap();
+
+    expect(synced).toEqual([{ productIds: [9, 7] }]);
+    expect(store.getState().guestWishlist.productIds).toEqual([]);
+    expect(wishlistApi.endpoints.getWishlist.select()(store.getState()).data?.items.map((item) => item.productId)).toEqual([9, 7]);
   });
 
   it('does not call the server when the guest cart is empty', async () => {

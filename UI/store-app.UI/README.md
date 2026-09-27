@@ -70,8 +70,10 @@ The Playwright scenarios need the whole stack: either `docker compose up` in the
 and `E2E_BASE_URL=http://localhost:8081 npm run e2e`, or the services started by hand (see the
 repository README) with the dev server, which `npm run e2e` starts itself. The true administrator's
 credentials come from `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` (compose defaults otherwise), and
-because every scenario signs in on its own, the gateway's sign-in limit has to be raised for a run
-(`AUTH_CREDENTIAL_LIMIT` in compose, `--RateLimiting:Auth:CredentialPermitLimit=...` by hand).
+because every scenario signs in on its own and reloads pages (each load renews the session), the
+gateway's /auth limits have to be raised for a run (`AUTH_CREDENTIAL_LIMIT` and `AUTH_PERMIT_LIMIT`
+in compose, `--RateLimiting:Auth:CredentialPermitLimit=...` and `--RateLimiting:Auth:PermitLimit=...`
+by hand).
 
 ## The container
 

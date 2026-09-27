@@ -115,6 +115,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Comma-separated product ids: only these products (the ones a wishlist holds).",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -468,6 +476,14 @@
             "name": "slugs",
             "in": "query",
             "description": "Comma-separated product slugs: only these products (the ones a collection or a lookbook shows).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Comma-separated product ids: only these products (the ones a wishlist holds).",
             "schema": {
               "type": "string"
             }

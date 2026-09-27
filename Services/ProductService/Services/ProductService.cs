@@ -276,6 +276,17 @@ public class ProductService : IProductService
             query = query.Where(p => slugs.Contains(p.Slug));
         }
 
+        if (!string.IsNullOrWhiteSpace(queryParams.Ids))
+        {
+            // Anything that is not a number is ignored rather than refused: the list comes from a browser
+            var ids = queryParams.Ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(id => int.TryParse(id, out var value) ? value : 0)
+                .Where(id => id > 0)
+                .Take(100)
+                .ToArray();
+            query = query.Where(p => ids.Contains(p.Id));
+        }
+
         return query;
     }
 
