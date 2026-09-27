@@ -1,4 +1,17 @@
-import type { ApiCartResponse, AuthResponse, Order, PricingRules, Product, ProblemDetails, ProductsMeta, UserResponse } from '@/api/types';
+import type {
+  ApiCartResponse,
+  Article,
+  AuthResponse,
+  Collection,
+  Lookbook,
+  Maker,
+  Order,
+  PricingRules,
+  Product,
+  ProblemDetails,
+  ProductsMeta,
+  UserResponse,
+} from '@/api/types';
 
 // Fixtures are typed with the generated contract, so a change of a response shape on the
 // server (after "npm run api:generate") fails here before it fails on a page.
@@ -140,4 +153,63 @@ export const problem = (status: number, detail: string, errors?: Record<string, 
   instance: '/api/v1/test',
   traceId: '00-test-00',
   errors,
+});
+
+// Content as the content service publishes it; products are named by slug
+const published = { isPublished: true, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' };
+
+export const maker = (overrides: Partial<Maker> = {}): Maker => ({
+  id: 1,
+  slug: 'luxora',
+  name: 'Luxora',
+  company: 'luxora',
+  tagline: 'Oak, joined by hand.',
+  story: '## From the workshop\n\nEvery table starts as a plank.',
+  location: 'Kraków',
+  foundedYear: 1998,
+  coverImage: 'https://images.example.com/maker.webp',
+  ...published,
+  ...overrides,
+});
+
+export const collection = (overrides: Partial<Collection> = {}): Collection => ({
+  id: 1,
+  slug: 'warm-minimal',
+  title: 'Warm Minimal',
+  summary: 'Fewer things, all of them oak.',
+  body: '## Why oak\n\nIt ages well.',
+  coverImage: 'https://images.example.com/collection.webp',
+  productSlugs: ['pine-chair', 'oak-table'],
+  sortOrder: 1,
+  ...published,
+  ...overrides,
+});
+
+export const article = (overrides: Partial<Article> = {}): Article => ({
+  id: 1,
+  slug: 'caring-for-oak',
+  title: 'Caring for oak',
+  excerpt: 'Oil it twice a year.',
+  body: '## Oil, not polish\n\nA thin coat is enough.',
+  coverImage: 'https://images.example.com/article.webp',
+  author: 'Ewa',
+  publishedAt: '2026-09-01T12:00:00Z',
+  productSlugs: ['oak-table'],
+  ...published,
+  ...overrides,
+});
+
+export const lookbook = (overrides: Partial<Lookbook> = {}): Lookbook => ({
+  id: 1,
+  slug: 'dining-room',
+  title: 'A dining room',
+  summary: 'A table for six and a chair to match.',
+  image: 'https://images.example.com/look.webp',
+  hotspots: [
+    { x: 30, y: 60, productSlug: 'oak-table' },
+    { x: 70, y: 40, productSlug: 'pine-chair' },
+  ],
+  sortOrder: 1,
+  ...published,
+  ...overrides,
 });

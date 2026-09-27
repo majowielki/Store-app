@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { SubmitBtn, FormInput } from '@/components';
 import AuthShell from '@/components/AuthShell';
-import hero1 from '@/assets/hero1.webp';
+import picture from '@/assets/register.webp';
 import { useGetPricingRulesQuery } from '@/api/orders';
 import { signIn } from '@/features/session/sessionThunks';
 import { useAppDispatch } from '@/hooks';
@@ -51,7 +51,7 @@ const Register = () => {
       eyebrow="Create an account"
       title={<>Make yourself <em>at home.</em></>}
       lead={rules ? `Register and ${rules.firstOrderDiscountPercent}% comes off your first order — no code needed.` : 'Register to track your orders and check out faster.'}
-      image={hero1}
+      image={picture}
     >
       <form method="post" className="grid gap-5" onSubmit={handleSubmit} noValidate>
         <div className="grid gap-5 sm:grid-cols-2">

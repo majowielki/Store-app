@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { SubmitBtn, FormInput } from '@/components';
 import AuthShell from '@/components/AuthShell';
-import hero4 from '@/assets/hero4.webp';
+import picture from '@/assets/sign-in.webp';
 import { isAdmin } from '@/features/session/roles';
 import { signIn, type SignInRequest } from '@/features/session/sessionThunks';
 import { useAppDispatch } from '@/hooks';
@@ -45,7 +45,7 @@ const Login = () => {
   };
 
   return (
-    <AuthShell eyebrow="Sign in" title={<>Welcome <em>back.</em></>} lead="Sign in to see your orders and check out faster." image={hero4}>
+    <AuthShell eyebrow="Sign in" title={<>Welcome <em>back.</em></>} lead="Sign in to see your orders and check out faster." image={picture}>
       <form method="post" className="grid gap-5" onSubmit={handleSubmit} noValidate>
         <FormInput type="email" name="email" value={form.email} onChange={handleChange} autoComplete="email" />
         <FieldError message={errors.email} />

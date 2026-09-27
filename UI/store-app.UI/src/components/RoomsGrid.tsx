@@ -1,14 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { useGetProductsQuery } from '@/api/catalog';
-import hero3 from '@/assets/hero3.webp';
-import hero4 from '@/assets/hero4.webp';
 import { cn } from '@/lib/utils';
 import { categories, categoryHref, priceTag, type Category } from '@/utils';
 import Reveal from './Reveal';
-
-/** Rooms with a photograph of their own; the rest show their first product. */
-const roomImages: Record<string, string> = { furniture: hero3, bedroom: hero4 };
 
 // Where each room sits in the four-column mosaic (two columns on phones)
 const layout: Record<string, string> = {
@@ -21,9 +16,10 @@ const layout: Record<string, string> = {
   garden: '',
 };
 
+/** A room shows the picture of its first product, the room around it included. */
 const RoomTile = ({ category, className, delay }: { category: Category; className?: string; delay: number }) => {
   const { data } = useGetProductsQuery({ group: category.group, pageSize: 1 });
-  const image = roomImages[category.group] ?? data?.items[0]?.image;
+  const image = data?.items[0]?.image;
   return (
     <Reveal delay={delay} className={cn('min-h-0', className)}>
       <Link
@@ -83,11 +79,11 @@ const SaleTile = ({ delay }: { delay: number }) => {
 const RoomsGrid = () => {
   const rooms = categories.filter((c) => c.group !== 'sale');
   return (
-    <section className="align-element py-20 md:py-28">
+    <section className="align-element py-20 md:py-28" aria-labelledby="rooms">
       <Reveal as="header" className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="eyebrow">Shop by room</p>
-          <h2 className="display mt-3 text-4xl md:text-6xl">
+          <h2 id="rooms" className="display mt-3 text-4xl md:text-6xl">
             Start with the room, <em>not the catalogue.</em>
           </h2>
         </div>

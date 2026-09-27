@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Leaf, ShieldCheck, Sparkles, Truck } from 'lucide-react';
-import hero3 from '@/assets/hero3.webp';
-import hero4 from '@/assets/hero4.webp';
+import joinery from '@/assets/about-joinery.webp';
+import linen from '@/assets/about-linen.webp';
 import CountUp from '@/components/CountUp';
 import Reveal from '@/components/Reveal';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,7 @@ const About = () => {
       </header>
 
       <Reveal className="mt-16 aspect-[16/10] overflow-hidden rounded-[2rem] bg-muted md:aspect-[21/9]">
-        <img ref={bandRef} src={hero3} alt="A living room with a corner sofa and a wooden wall" className="h-full w-full scale-[1.12] object-cover" />
+        <img ref={bandRef} src={joinery} alt="The corner of an oak dining table, where the top meets its angled leg" className="h-full w-full scale-[1.12] object-cover" />
       </Reveal>
 
       <dl className="mt-16 grid gap-8 border-y py-12 sm:grid-cols-3">
@@ -80,7 +80,7 @@ const About = () => {
         </div>
         <Reveal className="relative">
           <div className="aspect-[4/5] overflow-hidden rounded-[2rem] bg-muted">
-            <img src={hero4} alt="A bedroom with a white headboard and an oak wardrobe" loading="lazy" className="h-full w-full object-cover" />
+            <img src={linen} alt="Stonewashed linen bedding up close" loading="lazy" className="h-full w-full object-cover" />
           </div>
           <div className="absolute -bottom-6 left-6 flex flex-wrap gap-2">
             {['Ethically sourced', '2-year warranty', 'Free returns'].map((tag) => (
