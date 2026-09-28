@@ -59,6 +59,7 @@ public class ProductService : IProductService
             Materials = NormalizeList(request.Materials),
             Images = ToGallery(request.Images ?? []),
             Hotspots = ToHotspots(request.Hotspots ?? []),
+            StockQuantity = request.StockQuantity,
             CreatedAt = _time.GetUtcNow().UtcDateTime,
             UpdatedAt = _time.GetUtcNow().UtcDateTime
         };
@@ -68,7 +69,7 @@ public class ProductService : IProductService
 
         _logger.LogInformation("Product created successfully with ID: {ProductId}", product.Id);
         await _auditTrail.RecordAsync("PRODUCT_CREATED", nameof(Product), product.Id.ToString(), actorId, newValues: product);
-        return MapToDetailResponse(product);
+        return MapToDetailResponse(product, forAdmin: true);
     }
 
     public async Task<ProductDetailResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null)
@@ -111,7 +112,7 @@ public class ProductService : IProductService
 
         _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
         await _auditTrail.RecordAsync("PRODUCT_UPDATED", nameof(Product), product.Id.ToString(), actorId, oldValues: oldValues, newValues: product);
-        return MapToDetailResponse(product);
+        return MapToDetailResponse(product, forAdmin: true);
     }
 
     public async Task DeleteProductAsync(int id, string? actorId = null)
@@ -142,22 +143,22 @@ public class ProductService : IProductService
             _ => query.OrderBy(p => p.Title)
         };
 
-        return PageAsync(query, queryParams, PublicPageSize);
+        return PageAsync(query, queryParams, PublicPageSize, forAdmin: false);
     }
 
-    public Task<ProductDetailResponse> GetProductAsync(int id) => GetDetailAsync(id, activeOnly: true);
+    public Task<ProductDetailResponse> GetProductAsync(int id) => GetDetailAsync(id, forAdmin: false);
 
-    public Task<ProductDetailResponse> GetProductForAdminAsync(int id) => GetDetailAsync(id, activeOnly: false);
+    public Task<ProductDetailResponse> GetProductForAdminAsync(int id) => GetDetailAsync(id, forAdmin: true);
 
-    private async Task<ProductDetailResponse> GetDetailAsync(int id, bool activeOnly)
+    private async Task<ProductDetailResponse> GetDetailAsync(int id, bool forAdmin)
     {
         var product = await _context.Products
             .AsNoTracking()
             .Include(p => p.Images.OrderBy(i => i.SortOrder))
-            .FirstOrDefaultAsync(p => p.Id == id && (p.IsActive || !activeOnly))
+            .FirstOrDefaultAsync(p => p.Id == id && (p.IsActive || forAdmin))
             ?? throw new NotFoundException("Product", id);
 
-        return MapToDetailResponse(product);
+        return MapToDetailResponse(product, forAdmin);
     }
 
     public ProductsMeta GetProductsMeta()
@@ -208,10 +209,11 @@ public class ProductService : IProductService
             "price" => desc ? query.OrderByDescending(p => p.SalePrice ?? p.Price) : query.OrderBy(p => p.SalePrice ?? p.Price),
             "title" => desc ? query.OrderByDescending(p => p.Title) : query.OrderBy(p => p.Title),
             "company" => desc ? query.OrderByDescending(p => p.Company) : query.OrderBy(p => p.Company),
+            "stock" => desc ? query.OrderByDescending(p => p.StockQuantity - p.ReservedQuantity) : query.OrderBy(p => p.StockQuantity - p.ReservedQuantity),
             _ => desc ? query.OrderByDescending(p => p.Id) : query.OrderBy(p => p.Id)
         };
 
-        return PageAsync(query, queryParams, AdminPageSize);
+        return PageAsync(query, queryParams, AdminPageSize, forAdmin: true);
     }
 
     public async Task<ProductSnapshot?> GetSnapshotAsync(int id)
@@ -327,7 +329,7 @@ public class ProductService : IProductService
 
     private static bool IsChecked(string? value) => value?.Trim().ToLowerInvariant() is "true" or "on" or "1";
 
-    private static async Task<PagedResponse<ProductResponse>> PageAsync(IQueryable<Product> query, ProductQueryParams queryParams, int defaultPageSize)
+    private static async Task<PagedResponse<ProductResponse>> PageAsync(IQueryable<Product> query, ProductQueryParams queryParams, int defaultPageSize, bool forAdmin)
     {
         var paging = new PagedQuery { Page = queryParams.Page ?? 1, PageSize = queryParams.PageSize ?? defaultPageSize }
             .Normalized(defaultPageSize);
@@ -335,7 +337,7 @@ public class ProductService : IProductService
         var totalCount = await query.CountAsync();
         var products = await query.Skip(paging.Skip).Take(paging.PageSize).ToListAsync();
 
-        return new PagedResponse<ProductResponse>(products.Select(MapToProductResponse).ToList(), totalCount, paging);
+        return new PagedResponse<ProductResponse>(products.Select(product => Map(product, new ProductResponse(), forAdmin)).ToList(), totalCount, paging);
     }
 
     private static bool IsAll(string value) => string.Equals(value, "all", StringComparison.OrdinalIgnoreCase);
@@ -353,9 +355,10 @@ public class ProductService : IProductService
     private static List<ProductHotspot> ToHotspots(IEnumerable<ProductHotspotDto> points)
         => points.Select(point => new ProductHotspot { X = point.X, Y = point.Y, ProductSlug = point.ProductSlug }).ToList();
 
-    private static ProductDetailResponse MapToDetailResponse(Product product)
+    /// <summary>The product as a response; <paramref name="forAdmin"/> adds the stock figures behind the availability.</summary>
+    private static ProductDetailResponse MapToDetailResponse(Product product, bool forAdmin)
     {
-        var response = Map(product, new ProductDetailResponse());
+        var response = Map(product, new ProductDetailResponse(), forAdmin);
         response.Images = product.Images
             .OrderBy(image => image.SortOrder)
             .Select(image => new ProductImageDto { Url = image.Url, Alt = image.Alt })
@@ -366,9 +369,7 @@ public class ProductService : IProductService
         return response;
     }
 
-    private static ProductResponse MapToProductResponse(Product product) => Map(product, new ProductResponse());
-
-    private static TResponse Map<TResponse>(Product product, TResponse response) where TResponse : ProductResponse
+    private static TResponse Map<TResponse>(Product product, TResponse response, bool forAdmin) where TResponse : ProductResponse
     {
         response.Id = product.Id;
         response.Title = product.Title;
@@ -390,6 +391,14 @@ public class ProductService : IProductService
         response.WeightKg = product.WeightKg;
         response.Materials = product.Materials;
         response.IsActive = product.IsActive;
+        response.Availability = StockPolicy.For(product.AvailableQuantity);
+        response.AvailableQuantity = product.AvailableQuantity;
+        if (forAdmin)
+        {
+            response.StockQuantity = product.StockQuantity;
+            response.ReservedQuantity = product.ReservedQuantity;
+        }
+
         response.CreatedAt = product.CreatedAt;
         response.UpdatedAt = product.UpdatedAt;
         return response;

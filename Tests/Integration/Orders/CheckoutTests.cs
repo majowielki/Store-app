@@ -173,6 +173,27 @@ public sealed class CheckoutTests : IClassFixture<OrderApiFactory>
         using var admin = _factory.CreateClient().AsDemoAdmin();
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync($"/api/v1/orders/{id}")).StatusCode);
     }
+
+    // The reservation decides in the end; the checkout only refuses what the catalogue already
+    // says it cannot serve - here two colours of one product add up to more than is left
+    [Fact]
+    public async Task Checkout_refuses_more_units_than_the_catalogue_has_left()
+    {
+        const string user = "checkout-short-stock";
+        _factory.Upstreams.AddProduct(61, effectivePrice: 50m, title: "Last stools", available: 2);
+        _factory.Upstreams.AddProduct(62, effectivePrice: 50m, title: "Sold-out vase", available: 0);
+        using var client = _factory.CreateClient().AsUser(user);
+
+        _factory.Upstreams.SetCart(user, (61, 2, 50m), (61, 1, 50m));
+        var tooMany = await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody());
+        Assert.Equal(HttpStatusCode.Conflict, tooMany.StatusCode);
+        Assert.Contains("Only 2 of \"Last stools\" left", (await ReadJson(tooMany)).GetProperty("detail").GetString());
+
+        _factory.Upstreams.SetCart(user, (62, 1, 50m));
+        var soldOut = await client.PostAsJsonAsync("/api/v1/orders/from-cart", CheckoutBody());
+        Assert.Equal(HttpStatusCode.Conflict, soldOut.StatusCode);
+        Assert.Contains("has sold out", (await ReadJson(soldOut)).GetProperty("detail").GetString());
+    }
 }
 
 /// <summary>

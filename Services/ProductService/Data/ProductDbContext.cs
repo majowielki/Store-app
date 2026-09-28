@@ -14,6 +14,12 @@ public class ProductDbContext : DbContext
 
     public DbSet<CatalogueSeed> CatalogueSeeds => Set<CatalogueSeed>();
 
+    public DbSet<StockOrder> StockOrders => Set<StockOrder>();
+
+    public DbSet<StockOrderLine> StockOrderLines => Set<StockOrderLine>();
+
+    public DbSet<StockAlert> StockAlerts => Set<StockAlert>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Money and dimensions: two decimal places everywhere unless a property says otherwise
@@ -55,6 +61,10 @@ public class ProductDbContext : DbContext
             entity.HasIndex(e => e.Company);
             entity.HasIndex(e => e.Title);
 
+            // Held units come out of the units on hand; a bug that breaks it fails its transaction
+            entity.ToTable(table => table.HasCheckConstraint("CK_Products_Stock",
+                "\"ReservedQuantity\" >= 0 AND \"ReservedQuantity\" <= \"StockQuantity\""));
+
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
@@ -74,6 +84,30 @@ public class ProductDbContext : DbContext
             entity.Property(e => e.Url).IsRequired().HasMaxLength(ProductConstraints.ImageUrlMaxLength);
             entity.Property(e => e.Alt).IsRequired().HasMaxLength(ProductConstraints.ImageAltMaxLength);
             entity.HasIndex(e => new { e.ProductId, e.SortOrder });
+        });
+
+        modelBuilder.Entity<StockOrder>(entity =>
+        {
+            entity.HasKey(e => e.OrderId);
+            entity.Property(e => e.OrderId).ValueGeneratedNever();
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(ProductConstraints.EnumMaxLength);
+            entity.HasMany(e => e.Lines).WithOne().HasForeignKey(l => l.OrderId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<StockOrderLine>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.OrderId, e.ProductId }).IsUnique();
+            entity.HasOne<Product>().WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<StockAlert>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(ProductConstraints.EmailMaxLength);
+            // One waiting alert per address and product; asking twice changes nothing
+            entity.HasIndex(e => new { e.ProductId, e.Email }).IsUnique();
+            entity.HasOne<Product>().WithMany().HasForeignKey(e => e.ProductId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<CatalogueSeed>(entity =>

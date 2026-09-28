@@ -16,9 +16,10 @@ public static class DemoCatalogue
     /// 1 - the first catalogue of 38 products; 2 - the catalogue rebuilt around the shop's warm,
     /// natural look: new products, restyled old ones, WebP pictures, eight products retired;
     /// 3 - a gallery for every product (a detail and the product on its own after the room
-    /// picture) and points on the room pictures leading to the other products they show.
+    /// picture) and points on the room pictures leading to the other products they show; 4 - units
+    /// on hand in the warehouse.
     /// </summary>
-    public const int Version = 3;
+    public const int Version = 4;
 
     private const string Pictures = "http://localhost:10000/devstoreaccount1/product-images/";
 
@@ -53,6 +54,23 @@ public static class DemoCatalogue
         "linen-napkin-set-4-pieces",
         "sheer-linen-curtains-pair",
     ];
+
+    /// <summary>
+    /// Units on hand of the products that are not simply "in stock": a few running low and two sold
+    /// out, so the badges and the "notify me" form have something to show. The rest get between 8
+    /// and 40 units, the same for a product in every database.
+    /// </summary>
+    private static readonly Dictionary<string, int> Stock = new()
+    {
+        ["travertine-coffee-table"] = 2,
+        ["boucle-swivel-tub-chair"] = 3,
+        ["hanging-rattan-egg-chair"] = 1,
+        ["mid-century-accent-chair"] = 0,
+        ["paper-arc-floor-lamp"] = 0,
+    };
+
+    /// <summary>Slugs of the products <see cref="Stock"/> sets, for the tests that check they exist.</summary>
+    public static IReadOnlyCollection<string> StockedSlugs => Stock.Keys;
 
     /// <summary>
     /// The points on each main picture: the other products it shows and where they stand, in
@@ -421,6 +439,10 @@ public static class DemoCatalogue
             colors: [Color.Orange], groups: ["garden", "decorations"], materials: ["terracotta"], size: new(45, 40, 45, 16)),
     ];
 
+    /// <summary>Units on hand of a demo product: from <see cref="Stock"/>, else 8 to 40 by its slug.</summary>
+    private static int UnitsOnHand(string slug)
+        => Stock.TryGetValue(slug, out var units) ? units : 8 + slug.Aggregate(17, (hash, c) => (hash * 31 + c) % 1009) % 33;
+
     private static Product Item(
         string title,
         string picture,
@@ -462,6 +484,7 @@ public static class DemoCatalogue
         HeightCm = size.Height,
         DepthCm = size.Depth,
         WeightKg = size.WeightKg,
+        StockQuantity = UnitsOnHand(ProductSlug.From(title)),
     };
 
     /// <summary>Width × height × depth in centimetres and the weight in kilograms.</summary>

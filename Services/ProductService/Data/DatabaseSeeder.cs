@@ -82,6 +82,8 @@ public static class DatabaseSeeder
         to.Hotspots = from.Hotspots;
         to.Images.Clear();
         to.Images.AddRange(from.Images);
+        // Units held for orders stay covered whatever the catalogue says
+        to.StockQuantity = Math.Max(from.StockQuantity, to.ReservedQuantity);
         to.UpdatedAt = now;
     }
 }

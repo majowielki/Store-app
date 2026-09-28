@@ -8,6 +8,7 @@ import CompareToggle from './CompareToggle';
 import ProductPrice from './ProductPrice';
 import QuickView from './QuickView';
 import SaleBadge from './SaleBadge';
+import StockBadge from './StockBadge';
 import WishlistButton from './WishlistButton';
 
 /** The first few colours a product comes in, as small swatches. */
@@ -65,6 +66,7 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
                 New
               </span>
             )}
+            <StockBadge product={product} />
           </div>
           <span
             aria-hidden

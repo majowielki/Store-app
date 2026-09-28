@@ -6,6 +6,8 @@ import { useAddToBag } from '@/features/cart/useAddToBag';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/utils';
 import DeliveryEstimate from './DeliveryEstimate';
+import NotifyWhenBack from './NotifyWhenBack';
+import { StockNote } from './StockBadge';
 import ProductPrice from './ProductPrice';
 import SelectProductAmount, { Mode } from './SelectProductAmount';
 import SelectProductColor from './SelectProductColor';
@@ -42,16 +44,21 @@ const QuickViewContent = ({ product, trigger, onAdding }: { product: Product; tr
         <p className="mt-3 text-xl">
           <ProductPrice product={product} />
         </p>
+        <StockNote product={product} className="mt-2" />
         <Dialog.Description className="mt-4 line-clamp-4 text-sm leading-relaxed text-muted-foreground">{product.description}</Dialog.Description>
         <div className="mt-6 grid gap-6">
           {product.colors.length > 0 && <SelectProductColor colors={product.colors} productColor={color} setProductColor={setColor} />}
-          <div className="flex gap-3">
-            <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} />
-            <Button size="lg" className="h-12 flex-1" onClick={add} disabled={adding}>
-              <ShoppingBag />
-              Add to bag
-            </Button>
-          </div>
+          {product.availability === 'outOfStock' ? (
+            <NotifyWhenBack productId={product.id} />
+          ) : (
+            <div className="flex gap-3">
+              <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} max={product.availableQuantity} />
+              <Button size="lg" className="h-12 flex-1" onClick={add} disabled={adding}>
+                <ShoppingBag />
+                Add to bag
+              </Button>
+            </div>
+          )}
         </div>
         <DeliveryEstimate className="mt-4" />
         <Link to={`/products/${product.id}`} className="group mt-auto inline-flex items-center gap-2 pt-6 text-sm font-medium">

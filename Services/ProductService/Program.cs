@@ -7,6 +7,7 @@ using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
+using Store.ProductService.Consumers;
 using Store.ProductService.Data;
 using Store.ProductService.Services;
 
@@ -33,11 +34,18 @@ builder.Services.AddStoreAuthorization();
 // GET /api/v1/products/{id}/snapshot is for other services: they present the shared internal key
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
-// Message bus: catalogue changes reach the audit service as events, through the outbox
-builder.Services.AddStoreMessaging<ProductDbContext>(builder.Configuration, serviceName: "catalog");
+// Message bus: catalogue changes reach the audit service as events, through the outbox; the order
+// events reserve, release and ship the stock
+builder.Services.AddStoreMessaging<ProductDbContext>(builder.Configuration, serviceName: "catalog", bus =>
+{
+    bus.AddConsumer<OrderPlacedConsumer>();
+    bus.AddConsumer<OrderCancelledConsumer>();
+    bus.AddConsumer<OrderShippedConsumer>();
+});
 
 // Business Services
 builder.Services.AddScoped<IProductService, Store.ProductService.Services.ProductService>();
+builder.Services.AddScoped<IStockLedger, StockLedger>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());

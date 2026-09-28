@@ -10,6 +10,8 @@ import DeliveryEstimate from '@/components/DeliveryEstimate';
 import ProductGallery from '@/components/ProductGallery';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import SaleBadge from '@/components/SaleBadge';
+import NotifyWhenBack from '@/components/NotifyWhenBack';
+import { StockNote } from '@/components/StockBadge';
 import WishlistButton from '@/components/WishlistButton';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
@@ -75,6 +77,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
   const [amount, setAmount] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const soldOut = product.availability === 'outOfStock';
   const addToBag = useAddToBag();
   useTrackProductView(product.id);
   const perks = usePerks().filter((perk) => perk.key !== 'welcome');
@@ -150,23 +153,31 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
               </>
             )}
           </div>
+          <StockNote product={product} className="mt-4 animate-fade-up [animation-delay:150ms]" />
           <p className="mt-6 animate-fade-up leading-relaxed text-muted-foreground [animation-delay:180ms]">{description}</p>
 
           <div className="mt-8 grid animate-fade-up gap-8 border-t pt-8 [animation-delay:240ms]">
             <SelectProductColor colors={colors} productColor={productColor} setProductColor={setProductColor} />
             <div>
               <h4 className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">Quantity</h4>
-              <div className="mt-3 flex gap-3">
-                <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} />
-                <Button size="lg" className="group h-12 flex-1" onClick={addToCart} disabled={adding}>
-                  <span className="relative h-4 w-4">
-                    <ShoppingBag className={`absolute inset-0 transition-all duration-300 ${added ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`} />
-                    <Check className={`absolute inset-0 transition-all duration-300 ${added ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} />
-                  </span>
-                  Add to bag
-                </Button>
-                <WishlistButton product={product} className="h-12 w-12 shrink-0 border bg-transparent shadow-none" />
-              </div>
+              {soldOut ? (
+                <div className="mt-3 flex items-end gap-3">
+                  <NotifyWhenBack productId={product.id} className="flex-1" />
+                  <WishlistButton product={product} className="h-12 w-12 shrink-0 border bg-transparent shadow-none" />
+                </div>
+              ) : (
+                <div className="mt-3 flex gap-3">
+                  <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} max={product.availableQuantity} />
+                  <Button size="lg" className="group h-12 flex-1" onClick={addToCart} disabled={adding}>
+                    <span className="relative h-4 w-4">
+                      <ShoppingBag className={`absolute inset-0 transition-all duration-300 ${added ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`} />
+                      <Check className={`absolute inset-0 transition-all duration-300 ${added ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} />
+                    </span>
+                    Add to bag
+                  </Button>
+                  <WishlistButton product={product} className="h-12 w-12 shrink-0 border bg-transparent shadow-none" />
+                </div>
+              )}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <DeliveryEstimate />
                 <CompareToggle product={product} className="-mr-2.5" />

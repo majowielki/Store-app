@@ -375,7 +375,7 @@
         "tags": [
           "Products"
         ],
-        "summary": "Every product, inactive ones included, sorted by sortBy (id, price,\ntitle, company) in sortDir (asc, desc).",
+        "summary": "Every product, inactive ones included, sorted by sortBy (id, price,\ntitle, company, stock - the units available) in sortDir (asc, desc).",
         "parameters": [
           {
             "name": "search",
@@ -590,6 +590,110 @@
         ]
       }
     },
+    "/api/v1/products/{id}/stock": {
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Sets the units on hand after a count; it cannot go below the units held for orders not\nshipped yet (422). Visitors waiting for the product are told when it is back.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetStockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetailResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/products/{id}/notify": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Asks for an e-mail once a product that ran out can be bought again; anyone may ask, and\nasking twice changes nothing. A product in stock answers 409: it can be bought now.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockAlertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/products/{id}/snapshot": {
       "get": {
         "tags": [
@@ -697,6 +801,7 @@
           "image",
           "newArrival",
           "price",
+          "stockQuantity",
           "title"
         ],
         "type": "object",
@@ -773,6 +878,11 @@
             },
             "nullable": true
           },
+          "stockQuantity": {
+            "type": "integer",
+            "description": "Units on hand to start with; none means the product starts out of stock.",
+            "format": "int32"
+          },
           "images": {
             "type": "array",
             "items": {
@@ -841,6 +951,8 @@
       },
       "ProductDetailResponse": {
         "required": [
+          "availability",
+          "availableQuantity",
           "category",
           "colors",
           "company",
@@ -947,6 +1059,26 @@
           "isActive": {
             "type": "boolean"
           },
+          "availability": {
+            "$ref": "#/components/schemas/StockAvailability"
+          },
+          "availableQuantity": {
+            "type": "integer",
+            "description": "Units a new order can get.",
+            "format": "int32"
+          },
+          "stockQuantity": {
+            "type": "integer",
+            "description": "Units on hand, held ones included; only in the admin responses.",
+            "format": "int32",
+            "nullable": true
+          },
+          "reservedQuantity": {
+            "type": "integer",
+            "description": "Units held for orders not shipped yet; only in the admin responses.",
+            "format": "int32",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1015,6 +1147,8 @@
       },
       "ProductResponse": {
         "required": [
+          "availability",
+          "availableQuantity",
           "category",
           "colors",
           "company",
@@ -1119,6 +1253,26 @@
           "isActive": {
             "type": "boolean"
           },
+          "availability": {
+            "$ref": "#/components/schemas/StockAvailability"
+          },
+          "availableQuantity": {
+            "type": "integer",
+            "description": "Units a new order can get.",
+            "format": "int32"
+          },
+          "stockQuantity": {
+            "type": "integer",
+            "description": "Units on hand, held ones included; only in the admin responses.",
+            "format": "int32",
+            "nullable": true
+          },
+          "reservedQuantity": {
+            "type": "integer",
+            "description": "Units held for orders not shipped yet; only in the admin responses.",
+            "format": "int32",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1181,6 +1335,7 @@
       },
       "ProductSnapshot": {
         "required": [
+          "availableQuantity",
           "colors",
           "company",
           "effectivePrice",
@@ -1235,6 +1390,11 @@
             "type": "string",
             "description": "Last change in the catalogue, for callers that cache",
             "format": "date-time"
+          },
+          "availableQuantity": {
+            "type": "integer",
+            "description": "Units a new order can get right now; the reservation after checkout is what counts",
+            "format": "int32"
           }
         },
         "additionalProperties": false,
@@ -1284,6 +1444,42 @@
         },
         "additionalProperties": false,
         "description": "The values the catalogue can be filtered by, for the shop's menus and the admin form.\nKeys use the same spelling as the product fields (\"tvStands\", \"modenza\"); \"all\" comes\nfirst so a menu can default to it."
+      },
+      "SetStockRequest": {
+        "required": [
+          "stockQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "stockQuantity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of PUT /api/v1/products/{id}/stock: the units on hand after a count."
+      },
+      "StockAlertRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/products/{id}/notify: where to write when the product is back."
+      },
+      "StockAvailability": {
+        "enum": [
+          "inStock",
+          "lowStock",
+          "outOfStock"
+        ],
+        "type": "string",
+        "description": "How a product's availability is shown to customers."
       },
       "StoreProblemDetails": {
         "type": "object",

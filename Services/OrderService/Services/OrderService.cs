@@ -75,6 +75,7 @@ public class OrderService : IOrderService
 
         // Price the lines from the catalogue as it is now; the cart's prices may be stale
         var lines = new List<OrderLine>(cart.Lines.Count);
+        var available = new Dictionary<int, int>();
         var repricedLines = 0;
         foreach (var line in cart.Lines)
         {
@@ -84,6 +85,7 @@ public class OrderService : IOrderService
                 throw new ConflictException($"\"{line.Title}\" is no longer available. Remove it from the cart to continue.");
             }
 
+            available[product.Id] = product.AvailableQuantity;
             if (product.EffectivePrice != line.UnitPrice) repricedLines++;
             lines.Add(new OrderLine
             {
@@ -95,6 +97,21 @@ public class OrderService : IOrderService
                 UnitPrice = product.EffectivePrice,
                 Quantity = line.Quantity
             });
+        }
+
+        // The reservation after checkout is what holds the units; this only spares the customer an
+        // order that is sure to be cancelled. A product can be in the cart in two colours.
+        foreach (var product in lines.GroupBy(l => l.ProductId))
+        {
+            var wanted = product.Sum(l => l.Quantity);
+            var left = available[product.Key];
+            if (wanted > left)
+            {
+                var title = product.First().ProductTitle;
+                throw new ConflictException(left == 0
+                    ? $"\"{title}\" has sold out. Remove it from the cart to continue."
+                    : $"Only {left} of \"{title}\" left. Lower the quantity to continue.");
+            }
         }
 
         if (repricedLines > 0) _metrics.PriceMismatch(repricedLines, "checkout");

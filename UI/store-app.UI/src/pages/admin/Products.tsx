@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatAsDollars } from '@/utils';
 
 // The values the admin listing sorts by (the API documents them as free text)
-type SortKey = 'id' | 'title' | 'price' | 'company';
+type SortKey = 'id' | 'title' | 'price' | 'company' | 'stock';
 type SortDir = 'asc' | 'desc';
 
 const PAGE_SIZE = 10;
@@ -87,6 +87,9 @@ const Products = () => {
                   <TableHead className="select-none">
                     <SortButton sortKey="company" label="Company" />
                   </TableHead>
+                  <TableHead className="select-none">
+                    <SortButton sortKey="stock" label="Available" />
+                  </TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -98,6 +101,10 @@ const Products = () => {
                     <TableCell>{p.title}</TableCell>
                     <TableCell>{formatAsDollars(p.price)}</TableCell>
                     <TableCell>{p.company}</TableCell>
+                    <TableCell className="tabular-nums">
+                      <span className={p.availability === 'outOfStock' ? 'text-destructive' : p.availability === 'lowStock' ? 'text-brand' : undefined}>{p.availableQuantity}</span>
+                      <span className="text-muted-foreground"> / {p.stockQuantity ?? 0}</span>
+                    </TableCell>
                     <TableCell>{p.isActive ? 'Active' : <span className="text-muted-foreground">Inactive</span>}</TableCell>
                     <TableCell className="text-right space-x-2 flex items-center justify-end gap-2">
                       <Button asChild size="sm" variant="outline">

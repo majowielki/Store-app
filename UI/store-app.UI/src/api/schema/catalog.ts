@@ -312,7 +312,7 @@ export interface paths {
         };
         /**
          * Every product, inactive ones included, sorted by sortBy (id, price,
-         *     title, company) in sortDir (asc, desc).
+         *     title, company, stock - the units available) in sortDir (asc, desc).
          */
         get: {
             parameters: {
@@ -448,6 +448,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products/{id}/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets the units on hand after a count; it cannot go below the units held for orders not
+         *     shipped yet (422). Visitors waiting for the product are told when it is back.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetStockRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductDetailResponse"];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{id}/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asks for an e-mail once a product that ran out can be bought again; anyone may ask, and
+         *     asking twice changes nothing. A product in stock answers 409: it can be bought now.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StockAlertRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/products/{id}/snapshot": {
         parameters: {
             query?: never;
@@ -545,6 +665,11 @@ export interface components {
             /** Format: double */
             weightKg?: number | null;
             materials?: string[] | null;
+            /**
+             * Format: int32
+             * @description Units on hand to start with; none means the product starts out of stock.
+             */
+            stockQuantity: number;
             /** @description Pictures shown after the main one, in order; none leaves the product with its main picture only. */
             images?: components["schemas"]["ProductImageDto"][] | null;
             /** @description Points on the main picture leading to other products. */
@@ -606,6 +731,22 @@ export interface components {
             weightKg?: number | null;
             materials: string[];
             isActive: boolean;
+            availability: components["schemas"]["StockAvailability"];
+            /**
+             * Format: int32
+             * @description Units a new order can get.
+             */
+            availableQuantity: number;
+            /**
+             * Format: int32
+             * @description Units on hand, held ones included; only in the admin responses.
+             */
+            stockQuantity?: number | null;
+            /**
+             * Format: int32
+             * @description Units held for orders not shipped yet; only in the admin responses.
+             */
+            reservedQuantity?: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -661,6 +802,22 @@ export interface components {
             weightKg?: number | null;
             materials: string[];
             isActive: boolean;
+            availability: components["schemas"]["StockAvailability"];
+            /**
+             * Format: int32
+             * @description Units a new order can get.
+             */
+            availableQuantity: number;
+            /**
+             * Format: int32
+             * @description Units on hand, held ones included; only in the admin responses.
+             */
+            stockQuantity?: number | null;
+            /**
+             * Format: int32
+             * @description Units held for orders not shipped yet; only in the admin responses.
+             */
+            reservedQuantity?: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -719,6 +876,11 @@ export interface components {
              * @description Last change in the catalogue, for callers that cache
              */
             updatedAt: string;
+            /**
+             * Format: int32
+             * @description Units a new order can get right now; the reservation after checkout is what counts
+             */
+            availableQuantity: number;
         };
         /**
          * @description The values the catalogue can be filtered by, for the shop's menus and the admin form.
@@ -733,6 +895,20 @@ export interface components {
             /** @description Groups with the categories that belong to them, for dependent dropdowns. */
             groupCategoryMap: components["schemas"]["GroupWithCategories"][];
         };
+        /** @description Body of PUT /api/v1/products/{id}/stock: the units on hand after a count. */
+        SetStockRequest: {
+            /** Format: int32 */
+            stockQuantity: number;
+        };
+        /** @description Body of POST /api/v1/products/{id}/notify: where to write when the product is back. */
+        StockAlertRequest: {
+            email: string;
+        };
+        /**
+         * @description How a product's availability is shown to customers.
+         * @enum {string}
+         */
+        StockAvailability: "inStock" | "lowStock" | "outOfStock";
         /**
          * @description The error response as this store fills it, for the document only: the RFC 9457 members
          *     plus the trace id every problem carries and the field messages of a validation problem.

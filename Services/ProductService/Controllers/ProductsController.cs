@@ -18,10 +18,12 @@ namespace Store.ProductService.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
+    private readonly IStockLedger _stock;
 
-    public ProductsController(IProductService productService)
+    public ProductsController(IProductService productService, IStockLedger stock)
     {
         _productService = productService;
+        _stock = stock;
     }
 
     /// <summary>Id of the signed-in administrator, for the audit trail.</summary>
@@ -44,7 +46,7 @@ public class ProductsController : ControllerBase
 
     /// <summary>
     /// Every product, inactive ones included, sorted by <paramref name="sortBy"/> (id, price,
-    /// title, company) in <paramref name="sortDir"/> (asc, desc).
+    /// title, company, stock - the units available) in <paramref name="sortDir"/> (asc, desc).
     /// </summary>
     [HttpGet("admin")]
     [Authorize(Policy = Policies.Admin)]
@@ -86,6 +88,30 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> DeleteProduct(int id)
     {
         await _productService.DeleteProductAsync(id, ActorId);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Sets the units on hand after a count; it cannot go below the units held for orders not
+    /// shipped yet (422). Visitors waiting for the product are told when it is back.
+    /// </summary>
+    [HttpPut("{id:int}/stock")]
+    [Authorize(Policy = Policies.AdminWrite)]
+    public async Task<ProductDetailResponse> SetStock(int id, [FromBody] SetStockRequest request)
+    {
+        await _stock.SetStockAsync(id, request.StockQuantity, ActorId);
+        return await _productService.GetProductForAdminAsync(id);
+    }
+
+    /// <summary>
+    /// Asks for an e-mail once a product that ran out can be bought again; anyone may ask, and
+    /// asking twice changes nothing. A product in stock answers 409: it can be bought now.
+    /// </summary>
+    [HttpPost("{id:int}/notify")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> NotifyWhenBack(int id, [FromBody] StockAlertRequest request)
+    {
+        await _stock.SubscribeAsync(id, request.Email);
         return NoContent();
     }
 

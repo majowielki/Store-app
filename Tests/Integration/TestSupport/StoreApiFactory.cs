@@ -76,11 +76,23 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
             // Keeps the service's consumers and outbox, replaces the transport with in-memory
             if (services.Any(d => d.ServiceType == typeof(IBus)))
             {
-                services.AddMassTransitTestHarness(bus => bus.AddConsumer<AuditEventProbe>());
+                services.AddMassTransitTestHarness(bus =>
+                {
+                    bus.AddConsumer<AuditEventProbe>();
+                    ConfigureTestBus(bus);
+                });
             }
 
             ConfigureTestServices(services);
         });
+    }
+
+    /// <summary>
+    /// Extra consumers on the test bus, typically probes for the events the service publishes from
+    /// its own consumers (those are observable only as consumed, see <see cref="AuditEventProbe"/>).
+    /// </summary>
+    protected virtual void ConfigureTestBus(IBusRegistrationConfigurator bus)
+    {
     }
 
     /// <summary>Extra configuration values for a specific service.</summary>

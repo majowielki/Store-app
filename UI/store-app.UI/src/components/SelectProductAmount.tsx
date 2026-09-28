@@ -15,6 +15,8 @@ interface SelectProductAmountProps {
   mode: Mode.SingleProduct;
   amount: number;
   setAmount: React.Dispatch<React.SetStateAction<number>>;
+  /** The most a customer can take: the units still available, when fewer than ten. */
+  max?: number;
   className?: string;
 };
 
@@ -25,13 +27,11 @@ interface SelectCartItemAmountProps {
   className?: string;
 };
 
-const SelectProductAmount = ({
-  mode,
-  amount,
-  setAmount,
-  className,
-}: SelectProductAmountProps | SelectCartItemAmountProps) => {
+const SelectProductAmount = (props: SelectProductAmountProps | SelectCartItemAmountProps) => {
+  const { mode, amount, setAmount, className } = props;
   const cartItem = mode === Mode.CartItem;
+  const max = props.mode === Mode.SingleProduct ? props.max : undefined;
+  const choices = cartItem ? amount + 10 : Math.max(1, Math.min(10, max ?? 10));
 
   return (
     <Select
@@ -42,7 +42,7 @@ const SelectProductAmount = ({
         <SelectValue placeholder={amount} />
       </SelectTrigger>
       <SelectContent>
-        {Array.from({ length: cartItem ? amount + 10 : 10 }, (_, index) => {
+        {Array.from({ length: choices }, (_, index) => {
           const selectValue = (index + 1).toString();
           return (
             <SelectItem key={index} value={selectValue}>

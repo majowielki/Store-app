@@ -38,6 +38,10 @@ internal static class ProductRules
         .InclusiveBetween(0, ProductConstraints.MaxDimension)
         .WithMessage($"{name} must be between 0 and {ProductConstraints.MaxDimension}.");
 
+    public static IRuleBuilderOptions<T, int> StockQuantity<T>(this IRuleBuilder<T, int> rule) => rule
+        .InclusiveBetween(0, ProductConstraints.MaxStockQuantity)
+        .WithMessage($"The stock must be between 0 and {ProductConstraints.MaxStockQuantity} units.");
+
     public static IRuleBuilderOptions<T, string?> ProductImage<T>(this IRuleBuilder<T, string?> rule) => rule
         .NotEmpty().WithMessage("Image is required.")
         .Must(IsAbsoluteUrl).WithMessage("Image must be a valid http(s) URL.");

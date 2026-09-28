@@ -1,5 +1,6 @@
 using Store.Contracts.Catalog;
 using Store.ProductService.Data;
+using Store.ProductService.Models;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Validators;
@@ -130,6 +131,19 @@ public class DemoCatalogueTests
             products.Count(p => p.Groups.Contains(room)) >= 8,
             $"{room} has only {products.Count(p => p.Groups.Contains(room))} products"));
         Assert.All(products, p => Assert.All(p.Groups, group => Assert.Contains(group, rooms)));
+    }
+
+    [Fact]
+    public void Most_products_are_in_stock_and_the_named_ones_are_low_or_sold_out()
+    {
+        var products = DemoCatalogue.Products();
+        var slugs = products.Select(p => p.Slug).ToHashSet(StringComparer.Ordinal);
+
+        Assert.All(DemoCatalogue.StockedSlugs, slug => Assert.Contains(slug, slugs));
+        Assert.Contains(products, p => p.StockQuantity == 0);
+        Assert.Contains(products, p => p.StockQuantity is > 0 and <= StockPolicy.LowStockThreshold);
+        Assert.All(products.Where(p => !DemoCatalogue.StockedSlugs.Contains(p.Slug)),
+            p => Assert.InRange(p.StockQuantity, 8, 40));
     }
 
     private static string RepositoryRoot()

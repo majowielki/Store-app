@@ -1,4 +1,5 @@
 using Store.Contracts.Catalog;
+using Store.ProductService.Models;
 
 namespace Store.ProductService.DTOs.Responses;
 
@@ -22,13 +23,24 @@ public class ProductResponse
     public List<string> Colors { get; set; } = new();
     public List<string> Groups { get; set; } = new();
 
-    // New fields for admin
     public decimal? WidthCm { get; set; }
     public decimal? HeightCm { get; set; }
     public decimal? DepthCm { get; set; }
     public decimal? WeightKg { get; set; }
     public List<string> Materials { get; set; } = new();
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Whether a customer can buy it now: in stock, only a few left (low), or out of stock.</summary>
+    public StockAvailability Availability { get; set; }
+
+    /// <summary>Units a new order can get.</summary>
+    public int AvailableQuantity { get; set; }
+
+    /// <summary>Units on hand, held ones included; only in the admin responses.</summary>
+    public int? StockQuantity { get; set; }
+
+    /// <summary>Units held for orders not shipped yet; only in the admin responses.</summary>
+    public int? ReservedQuantity { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

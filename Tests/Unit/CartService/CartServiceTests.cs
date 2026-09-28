@@ -39,7 +39,7 @@ public class CartServiceTests
     }
 
     private static ProductSnapshot Snapshot(int id, decimal effectivePrice, bool isActive = true)
-        => new(id, $"Product {id}", "https://example.test/p.jpg", "Modenza", new[] { "black" }, effectivePrice, effectivePrice, isActive, DateTime.UtcNow);
+        => new(id, $"Product {id}", "https://example.test/p.jpg", "Modenza", new[] { "black" }, effectivePrice, effectivePrice, isActive, DateTime.UtcNow, AvailableQuantity: 50);
 
     [Fact]
     public async Task GetCartAsync_Returns_An_Empty_Cart_Without_Creating_One()

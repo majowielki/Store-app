@@ -61,6 +61,11 @@ public static class MessagingExtensions
             {
                 outbox.UsePostgres();
                 outbox.UseBusOutbox();
+                // A consumer's work runs in the inbox transaction. Under the default repeatable
+                // read, two consumers locking the same row (the last unit of a product, an order)
+                // fail with a serialization error and burn retries; read committed makes the
+                // second one wait for the lock and then see what the first one committed.
+                outbox.IsolationLevel = System.Data.IsolationLevel.ReadCommitted;
                 outbox.QueryDelay = TimeSpan.FromSeconds(1);
                 outbox.DuplicateDetectionWindow = TimeSpan.FromMinutes(30);
             });

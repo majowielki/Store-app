@@ -68,6 +68,15 @@ public class Product
     /// </summary>
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Units on hand, the ones held for orders included; shipping an order takes its units off.</summary>
+    public int StockQuantity { get; set; }
+
+    /// <summary>Units held for orders that are placed but not shipped yet (<see cref="StockOrder"/>).</summary>
+    public int ReservedQuantity { get; set; }
+
+    /// <summary>What a new order can still get.</summary>
+    public int AvailableQuantity => Math.Max(0, StockQuantity - ReservedQuantity);
+
     /// <summary>
     /// The price a customer actually pays: the sale price when one is set, otherwise the list
     /// price reduced by the discount percent. Cart and order snapshots must use this value.
@@ -91,5 +100,6 @@ public class Product
         Price,
         EffectivePrice,
         IsActive,
-        UpdatedAt);
+        UpdatedAt,
+        AvailableQuantity);
 }

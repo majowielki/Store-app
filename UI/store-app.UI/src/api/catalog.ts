@@ -52,6 +52,16 @@ export const catalogApi = api.injectEndpoints({
       query: ({ id, body }) => ({ url: `/products/${id}`, method: 'PUT', body }),
       invalidatesTags: unlessFailed(['Products']),
     }),
+    /** The units on hand after a count; the API refuses less than the orders hold. */
+    setProductStock: build.mutation<ProductDetail, { id: number; stockQuantity: number }>({
+      query: ({ id, stockQuantity }) => ({ url: `/products/${id}/stock`, method: 'PUT', body: { stockQuantity } }),
+      invalidatesTags: unlessFailed(['Products']),
+    }),
+    /** An e-mail once a sold-out product is back; the API answers 409 when it is in stock again. */
+    notifyWhenBack: build.mutation<void, { id: number; email: string }>({
+      query: ({ id, email }) => ({ url: `/products/${id}/notify`, method: 'POST', body: { email } }),
+      extraOptions: { silent: true },
+    }),
     deleteProduct: build.mutation<void, number>({
       query: (id) => ({ url: `/products/${id}`, method: 'DELETE' }),
       invalidatesTags: unlessFailed(['Products']),
@@ -68,4 +78,6 @@ export const {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useSetProductStockMutation,
+  useNotifyWhenBackMutation,
 } = catalogApi;

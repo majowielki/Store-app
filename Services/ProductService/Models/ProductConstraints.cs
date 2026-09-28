@@ -27,4 +27,8 @@ public static class ProductConstraints
     public const decimal MaxPrice = 999999.99m;
     public const decimal MaxDiscountPercent = 100m;
     public const decimal MaxDimension = 100000m;
+
+    /// <summary>Units an administrator can put on hand for one product.</summary>
+    public const int MaxStockQuantity = 100000;
+    public const int EmailMaxLength = 256;
 }

@@ -38,6 +38,9 @@ public class CreateProductRequest
 
     public List<string>? Materials { get; set; }
 
+    /// <summary>Units on hand to start with; none means the product starts out of stock.</summary>
+    public int StockQuantity { get; set; }
+
     /// <summary>Pictures shown after the main one, in order; none leaves the product with its main picture only.</summary>
     public List<ProductImageDto>? Images { get; set; }
 

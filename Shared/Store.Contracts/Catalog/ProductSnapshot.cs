@@ -14,6 +14,7 @@ namespace Store.Contracts.Catalog;
 /// <param name="EffectivePrice">The price a customer pays right now (sale price or discounted list price)</param>
 /// <param name="IsActive">False once the product was deleted from the catalogue</param>
 /// <param name="UpdatedAt">Last change in the catalogue, for callers that cache</param>
+/// <param name="AvailableQuantity">Units a new order can get right now; the reservation after checkout is what counts</param>
 public sealed record ProductSnapshot(
     int Id,
     string Title,
@@ -23,4 +24,5 @@ public sealed record ProductSnapshot(
     decimal Price,
     decimal EffectivePrice,
     bool IsActive,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    int AvailableQuantity);

@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useCreateProductMutation, useGetProductForAdminQuery, useGetProductsMetaQuery, useUpdateProductMutation } from '@/api/catalog';
+import {
+  useCreateProductMutation,
+  useGetProductForAdminQuery,
+  useGetProductsMetaQuery,
+  useSetProductStockMutation,
+  useUpdateProductMutation,
+} from '@/api/catalog';
 import type { ProductCategory, ProductCompany, ProductDetail, ProductHotspot, ProductImage, ProductPayload, ProductsMeta } from '@/api/types';
 import FormCheckbox from '@/components/FormCheckbox';
 import FormInput from '@/components/FormInput';
@@ -42,6 +48,7 @@ const toPayload = (fd: FormData): ProductPayload => ({
   heightCm: optionalNumber(fd.get('heightCm')),
   depthCm: optionalNumber(fd.get('depthCm')),
   weightKg: optionalNumber(fd.get('weightKg')),
+  stockQuantity: optionalNumber(fd.get('stockQuantity')) ?? 0,
 });
 
 const ProductForm = () => {
@@ -88,7 +95,8 @@ const ProductFields = ({ id, product, meta }: ProductFieldsProps) => {
   const [hotspots, setHotspots] = useState<ProductHotspot[]>(product?.hotspots ?? []);
   const [createProduct, { isLoading: creating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: updating }] = useUpdateProductMutation();
-  const saving = creating || updating;
+  const [setProductStock, { isLoading: stocking }] = useSetProductStockMutation();
+  const saving = creating || updating || stocking;
 
   // A refusal (validation 422 with the field messages, or 403 for the demo administrator)
   // has been reported by the error middleware
@@ -102,7 +110,12 @@ const ProductFields = ({ id, product, meta }: ProductFieldsProps) => {
     const payload = { ...toPayload(new FormData(e.currentTarget)), images, hotspots };
     try {
       if (editing) {
-        await updateProduct({ id, body: { ...payload, isActive: true } }).unwrap();
+        // The stock has its own endpoint: it is counted in the warehouse, not edited with the product
+        const { stockQuantity, ...fields } = payload;
+        await updateProduct({ id, body: { ...fields, isActive: true } }).unwrap();
+        if (stockQuantity !== product?.stockQuantity) {
+          await setProductStock({ id, stockQuantity }).unwrap();
+        }
         toast({ description: 'Product updated.' });
       } else {
         await createProduct(payload).unwrap();
@@ -161,6 +174,14 @@ const ProductFields = ({ id, product, meta }: ProductFieldsProps) => {
         label="materials (comma separated)"
         defaultValue={product?.materials?.join(', ') ?? ''}
       />
+      <div className="grid gap-2">
+        <FormInput type="number" name="stockQuantity" label="units on hand" defaultValue={product?.stockQuantity ?? 0} required min={product?.reservedQuantity ?? 0} max={100000} step="1" />
+        {editing && product && (
+          <p className="text-xs text-muted-foreground">
+            {product.reservedQuantity ?? 0} held for orders not shipped yet, {product.availableQuantity} available.
+          </p>
+        )}
+      </div>
       <div className="grid gap-8 border-t pt-6 md:col-span-2">
         <GalleryEditor images={images} onChange={setImages} />
         <HotspotEditor image={mainImage} hotspots={hotspots} onChange={setHotspots} />
