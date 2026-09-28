@@ -11,6 +11,7 @@ import { formatAsDollars, type Product } from '@/utils';
 import DeliveryEstimate from './DeliveryEstimate';
 import FreeDeliveryProgress from './FreeDeliveryProgress';
 import ProductPrice from './ProductPrice';
+import FinishLabel from './swatch/FinishLabel';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './ui/sheet';
 
@@ -83,8 +84,8 @@ const CartDrawer = () => {
                 </Link>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{line.title}</p>
-                  <p className="text-xs capitalize text-muted-foreground">
-                    {line.color} · {line.quantity} × {formatAsDollars(line.unitPrice)}
+                  <p className="text-xs text-muted-foreground">
+                    <FinishLabel color={line.color} /> · {line.quantity} × {formatAsDollars(line.unitPrice)}
                   </p>
                 </div>
                 <span className="text-sm tabular-nums">{formatAsDollars(line.lineTotal)}</span>

@@ -19,7 +19,7 @@ export interface paths {
                     category?: string;
                     group?: string;
                     company?: string;
-                    /** @description One colour, as the shop's filter form sends it; the same as colors with a single value. */
+                    /** @description One colour family ("white") or finish ("natural-oak"), as the shop's filter form sends it; the same as colors with a single value. */
                     color?: string;
                     order?: string;
                     price?: string;
@@ -29,6 +29,7 @@ export interface paths {
                     page?: number;
                     pageSize?: number;
                     materials?: string;
+                    /** @description Comma-separated colour families ("white" - every finish of the family) or finish keys ("natural-oak"). */
                     colors?: string;
                     /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
                     slugs?: string;
@@ -277,7 +278,7 @@ export interface paths {
                     category?: string;
                     group?: string;
                     company?: string;
-                    /** @description One colour, as the shop's filter form sends it; the same as colors with a single value. */
+                    /** @description One colour family ("white") or finish ("natural-oak"), as the shop's filter form sends it; the same as colors with a single value. */
                     color?: string;
                     order?: string;
                     price?: string;
@@ -287,6 +288,7 @@ export interface paths {
                     page?: number;
                     pageSize?: number;
                     materials?: string;
+                    /** @description Comma-separated colour families ("white" - every finish of the family) or finish keys ("natural-oak"). */
                     colors?: string;
                     /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
                     slugs?: string;
@@ -306,6 +308,54 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ProductsMeta"];
+                    };
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/finishes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every finish products are sold in - the keys their colors list - with its name, the colour
+         *     family the filter counts it under and the swatch to draw.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FinishResponse"][];
                     };
                 };
                 /** @description Error, as an RFC 9457 problem (application/problem+json) */
@@ -396,7 +446,7 @@ export interface paths {
                     category?: string;
                     group?: string;
                     company?: string;
-                    /** @description One colour, as the shop's filter form sends it; the same as colors with a single value. */
+                    /** @description One colour family ("white") or finish ("natural-oak"), as the shop's filter form sends it; the same as colors with a single value. */
                     color?: string;
                     order?: string;
                     price?: string;
@@ -406,6 +456,7 @@ export interface paths {
                     page?: number;
                     pageSize?: number;
                     materials?: string;
+                    /** @description Comma-separated colour families ("white" - every finish of the family) or finish keys ("natural-oak"). */
                     colors?: string;
                     /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
                     slugs?: string;
@@ -713,6 +764,11 @@ export interface components {
     schemas: {
         /** @enum {string} */
         Category: "all" | "sofas" | "chairs" | "tables" | "beds" | "mattresses" | "desks" | "tvStands" | "bookcases" | "wardrobes" | "dressers" | "nightstands" | "sideboards" | "rugs" | "outdoorFurniture" | "entrywayFurniture" | "decor" | "bathroomStorage" | "bathroomFurniture" | "bathroomMirrors" | "kitchenCabinets" | "kitchenIslands" | "gardenSets" | "kidsBeds" | "kidsDesks" | "tableLamps" | "floorLamps";
+        /**
+         * @description The colour families the shop's colour filter groups the finishes of products under; "All" is the filter value meaning any.
+         * @enum {string}
+         */
+        Color: "all" | "white" | "black" | "gray" | "red" | "blue" | "green" | "yellow" | "orange" | "purple" | "pink" | "brown" | "navy" | "maroon" | "teal" | "silver" | "gold";
         /** @enum {string} */
         Company: "all" | "modenza" | "luxora" | "artifex" | "comfora" | "homestead";
         /** @description Body of POST /api/v1/products. Rules: `CreateProductRequestValidator`. */
@@ -729,6 +785,7 @@ export interface components {
             company: components["schemas"]["Company"];
             newArrival: boolean;
             image: string;
+            /** @description The finishes it is sold in, by key (GET /products/finishes), the photographed one first. */
             colors: string[];
             groups?: string[] | null;
             /** Format: double */
@@ -775,7 +832,7 @@ export interface components {
             companies: {
                 [key: string]: number;
             };
-            /** @description By colour key. */
+            /** @description By colour family key ("white"): a product counts once under each family of its finishes. */
             colors: {
                 [key: string]: number;
             };
@@ -793,6 +850,19 @@ export interface components {
              * @description New arrivals.
              */
             newArrival: number;
+        };
+        /**
+         * @description A colour products are sold in, as the shop draws its swatch: the key products, carts and orders
+         *     store, the name to show, the family the colour filter counts it under, and one or two parts.
+         */
+        FinishResponse: {
+            /** @description What a product's colors list ("natural-oak") */
+            key: string;
+            /** @description What the shop shows ("Natural oak") */
+            name: string;
+            family: components["schemas"]["Color"];
+            /** @description One part, or two for a product of two colours or materials, the main one first */
+            swatch: components["schemas"]["SwatchPartResponse"][];
         };
         GroupWithCategories: {
             key: string;
@@ -831,6 +901,7 @@ export interface components {
             company: components["schemas"]["Company"];
             newArrival: boolean;
             image: string;
+            /** @description The finishes it is sold in, by key (GET /products/finishes), the photographed one first. */
             colors: string[];
             groups: string[];
             /** Format: double */
@@ -912,6 +983,7 @@ export interface components {
             company: components["schemas"]["Company"];
             newArrival: boolean;
             image: string;
+            /** @description The finishes it is sold in, by key (GET /products/finishes), the photographed one first. */
             colors: string[];
             groups: string[];
             /** Format: double */
@@ -1037,6 +1109,7 @@ export interface components {
             categories: string[];
             groups: string[];
             companies: string[];
+            /** @description The colour families; a product is under the families of its finishes (GET /products/finishes). */
             colors: string[];
             /** @description Groups with the categories that belong to them, for dependent dropdowns. */
             groupCategoryMap: components["schemas"]["GroupWithCategories"][];
@@ -1078,6 +1151,19 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** @description One part of a swatch. */
+        SwatchPartResponse: {
+            /** @description Its colour (#rrggbb); with a texture, the texture's average, to show while the picture loads */
+            color: string;
+            texture?: components["schemas"]["SwatchTexture"];
+        };
+        /**
+         * @description The surfaces a swatch shows beside its colour - a wood, a weave, a stone, a metal. Each is a
+         *     crop of a product picture (Scripts/swatches.json) the UI draws the swatch with; the API writes
+         *     them in camelCase.
+         * @enum {string}
+         */
+        SwatchTexture: "naturalOak" | "lightOak" | "honeyOak" | "walnut" | "teak" | "pine" | "birch" | "beech" | "bamboo" | "acacia" | "oliveWood" | "reclaimedWood" | "rubberwood" | "rattan" | "cane" | "rattanWeave" | "greyRattan" | "seagrass" | "jute" | "travertine" | "marble" | "terracotta" | "speckledStoneware" | "greyStoneware" | "stone" | "whiteGlaze" | "brass" | "blackSteel";
         /**
          * @description Body of PUT /api/v1/products/{id}: a partial update. A property that is absent keeps the
          *     current value. Fields that can be empty use Store.BuildingBlocks.Api.Optional`1, so sending them as
@@ -1095,6 +1181,7 @@ export interface components {
             company?: components["schemas"]["Company"];
             newArrival?: boolean | null;
             image?: string | null;
+            /** @description The finishes it is sold in, by key (GET /products/finishes), the photographed one first. */
             colors?: string[] | null;
             /** @description Replaces the whole list when present; an empty list removes every group. */
             groups?: string[] | null;

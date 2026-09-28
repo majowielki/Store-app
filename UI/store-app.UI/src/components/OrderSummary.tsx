@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import OrderTimeline from './OrderTimeline';
+import FinishLabel from './swatch/FinishLabel';
 import { formatAsDollars, formatDateTime, type Order } from '@/utils';
 
 interface OrderSummaryProps {
@@ -52,10 +53,7 @@ const OrderSummary = ({ title, order, actions, lineActions }: OrderSummaryProps)
                   <span>{it.productTitle}</span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-3.5 w-3.5 rounded-full border border-foreground/20" style={{ backgroundColor: it.color }} />
-                    <span className="text-xs capitalize text-muted-foreground">{it.color}</span>
-                  </div>
+                  <FinishLabel color={it.color} className="text-xs text-muted-foreground" />
                 </TableCell>
                 <TableCell className="tabular-nums">{it.quantity}</TableCell>
                 <TableCell className="tabular-nums">{formatAsDollars(it.price)}</TableCell>

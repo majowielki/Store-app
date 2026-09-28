@@ -46,12 +46,13 @@ internal static class ProductRules
         .NotEmpty().WithMessage("Image is required.")
         .Must(IsAbsoluteUrl).WithMessage("Image must be a valid http(s) URL.");
 
+    /// <summary>The colours a product is sold in: keys of the shop's finishes, each once.</summary>
     public static IRuleBuilderOptions<T, IEnumerable<string>> ProductColors<T>(this IRuleBuilder<T, List<string>?> rule) => rule
         .NotNull().WithMessage("Colors are required.")
         .Must(c => c!.Count > 0).WithMessage("At least one color is required.")
+        .Must(c => c!.Distinct(StringComparer.Ordinal).Count() == c!.Count).WithMessage("Each color is listed once.")
         .ForEach(color => color
-            .NotEmpty().WithMessage("Color cannot be empty.")
-            .MaximumLength(ProductConstraints.ColorMaxLength).WithMessage($"Color must be at most {ProductConstraints.ColorMaxLength} characters."));
+            .Must(FinishCatalogue.Exists).WithMessage("'{PropertyValue}' is not one of the shop's finishes."));
 
     public static IRuleBuilderOptions<T, IEnumerable<string>> ProductGroups<T>(this IRuleBuilder<T, List<string>?> rule) => rule
         .ForEach(group => group

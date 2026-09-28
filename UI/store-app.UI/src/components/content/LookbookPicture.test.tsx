@@ -58,7 +58,7 @@ describe('AddLookButton', () => {
 
     expect(await screen.findByText('2 pieces added to your bag.', { exact: true })).toBeInTheDocument();
     expect(store.getState().guestCart.items.map(({ productId, color, quantity, unitPrice }) => ({ productId, color, quantity, unitPrice }))).toEqual([
-      { productId: 7, color: 'brown', quantity: 1, unitPrice: 320 },
+      { productId: 7, color: 'natural-oak', quantity: 1, unitPrice: 320 },
       { productId: 8, color: 'white', quantity: 1, unitPrice: 90 },
     ]);
   });

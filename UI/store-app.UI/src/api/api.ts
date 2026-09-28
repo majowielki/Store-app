@@ -22,3 +22,6 @@ export const unlessFailed =
   (tags: ApiTag[]) =>
   (_result: unknown, error: unknown): ApiTag[] =>
     error ? [] : tags;
+
+/** Seconds an unused answer stays cached when it is the shop's configuration, the same for everyone: the whole visit. */
+export const KEEP_FOR_THE_VISIT = 24 * 60 * 60;

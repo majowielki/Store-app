@@ -46,7 +46,7 @@ public class ProductServiceTests
             Category = 0,
             Company = 0,
             Image = "http://img.com",
-            Colors = new System.Collections.Generic.List<string> { "Red" }
+            Colors = [FinishCatalogue.Walnut.Key]
         };
         var result = await _productService.CreateProductAsync(request);
         Assert.NotNull(result);
@@ -72,7 +72,7 @@ public class ProductServiceTests
             Category = 0,
             Company = 0,
             Image = "old.png",
-            Colors = new System.Collections.Generic.List<string> { "Blue" },
+            Colors = [FinishCatalogue.NavyLinen.Key],
             CreatedAt = System.DateTime.UtcNow,
             UpdatedAt = System.DateTime.UtcNow
         };
@@ -104,7 +104,7 @@ public class ProductServiceTests
             Category = 0,
             Company = 0,
             Image = "img.png",
-            Colors = new System.Collections.Generic.List<string> { "Green" },
+            Colors = [FinishCatalogue.SageOak.Key],
             CreatedAt = System.DateTime.UtcNow,
             UpdatedAt = System.DateTime.UtcNow
         };

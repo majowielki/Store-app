@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -37,7 +37,7 @@ describe('comparing products', () => {
         json(
           page([
             product({ id: 7, widthCm: 180, weightKg: 42, materials: ['oak'] }),
-            product({ id: 8, title: 'Pine Chair', salePrice: null, effectivePrice: 90, price: 90, widthCm: null, colors: ['white'] }),
+            product({ id: 8, title: 'Pine Chair', salePrice: null, effectivePrice: 90, price: 90, widthCm: null, colors: ['navy-linen'] }),
           ]),
         ),
       ),
@@ -48,7 +48,7 @@ describe('comparing products', () => {
     expect(width).toHaveTextContent('180 cm');
     expect(width).toHaveTextContent('—');
     expect(screen.getByRole('row', { name: /^Weight/ })).toHaveTextContent('42 kg');
-    expect(screen.getByRole('row', { name: /^Colours/ })).toHaveTextContent('white');
+    await waitFor(() => expect(screen.getByRole('row', { name: /^Colours/ })).toHaveTextContent('Navy linen'));
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([expect.stringContaining('Oak Table'), expect.stringContaining('Pine Chair')]);
   });
 });

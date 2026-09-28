@@ -1,5 +1,8 @@
 import { Check } from 'lucide-react';
+import { useFinishes } from '@/hooks/use-finishes';
 import { cn } from '@/lib/utils';
+import { isLightSwatch } from './swatch/contrast';
+import Swatch from './swatch/Swatch';
 
 interface SelectProductColorProps {
   colors: string[];
@@ -7,18 +10,18 @@ interface SelectProductColorProps {
   setProductColor: React.Dispatch<React.SetStateAction<string>>;
 };
 
-// Light swatches get a dark tick, the rest a light one
-const lightColors = new Set(['white', 'yellow', 'silver', 'gold', 'beige', 'pink']);
-
+/** The colours a product is sold in, as swatches the customer picks one of. */
 const SelectProductColor = ({
   colors,
   productColor,
   setProductColor,
 }: SelectProductColorProps) => {
+  const { finishOf, nameOf } = useFinishes();
+
   return (
     <div>
       <h4 className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Colour — <span className="capitalize text-foreground">{productColor}</span>
+        Colour — <span className="normal-case tracking-normal text-foreground">{nameOf(productColor)}</span>
       </h4>
       <div className="mt-3 flex flex-wrap gap-2.5" role="radiogroup" aria-label="Colour">
         {colors.map((color) => {
@@ -29,15 +32,23 @@ const SelectProductColor = ({
               type="button"
               role="radio"
               aria-checked={selected}
-              aria-label={color}
+              aria-label={nameOf(color)}
+              title={nameOf(color)}
               onClick={() => setProductColor(color)}
               className={cn(
-                'grid h-9 w-9 place-items-center rounded-full border border-foreground/15 ring-offset-2 ring-offset-background transition-all duration-300',
+                'relative grid h-9 w-9 place-items-center rounded-full ring-offset-2 ring-offset-background transition-all duration-300',
                 selected ? 'ring-2 ring-foreground' : 'hover:scale-110',
               )}
-              style={{ backgroundColor: color }}
             >
-              {selected && <Check className={cn('h-4 w-4', lightColors.has(color) ? 'text-black' : 'text-white')} />}
+              <Swatch color={color} className="absolute inset-0 h-full w-full" />
+              {selected && (
+                <Check
+                  className={cn(
+                    'relative h-4 w-4 drop-shadow-sm',
+                    isLightSwatch(finishOf(color)?.swatch) ? 'text-black' : 'text-white',
+                  )}
+                />
+              )}
             </button>
           );
         })}

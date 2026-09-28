@@ -351,7 +351,7 @@ export interface components {
         ChargeResult: "approved" | "authenticationRequired" | "declined" | "insufficientFunds";
         /**
          * @description Body of POST /api/v1/payments/{id}/confirm: the card, typed by the customer. Only the test
-         *     cards are taken (see `TestCards`); rules: `ConfirmPaymentRequestValidator`.
+         *     cards are taken (`GET /api/v1/payments/test-cards` lists them); rules: `ConfirmPaymentRequestValidator`.
          */
         ConfirmPaymentRequest: {
             /** @description Digits, spaces and dashes allowed. */

@@ -12,7 +12,6 @@ public static class ProductConstraints
     public const int DescriptionMinLength = 10;
     public const int DescriptionMaxLength = 4000;
     public const int EnumMaxLength = 50;
-    public const int ColorMaxLength = 50;
     public const int GroupMaxLength = 100;
     public const int MaterialMaxLength = 100;
     public const int ImageUrlMaxLength = 2048;

@@ -1,4 +1,5 @@
 using Store.Contracts.Reviews.V1;
+using Store.ProductService.Models;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -34,7 +35,7 @@ public sealed class ProductRatingTests : IClassFixture<CatalogApiFactory>
             category = 1,
             company = 1,
             image = "https://example.test/rating.jpg",
-            colors = new[] { "Black" },
+            colors = new[] { FinishCatalogue.BlackSteelOak.Key },
             stockQuantity = 5
         });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);

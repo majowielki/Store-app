@@ -1,6 +1,6 @@
 namespace Store.Contracts.Catalog;
 
-/// <summary>The colour variants a product can be sold in; "All" is the filter value meaning any.</summary>
+/// <summary>The colour families the shop's colour filter groups the finishes of products under; "All" is the filter value meaning any.</summary>
 public enum Color
 {
     All,

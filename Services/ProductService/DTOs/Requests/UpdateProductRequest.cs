@@ -30,6 +30,7 @@ public class UpdateProductRequest
 
     public string? Image { get; set; }
 
+    /// <summary>The finishes it is sold in, by key (GET /products/finishes), the photographed one first.</summary>
     public List<string>? Colors { get; set; }
 
     /// <summary>Replaces the whole list when present; an empty list removes every group.</summary>

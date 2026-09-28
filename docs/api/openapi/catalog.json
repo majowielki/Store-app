@@ -44,7 +44,7 @@
           {
             "name": "color",
             "in": "query",
-            "description": "One colour, as the shop's filter form sends it; the same as colors with a single value.",
+            "description": "One colour family (\"white\") or finish (\"natural-oak\"), as the shop's filter form sends it; the same as colors with a single value.",
             "schema": {
               "type": "string"
             }
@@ -104,6 +104,7 @@
           {
             "name": "colors",
             "in": "query",
+            "description": "Comma-separated colour families (\"white\" - every finish of the family) or finish keys (\"natural-oak\").",
             "schema": {
               "type": "string"
             }
@@ -378,7 +379,7 @@
           {
             "name": "color",
             "in": "query",
-            "description": "One colour, as the shop's filter form sends it; the same as colors with a single value.",
+            "description": "One colour family (\"white\") or finish (\"natural-oak\"), as the shop's filter form sends it; the same as colors with a single value.",
             "schema": {
               "type": "string"
             }
@@ -438,6 +439,7 @@
           {
             "name": "colors",
             "in": "query",
+            "description": "Comma-separated colour families (\"white\" - every finish of the family) or finish keys (\"natural-oak\").",
             "schema": {
               "type": "string"
             }
@@ -466,6 +468,39 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductsMeta"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/finishes": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Every finish products are sold in - the keys their colors list - with its name, the colour\nfamily the filter counts it under and the swatch to draw.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinishResponse"
+                  }
                 }
               }
             }
@@ -569,7 +604,7 @@
           {
             "name": "color",
             "in": "query",
-            "description": "One colour, as the shop's filter form sends it; the same as colors with a single value.",
+            "description": "One colour family (\"white\") or finish (\"natural-oak\"), as the shop's filter form sends it; the same as colors with a single value.",
             "schema": {
               "type": "string"
             }
@@ -629,6 +664,7 @@
           {
             "name": "colors",
             "in": "query",
+            "description": "Comma-separated colour families (\"white\" - every finish of the family) or finish keys (\"natural-oak\").",
             "schema": {
               "type": "string"
             }
@@ -942,6 +978,29 @@
         ],
         "type": "string"
       },
+      "Color": {
+        "enum": [
+          "all",
+          "white",
+          "black",
+          "gray",
+          "red",
+          "blue",
+          "green",
+          "yellow",
+          "orange",
+          "purple",
+          "pink",
+          "brown",
+          "navy",
+          "maroon",
+          "teal",
+          "silver",
+          "gold"
+        ],
+        "type": "string",
+        "description": "The colour families the shop's colour filter groups the finishes of products under; \"All\" is the filter value meaning any."
+      },
       "Company": {
         "enum": [
           "all",
@@ -1003,7 +1062,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "The finishes it is sold in, by key (GET /products/finishes), the photographed one first."
           },
           "groups": {
             "type": "array",
@@ -1109,7 +1169,7 @@
               "type": "integer",
               "format": "int32"
             },
-            "description": "By colour key."
+            "description": "By colour family key (\"white\"): a product counts once under each family of its finishes."
           },
           "groups": {
             "type": "object",
@@ -1132,6 +1192,37 @@
         },
         "additionalProperties": false,
         "description": "How many active products each filter value would show together with the other filters of the\nquery (a value's own filter left out, so the other values of the same menu keep their counts)."
+      },
+      "FinishResponse": {
+        "required": [
+          "family",
+          "key",
+          "name",
+          "swatch"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "What a product's colors list (\"natural-oak\")"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the shop shows (\"Natural oak\")"
+          },
+          "family": {
+            "$ref": "#/components/schemas/Color"
+          },
+          "swatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SwatchPartResponse"
+            },
+            "description": "One part, or two for a product of two colours or materials, the main one first"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A colour products are sold in, as the shop draws its swatch: the key products, carts and orders\nstore, the name to show, the family the colour filter counts it under, and one or two parts."
       },
       "GroupWithCategories": {
         "required": [
@@ -1248,7 +1339,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "The finishes it is sold in, by key (GET /products/finishes), the photographed one first."
           },
           "groups": {
             "type": "array",
@@ -1454,7 +1546,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "The finishes it is sold in, by key (GET /products/finishes), the photographed one first."
           },
           "groups": {
             "type": "array",
@@ -1714,7 +1807,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "The colour families; a product is under the families of its finishes (GET /products/finishes)."
           },
           "groupCategoryMap": {
             "type": "array",
@@ -1815,6 +1909,57 @@
         "additionalProperties": { },
         "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
       },
+      "SwatchPartResponse": {
+        "required": [
+          "color"
+        ],
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "Its colour (#rrggbb); with a texture, the texture's average, to show while the picture loads"
+          },
+          "texture": {
+            "$ref": "#/components/schemas/SwatchTexture"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One part of a swatch."
+      },
+      "SwatchTexture": {
+        "enum": [
+          "naturalOak",
+          "lightOak",
+          "honeyOak",
+          "walnut",
+          "teak",
+          "pine",
+          "birch",
+          "beech",
+          "bamboo",
+          "acacia",
+          "oliveWood",
+          "reclaimedWood",
+          "rubberwood",
+          "rattan",
+          "cane",
+          "rattanWeave",
+          "greyRattan",
+          "seagrass",
+          "jute",
+          "travertine",
+          "marble",
+          "terracotta",
+          "speckledStoneware",
+          "greyStoneware",
+          "stone",
+          "whiteGlaze",
+          "brass",
+          "blackSteel"
+        ],
+        "type": "string",
+        "description": "The surfaces a swatch shows beside its colour - a wood, a weave, a stone, a metal. Each is a\ncrop of a product picture (Scripts/swatches.json) the UI draws the swatch with; the API writes\nthem in camelCase."
+      },
       "UpdateProductRequest": {
         "type": "object",
         "properties": {
@@ -1856,6 +2001,7 @@
             "items": {
               "type": "string"
             },
+            "description": "The finishes it is sold in, by key (GET /products/finishes), the photographed one first.",
             "nullable": true
           },
           "groups": {

@@ -9,6 +9,7 @@ import Loading from '@/components/Loading';
 import CardForm from '@/components/payment/CardForm';
 import { describeCard } from '@/components/payment/cards';
 import PaymentCountdown from '@/components/payment/PaymentCountdown';
+import FinishLabel from '@/components/swatch/FinishLabel';
 import { Button } from '@/components/ui/button';
 import { formatAsDollars, formatDayRange } from '@/utils';
 
@@ -184,8 +185,8 @@ const PayOrder = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{line.productTitle}</p>
-                  <p className="text-xs capitalize text-muted-foreground">
-                    {line.color} · {line.quantity} ×
+                  <p className="text-xs text-muted-foreground">
+                    <FinishLabel color={line.color} /> · {line.quantity} ×
                   </p>
                 </div>
                 <span className="text-sm tabular-nums">{formatAsDollars(line.lineTotal)}</span>

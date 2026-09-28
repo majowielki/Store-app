@@ -20,6 +20,7 @@ public class ProductResponse
     public bool NewArrival { get; set; }
     public string Image { get; set; } = string.Empty;
 
+    /// <summary>The finishes it is sold in, by key (GET /products/finishes), the photographed one first.</summary>
     public List<string> Colors { get; set; } = new();
     public List<string> Groups { get; set; } = new();
 

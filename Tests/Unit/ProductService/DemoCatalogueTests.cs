@@ -4,6 +4,7 @@ using Store.ProductService.Models;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
 using Store.ProductService.Validators;
+using Store.Tests.Unit.TestSupport;
 using Xunit;
 
 namespace Store.Tests.Unit.ProductService;
@@ -14,7 +15,7 @@ namespace Store.Tests.Unit.ProductService;
 /// </summary>
 public class DemoCatalogueTests
 {
-    private static readonly string Blobs = Path.Combine(RepositoryRoot(), "Blobs");
+    private static readonly string Blobs = Repository.PathTo("Blobs");
 
     public static TheoryData<string> Titles()
     {
@@ -73,7 +74,6 @@ public class DemoCatalogueTests
 
         Assert.True(result.IsValid, string.Join("; ", result.Errors));
         Assert.True(product.SalePrice is null || product.SalePrice < product.Price, "a sale price must be lower than the list price");
-        Assert.All(product.Colors, color => Assert.True(Enum.TryParse<Color>(color, out _), $"{color} is not a colour the shop filters by"));
     }
 
     [Theory]
@@ -144,16 +144,5 @@ public class DemoCatalogueTests
         Assert.Contains(products, p => p.StockQuantity is > 0 and <= StockOptions.DefaultLowStockThreshold);
         Assert.All(products.Where(p => !DemoCatalogue.StockedSlugs.Contains(p.Slug)),
             p => Assert.InRange(p.StockQuantity, 8, 40));
-    }
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Store.Microservices.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("The repository root was not found above " + AppContext.BaseDirectory);
     }
 }

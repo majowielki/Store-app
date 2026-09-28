@@ -1,5 +1,6 @@
 using Store.Contracts.Catalog.V1;
 using Store.Contracts.Orders.V1;
+using Store.ProductService.Models;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -39,7 +40,7 @@ public sealed class StockTests : IClassFixture<CatalogApiFactory>
             category = 1,
             company = 1,
             image = "https://example.test/stock.jpg",
-            colors = new[] { "Black" },
+            colors = new[] { FinishCatalogue.BlackSteelOak.Key },
             stockQuantity = stock
         });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);

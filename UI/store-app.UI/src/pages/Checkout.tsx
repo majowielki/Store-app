@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { CheckoutForm, Loading, CartTotals } from '@/components';
 import CheckoutSteps from '@/components/CheckoutSteps';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
+import FinishLabel from '@/components/swatch/FinishLabel';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/features/cart/useCart';
 import { formatAsDollars } from '@/utils';
@@ -46,7 +47,7 @@ const Checkout = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{line.title}</p>
-                  <p className="text-xs capitalize text-muted-foreground">{line.color}</p>
+                  <FinishLabel color={line.color} className="text-xs text-muted-foreground" />
                 </div>
                 <span className="text-sm tabular-nums">{formatAsDollars(line.lineTotal)}</span>
               </li>

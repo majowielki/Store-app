@@ -31,6 +31,11 @@ export type ProductCompany = Catalog['schemas']['Company'];
 export type ProductPayload = Catalog['schemas']['CreateProductRequest'];
 export type ProductUpdatePayload = Catalog['schemas']['UpdateProductRequest'];
 export type ProductsMeta = Catalog['schemas']['ProductsMeta'];
+/** A colour products are sold in, as the shop draws its swatch; products, carts and orders store its key. */
+export type Finish = Catalog['schemas']['FinishResponse'];
+export type SwatchPart = Catalog['schemas']['SwatchPartResponse'];
+/** The wood, weave, stone or metal a swatch part shows. */
+export type SwatchTexture = Catalog['schemas']['SwatchTexture'];
 /** How many products each filter value shows under the rest of a query. */
 export type FilterCounts = Catalog['schemas']['FilterCounts'];
 /** The search box's best matches and the correction of a mistyped search. */

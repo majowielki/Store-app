@@ -1,4 +1,4 @@
-import { api, unlessFailed } from './api';
+import { api, KEEP_FOR_THE_VISIT, unlessFailed } from './api';
 import { cartApi, emptyCart } from './cart';
 import type {
   CreateOrderFromCartRequest,
@@ -57,7 +57,7 @@ export const ordersApi = api.injectEndpoints({
     getPricingRules: build.query<PricingRules, void>({
       query: () => '/orders/pricing-rules',
       // Configuration of the store (and today's delivery window), not data of a user: kept for the whole visit
-      keepUnusedDataFor: 24 * 60 * 60,
+      keepUnusedDataFor: KEEP_FOR_THE_VISIT,
       extraOptions: { silent: true },
     }),
     /** Whether the customer has ordered before: the first order is discounted. */

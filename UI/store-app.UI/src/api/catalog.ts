@@ -1,6 +1,7 @@
-import { api, unlessFailed } from './api';
+import { api, KEEP_FOR_THE_VISIT, unlessFailed } from './api';
 import type {
   AdminProductQuery,
+  Finish,
   ProductDetail,
   ProductPayload,
   ProductQuery,
@@ -45,6 +46,16 @@ export const catalogApi = api.injectEndpoints({
       providesTags: ['Products'],
       extraOptions: { silent: true },
     }),
+    /**
+     * Every finish products are sold in, to draw their swatches and name them. The shop's own
+     * data, the same for everyone: kept for the whole visit. Silent: a swatch without it falls back
+     * to a plain dot.
+     */
+    getFinishes: build.query<Finish[], void>({
+      query: () => '/products/finishes',
+      keepUnusedDataFor: KEEP_FOR_THE_VISIT,
+      extraOptions: { silent: true },
+    }),
     /** The best matches while a search is typed, and its correction when it finds nothing as typed. */
     suggestProducts: build.query<ProductSuggestions, string>({
       query: (q) => ({ url: '/products/suggest', params: { q, limit: 6 } }),
@@ -87,6 +98,7 @@ export const {
   useGetProductForAdminQuery,
   useGetProductsMetaQuery,
   useSuggestProductsQuery,
+  useGetFinishesQuery,
   useGetProductsAdminQuery,
   useCreateProductMutation,
   useUpdateProductMutation,

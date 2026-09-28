@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
+import { useFinishes } from '@/hooks/use-finishes';
 import { useOpenProduct } from '@/hooks/use-open-product';
 import { cn } from '@/lib/utils';
 import { priceTag, type Product } from '@/utils';
@@ -9,17 +10,22 @@ import ProductPrice from './ProductPrice';
 import QuickView from './QuickView';
 import SaleBadge from './SaleBadge';
 import StockBadge from './StockBadge';
+import Swatch from './swatch/Swatch';
 import { RatingLine } from './reviews/Stars';
 import WishlistButton from './WishlistButton';
 
+/** How many colours a listing shows before "+n". */
+const SHOWN_COLORS = 5;
+
 /** The first few colours a product comes in, as small swatches. */
 export const ColorDots = ({ colors, className }: { colors: string[]; className?: string }) => {
+  const { nameOf } = useFinishes();
   if (colors.length === 0) return null;
-  const shown = colors.slice(0, 5);
+  const shown = colors.slice(0, SHOWN_COLORS);
   return (
-    <div className={cn('flex items-center gap-1.5', className)} aria-label={`Colours: ${colors.join(', ')}`}>
+    <div className={cn('flex items-center gap-1.5', className)} role="img" aria-label={`Colours: ${colors.map(nameOf).join(', ')}`}>
       {shown.map((color) => (
-        <span key={color} className="h-3 w-3 rounded-full border border-foreground/15" style={{ backgroundColor: color }} />
+        <Swatch key={color} color={color} className="h-3.5 w-3.5" />
       ))}
       {colors.length > shown.length && <span className="text-xs text-muted-foreground">+{colors.length - shown.length}</span>}
     </div>

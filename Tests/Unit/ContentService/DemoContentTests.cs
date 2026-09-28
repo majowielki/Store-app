@@ -2,6 +2,7 @@ using Store.ContentService.Data;
 using Store.ContentService.DTOs;
 using Store.ContentService.Validators;
 using Store.ProductService.Data;
+using Store.Tests.Unit.TestSupport;
 using Xunit;
 
 namespace Store.Tests.Unit.ContentService;
@@ -35,7 +36,7 @@ public class DemoContentTests
             .Concat(DemoContent.Lookbooks().Select(l => l.Image));
 
         Assert.All(pictures, url => Assert.True(
-            File.Exists(Path.Combine(RepositoryRoot(), "Blobs", new Uri(url).Segments[^1])), $"{url} has no file in Blobs/"));
+            File.Exists(Repository.PathTo("Blobs", new Uri(url).Segments[^1])), $"{url} has no file in Blobs/"));
     }
 
     [Fact]
@@ -70,15 +71,4 @@ public class DemoContentTests
 
     private static void AssertValid(FluentValidation.Results.ValidationResult result)
         => Assert.True(result.IsValid, string.Join("; ", result.Errors));
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Store.Microservices.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        return directory?.FullName ?? throw new InvalidOperationException("The repository root was not found above " + AppContext.BaseDirectory);
-    }
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Scale, ShoppingBag, X } from 'lucide-react';
 import Loading from '@/components/Loading';
 import ProductPrice from '@/components/ProductPrice';
+import FinishLabel from '@/components/swatch/FinishLabel';
 import { Button } from '@/components/ui/button';
 import { useAddToBag } from '@/features/cart/useAddToBag';
 import { compareCleared, removedFromCompare } from '@/features/compare/compareSlice';
@@ -26,10 +27,7 @@ const rows: { label: string; value: (product: Product) => ReactNode }[] = [
     value: (product) => (
       <span className="flex flex-wrap items-center gap-1.5">
         {product.colors.map((color) => (
-          <span key={color} className="inline-flex items-center gap-1 text-xs capitalize">
-            <span className="h-3 w-3 rounded-full border border-foreground/20" style={{ backgroundColor: color }} />
-            {color}
-          </span>
+          <FinishLabel key={color} color={color} className="text-xs" />
         ))}
       </span>
     ),

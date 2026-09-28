@@ -7,7 +7,7 @@ public class ProductQueryParams
     public string? Group { get; set; }
     public string? Company { get; set; }
 
-    /// <summary>One colour, as the shop's filter form sends it; the same as colors with a single value.</summary>
+    /// <summary>One colour family ("white") or finish ("natural-oak"), as the shop's filter form sends it; the same as colors with a single value.</summary>
     public string? Color { get; set; }
     public string? Order { get; set; }
     public string? Price { get; set; }
@@ -23,6 +23,8 @@ public class ProductQueryParams
 
     // Added new fields for filtering
     public string? Materials { get; set; }
+
+    /// <summary>Comma-separated colour families ("white" - every finish of the family) or finish keys ("natural-oak").</summary>
     public string? Colors { get; set; }
 
     /// <summary>Comma-separated product slugs: only these products (the ones a collection or a lookbook shows).</summary>

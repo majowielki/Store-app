@@ -81,7 +81,7 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
 
         var updated = await db.Products.SingleAsync(p => p.Title == "8-Drawer Dresser");
         Assert.EndsWith("/8DrawerDresser-1.webp", updated.Image, StringComparison.Ordinal);
-        Assert.Equal(new[] { "Brown" }, updated.Colors);
+        Assert.Equal([FinishCatalogue.LightOak.Key], updated.Colors);
         Assert.Contains("brass", updated.Materials);
         Assert.Equal(2, await db.Set<ProductImage>().CountAsync(i => i.ProductId == updated.Id));
         Assert.Contains(updated.Hotspots, point => point.ProductSlug == "rattan-round-wall-mirror");

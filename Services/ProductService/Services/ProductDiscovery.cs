@@ -18,6 +18,9 @@ public interface IProductDiscovery
 
     /// <summary>The best matches of a search while it is typed, corrected when it finds nothing as typed.</summary>
     Task<ProductSuggestions> SuggestAsync(string? search, int limit);
+
+    /// <summary>Every finish products are sold in, with the swatch the shop draws for it.</summary>
+    IReadOnlyList<FinishResponse> GetFinishes();
 }
 
 public sealed class ProductDiscovery : IProductDiscovery
@@ -25,6 +28,9 @@ public sealed class ProductDiscovery : IProductDiscovery
     /// <summary>How many matches the search box shows unless asked for another number, and the most it shows.</summary>
     public const int DefaultSuggestions = 6;
     public const int MaxSuggestions = 12;
+
+    /// <summary>The finishes never change while the service runs, so they are mapped once.</summary>
+    private static readonly IReadOnlyList<FinishResponse> Finishes = FinishCatalogue.All.Select(FinishResponse.From).ToList();
 
     private readonly ProductDbContext _context;
     private readonly ProductSearch _search;
@@ -65,6 +71,8 @@ public sealed class ProductDiscovery : IProductDiscovery
         suggestions.Products = best.Select(product => _mapper.ToResponse(product, forAdmin: false)).ToList();
         return suggestions;
     }
+
+    public IReadOnlyList<FinishResponse> GetFinishes() => Finishes;
 
     /// <summary>The values of every menu, "all" first so a menu can default to it; keys spelled like the product fields.</summary>
     private static ProductsMeta Options() => new()
@@ -110,11 +118,16 @@ public sealed class ProductDiscovery : IProductDiscovery
             .GroupBy(p => p.Company)
             .Select(g => new { g.Key, Count = g.Count() })
             .ToListAsync();
-        var colors = await Without(q => q.Colors = q.Color = null)
-            .SelectMany(p => p.Colors)
-            .GroupBy(color => color.ToLower())
-            .Select(g => new { g.Key, Count = g.Count() })
+        // The families of the finishes live in code, not in the database: the finishes of the matching
+        // products are read and a product counts once under each family its finishes belong to
+        var finishes = await Without(q => q.Colors = q.Color = null)
+            .Select(p => p.Colors)
             .ToListAsync();
+        var colors = finishes
+            .SelectMany(keys => keys.Select(FinishCatalogue.Find).OfType<Finish>().Select(finish => finish.Family).Distinct())
+            .GroupBy(family => family)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToList();
         var groups = await Without(q => q.Group = null)
             .SelectMany(p => p.Groups)
             .GroupBy(group => group)
@@ -126,7 +139,7 @@ public sealed class ProductDiscovery : IProductDiscovery
             Total = await ProductFilters.Apply(ActiveProducts, queryParams, plan).CountAsync(),
             Categories = categories.ToDictionary(c => ProductFilters.Key(c.Key), c => c.Count),
             Companies = companies.ToDictionary(c => ProductFilters.Key(c.Key), c => c.Count),
-            Colors = colors.ToDictionary(c => c.Key, c => c.Count),
+            Colors = colors.ToDictionary(c => ProductFilters.Key(c.Key), c => c.Count),
             Groups = groups.ToDictionary(g => g.Key, g => g.Count),
             Sale = await Without(q => q.Sale = null).CountAsync(ProductFilters.IsOnSale),
             NewArrival = await Without(q => q.NewArrival = null).CountAsync(p => p.NewArrival)

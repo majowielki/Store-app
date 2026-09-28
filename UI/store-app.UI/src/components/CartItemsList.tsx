@@ -4,6 +4,7 @@ import { useCartActions, type CartLine } from '@/features/cart/useCart';
 import { toast } from '@/hooks/use-toast';
 import { formatAsDollars } from '@/utils';
 import SelectProductAmount, { Mode } from './SelectProductAmount';
+import FinishLabel from './swatch/FinishLabel';
 import { Button } from './ui/button';
 
 /** One line of the cart: the product, its colour and price, the amount and the line's total. */
@@ -40,10 +41,7 @@ const CartLineRow = ({ line }: { line: CartLine }) => {
         <p className="eyebrow">{line.company}</p>
         <h3 className="mt-1 font-medium">{line.title}</h3>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2 capitalize">
-            <span className="h-3 w-3 rounded-full border border-foreground/20" style={{ background: line.color }} />
-            {line.color}
-          </span>
+          <FinishLabel color={line.color} />
           <span>Price: {formatAsDollars(line.unitPrice)}</span>
         </div>
         <div className="mt-4 flex items-center gap-2">

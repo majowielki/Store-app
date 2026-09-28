@@ -48,6 +48,7 @@ public class Product
     /// <summary>Points on the main picture leading to the other products it shows.</summary>
     public List<ProductHotspot> Hotspots { get; set; } = new();
 
+    /// <summary>The finishes it is sold in, <see cref="FinishCatalogue"/> keys, the photographed one first.</summary>
     public List<string> Colors { get; set; } = new();
 
     /// <summary>Navigation groups (furniture, kids, bathroom, garden), lowercase.</summary>

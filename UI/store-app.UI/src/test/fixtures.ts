@@ -3,6 +3,7 @@ import type {
   Article,
   AuthResponse,
   Collection,
+  Finish,
   Lookbook,
   Maker,
   Order,
@@ -62,7 +63,7 @@ export const product = (overrides: Partial<Product> = {}): Product => ({
   company: 'luxora',
   newArrival: false,
   image: 'https://images.example.com/oak-table.jpg',
-  colors: ['brown', 'black'],
+  colors: ['natural-oak', 'black-steel-oak'],
   groups: ['furniture'],
   materials: ['oak'],
   widthCm: null,
@@ -115,7 +116,7 @@ export const cartWithTable = (quantity = 1): ApiCartResponse => ({
       image: 'https://images.example.com/oak-table.jpg',
       price: 320,
       quantity,
-      color: 'brown',
+      color: 'natural-oak',
       company: 'luxora',
       lineTotal: 320 * quantity,
       createdAt: '2026-01-01T00:00:00Z',
@@ -126,6 +127,21 @@ export const cartWithTable = (quantity = 1): ApiCartResponse => ({
   total: 320 * quantity,
   isEmpty: false,
 });
+
+/** The finishes of the fixture product: a wood on its own and a pair split along the diagonal. */
+export const finishes: Finish[] = [
+  { key: 'natural-oak', name: 'Natural oak', family: 'brown', swatch: [{ color: '#cca883', texture: 'naturalOak' }] },
+  {
+    key: 'black-steel-oak',
+    name: 'Black steel and oak',
+    family: 'black',
+    swatch: [
+      { color: '#6d6c6f', texture: 'blackSteel' },
+      { color: '#cca883', texture: 'naturalOak' },
+    ],
+  },
+  { key: 'navy-linen', name: 'Navy linen', family: 'navy', swatch: [{ color: '#364358' }] },
+];
 
 export const meta: ProductsMeta = {
   categories: ['tables', 'chairs'],
@@ -177,7 +193,7 @@ export const order = (overrides: Partial<Order> = {}): Order => ({
       productId: 7,
       productTitle: 'Oak Table',
       productImage: 'https://images.example.com/oak-table.jpg',
-      color: 'brown',
+      color: 'natural-oak',
       company: 'luxora',
       quantity: 1,
       price: 320,

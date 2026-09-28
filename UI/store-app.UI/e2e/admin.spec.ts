@@ -7,7 +7,10 @@ const fillProductForm = async (page: Page, title: string, price: string) => {
   await page.getByLabel('category', { exact: true }).fill('tables');
   await page.getByLabel('price', { exact: true }).fill(price);
   await page.getByLabel('image url', { exact: true }).fill('https://images.example.com/e2e-table.jpg');
-  await page.getByLabel('colors (comma separated)', { exact: true }).fill('brown, black');
+  // A finish typed by its key, another picked from the swatches
+  await page.getByLabel('colors (comma separated)', { exact: true }).fill('natural-oak');
+  await page.getByRole('group', { name: 'finishes' }).getByRole('button', { name: 'Walnut', exact: true }).click();
+  await expect(page.getByLabel('colors (comma separated)', { exact: true })).toHaveValue('natural-oak, walnut');
   await page.getByLabel('groups (comma separated)', { exact: true }).fill('furniture');
   await page.getByLabel(/^description/).fill('A table created by the end-to-end tests; safe to delete.');
 };

@@ -25,6 +25,11 @@ public static class ProductFilters
 
     private static readonly char[] RangeSeparators = [',', '-'];
 
+    /// <summary>The colour families by their key ("white"), the values of the shop's colour menu.</summary>
+    private static readonly Dictionary<string, Color> Families = Enum.GetValues<Color>()
+        .Where(color => color != Color.All)
+        .ToDictionary(color => Key(color), StringComparer.OrdinalIgnoreCase);
+
     /// <summary>A product on sale: a sale price or a discount.</summary>
     public static readonly Expression<Func<Product, bool>> IsOnSale =
         p => (p.SalePrice.HasValue && p.SalePrice.Value > 0) || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0);
@@ -76,12 +81,14 @@ public static class ProductFilters
             query = query.Where(p => p.Materials.Any(m => materialsFilter.Contains(m.ToLower())));
         }
 
-        // "colors=black,white" from the API, "color=black" from the shop's filter form
+        // "colors=black,natural-oak" from the API, "color=black" from the shop's filter form
         var colors = queryParams.Colors ?? queryParams.Color;
         if (!string.IsNullOrEmpty(colors) && !IsAll(colors))
         {
-            var colorsFilter = colors.ToLower().Split(',');
-            query = query.Where(p => p.Colors.Any(c => colorsFilter.Contains(c.ToLower())));
+            var finishes = colors.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .SelectMany(FinishKeys)
+                .ToArray();
+            query = query.Where(p => p.Colors.Any(c => finishes.Contains(c)));
         }
 
         if (IsTicked(queryParams.Sale))
@@ -117,6 +124,12 @@ public static class ProductFilters
     /// <summary>The spelling enum values have in JSON ("tvStands"), so filters and products agree.</summary>
     public static string Key<TEnum>(TEnum value) where TEnum : struct, Enum
         => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
+
+    /// <summary>The finishes a colour of the filter stands for: a family's ("white"), or the one it names ("natural-oak").</summary>
+    private static IEnumerable<string> FinishKeys(string color)
+        => Families.TryGetValue(color, out var family)
+            ? FinishCatalogue.OfFamily(family).Select(finish => finish.Key)
+            : [color.ToLowerInvariant()];
 
     private static bool IsAll(string value) => string.Equals(value, All, StringComparison.OrdinalIgnoreCase);
 

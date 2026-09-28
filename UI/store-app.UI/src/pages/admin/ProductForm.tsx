@@ -12,8 +12,10 @@ import FormCheckbox from '@/components/FormCheckbox';
 import FormInput from '@/components/FormInput';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFinishes } from '@/hooks/use-finishes';
 import { toast } from '@/hooks/use-toast';
 import HotspotEditor from './content/HotspotEditor';
+import FinishPicker from './FinishPicker';
 import GalleryEditor from './GalleryEditor';
 
 const splitList = (value: FormDataEntryValue | null): string[] =>
@@ -93,6 +95,14 @@ const ProductFields = ({ id, product, meta }: ProductFieldsProps) => {
   const [mainImage, setMainImage] = useState(product?.image ?? '');
   const [images, setImages] = useState<ProductImage[]>(product?.images ?? []);
   const [hotspots, setHotspots] = useState<ProductHotspot[]>(product?.hotspots ?? []);
+  // Typed or picked from the swatches; the form sends what the field holds
+  const [colors, setColors] = useState(product?.colors.join(', ') ?? '');
+  const { finishes } = useFinishes();
+  const toggleFinish = (key: string) =>
+    setColors((text) => {
+      const keys = splitList(text);
+      return (keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]).join(', ');
+    });
   const [createProduct, { isLoading: creating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: updating }] = useUpdateProductMutation();
   const [setProductStock, { isLoading: stocking }] = useSetProductStockMutation();
@@ -137,14 +147,18 @@ const ProductFields = ({ id, product, meta }: ProductFieldsProps) => {
       <FormInput type="number" name="price" label="price" defaultValue={product?.price} required min={0.01} step="0.01" />
       <FormInput type="url" name="image" label="image url" defaultValue={product?.image} required onChange={(e) => setMainImage(e.target.value.trim())} />
       <FormInput type="number" name="salePrice" label="sale price" defaultValue={product?.salePrice ?? ''} min={0.01} step="0.01" />
-      <FormInput
-        type="text"
-        name="colors"
-        label="colors (comma separated)"
-        defaultValue={product?.colors.join(', ') ?? ''}
-        required
-        placeholder={hint(meta?.colors)}
-      />
+      <div className="grid gap-3 md:col-span-2">
+        <FormInput
+          type="text"
+          name="colors"
+          label="colors (comma separated)"
+          value={colors}
+          onChange={(e) => setColors(e.target.value)}
+          required
+          placeholder={hint(finishes.map((finish) => finish.key))}
+        />
+        <FinishPicker finishes={finishes} chosen={splitList(colors)} onToggle={toggleFinish} />
+      </div>
       <FormInput
         type="text"
         name="groups"

@@ -1,5 +1,6 @@
 using Store.Contracts.Audit.V1;
 using Store.Contracts.Authorization;
+using Store.ProductService.Models;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -28,7 +29,7 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
         category = 1,
         company = 1,
         image = "https://example.test/sofa.jpg",
-        colors = new[] { "Black" }
+        colors = new[] { FinishCatalogue.BlackSteelOak.Key }
     };
 
     [Fact]
@@ -157,7 +158,7 @@ public sealed class ProductLifecycleTests : IClassFixture<CatalogApiFactory>
             category = "sofas",
             company = "modenza",
             image = "https://example.test/sofa.jpg",
-            colors = new[] { "Black" }
+            colors = new[] { FinishCatalogue.BlackSteelOak.Key }
         });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         return (await ReadJson(created)).GetProperty("id").GetInt32();

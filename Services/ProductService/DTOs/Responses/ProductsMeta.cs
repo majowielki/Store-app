@@ -10,6 +10,8 @@ public class ProductsMeta
     public List<string> Categories { get; set; } = new();
     public List<string> Groups { get; set; } = new();
     public List<string> Companies { get; set; } = new();
+
+    /// <summary>The colour families; a product is under the families of its finishes (GET /products/finishes).</summary>
     public List<string> Colors { get; set; } = new();
 
     /// <summary>Groups with the categories that belong to them, for dependent dropdowns.</summary>
@@ -51,7 +53,7 @@ public class FilterCounts
     /// <summary>By company key.</summary>
     public Dictionary<string, int> Companies { get; set; } = new();
 
-    /// <summary>By colour key.</summary>
+    /// <summary>By colour family key ("white"): a product counts once under each family of its finishes.</summary>
     public Dictionary<string, int> Colors { get; set; } = new();
 
     /// <summary>By group key.</summary>

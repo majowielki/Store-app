@@ -1,3 +1,6 @@
+using Store.Contracts.Catalog;
+using Store.ProductService.Models;
+using Store.ProductService.Services;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -43,6 +46,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     [InlineData("colors=Black")]
     [InlineData("materials=wood")]
     [InlineData("colors=black,white&materials=wood")]
+    [InlineData("colors=natural-oak,white")]
     [InlineData("group=furniture")]
     [InlineData("search=sofa")]
     [InlineData("category=sofas&company=modenza")]
@@ -59,34 +63,85 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
     }
 
     [Fact]
-    public async Task Colour_filter_returns_only_products_with_that_colour()
+    public async Task Colour_filter_finds_a_finish_by_its_key_and_by_its_family()
     {
         var tag = Guid.NewGuid().ToString("N")[..8];
+        var finish = FinishCatalogue.TealBeech;
         await CreateProduct(new
         {
-            title = $"Turquoise chair {tag}",
+            title = $"Teal chair {tag}",
             description = "A chair that exists only to be found by the colour filter in a test.",
             price = 199.99m,
             category = "chairs",
             company = "luxora",
             image = "https://example.test/chair.jpg",
-            colors = new[] { "Turquoise" },
+            colors = new[] { finish.Key },
             materials = new[] { "Rattan" }
         });
         using var client = _factory.CreateClient();
+        var family = ProductFilters.Key(finish.Family);
 
-        var byColour = await GetJson(client, "/api/v1/products?colors=turquoise");
-        var byShopFilter = await GetJson(client, "/api/v1/products?color=turquoise");
-        var byMaterial = await GetJson(client, "/api/v1/products?materials=rattan");
-        var byOther = await GetJson(client, "/api/v1/products?colors=turquoise&materials=steel");
+        var byFinish = await GetJson(client, $"/api/v1/products?colors={finish.Key}&pageSize=100");
+        var byFamily = await GetJson(client, $"/api/v1/products?color={family}&pageSize=100");
+        var byOtherFamily = await GetJson(client, $"/api/v1/products?color={ProductFilters.Key(Color.Brown)}&pageSize=100");
+        var byMaterial = await GetJson(client, "/api/v1/products?materials=rattan&pageSize=100");
+        var byOther = await GetJson(client, $"/api/v1/products?colors={finish.Key}&materials=steel");
 
-        Assert.Contains(byColour.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
-        Assert.All(byColour.GetProperty("items").EnumerateArray(), p =>
-            Assert.Contains("turquoise", p.GetProperty("colors").EnumerateArray().Select(c => c.GetString())));
-        // The shop's filter form sends a single "color"
-        Assert.Contains(byShopFilter.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
-        Assert.Contains(byMaterial.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
-        Assert.DoesNotContain(byOther.GetProperty("items").EnumerateArray(), p => p.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal));
+        static bool IsTagged(JsonElement product, string tag) => product.GetProperty("title").GetString()!.Contains(tag, StringComparison.Ordinal);
+        Assert.Contains(byFinish.GetProperty("items").EnumerateArray(), p => IsTagged(p, tag));
+        Assert.All(byFinish.GetProperty("items").EnumerateArray(), p =>
+            Assert.Contains(finish.Key, p.GetProperty("colors").EnumerateArray().Select(c => c.GetString())));
+        // The shop's filter form sends a single "color", a family: every product with a finish of it
+        Assert.Contains(byFamily.GetProperty("items").EnumerateArray(), p => IsTagged(p, tag));
+        Assert.All(byFamily.GetProperty("items").EnumerateArray(), p =>
+            Assert.Contains(p.GetProperty("colors").EnumerateArray(), c => FinishCatalogue.Find(c.GetString()!)?.Family == finish.Family));
+        Assert.DoesNotContain(byOtherFamily.GetProperty("items").EnumerateArray(), p => IsTagged(p, tag));
+        Assert.Contains(byMaterial.GetProperty("items").EnumerateArray(), p => IsTagged(p, tag));
+        Assert.DoesNotContain(byOther.GetProperty("items").EnumerateArray(), p => IsTagged(p, tag));
+    }
+
+    // Two finishes of one family make a product count once under it
+    [Fact]
+    public async Task Colour_counts_count_a_product_once_under_each_family_of_its_finishes()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..8];
+        await CreateProduct(new
+        {
+            title = $"Counted stool {tag}",
+            description = "A stool that exists only to be counted by the colour filter in a test.",
+            price = 99.99m,
+            category = "chairs",
+            company = "artifex",
+            image = "https://example.test/stool.jpg",
+            colors = new[] { FinishCatalogue.TealWalnut.Key, FinishCatalogue.TealBeech.Key, FinishCatalogue.NaturalOak.Key }
+        });
+        using var client = _factory.CreateClient();
+
+        var meta = await GetJson(client, $"/api/v1/products/meta?slugs=counted-stool-{tag}");
+
+        var colours = meta.GetProperty("counts").GetProperty("colors");
+        Assert.Equal(1, colours.GetProperty(ProductFilters.Key(Color.Teal)).GetInt32());
+        Assert.Equal(1, colours.GetProperty(ProductFilters.Key(Color.Brown)).GetInt32());
+        Assert.Equal(2, colours.EnumerateObject().Count());
+    }
+
+    [Fact]
+    public async Task Finishes_list_every_finish_with_its_family_and_swatch()
+    {
+        using var client = _factory.CreateClient();
+
+        var finishes = (await GetJson(client, "/api/v1/products/finishes")).EnumerateArray().ToList();
+
+        Assert.Equal(FinishCatalogue.All.Select(f => f.Key), finishes.Select(f => f.GetProperty("key").GetString()));
+        var pair = finishes.Single(f => f.GetProperty("key").GetString() == FinishCatalogue.OakBlackSteel.Key);
+        Assert.Equal(FinishCatalogue.OakBlackSteel.Name, pair.GetProperty("name").GetString());
+        Assert.Equal("brown", pair.GetProperty("family").GetString());
+        Assert.Equal(["naturalOak", "blackSteel"], pair.GetProperty("swatch").EnumerateArray().Select(p => p.GetProperty("texture").GetString()));
+        // A fabric is a colour alone: no texture
+        var fabric = finishes.Single(f => f.GetProperty("key").GetString() == FinishCatalogue.NavyLinen.Key);
+        var part = Assert.Single(fabric.GetProperty("swatch").EnumerateArray());
+        Assert.Matches("^#[0-9a-f]{6}$", part.GetProperty("color").GetString());
+        Assert.False(part.TryGetProperty("texture", out _));
     }
 
     [Fact]
@@ -148,7 +203,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
             category = "decor",
             company = "artifex",
             image = "https://example.test/pendant.jpg",
-            colors = new[] { "Brown" }
+            colors = new[] { FinishCatalogue.NaturalOak.Key }
         };
         var first = await CreateProduct(product);
         var second = await CreateProduct(product);
@@ -179,7 +234,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
             category = "sofas",
             company = "modenza",
             image = "https://example.test/sale.jpg",
-            colors = new[] { "black" }
+            colors = new[] { FinishCatalogue.BlackSteelOak.Key }
         });
         var discounted = await CreateProduct(new
         {
@@ -190,7 +245,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
             category = "tables",
             company = "modenza",
             image = "https://example.test/table.jpg",
-            colors = new[] { "black" }
+            colors = new[] { FinishCatalogue.BlackSteelOak.Key }
         });
         using var client = _factory.CreateClient();
 
@@ -217,7 +272,7 @@ public sealed class CatalogQueryTests : IClassFixture<CatalogApiFactory>
             company = "Luxora",
             newArrival = true,
             image = "https://example.test/form.jpg",
-            colors = new[] { "Black", "White" },
+            colors = new[] { FinishCatalogue.BlackSteelOak.Key, FinishCatalogue.PaintedWhite.Key },
             groups = new[] { "furniture" },
             materials = new[] { "wood", "steel" },
             widthCm = 50m

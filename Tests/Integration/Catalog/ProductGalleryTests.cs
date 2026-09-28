@@ -1,3 +1,4 @@
+using Store.ProductService.Models;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -58,7 +59,7 @@ public sealed class ProductGalleryTests : IClassFixture<CatalogApiFactory>
             category = "chairs",
             company = "modenza",
             image = "https://example.test/chair-1.webp",
-            colors = new[] { "Brown" }
+            colors = new[] { FinishCatalogue.NaturalOak.Key }
         });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var id = (await ReadJson(created)).GetProperty("id").GetInt32();

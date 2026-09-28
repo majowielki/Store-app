@@ -25,11 +25,11 @@ describe('QuickView', () => {
     const window = await screen.findByRole('dialog', { name: 'Oak Table' });
     expect(window).toHaveTextContent('A sturdy oak table for six.');
 
-    await user.click(screen.getByRole('radio', { name: 'black' }));
+    await user.click(await screen.findByRole('radio', { name: 'Black steel and oak' }));
     await user.click(screen.getByRole('button', { name: 'Add to bag' }));
 
     expect(store.getState().guestCart.items).toEqual([
-      expect.objectContaining({ productId: 7, color: 'black', quantity: 1, unitPrice: 320 }),
+      expect.objectContaining({ productId: 7, color: 'black-steel-oak', quantity: 1, unitPrice: 320 }),
     ]);
     expect(store.getState().cartDrawer).toEqual({ open: true, lastAdded: { productId: 7, slug: 'oak-table', category: 'tables' } });
     expect(screen.queryByRole('dialog', { name: 'Oak Table' })).not.toBeInTheDocument();

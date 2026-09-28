@@ -53,6 +53,13 @@ public class ProductsController : ControllerBase
         => _discovery.GetMetaAsync(queryParams);
 
     /// <summary>
+    /// Every finish products are sold in - the keys their colors list - with its name, the colour
+    /// family the filter counts it under and the swatch to draw.
+    /// </summary>
+    [HttpGet("finishes")]
+    public IReadOnlyList<FinishResponse> GetFinishes() => _discovery.GetFinishes();
+
+    /// <summary>
     /// The best matches of a search while it is typed (words match as word starts, the title first),
     /// with the corrected search when the typed one finds nothing ("sfoa" finds the sofas).
     /// </summary>

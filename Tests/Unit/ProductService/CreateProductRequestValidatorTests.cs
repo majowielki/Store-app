@@ -1,5 +1,6 @@
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
+using Store.ProductService.Models;
 using Store.ProductService.Validators;
 using Xunit;
 
@@ -12,7 +13,7 @@ public class CreateProductRequestValidatorTests
     [Fact]
     public void Should_Have_Error_When_Title_Is_Empty()
     {
-        var model = new CreateProductRequest { Title = "", Description = "desc", Price = 1, Category = 0, Company = 0, Image = "http://img", Colors = new List<string> { "Red" } };
+        var model = new CreateProductRequest { Title = "", Description = "desc", Price = 1, Category = 0, Company = 0, Image = "http://img", Colors = [FinishCatalogue.Walnut.Key] };
         var result = _validator.Validate(model);
         Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateProductRequest.Title));
     }
@@ -20,7 +21,7 @@ public class CreateProductRequestValidatorTests
     [Fact]
     public void Should_Have_Error_When_Description_Too_Short()
     {
-        var model = new CreateProductRequest { Title = "Title", Description = "short", Price = 1, Category = 0, Company = 0, Image = "http://img", Colors = new List<string> { "Red" } };
+        var model = new CreateProductRequest { Title = "Title", Description = "short", Price = 1, Category = 0, Company = 0, Image = "http://img", Colors = [FinishCatalogue.Walnut.Key] };
         var result = _validator.Validate(model);
         Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateProductRequest.Description));
     }
@@ -33,10 +34,26 @@ public class CreateProductRequestValidatorTests
         Assert.Contains(result.Errors, e => e.PropertyName == nameof(CreateProductRequest.Colors));
     }
 
+    [Theory]
+    [InlineData(true, "walnut")]
+    [InlineData(true, "walnut", "cream-rust")]
+    [InlineData(false, "Walnut")]
+    [InlineData(false, "brown")]
+    [InlineData(false, "walnut", "walnut")]
+    [InlineData(false, "")]
+    public void Colors_are_known_finishes_each_listed_once(bool valid, params string[] colors)
+    {
+        var model = new CreateProductRequest { Title = "Title", Description = new string('a', 20), Price = 10, Image = "http://img.com", Colors = [.. colors] };
+
+        var result = _validator.Validate(model);
+
+        Assert.Equal(valid, !result.Errors.Any(e => e.PropertyName.StartsWith(nameof(CreateProductRequest.Colors), StringComparison.Ordinal)));
+    }
+
     [Fact]
     public void Should_Not_Have_Error_For_Valid_Model()
     {
-        var model = new CreateProductRequest { Title = "Title", Description = new string('a', 20), Price = 10, Category = 0, Company = 0, Image = "http://img.com", Colors = new List<string> { "Red" } };
+        var model = new CreateProductRequest { Title = "Title", Description = new string('a', 20), Price = 10, Category = 0, Company = 0, Image = "http://img.com", Colors = [FinishCatalogue.Walnut.Key] };
         var result = _validator.Validate(model);
         Assert.True(result.IsValid);
     }
@@ -46,7 +63,7 @@ public class CreateProductRequestValidatorTests
     {
         CreateProductRequest Model(IEnumerable<ProductImageDto> images) => new()
         {
-            Title = "Title", Description = new string('a', 20), Price = 10, Image = "http://img.com", Colors = ["Red"], Images = images.ToList()
+            Title = "Title", Description = new string('a', 20), Price = 10, Image = "http://img.com", Colors = [FinishCatalogue.Walnut.Key], Images = images.ToList()
         };
 
         var picture = new ProductImageDto { Url = "https://img.test/a.webp", Alt = "A detail" };
@@ -67,7 +84,7 @@ public class CreateProductRequestValidatorTests
     {
         var model = new CreateProductRequest
         {
-            Title = "Title", Description = new string('a', 20), Price = 10, Image = "http://img.com", Colors = ["Red"],
+            Title = "Title", Description = new string('a', 20), Price = 10, Image = "http://img.com", Colors = [FinishCatalogue.Walnut.Key],
             Hotspots = [new ProductHotspotDto { X = x, Y = y, ProductSlug = slug }]
         };
 
