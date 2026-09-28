@@ -6,6 +6,7 @@ using Store.IdentityService.Data;
 using Store.OrderService.Data;
 using Store.PaymentService.Data;
 using Store.ProductService.Data;
+using Store.ReviewService.Data;
 using Xunit;
 
 namespace Store.Tests.Unit.Persistence;
@@ -68,6 +69,13 @@ public class MigrationsMatchModelTests
     public void Payment_model_has_no_pending_changes()
     {
         using var context = new PaymentDbContext(Options<PaymentDbContext>());
+        Assert.False(context.Database.HasPendingModelChanges());
+    }
+
+    [Fact]
+    public void Review_model_has_no_pending_changes()
+    {
+        using var context = new ReviewDbContext(Options<ReviewDbContext>());
         Assert.False(context.Database.HasPendingModelChanges());
     }
 }

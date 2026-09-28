@@ -5,7 +5,7 @@ Three files in the repository root; the first is the base, the others are overri
 | File | What it adds |
 |------|--------------|
 | `docker-compose.yml` | the whole store the way it runs in production: `Production` environment, the UI on <http://localhost:8081> and nothing else on the host, no default passwords, CPU and memory limits, migrations as one-shot containers |
-| `docker-compose.dev.yml` | `Development` environment (Swagger per service), the demo accounts, every port on the host (gateway 5000, services 5001–5008, PostgreSQL 5432, RabbitMQ 5672 / 15672), the Aspire dashboard on <http://localhost:18888> and the Azurite blob emulator on 10000 filled with the product pictures |
+| `docker-compose.dev.yml` | `Development` environment (Swagger per service), the demo accounts, every port on the host (gateway 5000, services 5001–5009, PostgreSQL 5432, RabbitMQ 5672 / 15672), the Aspire dashboard on <http://localhost:18888> and the Azurite blob emulator on 10000 filled with the product pictures |
 | `docker-compose.tools.yml` | pgAdmin on <http://localhost:8080>, behind the `tools` profile |
 
 ```bash

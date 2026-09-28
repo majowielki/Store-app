@@ -12,3 +12,4 @@ CREATE DATABASE store_order_db;
 CREATE DATABASE store_audit_db;
 CREATE DATABASE store_content_db;
 CREATE DATABASE store_payment_db;
+CREATE DATABASE store_review_db;

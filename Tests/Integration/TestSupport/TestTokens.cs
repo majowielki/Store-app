@@ -19,7 +19,10 @@ public static class TestTokens
     public const string InternalApiKey = "integration-tests-internal-api-key-32-characters-long";
     public const string WebhookSecret = "integration-tests-payment-webhook-secret-32-characters";
 
-    public static string For(string userId, string email, params string[] roles)
+    public static string For(string userId, string email, params string[] roles) => For(userId, email, [], roles);
+
+    /// <summary>A token with claims besides the standard ones: names, the sign-in session, the demo flag.</summary>
+    public static string For(string userId, string email, IEnumerable<Claim> extraClaims, params string[] roles)
     {
         var claims = new List<Claim>
         {
@@ -28,6 +31,7 @@ public static class TestTokens
             new(ClaimTypes.Email, email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+        claims.AddRange(extraClaims);
         claims.AddRange(roles.Select(role => new Claim("role", role)));
 
         var credentials = new SigningCredentials(
@@ -48,6 +52,15 @@ public static class TestTokens
     public static string User(string id = "user-1") => For(id, $"{id}@test.local", Roles.User);
     public static string DemoAdmin(string id = "demo-admin-1") => For(id, $"{id}@test.local", Roles.DemoAdmin);
     public static string TrueAdmin(string id = "true-admin-1") => For(id, $"{id}@test.local", Roles.TrueAdmin);
+
+    /// <summary>A customer with a name, the way the identity service signs every token.</summary>
+    public static string Customer(string id, string firstName, string lastName) => For(id, $"{id}@test.local",
+        [new Claim("firstName", firstName), new Claim("lastName", lastName), new Claim(StoreClaims.SessionId, Guid.NewGuid().ToString())], Roles.User);
+
+    /// <summary>A visitor of the shared demo user account, in one sign-in session.</summary>
+    public static string DemoUser(Guid session, string id = "demo-user") => For(id, $"{id}@test.local",
+        [new Claim("firstName", "Demo"), new Claim("lastName", "User"), new Claim(StoreClaims.SessionId, session.ToString()), new Claim(StoreClaims.DemoAccount, "true")],
+        Roles.User);
 }
 
 public static class HttpClientAuthExtensions

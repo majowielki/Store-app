@@ -20,7 +20,7 @@ public class ReverseProxyConfigurationTests
     private static readonly string[] ExpectedRoutes =
     {
         "identity-route", "products-route", "cart-route", "wishlist-route", "pricing-rules-route", "discount-check-route", "orders-route", "content-admin-route", "content-route",
-        "payments-route", "audit-route", "admin-orders-route", "admin-discount-codes-route", "admin-route"
+        "payments-route", "reviews-admin-route", "reviews-route", "audit-route", "admin-orders-route", "admin-discount-codes-route", "admin-route"
     };
 
     public static TheoryData<string> Environments => new() { "Development", "Production" };
@@ -116,6 +116,12 @@ public class ReverseProxyConfigurationTests
         // The cart checks a discount code before anyone signs in
         Assert.Null(routes["discount-check-route"].AuthorizationPolicy);
         Assert.True(routes["discount-check-route"].Order < routes["orders-route"].Order);
+        // Anyone reads reviews (the service guards writing); the moderation queue is for administrators
+        Assert.Null(routes["reviews-route"].AuthorizationPolicy);
+        Assert.Equal("api", routes["reviews-route"].RateLimiterPolicy);
+        Assert.Equal(Policies.Admin, routes["reviews-admin-route"].AuthorizationPolicy);
+        Assert.Equal("admin", routes["reviews-admin-route"].RateLimiterPolicy);
+        Assert.True(routes["reviews-admin-route"].Order < routes["reviews-route"].Order);
     }
 
     [Theory]

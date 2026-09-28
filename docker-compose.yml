@@ -76,6 +76,12 @@ x-payment-env: &payment-env
   PaymentWebhooks__Url: http://orderservice:8080/api/v1/webhooks/payments
   PaymentWebhooks__SigningSecret: ${PAYMENT_WEBHOOK_SECRET:?PAYMENT_WEBHOOK_SECRET is required - set it in .env, see .env.example}
 
+x-review-env: &review-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_review_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+  InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
+  Services__ProductService: http://productservice:8080
+
 x-infrastructure-ready: &infrastructure-ready
   postgres:
     condition: service_healthy
@@ -297,6 +303,30 @@ services:
     networks:
       - store
 
+  # --- reviews -------------------------------------------------------------------------------
+  review-migrate:
+    image: store/review
+    environment: *review-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
+    networks:
+      - store
+
+  reviewservice:
+    build:
+      context: .
+      dockerfile: Services/ReviewService/Dockerfile
+    image: store/review
+    <<: *limits
+    restart: unless-stopped
+    environment: *review-env
+    depends_on:
+      review-migrate:
+        condition: service_completed_successfully
+    networks:
+      - store
+
   # --- gateway and UI ------------------------------------------------------------------------
   gateway:
     build:
@@ -317,6 +347,7 @@ services:
       ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address: http://orderservice:8080/
       ReverseProxy__Clusters__content-cluster__Destinations__destination1__Address: http://contentservice:8080/
       ReverseProxy__Clusters__payments-cluster__Destinations__destination1__Address: http://paymentservice:8080/
+      ReverseProxy__Clusters__reviews-cluster__Destinations__destination1__Address: http://reviewservice:8080/
       ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address: http://auditlogservice:8080/
       # Sign-ins, and other /auth calls (a page load renews the session), per minute per client; the
       # end-to-end tests raise both, every scenario signs in on its own and reloads pages

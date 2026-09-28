@@ -5,7 +5,7 @@
 .DESCRIPTION
   Services refuse to start without:
     - JwtSettings:SecretKey  (gateway + all services, min. 32 characters)
-    - InternalApi:ApiKey     (product, cart, order, payment; min. 32 characters)
+    - InternalApi:ApiKey     (product, cart, order, payment, review; min. 32 characters)
     - PaymentWebhooks:SigningSecret (order, payment; min. 32 characters)
   and none of them is kept in appsettings*.json. When running the projects outside Docker
   (Visual Studio, dotnet run) this script writes the same values into each project's
@@ -82,6 +82,7 @@ $projects = [ordered]@{
   "Services/AuditLogService/Store.AuditLogService.csproj"   = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/ContentService/Store.ContentService.csproj"     = @{ "JwtSettings:SecretKey" = $JwtSecretKey }
   "Services/PaymentService/Store.PaymentService.csproj"     = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey; "PaymentWebhooks:SigningSecret" = $PaymentWebhookSecret }
+  "Services/ReviewService/Store.ReviewService.csproj"       = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
 }
 
 if ($TrueAdminPassword) {

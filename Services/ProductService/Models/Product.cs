@@ -74,6 +74,18 @@ public class Product
     /// <summary>Units held for orders that are placed but not shipped yet (<see cref="StockOrder"/>).</summary>
     public int ReservedQuantity { get; set; }
 
+    /// <summary>
+    /// Average of the product's published reviews (1-5, two decimals), 0 without any. A copy the
+    /// review service keeps up to date with its events; listings show it and sort by it.
+    /// </summary>
+    public decimal RatingAverage { get; set; }
+
+    /// <summary>Published reviews behind <see cref="RatingAverage"/>.</summary>
+    public int RatingCount { get; set; }
+
+    /// <summary>When the review service computed the copy; a summary older than this one, arriving late, is ignored.</summary>
+    public DateTime? RatingChangedAt { get; set; }
+
     /// <summary>What a new order can still get.</summary>
     public int AvailableQuantity => Math.Max(0, StockQuantity - ReservedQuantity);
 

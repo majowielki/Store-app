@@ -10,6 +10,7 @@
     <Project Path="Services/OrderService/Store.OrderService.csproj" />
     <Project Path="Services/PaymentService/Store.PaymentService.csproj" />
     <Project Path="Services/ProductService/Store.ProductService.csproj" />
+    <Project Path="Services/ReviewService/Store.ReviewService.csproj" />
   </Folder>
   <Folder Name="/Shared/">
     <Project Path="Shared/Store.BuildingBlocks/Store.BuildingBlocks.csproj" />

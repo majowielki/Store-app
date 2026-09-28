@@ -17,7 +17,7 @@
 
 .PARAMETER Service
   Reset only the given services (IdentityService, ProductService, CartService,
-  OrderService, AuditLogService, ContentService, PaymentService). Default: all of them.
+  OrderService, AuditLogService, ContentService, PaymentService, ReviewService). Default: all of them.
 
 .EXAMPLE
   ./Scripts/Reset-Local-Databases.ps1
@@ -25,8 +25,8 @@
 #>
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param(
-  [ValidateSet('IdentityService', 'ProductService', 'CartService', 'OrderService', 'AuditLogService', 'ContentService', 'PaymentService')]
-  [string[]]$Service = @('IdentityService', 'ProductService', 'CartService', 'OrderService', 'AuditLogService', 'ContentService', 'PaymentService'),
+  [ValidateSet('IdentityService', 'ProductService', 'CartService', 'OrderService', 'AuditLogService', 'ContentService', 'PaymentService', 'ReviewService')]
+  [string[]]$Service = @('IdentityService', 'ProductService', 'CartService', 'OrderService', 'AuditLogService', 'ContentService', 'PaymentService', 'ReviewService'),
   [switch]$Force,
   [string]$RootPath = (Split-Path -Parent $PSScriptRoot)
 )

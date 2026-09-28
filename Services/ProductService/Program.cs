@@ -35,12 +35,13 @@ builder.Services.AddStoreAuthorization();
 builder.Services.AddInternalApiKeyAuthentication(builder.Configuration);
 
 // Message bus: catalogue changes reach the audit service as events, through the outbox; the order
-// events reserve, release and ship the stock
+// events reserve, release and ship the stock, the review service keeps the ratings
 builder.Services.AddStoreMessaging<ProductDbContext>(builder.Configuration, serviceName: "catalog", bus =>
 {
     bus.AddConsumer<OrderPlacedConsumer>();
     bus.AddConsumer<OrderCancelledConsumer>();
     bus.AddConsumer<OrderShippedConsumer>();
+    bus.AddConsumer<ReviewSummaryChangedConsumer>();
 });
 
 // Business Services

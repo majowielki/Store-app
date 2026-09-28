@@ -738,6 +738,16 @@ export interface components {
              */
             availableQuantity: number;
             /**
+             * Format: double
+             * @description Average of the published reviews (1-5), 0 without any.
+             */
+            ratingAverage: number;
+            /**
+             * Format: int32
+             * @description Number of published reviews.
+             */
+            ratingCount: number;
+            /**
              * Format: int32
              * @description Units on hand, held ones included; only in the admin responses.
              */
@@ -808,6 +818,16 @@ export interface components {
              * @description Units a new order can get.
              */
             availableQuantity: number;
+            /**
+             * Format: double
+             * @description Average of the published reviews (1-5), 0 without any.
+             */
+            ratingAverage: number;
+            /**
+             * Format: int32
+             * @description Number of published reviews.
+             */
+            ratingCount: number;
             /**
              * Format: int32
              * @description Units on hand, held ones included; only in the admin responses.

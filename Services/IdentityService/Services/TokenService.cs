@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Store.Contracts.Authorization;
 using Store.BuildingBlocks.Configuration;
 using Store.IdentityService.Models;
 using System.Security.Claims;
@@ -12,8 +13,11 @@ namespace Store.IdentityService.Services;
 /// <summary>Creates the tokens of a session: a short-lived JWT and an opaque refresh token.</summary>
 public interface ITokenService
 {
-    /// <summary>An HS256 access token with the user's identity and roles, and when it expires.</summary>
-    (string Token, DateTime ExpiresAt) CreateAccessToken(ApplicationUser user, IEnumerable<string> roles);
+    /// <summary>
+    /// An HS256 access token with the user's identity and roles, the sign-in session it belongs to
+    /// and whether the account is a shared demo one, and when it expires.
+    /// </summary>
+    (string Token, DateTime ExpiresAt) CreateAccessToken(ApplicationUser user, IEnumerable<string> roles, Guid sessionId, bool isDemoAccount);
 
     /// <summary>A new random refresh token and the hash the database keeps for it.</summary>
     (string Token, string Hash) CreateRefreshToken();
@@ -46,7 +50,7 @@ public sealed class TokenService : ITokenService
 
     public TimeSpan RefreshTokenLifetime => TimeSpan.FromDays(_options.RefreshTokenDays);
 
-    public (string Token, DateTime ExpiresAt) CreateAccessToken(ApplicationUser user, IEnumerable<string> roles)
+    public (string Token, DateTime ExpiresAt) CreateAccessToken(ApplicationUser user, IEnumerable<string> roles, Guid sessionId, bool isDemoAccount)
     {
         var now = _time.GetUtcNow().UtcDateTime;
         var expiresAt = now.AddMinutes(_options.AccessTokenMinutes);
@@ -58,8 +62,14 @@ public sealed class TokenService : ITokenService
             new(ClaimTypes.Email, user.Email!),
             new("firstName", user.FirstName ?? string.Empty),
             new("lastName", user.LastName ?? string.Empty),
-            new("displayName", user.DisplayName)
+            new("displayName", user.DisplayName),
+            new(StoreClaims.SessionId, sessionId.ToString())
         };
+        if (isDemoAccount)
+        {
+            claims.Add(new Claim(StoreClaims.DemoAccount, "true"));
+        }
+
         // One "role" claim per role, the way the bearer handlers map it to ClaimTypes.Role
         claims.AddRange(roles.Distinct().Select(role => new Claim("role", role)));
 

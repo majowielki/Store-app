@@ -36,6 +36,12 @@ public class ProductResponse
     /// <summary>Units a new order can get.</summary>
     public int AvailableQuantity { get; set; }
 
+    /// <summary>Average of the published reviews (1-5), 0 without any.</summary>
+    public decimal RatingAverage { get; set; }
+
+    /// <summary>Number of published reviews.</summary>
+    public int RatingCount { get; set; }
+
     /// <summary>Units on hand, held ones included; only in the admin responses.</summary>
     public int? StockQuantity { get; set; }
 

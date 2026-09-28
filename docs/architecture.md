@@ -13,11 +13,14 @@ flowchart LR
     GW --> AU[Audit read API]
     GW --> CO[Content]
     GW --> PA[Payments]
+    GW --> RV[Reviews]
     CA -->|product snapshots<br/>typed client, internal key| PR
     OR -->|cart snapshot| CA
     OR -->|product snapshots| PR
     OR -->|open a payment| PA
     PA -.->|signed webhooks| OR
+    RV -->|product ids of the seeded reviews| PR
+|signed webhooks| OR
   end
   subgraph MassTransit + RabbitMQ, outbox and inbox in every database
     OR -- OrderPlaced --> MQ[(RabbitMQ)]
@@ -29,12 +32,15 @@ flowchart LR
     MQ -- StockReserved, StockUnavailable --> OR
     OR -- PaymentAccepted, PaymentRefunded --> MQ
     MQ -- OrderCancelled, PaymentRefundRequested --> PA
+    MQ -- OrderPaid --> RV
+    RV -- ReviewSummaryChanged --> MQ
+    MQ -- ReviewSummaryChanged --> PR
     OR -- OrderStatusChanged --> MQ
     MQ -- OrderStatusChanged --> AU
-    ID & PR & CA & OR & CO & PA -- AuditEvent --> MQ
+    ID & PR & CA & OR & CO & PA & RV -- AuditEvent --> MQ
     MQ -- AuditEvent --> AU
   end
-  GW & ID & PR & CA & OR & AU & CO & PA -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
+  GW & ID & PR & CA & OR & AU & CO & PA & RV -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
 ```
 
 Each service has its own PostgreSQL database and its own entities; what crosses a boundary is a
@@ -120,6 +126,31 @@ the way a shop treats Stripe: it never sees a card, and it believes only signed 
 
 A cancelled order cancels its open payment; a refund is asked for with `PaymentRefundRequested`
 and confirmed by the refund webhook.
+
+## How a review gets published
+
+Nothing a visitor writes is public before a person has read it (ADR 012).
+
+1. The review service learns what each customer may review from `OrderPaid`: every product of a
+   paid order becomes a purchase. A review of anything else is refused (403), and so is a second
+   review of the same product (409) - a rejected one may be written again.
+2. Before it is stored, the review passes the automatic checks: 20 to 1000 characters, no links,
+   e-mail addresses or phone numbers, no word from the English and Polish profanity list, at most
+   three reviews a day. It then waits; its author sees it marked as awaiting moderation.
+3. The true administrator approves or rejects it (with a reason its author sees), one at a time
+   or in bulk; every decision is audited. The demo administrator sees the queue without the texts
+   nobody has approved and without anyone's account, and changes nothing.
+4. A report from a customer hides a published review until the administrator looks at it again.
+5. Whenever a review joins or leaves what everyone sees, the service publishes the product's
+   `ReviewSummaryChanged`; the catalogue keeps the average and the count for the cards and the
+   "best rated" sort, ignoring a summary older than the one it holds.
+
+The shared demo accounts get a sandbox: their reviews and reports belong to the sign-in session
+(a `session_id` claim in the token, the same across refreshes), are invisible to the other
+visitors of the account, a demo report hides a review from that session only, and all of it is
+deleted after 24 hours. The reviews that come with the catalogue are seeded by slug when the
+service migrates; a background job asks the catalogue for their ids and publishes the ratings
+once it answers.
 
 ## Who may do what
 

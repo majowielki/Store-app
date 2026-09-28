@@ -1,0 +1,1004 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Review Service API",
+    "description": "Review Service API API documentation",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/reviews/admin": {
+      "get": {
+        "tags": [
+          "AdminReviews"
+        ],
+        "summary": "Reviews by state: queue (default: new and reported, oldest first), pending, reported, published, rejected or all.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "queue (default: waiting for a decision - new or reported), pending, reported, published,\nrejected or all.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReviewResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/reviews/admin/moderate": {
+      "post": {
+        "tags": [
+          "AdminReviews"
+        ],
+        "summary": "Approves or rejects (with a reason the author sees) one review or many at once.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerateReviewsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModerationResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/reviews": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "The published reviews of a product, filtered by stars or verified purchase, newest first unless sorted otherwise.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "rating",
+            "in": "query",
+            "description": "Only the reviews with this many stars (1-5).",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "verified",
+            "in": "query",
+            "description": "true: only reviews by customers who bought the product.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "newest (default), oldest, highest or lowest.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponsePagedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Writes a review; it waits for moderation. 403 for a product not in a paid order, 409 for a\nsecond review of it (a rejected one may be written again), 422 over three reviews a day or\nfor text the automatic checks refuse.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/reviews/products/{productId}/summary": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "The rating of a product: average, count and reviews per number of stars.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewSummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reviews/summaries": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "The ratings of many products at once (comma-separated ids, at most 100; others are ignored).",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewSummaryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reviews/products/{productId}/mine": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Whether the signed-in customer may review the product, and their review of it in any state.",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyProductReviewResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/reviews/mine": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "The signed-in customer's reviews in any state (on a demo account: the ones of this sign-in session).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/reviews/{id}/report": {
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Reports a published review; from a customer's account it is hidden until the administrator looks at it.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminReviewResponse": {
+        "required": [
+          "authorName",
+          "body",
+          "createdAt",
+          "demo",
+          "id",
+          "productId",
+          "rating",
+          "reportCount",
+          "reportReasons",
+          "reported",
+          "source",
+          "status",
+          "submittedAt",
+          "verifiedPurchase"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "integer",
+            "description": "0 for a seeded review whose product has not been found in the catalogue yet.",
+            "format": "int32"
+          },
+          "productSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          },
+          "reported": {
+            "type": "boolean"
+          },
+          "reportCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reportReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The reasons given with the reports, newest first."
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "$ref": "#/components/schemas/ReviewSource"
+          },
+          "verifiedPurchase": {
+            "type": "boolean"
+          },
+          "demo": {
+            "type": "boolean",
+            "description": "Written from a shared demo account; deleted at Store.ReviewService.DTOs.AdminReviewResponse.ExpiresAt."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "moderatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "moderatedBy": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A review in the moderation queue."
+      },
+      "AdminReviewResponsePagedResponse": {
+        "required": [
+          "hasNextPage",
+          "hasPreviousPage",
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminReviewResponse"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Rows in the whole listing, not on this page.",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of a listing, the same shape for every resource."
+      },
+      "CreateReviewRequest": {
+        "required": [
+          "body",
+          "productId",
+          "rating"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rating": {
+            "type": "integer",
+            "description": "1 to 5 stars.",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional, up to 80 characters.",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "20 to 1000 characters."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/reviews. Rules: `CreateReviewRequestValidator` and Store.ReviewService.Services.ReviewContentRules."
+      },
+      "ModerateReviewsRequest": {
+        "required": [
+          "decision",
+          "ids"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "1 to 100 reviews."
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ModerationDecision"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Required to reject, up to 300 characters; the review's author sees it.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/reviews/admin/moderate: one decision for one or many reviews."
+      },
+      "ModerationDecision": {
+        "enum": [
+          "approve",
+          "reject"
+        ],
+        "type": "string",
+        "description": "Stored nowhere; serialised by name."
+      },
+      "ModerationResult": {
+        "required": [
+          "moderated",
+          "notFound"
+        ],
+        "type": "object",
+        "properties": {
+          "moderated": {
+            "type": "integer",
+            "description": "Reviews the decision was applied to.",
+            "format": "int32"
+          },
+          "notFound": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Ids that were not found (deleted demo reviews, for instance)."
+          }
+        },
+        "additionalProperties": false,
+        "description": "What a moderation request changed."
+      },
+      "MyProductReviewResponse": {
+        "required": [
+          "canReview",
+          "productId"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canReview": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why not: notPurchased, alreadyReviewed, dailyLimit or signInAgain (a demo session from an old token); null when they can.",
+            "nullable": true
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewResponse"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Whether the signed-in customer may review a product, and their review of it if they wrote one."
+      },
+      "ReportReviewRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "What is wrong with it, optional, up to 300 characters.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/reviews/{id}/report."
+      },
+      "ReviewResponse": {
+        "required": [
+          "authorName",
+          "body",
+          "createdAt",
+          "id",
+          "productId",
+          "rating",
+          "reported",
+          "status",
+          "verifiedPurchase"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "authorName": {
+            "type": "string",
+            "description": "A first name and an initial."
+          },
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string"
+          },
+          "verifiedPurchase": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "description": "Why it was not published; only in its author's own view.",
+            "nullable": true
+          },
+          "reported": {
+            "type": "boolean",
+            "description": "True in its author's view while a report keeps it hidden from the others."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A review as the shop prints it."
+      },
+      "ReviewResponsePagedResponse": {
+        "required": [
+          "hasNextPage",
+          "hasPreviousPage",
+          "items",
+          "page",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewResponse"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Rows in the whole listing, not on this page.",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasNextPage": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasPreviousPage": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of a listing, the same shape for every resource."
+      },
+      "ReviewSource": {
+        "enum": [
+          "seed",
+          "customer"
+        ],
+        "type": "string",
+        "description": "Stored by name; tells seeded reviews from customers' ones in the admin panel."
+      },
+      "ReviewStatus": {
+        "enum": [
+          "pending",
+          "published",
+          "rejected"
+        ],
+        "type": "string",
+        "description": "Stored by name."
+      },
+      "ReviewSummaryResponse": {
+        "required": [
+          "averageRating",
+          "distribution",
+          "productId",
+          "reviewCount"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "averageRating": {
+            "type": "number",
+            "description": "Average of the published ratings, two decimals; 0 without reviews.",
+            "format": "double"
+          },
+          "reviewCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "distribution": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Reviews per number of stars, \"1\" to \"5\", each key present."
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the published reviews of a product add up to."
+      },
+      "StoreProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "description": "W3C trace id of the request, to find it in the logs.",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Messages per field of a 422 problem.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { },
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Access token issued by the identity service",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Reviews",
+      "description": "Product reviews (ADR 012). Anyone reads the published ones and the ratings; a signed-in\ncustomer writes a review of a product from a paid order, sees their own in any state and\nreports others'. New reviews wait for the true administrator (Store.ReviewService.Controllers.AdminReviewsController)."
+    },
+    {
+      "name": "AdminReviews",
+      "description": "The moderation queue. Both administrators see it (the demo one without the texts nobody has\napproved and without accounts); only the true administrator decides."
+    }
+  ]
+}

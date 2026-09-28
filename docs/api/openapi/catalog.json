@@ -968,6 +968,8 @@
           "materials",
           "newArrival",
           "price",
+          "ratingAverage",
+          "ratingCount",
           "slug",
           "title"
         ],
@@ -1065,6 +1067,16 @@
           "availableQuantity": {
             "type": "integer",
             "description": "Units a new order can get.",
+            "format": "int32"
+          },
+          "ratingAverage": {
+            "type": "number",
+            "description": "Average of the published reviews (1-5), 0 without any.",
+            "format": "double"
+          },
+          "ratingCount": {
+            "type": "integer",
+            "description": "Number of published reviews.",
             "format": "int32"
           },
           "stockQuantity": {
@@ -1162,6 +1174,8 @@
           "materials",
           "newArrival",
           "price",
+          "ratingAverage",
+          "ratingCount",
           "slug",
           "title"
         ],
@@ -1259,6 +1273,16 @@
           "availableQuantity": {
             "type": "integer",
             "description": "Units a new order can get.",
+            "format": "int32"
+          },
+          "ratingAverage": {
+            "type": "number",
+            "description": "Average of the published reviews (1-5), 0 without any.",
+            "format": "double"
+          },
+          "ratingCount": {
+            "type": "integer",
+            "description": "Number of published reviews.",
             "format": "int32"
           },
           "stockQuantity": {

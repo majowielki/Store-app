@@ -30,6 +30,14 @@ public static class AuthorizationExtensions
     public static bool IsStoreAdmin(this ClaimsPrincipal principal)
         => Roles.Admins.Any(principal.IsInRole);
 
+    /// <summary>True for the showcase accounts every visitor shares (demo user, demo administrator).</summary>
+    public static bool IsDemoAccount(this ClaimsPrincipal principal)
+        => principal.HasClaim(StoreClaims.DemoAccount, "true");
+
+    /// <summary>The sign-in session the token belongs to; null for a token issued before sessions were named.</summary>
+    public static Guid? GetSessionId(this ClaimsPrincipal principal)
+        => Guid.TryParse(principal.FindFirst(StoreClaims.SessionId)?.Value, out var id) ? id : null;
+
     /// <summary>True when the principal is the read-only demo administrator.</summary>
     public static bool IsDemoAdmin(this ClaimsPrincipal principal)
         => principal.IsInRole(Roles.DemoAdmin);

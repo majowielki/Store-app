@@ -39,6 +39,7 @@ $services = [ordered]@{
     audit    = 'AuditLogService'
     content  = 'ContentService'
     payments = 'PaymentService'
+    reviews  = 'ReviewService'
 }
 
 if (-not $NoBuild) {

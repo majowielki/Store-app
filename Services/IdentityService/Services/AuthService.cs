@@ -180,7 +180,7 @@ public class AuthService : IAuthService
         _context.RefreshTokens.Add(successor);
         await _context.SaveChangesAsync();
 
-        return await IssueAsync(presented.User, token, successor.ExpiresAt);
+        return await IssueAsync(presented.User, token, successor.ExpiresAt, presented.FamilyId);
     }
 
     public async Task LogoutAsync(string? refreshToken)
@@ -242,7 +242,7 @@ public class AuthService : IAuthService
         _context.RefreshTokens.Add(refreshToken);
         await _context.SaveChangesAsync();
 
-        return await IssueAsync(user, token, refreshToken.ExpiresAt);
+        return await IssueAsync(user, token, refreshToken.ExpiresAt, refreshToken.FamilyId);
     }
 
     private RefreshToken NewRefreshToken(ApplicationUser user, Guid familyId, string hash, string? clientAddress, DateTime now) => new()
@@ -261,10 +261,10 @@ public class AuthService : IAuthService
             .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
             .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, _time.GetUtcNow().UtcDateTime));
 
-    private async Task<SignedIn> IssueAsync(ApplicationUser user, string refreshToken, DateTime refreshTokenExpiresAt)
+    private async Task<SignedIn> IssueAsync(ApplicationUser user, string refreshToken, DateTime refreshTokenExpiresAt, Guid sessionId)
     {
         var roles = await _userManager.GetRolesAsync(user);
-        var (accessToken, expiresAt) = _tokens.CreateAccessToken(user, roles);
+        var (accessToken, expiresAt) = _tokens.CreateAccessToken(user, roles, sessionId, IsDemoAccount(user));
         var auth = new AuthResponse
         {
             AccessToken = accessToken,

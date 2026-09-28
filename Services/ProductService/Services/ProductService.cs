@@ -140,6 +140,7 @@ public class ProductService : IProductService
             "z-a" => query.OrderByDescending(p => p.Title),
             "high" => query.OrderByDescending(p => p.SalePrice ?? p.Price),
             "low" => query.OrderBy(p => p.SalePrice ?? p.Price),
+            "rating" => query.OrderByDescending(p => p.RatingAverage).ThenByDescending(p => p.RatingCount).ThenBy(p => p.Title),
             _ => query.OrderBy(p => p.Title)
         };
 
@@ -210,6 +211,7 @@ public class ProductService : IProductService
             "title" => desc ? query.OrderByDescending(p => p.Title) : query.OrderBy(p => p.Title),
             "company" => desc ? query.OrderByDescending(p => p.Company) : query.OrderBy(p => p.Company),
             "stock" => desc ? query.OrderByDescending(p => p.StockQuantity - p.ReservedQuantity) : query.OrderBy(p => p.StockQuantity - p.ReservedQuantity),
+            "rating" => desc ? query.OrderByDescending(p => p.RatingAverage).ThenByDescending(p => p.RatingCount) : query.OrderBy(p => p.RatingAverage).ThenBy(p => p.RatingCount),
             _ => desc ? query.OrderByDescending(p => p.Id) : query.OrderBy(p => p.Id)
         };
 
@@ -393,6 +395,8 @@ public class ProductService : IProductService
         response.IsActive = product.IsActive;
         response.Availability = StockPolicy.For(product.AvailableQuantity);
         response.AvailableQuantity = product.AvailableQuantity;
+        response.RatingAverage = product.RatingAverage;
+        response.RatingCount = product.RatingCount;
         if (forAdmin)
         {
             response.StockQuantity = product.StockQuantity;

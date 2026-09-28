@@ -68,6 +68,8 @@ export const product = (overrides: Partial<Product> = {}): Product => ({
   isActive: true,
   availability: 'inStock',
   availableQuantity: 12,
+  ratingAverage: 4.5,
+  ratingCount: 4,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
   ...overrides,

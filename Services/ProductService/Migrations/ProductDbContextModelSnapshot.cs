@@ -275,6 +275,16 @@ namespace Store.ProductService.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<decimal>("RatingAverage")
+                        .HasPrecision(3, 2)
+                        .HasColumnType("numeric(3,2)");
+
+                    b.Property<DateTime?>("RatingChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RatingCount")
+                        .HasColumnType("integer");
+
                     b.Property<int>("ReservedQuantity")
                         .HasColumnType("integer");
 
@@ -332,6 +342,8 @@ namespace Store.ProductService.Migrations
                         .IsUnique();
 
                     b.HasIndex("Title");
+
+                    b.HasIndex("RatingAverage", "RatingCount");
 
                     b.ToTable("Products", t =>
                         {

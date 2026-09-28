@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Store.Contracts.Authorization;
 using Store.IdentityService.Controllers;
 using Store.IdentityService.Data;
 using Store.IdentityService.Services;
@@ -96,6 +97,39 @@ public sealed class SessionTests : IClassFixture<IdentityApiFactory>
         Assert.Equal(HttpStatusCode.Unauthorized, replayed.StatusCode);
         var afterReplay = await client.SendAsync(Post("/api/v1/auth/refresh", second));
         Assert.Equal(HttpStatusCode.Unauthorized, afterReplay.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_token_names_its_session_and_marks_the_shared_demo_accounts()
+    {
+        using var client = _factory.CreateClient();
+        var (accessToken, refreshToken) = await SignInAsync(client);
+        var (another, _) = await SignInAsync(client);
+
+        var refreshed = await client.SendAsync(Post("/api/v1/auth/refresh", refreshToken));
+        var renewed = (await ReadJson(refreshed)).GetProperty("accessToken").GetString()!;
+
+        // The review service keeps a demo visitor's reviews per session: the same across refreshes, new at each sign-in
+        var session = SessionOf(accessToken);
+        Assert.NotNull(session);
+        Assert.Equal(session, SessionOf(renewed));
+        Assert.NotEqual(session, SessionOf(another));
+        Assert.Contains(Read(accessToken).Claims, c => c.Type == StoreClaims.DemoAccount && c.Value == "true");
+
+        var registered = await client.PostAsJsonAsync("/api/v1/auth/register", new
+        {
+            email = $"session-{Guid.NewGuid():N}@test.local",
+            password = "Session-Password-1!",
+            confirmPassword = "Session-Password-1!",
+            firstName = "Real",
+            lastName = "Customer"
+        });
+        var customerToken = (await ReadJson(registered)).GetProperty("accessToken").GetString()!;
+        Assert.NotNull(SessionOf(customerToken));
+        Assert.DoesNotContain(Read(customerToken).Claims, c => c.Type == StoreClaims.DemoAccount);
+
+        static JsonWebToken Read(string token) => new JsonWebTokenHandler().ReadJsonWebToken(token);
+        static string? SessionOf(string token) => Read(token).Claims.FirstOrDefault(c => c.Type == StoreClaims.SessionId)?.Value;
     }
 
     [Fact]

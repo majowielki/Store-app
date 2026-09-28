@@ -9,7 +9,7 @@
 //     nothing secret is written into an app's definition,
 //   - the Container Apps environment,
 //   - RabbitMQ as a single-replica app with a durable Azure Files volume,
-//   - the five services with internal ingress (unreachable from the internet), the gateway
+//   - the services with internal ingress (unreachable from the internet), the gateway
 //     and the UI with external ingress,
 //   - one job per service that runs its migrations (`--migrate`) - the pipeline starts them
 //     before it updates the services.
@@ -153,7 +153,7 @@ resource secretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-var databases = ['identity', 'product', 'cart', 'order', 'audit', 'content', 'payment']
+var databases = ['identity', 'product', 'cart', 'order', 'audit', 'content', 'payment', 'review']
 
 resource connectionSecrets 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = [
   for db in databases: {
@@ -458,6 +458,17 @@ var services = [
     ]
     secrets: [internalApiSecretRef, paymentWebhookSecretRef]
   }
+  {
+    name: 'reviewservice'
+    image: 'store/review'
+    db: 'review'
+    callsCatalog: true
+    callsCart: false
+    env: [
+      { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
+    ]
+    secrets: [internalApiSecretRef]
+  }
 ]
 
 var catalogAddress = [{ name: 'Services__ProductService', value: 'http://productservice.${internal}' }]
@@ -542,6 +553,7 @@ module gateway 'app.bicep' = {
       { name: 'ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address', value: 'http://auditlogservice.${internal}/' }
       { name: 'ReverseProxy__Clusters__content-cluster__Destinations__destination1__Address', value: 'http://contentservice.${internal}/' }
       { name: 'ReverseProxy__Clusters__payments-cluster__Destinations__destination1__Address', value: 'http://paymentservice.${internal}/' }
+      { name: 'ReverseProxy__Clusters__reviews-cluster__Destinations__destination1__Address', value: 'http://reviewservice.${internal}/' }
     ], corsEnv)
     keyVaultSecrets: [
       { name: 'jwt-secret-key', keyVaultUrl: '${vaultUri}secrets/jwt-secret-key' }

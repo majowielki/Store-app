@@ -60,6 +60,9 @@ public class ProductDbContext : DbContext
             entity.HasIndex(e => e.Category);
             entity.HasIndex(e => e.Company);
             entity.HasIndex(e => e.Title);
+            // "Best rated" sorts the listing by both
+            entity.Property(e => e.RatingAverage).HasPrecision(3, 2);
+            entity.HasIndex(e => new { e.RatingAverage, e.RatingCount });
 
             // Held units come out of the units on hand; a bug that breaks it fails its transaction
             entity.ToTable(table => table.HasCheckConstraint("CK_Products_Stock",
