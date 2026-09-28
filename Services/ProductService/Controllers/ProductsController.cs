@@ -39,10 +39,22 @@ public class ProductsController : ControllerBase
     public Task<ProductDetailResponse> GetProduct(int id)
         => _productService.GetProductAsync(id);
 
-    /// <summary>The values the catalogue can be filtered by.</summary>
+    /// <summary>
+    /// The values the catalogue can be filtered by, with how many active products each would show
+    /// together with the rest of the query (the same parameters as the listing), and the search's
+    /// correction when the typed words found nothing.
+    /// </summary>
     [HttpGet("meta")]
-    public ProductsMeta GetProductsMeta()
-        => _productService.GetProductsMeta();
+    public Task<ProductsMeta> GetProductsMeta([FromQuery] ProductQueryParams queryParams)
+        => _productService.GetProductsMetaAsync(queryParams);
+
+    /// <summary>
+    /// The best matches of a search while it is typed (words match as word starts, the title first),
+    /// with the corrected search when the typed one finds nothing ("sfoa" finds the sofas).
+    /// </summary>
+    [HttpGet("suggest")]
+    public Task<ProductSuggestions> Suggest([FromQuery] string? q, [FromQuery] int limit = 6)
+        => _productService.SuggestAsync(q, limit);
 
     /// <summary>
     /// Every product, inactive ones included, sorted by <paramref name="sortBy"/> (id, price,

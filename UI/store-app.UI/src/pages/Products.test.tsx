@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { product } from '@/test/fixtures';
+import { meta, product } from '@/test/fixtures';
 import { api, json, page } from '@/test/handlers';
 import { renderWithStore } from '@/test/render';
 import { server } from '@/test/server';
@@ -42,6 +42,23 @@ describe('Products page', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Search' }));
 
     await waitFor(() => expect(queries.at(-1)).toBe('?search=oak&price=0%2C2000&sale=on'));
+  });
+
+  it('shows the corrected search and counts each filter value under the query', async () => {
+    const metaQueries: string[] = [];
+    server.use(
+      http.get(api('/products/meta'), ({ request }) => {
+        metaQueries.push(new URL(request.url).search);
+        return json({ ...meta, searchCorrection: 'sofa' });
+      }),
+    );
+    renderWithStore(<Products />, { route: '/products?search=sfoa&company=luxora&page=2&order=low', path: '/products' });
+
+    expect(await screen.findByRole('heading', { level: 1, name: '“sofa”' })).toBeInTheDocument();
+    expect(screen.getByText('Nothing matched “sfoa”, so these are the results for “sofa”.')).toBeInTheDocument();
+    // The page and the order change no count, so the counts are asked for without them
+    expect(metaQueries).toEqual(['?search=sfoa&company=luxora']);
+    expect(screen.getByRole('combobox', { name: 'select company' })).toHaveTextContent('Luxora (3)');
   });
 
   it('says so when nothing matches', async () => {

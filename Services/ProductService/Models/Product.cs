@@ -1,4 +1,6 @@
+using NpgsqlTypes;
 using Store.Contracts.Catalog;
+using System.Text.Json.Serialization;
 
 namespace Store.ProductService.Models;
 
@@ -85,6 +87,14 @@ public class Product
 
     /// <summary>When the review service computed the copy; a summary older than this one, arriving late, is ignored.</summary>
     public DateTime? RatingChangedAt { get; set; }
+
+    /// <summary>
+    /// The words a search matches, weighted: the title first, then the category and the maker, then
+    /// the description (<see cref="Services.ProductSearch"/>). The database keeps it - a generated
+    /// column - so nothing here ever sets it, and no audit entry or response carries it.
+    /// </summary>
+    [JsonIgnore]
+    public NpgsqlTsVector SearchVector { get; set; } = null!;
 
     /// <summary>What a new order can still get.</summary>
     public int AvailableQuantity => Math.Max(0, StockQuantity - ReservedQuantity);

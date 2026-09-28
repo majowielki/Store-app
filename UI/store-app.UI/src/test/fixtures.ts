@@ -132,6 +132,15 @@ export const meta: ProductsMeta = {
   companies: ['luxora'],
   colors: ['brown', 'black'],
   groupCategoryMap: [{ key: 'furniture', name: 'Furniture', categories: [{ key: 'tables', name: 'Tables' }] }],
+  counts: {
+    total: 3,
+    categories: { tables: 2, chairs: 1 },
+    groups: { furniture: 3 },
+    companies: { luxora: 3 },
+    colors: { brown: 2, black: 1 },
+    sale: 1,
+    newArrival: 0,
+  },
 };
 
 /** The store's pricing as the order service publishes it. */

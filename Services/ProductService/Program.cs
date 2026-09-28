@@ -45,6 +45,7 @@ builder.Services.AddStoreMessaging<ProductDbContext>(builder.Configuration, serv
 });
 
 // Business Services
+builder.Services.AddScoped<ProductSearch>();
 builder.Services.AddScoped<IProductService, Store.ProductService.Services.ProductService>();
 builder.Services.AddScoped<IStockLedger, StockLedger>();
 

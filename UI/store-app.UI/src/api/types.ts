@@ -31,6 +31,10 @@ export type ProductCompany = Catalog['schemas']['Company'];
 export type ProductPayload = Catalog['schemas']['CreateProductRequest'];
 export type ProductUpdatePayload = Catalog['schemas']['UpdateProductRequest'];
 export type ProductsMeta = Catalog['schemas']['ProductsMeta'];
+/** How many products each filter value shows under the rest of a query. */
+export type FilterCounts = Catalog['schemas']['FilterCounts'];
+/** The search box's best matches and the correction of a mistyped search. */
+export type ProductSuggestions = Catalog['schemas']['ProductSuggestions'];
 /** In stock, only a few left (low) or out of stock, as the catalogue shows it. */
 export type StockAvailability = Catalog['schemas']['StockAvailability'];
 export type GroupWithCategories = Catalog['schemas']['GroupWithCategories'];

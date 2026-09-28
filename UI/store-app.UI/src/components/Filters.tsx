@@ -19,6 +19,12 @@ interface FiltersProps {
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const toSlug = (s: string) => s.toLowerCase().replace(/\s+/g, '');
 
+/** "Sofas (4)": how many products the value shows with the rest of the query; the bare label while the counts are unknown. */
+const withCount = (label: string, counts: Record<string, number> | undefined, key: string) => {
+  if (!counts || Object.keys(counts).length === 0) return label;
+  return `${label} (${counts[key] ?? 0})`;
+};
+
 /** The filter fields; submitting puts them in the URL, which is what the listing reads. */
 const FiltersForm = ({ meta, query, onSubmitted }: FiltersProps & { onSubmitted?: () => void }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,18 +41,21 @@ const FiltersForm = ({ meta, query, onSubmitted }: FiltersProps & { onSubmitted?
   // The categories of the selected group; every category when no group is selected
   const categoryOptions = React.useMemo(() => {
     const selected = meta.groupCategoryMap.find((entry) => entry.key.toLowerCase() === groupValue.toLowerCase());
+    const counts = meta.counts?.categories;
     if (selected && selected.categories.length > 0) {
-      return selected.categories.map((cat) => ({ value: cat.key, label: capitalize(cat.name) }));
+      return selected.categories.map((cat) => ({ value: cat.key, label: withCount(capitalize(cat.name), counts, cat.key) }));
     }
     if (groupValue === 'all') {
-      return meta.categories.map((cat) => ({ value: toSlug(cat), label: capitalize(cat) }));
+      return meta.categories.map((cat) => ({ value: toSlug(cat), label: withCount(capitalize(cat), counts, cat) }));
     }
     return [];
-  }, [groupValue, meta.groupCategoryMap, meta.categories]);
+  }, [groupValue, meta.groupCategoryMap, meta.categories, meta.counts]);
 
-  const groupOptions = groupList.map((g) => ({ value: g, label: capitalize(g) }));
-  const companyOptions = meta.companies.filter((c) => c.toLowerCase() !== 'all').map((c) => ({ value: c, label: capitalize(c) }));
-  const colorOptions = meta.colors.map((c) => ({ value: c, label: capitalize(c) }));
+  const groupOptions = groupList.map((g) => ({ value: g, label: withCount(capitalize(g), meta.counts?.groups, g) }));
+  const companyOptions = meta.companies
+    .filter((c) => c.toLowerCase() !== 'all')
+    .map((c) => ({ value: c, label: withCount(capitalize(c), meta.counts?.companies, c) }));
+  const colorOptions = meta.colors.map((c) => ({ value: c, label: withCount(capitalize(c), meta.counts?.colors, c) }));
   const categoryDefault = groupValue === initialGroup ? category : undefined;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {

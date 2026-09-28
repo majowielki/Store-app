@@ -30,4 +30,7 @@ public class ProductQueryParams
 
     /// <summary>Comma-separated product ids: only these products (the ones a wishlist holds).</summary>
     public string? Ids { get; set; }
+
+    /// <summary>The same query, to change without touching this one (the filter counts leave one filter out at a time).</summary>
+    public ProductQueryParams Copy() => (ProductQueryParams)MemberwiseClone();
 }

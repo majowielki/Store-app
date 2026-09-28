@@ -11,7 +11,7 @@ pipeline that migrates before it deploys.
 |------|--------------|-------|
 | **Gateway** | the one public entry point: routes `/api/v1/*` to the services (YARP), validates the bearer token, applies the authorization policies and the per-client rate limits, sets the API's security headers | `Gateway/APIGateway` |
 | **Identity** | accounts, sign-in, 15-minute access tokens and rotating refresh tokens in an httpOnly cookie, the admin's user listing, the demo accounts | `Services/IdentityService` |
-| **Catalogue** | products, filters, the admin's product management (soft delete), the stock with its reservations and "notify me when it is back", product snapshots for the other services | `Services/ProductService` |
+| **Catalogue** | products, filters with counts, full-text search that corrects a mistyped word, the admin's product management (soft delete), the stock with its reservations and "notify me when it is back", product snapshots for the other services | `Services/ProductService` |
 | **Cart** | the signed-in customer's cart, priced from the catalogue and refreshed when it is read; the guest cart merges into it at sign-in | `Services/CartService` |
 | **Orders** | checkout from the server cart with idempotency keys and the pricing rules (delivery, first-order discount), the order saga that waits for the stock and the payment ([ADR 013](docs/adr/013-order-saga.md)), the signed payment webhooks, the customer's orders, the admin's order views and statistics | `Services/OrderService` |
 | **Audit** | the audit trail every service publishes as events, with a 90-day retention | `Services/AuditLogService` |

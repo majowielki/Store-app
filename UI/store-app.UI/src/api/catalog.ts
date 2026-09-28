@@ -7,6 +7,7 @@ import type {
   ProductUpdatePayload,
   ProductsMeta,
   ProductsResponse,
+  ProductSuggestions,
 } from './types';
 
 /** The values the catalogue can be filtered by, when the filter resource is unavailable. */
@@ -16,6 +17,7 @@ export const emptyProductsMeta: ProductsMeta = {
   companies: [],
   colors: [],
   groupCategoryMap: [],
+  counts: { total: 0, categories: {}, companies: {}, colors: {}, groups: {}, sale: 0, newArrival: 0 },
 };
 
 export const catalogApi = api.injectEndpoints({
@@ -33,9 +35,19 @@ export const catalogApi = api.injectEndpoints({
       query: (id) => `/products/admin/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Products', id }],
     }),
-    /** The values the catalogue can be filtered by; a page still renders without them. */
-    getProductsMeta: build.query<ProductsMeta, void>({
-      query: () => '/products/meta',
+    /**
+     * The values the catalogue can be filtered by, with how many products each shows under the
+     * rest of the query (the whole catalogue without one) and the search's correction; a page
+     * still renders without them.
+     */
+    getProductsMeta: build.query<ProductsMeta, ProductQuery | void>({
+      query: (params) => ({ url: '/products/meta', params: params ?? undefined }),
+      providesTags: ['Products'],
+      extraOptions: { silent: true },
+    }),
+    /** The best matches while a search is typed, and its correction when it finds nothing as typed. */
+    suggestProducts: build.query<ProductSuggestions, string>({
+      query: (q) => ({ url: '/products/suggest', params: { q, limit: 6 } }),
       providesTags: ['Products'],
       extraOptions: { silent: true },
     }),
@@ -74,6 +86,7 @@ export const {
   useGetProductQuery,
   useGetProductForAdminQuery,
   useGetProductsMetaQuery,
+  useSuggestProductsQuery,
   useGetProductsAdminQuery,
   useCreateProductMutation,
   useUpdateProductMutation,

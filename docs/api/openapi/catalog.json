@@ -345,7 +345,120 @@
         "tags": [
           "Products"
         ],
-        "summary": "The values the catalogue can be filtered by.",
+        "summary": "The values the catalogue can be filtered by, with how many active products each would show\ntogether with the rest of the query (the same parameters as the listing), and the search's\ncorrection when the typed words found nothing.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "color",
+            "in": "query",
+            "description": "One colour, as the shop's filter form sends it; the same as colors with a single value.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "price",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newArrival",
+            "in": "query",
+            "description": "\"true\", \"on\" or \"1\" keeps only the new arrivals; anything else does not filter.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "materials",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "colors",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slugs",
+            "in": "query",
+            "description": "Comma-separated product slugs: only these products (the ones a collection or a lookbook shows).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Comma-separated product ids: only these products (the ones a wishlist holds).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -353,6 +466,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProductsMeta"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/suggest": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "The best matches of a search while it is typed (words match as word starts, the title first),\nwith the corrected search when the typed one finds nothing (\"sfoa\" finds the sofas).",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 6
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductSuggestions"
                 }
               }
             }
@@ -909,6 +1070,69 @@
         "format": "double",
         "nullable": true
       },
+      "FilterCounts": {
+        "required": [
+          "categories",
+          "colors",
+          "companies",
+          "groups",
+          "newArrival",
+          "sale",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Products matching the whole query.",
+            "format": "int32"
+          },
+          "categories": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "By category key (\"tvStands\"); a category without products is left out."
+          },
+          "companies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "By company key."
+          },
+          "colors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "By colour key."
+          },
+          "groups": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "By group key."
+          },
+          "sale": {
+            "type": "integer",
+            "description": "Products on sale.",
+            "format": "int32"
+          },
+          "newArrival": {
+            "type": "integer",
+            "description": "New arrivals.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "How many active products each filter value would show together with the other filters of the\nquery (a value's own filter left out, so the other values of the same menu keep their counts)."
+      },
       "GroupWithCategories": {
         "required": [
           "categories",
@@ -1424,11 +1648,45 @@
         "additionalProperties": false,
         "description": "What the catalogue tells other services about a product: enough to show a cart line and\nto charge the right price. Returned by `GET /api/v1/products/{id}/snapshot`; the caller\nstores the fields it needs instead of keeping a copy of the product."
       },
+      "ProductSuggestions": {
+        "required": [
+          "products",
+          "query",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The search as typed."
+          },
+          "correction": {
+            "type": "string",
+            "description": "The search the results are for, when the typed one found nothing (\"sofa\" for \"sfoa\"); null otherwise.",
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "description": "Active products matching it.",
+            "format": "int32"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductResponse"
+            },
+            "description": "The best matches, the title's words first."
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the search box shows while typing: the best matches and the correction of a mistyped search."
+      },
       "ProductsMeta": {
         "required": [
           "categories",
           "colors",
           "companies",
+          "counts",
           "groupCategoryMap",
           "groups"
         ],
@@ -1464,6 +1722,14 @@
               "$ref": "#/components/schemas/GroupWithCategories"
             },
             "description": "Groups with the categories that belong to them, for dependent dropdowns."
+          },
+          "counts": {
+            "$ref": "#/components/schemas/FilterCounts"
+          },
+          "searchCorrection": {
+            "type": "string",
+            "description": "The search the counts are for, when the typed one found nothing and was corrected; null otherwise.",
+            "nullable": true
           }
         },
         "additionalProperties": false,

@@ -27,13 +27,15 @@ public class ProductService : IProductService
     };
 
     private readonly TimeProvider _time;
+    private readonly ProductSearch _search;
 
-    public ProductService(ProductDbContext context, ILogger<ProductService> logger, IAuditTrail auditTrail, TimeProvider time)
+    public ProductService(ProductDbContext context, ILogger<ProductService> logger, IAuditTrail auditTrail, TimeProvider time, ProductSearch search)
     {
         _context = context;
         _logger = logger;
         _auditTrail = auditTrail;
         _time = time;
+        _search = search;
     }
 
     public async Task<ProductDetailResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null)
@@ -131,9 +133,10 @@ public class ProductService : IProductService
         await _auditTrail.RecordAsync("PRODUCT_DELETED", nameof(Product), id.ToString(), actorId, oldValues: oldValues);
     }
 
-    public Task<PagedResponse<ProductResponse>> GetProductsAsync(ProductQueryParams queryParams)
+    public async Task<PagedResponse<ProductResponse>> GetProductsAsync(ProductQueryParams queryParams)
     {
-        var query = ApplyFilters(_context.Products.AsNoTracking().Where(p => p.IsActive), queryParams);
+        var plan = await _search.PlanAsync(queryParams.Search);
+        var query = ApplyFilters(ActiveProducts, queryParams, plan);
 
         query = (queryParams.Order ?? string.Empty).ToLowerInvariant() switch
         {
@@ -141,11 +144,36 @@ public class ProductService : IProductService
             "high" => query.OrderByDescending(p => p.SalePrice ?? p.Price),
             "low" => query.OrderBy(p => p.SalePrice ?? p.Price),
             "rating" => query.OrderByDescending(p => p.RatingAverage).ThenByDescending(p => p.RatingCount).ThenBy(p => p.Title),
+            "a-z" => query.OrderBy(p => p.Title),
+            // A search without an order puts the best matches first: words in the title before the description
+            _ when plan.Query is { } words => query.OrderByDescending(p => p.SearchVector.Rank(EF.Functions.ToTsQuery(ProductSearch.Config, ProductDbContext.Unaccent(words)))).ThenBy(p => p.Title),
             _ => query.OrderBy(p => p.Title)
         };
 
-        return PageAsync(query, queryParams, PublicPageSize, forAdmin: false);
+        return await PageAsync(query, queryParams, PublicPageSize, forAdmin: false);
     }
+
+    public async Task<ProductSuggestions> SuggestAsync(string? search, int limit)
+    {
+        var plan = await _search.PlanAsync(search);
+        var suggestions = new ProductSuggestions { Query = search?.Trim() ?? string.Empty, Correction = plan.Correction };
+        if (plan.Query is not { } words)
+        {
+            return suggestions;
+        }
+
+        var query = ApplyFilters(ActiveProducts, new ProductQueryParams(), plan);
+        suggestions.TotalCount = await query.CountAsync();
+        var best = await query
+            .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.ToTsQuery(ProductSearch.Config, ProductDbContext.Unaccent(words))))
+            .ThenBy(p => p.Title)
+            .Take(Math.Clamp(limit, 1, 12))
+            .ToListAsync();
+        suggestions.Products = best.Select(product => Map(product, new ProductResponse(), forAdmin: false)).ToList();
+        return suggestions;
+    }
+
+    private IQueryable<Product> ActiveProducts => _context.Products.AsNoTracking().Where(p => p.IsActive);
 
     public Task<ProductDetailResponse> GetProductAsync(int id) => GetDetailAsync(id, forAdmin: false);
 
@@ -161,6 +189,62 @@ public class ProductService : IProductService
 
         return MapToDetailResponse(product, forAdmin);
     }
+
+    public async Task<ProductsMeta> GetProductsMetaAsync(ProductQueryParams queryParams)
+    {
+        var meta = GetProductsMeta();
+        var plan = await _search.PlanAsync(queryParams.Search);
+        meta.SearchCorrection = plan.Correction;
+        meta.Counts = await CountAsync(queryParams, plan);
+        return meta;
+    }
+
+    /// <summary>
+    /// The counts of every filter value under the rest of the query: each menu's own filter is left
+    /// out of its counts, so picking another category still shows how many it has.
+    /// </summary>
+    private async Task<FilterCounts> CountAsync(ProductQueryParams queryParams, SearchPlan plan)
+    {
+        IQueryable<Product> Without(Action<ProductQueryParams> clear)
+        {
+            var rest = queryParams.Copy();
+            clear(rest);
+            return ApplyFilters(ActiveProducts, rest, plan);
+        }
+
+        var categories = await Without(q => q.Category = null)
+            .GroupBy(p => p.Category)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync();
+        var companies = await Without(q => q.Company = null)
+            .GroupBy(p => p.Company)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync();
+        var colors = await Without(q => q.Colors = q.Color = null)
+            .SelectMany(p => p.Colors)
+            .GroupBy(color => color.ToLower())
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync();
+        var groups = await Without(q => q.Group = null)
+            .SelectMany(p => p.Groups)
+            .GroupBy(group => group)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        return new FilterCounts
+        {
+            Total = await ApplyFilters(ActiveProducts, queryParams, plan).CountAsync(),
+            Categories = categories.ToDictionary(c => Key(c.Key), c => c.Count),
+            Companies = companies.ToDictionary(c => Key(c.Key), c => c.Count),
+            Colors = colors.ToDictionary(c => c.Key, c => c.Count),
+            Groups = groups.ToDictionary(g => g.Key, g => g.Count),
+            Sale = await Without(q => q.Sale = null).CountAsync(IsOnSale),
+            NewArrival = await Without(q => q.NewArrival = null).CountAsync(p => p.NewArrival)
+        };
+    }
+
+    private static readonly System.Linq.Expressions.Expression<Func<Product, bool>> IsOnSale =
+        p => (p.SalePrice.HasValue && p.SalePrice.Value > 0) || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0);
 
     public ProductsMeta GetProductsMeta()
     {
@@ -199,10 +283,10 @@ public class ProductService : IProductService
         };
     }
 
-    public Task<PagedResponse<ProductResponse>> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir)
+    public async Task<PagedResponse<ProductResponse>> GetProductsForAdminAsync(ProductQueryParams queryParams, string? sortBy, string? sortDir)
     {
         // Inactive products too: the admin panel restores them from here
-        var query = ApplyFilters(_context.Products.AsNoTracking(), queryParams);
+        var query = ApplyFilters(_context.Products.AsNoTracking(), queryParams, await _search.PlanAsync(queryParams.Search, includeInactive: true));
 
         var desc = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
         query = (sortBy ?? "id").ToLowerInvariant() switch
@@ -215,7 +299,7 @@ public class ProductService : IProductService
             _ => desc ? query.OrderByDescending(p => p.Id) : query.OrderBy(p => p.Id)
         };
 
-        return PageAsync(query, queryParams, AdminPageSize, forAdmin: true);
+        return await PageAsync(query, queryParams, AdminPageSize, forAdmin: true);
     }
 
     public async Task<ProductSnapshot?> GetSnapshotAsync(int id)
@@ -224,8 +308,11 @@ public class ProductService : IProductService
         return product?.ToSnapshot();
     }
 
-    /// <summary>Every filter translates to SQL; nothing is filtered or paginated in memory.</summary>
-    private static IQueryable<Product> ApplyFilters(IQueryable<Product> query, ProductQueryParams queryParams)
+    /// <summary>
+    /// Every filter translates to SQL; nothing is filtered or paginated in memory. The search is
+    /// the <paramref name="search"/> plan's words (corrected when the typed ones found nothing).
+    /// </summary>
+    private static IQueryable<Product> ApplyFilters(IQueryable<Product> query, ProductQueryParams queryParams, SearchPlan search)
     {
         if (!string.IsNullOrEmpty(queryParams.Group) && !IsAll(queryParams.Group))
         {
@@ -233,12 +320,9 @@ public class ProductService : IProductService
             query = query.Where(p => p.Groups.Any(g => g.ToLower() == groupFilter));
         }
 
-        if (!string.IsNullOrEmpty(queryParams.Search))
+        if (search.Query is { } words)
         {
-            var pattern = $"%{queryParams.Search.Trim()}%";
-            query = query.Where(p =>
-                EF.Functions.ILike(p.Title, pattern) ||
-                EF.Functions.ILike(p.Description, pattern));
+            query = query.Where(p => p.SearchVector.Matches(EF.Functions.ToTsQuery(ProductSearch.Config, ProductDbContext.Unaccent(words))));
         }
 
         if (!string.IsNullOrEmpty(queryParams.Category) && !IsAll(queryParams.Category)
@@ -282,7 +366,7 @@ public class ProductService : IProductService
         // Checkbox-style values from the UI: "true", "on", "1"
         if (IsChecked(queryParams.Sale))
         {
-            query = query.Where(p => (p.SalePrice.HasValue && p.SalePrice.Value > 0) || (p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0));
+            query = query.Where(IsOnSale);
         }
 
         if (IsChecked(queryParams.NewArrival))

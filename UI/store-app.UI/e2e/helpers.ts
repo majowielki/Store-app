@@ -124,6 +124,8 @@ export const checkout = async (page: Page, address = 'E2E Street 1'): Promise<nu
   const orderId = await placeOrder(page, address);
   await pay(page);
   await page.goto('/orders');
+  // Wait for the list: leaving a page while it renews the session can end the session
+  await expect(page.getByRole('row').nth(1)).toBeVisible();
   return orderId;
 };
 

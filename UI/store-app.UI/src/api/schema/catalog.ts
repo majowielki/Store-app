@@ -265,10 +265,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The values the catalogue can be filtered by. */
+        /**
+         * The values the catalogue can be filtered by, with how many active products each would show
+         *     together with the rest of the query (the same parameters as the listing), and the search's
+         *     correction when the typed words found nothing.
+         */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    search?: string;
+                    category?: string;
+                    group?: string;
+                    company?: string;
+                    /** @description One colour, as the shop's filter form sends it; the same as colors with a single value. */
+                    color?: string;
+                    order?: string;
+                    price?: string;
+                    sale?: string;
+                    /** @description "true", "on" or "1" keeps only the new arrivals; anything else does not filter. */
+                    newArrival?: string;
+                    page?: number;
+                    pageSize?: number;
+                    materials?: string;
+                    colors?: string;
+                    /** @description Comma-separated product slugs: only these products (the ones a collection or a lookbook shows). */
+                    slugs?: string;
+                    /** @description Comma-separated product ids: only these products (the ones a wishlist holds). */
+                    ids?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -282,6 +306,57 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ProductsMeta"];
+                    };
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The best matches of a search while it is typed (words match as word starts, the title first),
+         *     with the corrected search when the typed one finds nothing ("sfoa" finds the sofas).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductSuggestions"];
                     };
                 };
                 /** @description Error, as an RFC 9457 problem (application/problem+json) */
@@ -682,6 +757,43 @@ export interface components {
          *     which a plain nullable property cannot express - both arrive as null.
          */
         DecimalNullableOptional: number | null;
+        /**
+         * @description How many active products each filter value would show together with the other filters of the
+         *     query (a value's own filter left out, so the other values of the same menu keep their counts).
+         */
+        FilterCounts: {
+            /**
+             * Format: int32
+             * @description Products matching the whole query.
+             */
+            total: number;
+            /** @description By category key ("tvStands"); a category without products is left out. */
+            categories: {
+                [key: string]: number;
+            };
+            /** @description By company key. */
+            companies: {
+                [key: string]: number;
+            };
+            /** @description By colour key. */
+            colors: {
+                [key: string]: number;
+            };
+            /** @description By group key. */
+            groups: {
+                [key: string]: number;
+            };
+            /**
+             * Format: int32
+             * @description Products on sale.
+             */
+            sale: number;
+            /**
+             * Format: int32
+             * @description New arrivals.
+             */
+            newArrival: number;
+        };
         GroupWithCategories: {
             key: string;
             name: string;
@@ -902,6 +1014,20 @@ export interface components {
              */
             availableQuantity: number;
         };
+        /** @description What the search box shows while typing: the best matches and the correction of a mistyped search. */
+        ProductSuggestions: {
+            /** @description The search as typed. */
+            query: string;
+            /** @description The search the results are for, when the typed one found nothing ("sofa" for "sfoa"); null otherwise. */
+            correction?: string | null;
+            /**
+             * Format: int32
+             * @description Active products matching it.
+             */
+            totalCount: number;
+            /** @description The best matches, the title's words first. */
+            products: components["schemas"]["ProductResponse"][];
+        };
         /**
          * @description The values the catalogue can be filtered by, for the shop's menus and the admin form.
          *     Keys use the same spelling as the product fields ("tvStands", "modenza"); "all" comes
@@ -914,6 +1040,9 @@ export interface components {
             colors: string[];
             /** @description Groups with the categories that belong to them, for dependent dropdowns. */
             groupCategoryMap: components["schemas"]["GroupWithCategories"][];
+            counts: components["schemas"]["FilterCounts"];
+            /** @description The search the counts are for, when the typed one found nothing and was corrected; null otherwise. */
+            searchCorrection?: string | null;
         };
         /** @description Body of PUT /api/v1/products/{id}/stock: the units on hand after a count. */
         SetStockRequest: {

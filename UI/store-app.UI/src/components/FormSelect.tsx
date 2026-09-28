@@ -53,8 +53,11 @@ const FormSelect = ({ label, name, options, defaultValue, includeAll = false, va
   // Keep internal in sync if defaultValue/options change (rare)
   React.useEffect(() => {
     const d = defaultValue ? String(defaultValue) : undefined;
-    const nextInitial = d && normalizedOptions.some(o => o.value === d) ? d : (includeAll ? 'all' : normalizedOptions[0]?.value);
-    setInternal((prev) => (prev ? prev : nextInitial ?? 'all'));
+    const valid = (v?: string) => !!v && normalizedOptions.some(o => o.value === v);
+    const nextInitial = valid(d) ? d : (includeAll ? 'all' : normalizedOptions[0]?.value);
+    // Options that arrive after the first render (the catalogue's filter values) bring the
+    // default along: the value in the URL, not the "All" the empty list fell back to
+    setInternal((prev) => (valid(d) && (!valid(prev) || prev === 'all') ? d! : valid(prev) ? prev : nextInitial ?? 'all'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultValue, includeAll, JSON.stringify(options)]);
   return (

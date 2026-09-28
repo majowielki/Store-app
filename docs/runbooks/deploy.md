@@ -13,6 +13,9 @@ the portal after the one-time preparation below.
    Automatic backups: 7 days at least, geo-redundant for production (see
    [database-restore.md](database-restore.md)). Allow the Container Apps environment's outbound
    addresses or use a private endpoint; `Ssl Mode=Require` is in the connection strings.
+   The catalogue's search migration creates the `unaccent` and `fuzzystrmatch` extensions: allow
+   them in the server parameter `azure.extensions` first
+   (`az postgres flexible-server parameter set -g <rg> -s <server> -n azure.extensions -v UNACCENT,FUZZYSTRMATCH`).
 2. **A service principal for GitHub** with a federated credential (OpenID Connect) for the
    repository's `production` environment:
    ```bash

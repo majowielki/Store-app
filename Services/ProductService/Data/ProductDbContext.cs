@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Messaging;
 using Store.ProductService.Models;
+using Store.ProductService.Services;
 
 namespace Store.ProductService.Data;
 
@@ -20,6 +21,12 @@ public class ProductDbContext : DbContext
 
     public DbSet<StockAlert> StockAlerts => Set<StockAlert>();
 
+    /// <summary>
+    /// The text without accents, the way the search vector is made ("bouclé" is "boucle"): the
+    /// store_unaccent function the search migration creates. Only for queries.
+    /// </summary>
+    public static string Unaccent(string text) => throw new NotSupportedException("Translated to SQL only");
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Money and dimensions: two decimal places everywhere unless a property says otherwise
@@ -29,6 +36,11 @@ public class ProductDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Search: accent-free words and the edit distance for typo correction (ProductSearch)
+        modelBuilder.HasPostgresExtension("unaccent");
+        modelBuilder.HasPostgresExtension("fuzzystrmatch");
+        modelBuilder.HasDbFunction(typeof(ProductDbContext).GetMethod(nameof(Unaccent))!).HasName("store_unaccent");
 
         modelBuilder.Entity<Product>(entity =>
         {
@@ -60,6 +72,19 @@ public class ProductDbContext : DbContext
             entity.HasIndex(e => e.Category);
             entity.HasIndex(e => e.Company);
             entity.HasIndex(e => e.Title);
+            // Search (ProductSearch): the weighted words of each product, kept by the database and
+            // served by a GIN index; the extensions give it accents-free words and typo correction
+            if (Database.IsNpgsql())
+            {
+                entity.Property(e => e.SearchVector).HasComputedColumnSql(ProductSearch.VectorSql, stored: true);
+                entity.HasIndex(e => e.SearchVector).HasMethod("GIN");
+            }
+            else
+            {
+                // The unit tests' in-memory database has no tsvector; search is tested on PostgreSQL
+                entity.Ignore(e => e.SearchVector);
+            }
+
             // "Best rated" sorts the listing by both
             entity.Property(e => e.RatingAverage).HasPrecision(3, 2);
             entity.HasIndex(e => new { e.RatingAverage, e.RatingCount });

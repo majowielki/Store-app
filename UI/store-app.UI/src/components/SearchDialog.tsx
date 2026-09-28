@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Search } from 'lucide-react';
-import { useGetProductsQuery } from '@/api/catalog';
+import { useSuggestProductsQuery } from '@/api/catalog';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { useOpenProduct } from '@/hooks/use-open-product';
 import { categories, categoryHref } from '@/utils/categories';
@@ -32,8 +32,10 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
   const [text, setText] = useState('');
   const query = useDebounced(text.trim(), 250);
   const searching = query.length >= 2;
-  const { data, isFetching } = useGetProductsQuery({ search: query, pageSize: 6 }, { skip: !open || !searching });
-  const results = searching ? (data?.items ?? []) : [];
+  // Typo-tolerant: a search that finds nothing as typed comes back corrected ("sfoa" is "sofa")
+  const { data, isFetching } = useSuggestProductsQuery(query, { skip: !open || !searching });
+  const results = searching ? (data?.products ?? []) : [];
+  const correction = searching ? data?.correction : undefined;
 
   useEffect(() => {
     if (!open) setText('');
@@ -42,7 +44,8 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
   const close = () => onOpenChange(false);
   const showAll = (e?: React.FormEvent) => {
     e?.preventDefault();
-    const words = text.trim();
+    // The listing corrects the search the same way; the corrected words make a cleaner address
+    const words = correction ?? text.trim();
     close();
     navigate(words ? `/products?search=${encodeURIComponent(words)}` : '/products');
   };
@@ -97,6 +100,11 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
             )
           ) : (
             <div className="mt-8">
+              {correction && (
+                <p role="status" className="mb-4 text-sm text-muted-foreground">
+                  Showing results for <span className="font-medium text-foreground">“{correction}”</span> — nothing matched “{query}”.
+                </p>
+              )}
               <div className="flex items-baseline justify-between gap-4">
                 <p className="eyebrow">
                   {data?.totalCount} {data?.totalCount === 1 ? 'product' : 'products'}

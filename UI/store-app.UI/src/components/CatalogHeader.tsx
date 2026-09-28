@@ -15,6 +15,14 @@ const isSale = (sale?: string) => sale === 'on' || sale === 'true';
 const describe = ({ meta, query }: CatalogHeaderProps) => {
   const group = meta.groupCategoryMap.find((g) => g.key === query.group);
   const category = group?.categories.find((c) => c.key === query.category);
+  if (query.search && meta.searchCorrection) {
+    return {
+      title: `“${meta.searchCorrection}”`,
+      eyebrow: 'Search results',
+      lead: `Nothing matched “${query.search}”, so these are the results for “${meta.searchCorrection}”.`,
+      group,
+    };
+  }
   if (query.search) {
     return { title: `“${query.search}”`, eyebrow: 'Search results', lead: 'Everything in the shop matching your search.', group };
   }

@@ -5,6 +5,7 @@ using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
+using Store.ProductService.Services;
 using Xunit;
 
 namespace Store.Tests.Unit.ProductService;
@@ -26,7 +27,8 @@ public class ProductServiceTests
             _dbContext,
             _loggerMock.Object,
             _auditTrailMock.Object,
-            TimeProvider.System
+            TimeProvider.System,
+            new ProductSearch(_dbContext)
         );
     }
 

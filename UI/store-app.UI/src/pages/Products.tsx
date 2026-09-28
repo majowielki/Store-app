@@ -10,8 +10,10 @@ const Products = () => {
   const [searchParams] = useSearchParams();
   const query = useMemo(() => productQueryFrom(searchParams), [searchParams]);
   const { data: page, isLoading } = useGetProductsQuery(query);
-  // The filter values are a separate resource; the page still renders without them
-  const { data: meta = emptyProductsMeta } = useGetProductsMetaQuery();
+  // The filter values, counted under this query (the page and the order change no count), are a
+  // separate resource; the page still renders without them
+  const counted = useMemo(() => ({ ...query, page: undefined, order: undefined }), [query]);
+  const { data: meta = emptyProductsMeta } = useGetProductsMetaQuery(counted);
 
   return (
     <>
