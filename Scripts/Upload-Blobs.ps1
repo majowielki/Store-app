@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-  Uploads the product pictures (Blobs/*.webp) to the product-images container of an Azure
-  storage account.
+  Uploads the product pictures (Blobs/*.webp and their smaller copies in Blobs/w*/) to the
+  product-images container of an Azure storage account.
 
 .DESCRIPTION
   Locally docker compose does this on its own: the blobs-seed service in
@@ -12,7 +12,8 @@
 
   Needs the Azure CLI signed in ("az login") with a data role on the account, such as
   Storage Blob Data Contributor. The pictures must be converted first:
-  "dotnet run Scripts/optimize-images.cs".
+  "dotnet run Scripts/optimize-images.cs", then the smaller copies (ADR 016):
+  "dotnet run Scripts/make-image-sizes.cs".
 
 .PARAMETER AccountName
   The storage account to upload to.
@@ -33,7 +34,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $source = Join-Path $RootPath 'Blobs'
-$pictures = @(Get-ChildItem -Path $source -Filter '*.webp' -File)
+$pictures = @(Get-ChildItem -Path $source -Filter '*.webp' -File -Recurse)
 if ($pictures.Count -eq 0) {
   throw "No WebP pictures in $source - run 'dotnet run Scripts/optimize-images.cs' first."
 }

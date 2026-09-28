@@ -10,7 +10,8 @@
 //   dotnet run Scripts/optimize-images.cs            converts what is new or changed
 //   dotnet run Scripts/optimize-images.cs -- --force converts everything again
 //
-// Subfolders ("old pictures") are left alone.
+// Subfolders ("old pictures", the smaller copies in w400/ and the like) are left alone; the copies
+// come from Scripts/make-image-sizes.cs, run after this one.
 
 using System.Text.RegularExpressions;
 using SkiaSharp;

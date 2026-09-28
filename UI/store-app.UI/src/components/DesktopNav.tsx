@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link, NavLink, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
@@ -66,7 +67,7 @@ const MegaPanel = ({ group, onNavigate }: { group: string; onNavigate: () => voi
             className="group/pick block"
           >
             <div className="aspect-4/3 overflow-hidden rounded-xl bg-muted">
-              <img
+              <ResponsiveImage size="card"
                 src={product.image}
                 alt={product.title}
                 className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover/pick:scale-105"
@@ -113,7 +114,7 @@ const InspirationPanel = ({ onNavigate }: { onNavigate: () => void }) => {
         {picks.map((pick) => (
           <Link key={pick.to} to={pick.to} onClick={onNavigate} className="group/pick block">
             <div className="aspect-16/10 overflow-hidden rounded-xl bg-muted">
-              <img src={pick.image} alt="" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover/pick:scale-105" />
+              <ResponsiveImage size="card" src={pick.image} alt="" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover/pick:scale-105" />
             </div>
             <p className="eyebrow mt-3">{pick.eyebrow}</p>
             <p className="mt-1 text-sm font-medium">{pick.title}</p>

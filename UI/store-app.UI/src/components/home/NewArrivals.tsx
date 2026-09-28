@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { ArrowUpRight } from 'lucide-react';
 import { useGetProductsQuery } from '@/api/catalog';
 import ProductCard, { ProductPrice } from '@/components/ProductCard';
@@ -9,7 +10,7 @@ import type { Product } from '@/utils';
 /** The first new arrival, large: the picture fills its half of the section. */
 const Lead = ({ product }: { product: Product }) => (
   <Link to={`/products/${product.id}`} className="group relative block h-full min-h-104 overflow-hidden rounded-4xl bg-muted">
-    <img src={product.image} alt={product.title} className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-smooth group-hover:scale-105" />
+    <ResponsiveImage size="half" placeholder src={product.image} alt={product.title} className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-smooth group-hover:scale-105" />
     <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
     <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-6 text-white md:p-8">
       <div>

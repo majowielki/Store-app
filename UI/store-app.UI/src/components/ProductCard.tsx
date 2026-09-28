@@ -8,6 +8,7 @@ import { priceTag, type Product } from '@/utils';
 import CompareToggle from './CompareToggle';
 import ProductPrice from './ProductPrice';
 import QuickView from './QuickView';
+import ResponsiveImage from './ResponsiveImage';
 import SaleBadge from './SaleBadge';
 import StockBadge from './StockBadge';
 import Swatch from './swatch/Swatch';
@@ -58,9 +59,11 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
         className="block rounded-2xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
       >
         <div className="relative aspect-5/4 overflow-hidden rounded-2xl bg-muted">
-          <img
+          <ResponsiveImage
             ref={imageRef}
             src={image}
+            size="card"
+            placeholder
             alt={title}
             loading="lazy"
             decoding="async"

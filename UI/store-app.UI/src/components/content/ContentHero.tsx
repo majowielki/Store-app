@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
@@ -32,7 +33,7 @@ const ContentHero = ({ eyebrow, title, lead, image, back, meta }: ContentHeroPro
       )}
     </div>
     <div className="mt-10 aspect-3/2 animate-fade-up overflow-hidden rounded-4xl bg-muted [animation-delay:220ms] md:aspect-21/9">
-      <img src={image} alt="" className="h-full w-full object-cover" />
+      <ResponsiveImage size="full" placeholder src={image} alt="" className="h-full w-full object-cover" />
     </div>
   </header>
 );

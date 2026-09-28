@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Scale, ShoppingBag, X } from 'lucide-react';
 import Loading from '@/components/Loading';
@@ -90,7 +91,7 @@ const Compare = () => {
                   <div className="relative">
                     <Link to={`/products/${product.id}`} className="group block">
                       <div className="aspect-5/4 overflow-hidden rounded-xl bg-muted">
-                        <img src={product.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <ResponsiveImage size="tile" src={product.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                       </div>
                       <span className="mt-3 block font-medium leading-snug">{product.title}</span>
                     </Link>

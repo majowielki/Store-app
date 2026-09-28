@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { ArrowUpRight } from 'lucide-react';
 import { useGetProductsQuery } from '@/api/catalog';
 import { cn } from '@/lib/utils';
@@ -27,7 +28,7 @@ const RoomTile = ({ category, className, delay }: { category: Category; classNam
         className="group relative block h-full overflow-hidden rounded-3xl bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
       >
         {image && (
-          <img
+          <ResponsiveImage size="card" placeholder
             src={image}
             alt=""
             loading="lazy"

@@ -32,7 +32,7 @@ const LookbookFeature = () => {
           </div>
         </Reveal>
         <Reveal delay={120} className="lg:col-span-8">
-          <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} />
+          <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} size="half" />
         </Reveal>
       </div>
     </section>

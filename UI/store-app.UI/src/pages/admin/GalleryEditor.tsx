@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ImagePlus, X } from 'lucide-react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import type { ProductImage } from '@/api/types';
 import { fieldLabelClass } from '@/components/FormInput';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ const GalleryEditor = ({ images, onChange }: GalleryEditorProps) => {
           const number = index + 2;
           return (
             <li key={index} className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[5rem_1fr_auto] sm:items-start">
-              <div className="aspect-4/3 w-20 overflow-hidden rounded-md bg-muted">{image.url && <img src={image.url} alt="" className="h-full w-full object-cover" />}</div>
+              <div className="aspect-4/3 w-20 overflow-hidden rounded-md bg-muted">{image.url && <ResponsiveImage size="thumbnail" src={image.url} alt="" className="h-full w-full object-cover" />}</div>
               <div className="grid gap-3">
                 <TextField label={`Picture ${number}: address`} type="url" value={image.url} onChange={(url) => update(index, { url })} required />
                 <TextField label={`Picture ${number}: what it shows`} value={image.alt} onChange={(alt) => update(index, { alt })} required maxLength={200} />

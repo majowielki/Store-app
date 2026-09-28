@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Heart, ShoppingBag, X } from 'lucide-react';
 import Loading from '@/components/Loading';
@@ -33,7 +34,7 @@ const WishlistRow = ({ product }: { product: Product }) => {
   return (
     <li className="grid grid-cols-[6rem_1fr] gap-5 py-6 sm:grid-cols-[8.5rem_1fr_auto] sm:items-center">
       <Link to={`/products/${product.id}`} className="block aspect-5/4 overflow-hidden rounded-xl bg-muted">
-        <img src={product.image} alt={product.title} className="h-full w-full object-cover" />
+        <ResponsiveImage size="tile" src={product.image} alt={product.title} className="h-full w-full object-cover" />
       </Link>
       <div className="min-w-0">
         <p className="eyebrow">{product.company}</p>

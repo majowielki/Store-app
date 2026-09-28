@@ -1,4 +1,5 @@
 import { useRef, useState, type RefObject } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Eye, ShoppingBag, X } from 'lucide-react';
@@ -36,7 +37,7 @@ const QuickViewContent = ({ product, trigger, onAdding }: { product: Product; tr
   return (
     <div className="grid gap-6 sm:grid-cols-2">
       <div className="aspect-square overflow-hidden rounded-2xl bg-muted sm:aspect-auto">
-        <img src={product.image} alt={product.title} className="h-full w-full object-cover" />
+        <ResponsiveImage size="half" placeholder src={product.image} alt={product.title} className="h-full w-full object-cover" />
       </div>
       <div className="flex flex-col">
         <p className="eyebrow">{product.company}</p>

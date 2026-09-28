@@ -35,9 +35,10 @@ services:
     networks:
       - store
 
-  # Puts the product pictures from Blobs/ (the WebP files, see Scripts/optimize-images.cs) into
-  # the emulator and exits. It runs on every "up" and replaces what is there, so a picture
-  # regenerated since shows up without resetting the volume; "old pictures/" holds no WebP files
+  # Puts the product pictures from Blobs/ (the WebP files, see Scripts/optimize-images.cs, and their
+  # smaller copies in Blobs/w*/, see Scripts/make-image-sizes.cs) into the emulator and exits. It
+  # runs on every "up" and replaces what is there, so a picture regenerated since shows up without
+  # resetting the volume; "old pictures/" holds no WebP files
   blobs-seed:
     image: mcr.microsoft.com/azure-cli:2.77.0
     depends_on:

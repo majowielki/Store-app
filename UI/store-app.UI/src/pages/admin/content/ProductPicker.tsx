@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import { useGetProductsQuery } from '@/api/catalog';
 import { fieldLabelClass } from '@/components/FormInput';
@@ -44,7 +45,7 @@ export const ProductSearch = ({ label, exclude, onPick }: ProductSearchProps) =>
           {offered.length === 0 && <li className="p-3 text-sm text-muted-foreground">{isFetching ? 'Searching…' : 'No product matches.'}</li>}
           {offered.map((product) => (
             <li key={product.id} className="flex items-center gap-3 border-b p-2 last:border-b-0">
-              <img src={product.image} alt="" className="h-10 w-12 rounded object-cover" />
+              <ResponsiveImage size="thumbnail" src={product.image} alt="" className="h-10 w-12 rounded object-cover" />
               <span className="min-w-0 flex-1 truncate text-sm">{product.title}</span>
               <Button
                 type="button"
@@ -89,7 +90,7 @@ const ProductPicker = ({ value, onChange }: { value: string[]; onChange: (slugs:
             return (
               <li key={slug} className="flex items-center gap-3 rounded-lg border p-2">
                 <span className="w-5 text-center text-xs text-muted-foreground">{index + 1}</span>
-                {product ? <img src={product.image} alt="" className="h-10 w-12 rounded object-cover" /> : <span className="h-10 w-12 rounded bg-muted" />}
+                {product ? <ResponsiveImage size="thumbnail" src={product.image} alt="" className="h-10 w-12 rounded object-cover" /> : <span className="h-10 w-12 rounded bg-muted" />}
                 <span className="min-w-0 flex-1 truncate text-sm">
                   {product?.title ?? slug}
                   {!product && (

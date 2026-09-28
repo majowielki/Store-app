@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
@@ -49,7 +50,7 @@ const OrderSummary = ({ title, order, actions, lineActions }: OrderSummaryProps)
             {order.orderItems.map((it) => (
               <TableRow key={it.id}>
                 <TableCell className="flex items-center gap-3 font-medium">
-                  {it.productImage ? <img src={it.productImage} alt={it.productTitle} className="h-12 w-14 rounded-lg object-cover" /> : null}
+                  {it.productImage ? <ResponsiveImage size="thumbnail" src={it.productImage} alt={it.productTitle} className="h-12 w-14 rounded-lg object-cover" /> : null}
                   <span>{it.productTitle}</span>
                 </TableCell>
                 <TableCell>

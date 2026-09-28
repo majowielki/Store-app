@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Search } from 'lucide-react';
 import { useSuggestProductsQuery } from '@/api/catalog';
@@ -126,7 +127,7 @@ const SearchDialog = ({ open, onOpenChange }: SearchDialogProps) => {
                       className="group flex items-center gap-4 rounded-2xl p-2 transition-colors hover:bg-accent"
                     >
                       <div className="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
-                        <img src={product.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <ResponsiveImage size="thumbnail" src={product.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="eyebrow">{product.company}</p>

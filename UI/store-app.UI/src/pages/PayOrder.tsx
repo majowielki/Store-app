@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link, useParams } from 'react-router-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { ordersApi, useGetOrderQuery } from '@/api/orders';
@@ -183,7 +184,7 @@ const PayOrder = () => {
             {order.orderItems.map((line) => (
               <li key={line.id} className="flex items-center gap-4">
                 <div className="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
-                  {line.productImage && <img src={line.productImage} alt="" className="h-full w-full object-cover" />}
+                  {line.productImage && <ResponsiveImage size="thumbnail" src={line.productImage} alt="" className="h-full w-full object-cover" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{line.productTitle}</p>

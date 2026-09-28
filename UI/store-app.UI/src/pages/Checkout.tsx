@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { CheckoutForm, Loading, CartTotals } from '@/components';
 import CheckoutSteps from '@/components/CheckoutSteps';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
@@ -41,7 +42,7 @@ const Checkout = () => {
               <li key={line.key} className="flex items-center gap-4">
                 <div className="relative h-16 w-20 shrink-0">
                   <div className="h-full w-full overflow-hidden rounded-xl bg-muted">
-                    {line.image && <img src={line.image} alt="" className="h-full w-full object-cover" />}
+                    {line.image && <ResponsiveImage size="thumbnail" src={line.image} alt="" className="h-full w-full object-cover" />}
                   </div>
                   <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-foreground px-1 text-[10px] font-semibold text-background">
                     {line.quantity}

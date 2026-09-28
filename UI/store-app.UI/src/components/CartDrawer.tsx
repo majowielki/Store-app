@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link } from 'react-router-dom';
 import { ArrowRight, X } from 'lucide-react';
 import { useGetProductsQuery } from '@/api/catalog';
@@ -80,7 +81,7 @@ const CartDrawer = () => {
             {lines.map((line) => (
               <li key={line.key} className="flex items-center gap-4">
                 <Link to={`/products/${line.productId}`} onClick={close} className="block h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
-                  {line.image && <img src={line.image} alt="" className="h-full w-full object-cover" />}
+                  {line.image && <ResponsiveImage size="thumbnail" src={line.image} alt="" className="h-full w-full object-cover" />}
                 </Link>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{line.title}</p>
@@ -117,7 +118,7 @@ const CartDrawer = () => {
                   <li key={product.id}>
                     <Link to={`/products/${product.id}`} onClick={close} className="group block">
                       <div className="aspect-square overflow-hidden rounded-xl bg-muted">
-                        <img src={product.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <ResponsiveImage size="thumbnail" src={product.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                       </div>
                       <p className="mt-2 line-clamp-2 text-xs font-medium leading-snug">{product.title}</p>
                       <p className="text-xs">

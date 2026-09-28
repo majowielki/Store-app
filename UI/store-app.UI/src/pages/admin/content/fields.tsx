@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import Markdown from '@/components/content/Markdown';
 import { fieldLabelClass } from '@/components/FormInput';
 import { Input } from '@/components/ui/input';
@@ -90,7 +91,7 @@ export const ImageField = ({ label, value, onChange }: { label: string; value: s
       <div className="flex items-center gap-3">
         <Input id={id} type="url" value={value} onChange={(e) => onChange(e.target.value)} required />
         <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md border bg-muted">
-          {value && <img src={value} alt="" className="h-full w-full object-cover" />}
+          {value && <ResponsiveImage size="thumbnail" src={value} alt="" className="h-full w-full object-cover" />}
         </div>
       </div>
     </Field>

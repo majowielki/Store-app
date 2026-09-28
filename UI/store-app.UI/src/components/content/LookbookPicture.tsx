@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, ShoppingBag } from 'lucide-react';
 import type { Hotspot, Product } from '@/api/types';
 import { ProductPrice } from '@/components/ProductCard';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Button } from '@/components/ui/button';
 import { useCartActions } from '@/features/cart/useCart';
 import { toast } from '@/hooks/use-toast';
+import type { ImageSize } from '@/lib/images';
 import { cn } from '@/lib/utils';
 import { formatAsDollars, priceTag } from '@/utils';
 
@@ -22,6 +24,8 @@ interface LookbookPictureProps {
   imageClassName?: string;
   /** Names the picture for the view transition that brings it from a product card. */
   viewTransition?: string;
+  /** How wide the picture is shown: across the page unless it says otherwise. */
+  size?: ImageSize;
 }
 
 interface Box {
@@ -57,7 +61,7 @@ const cardPlacement = (point: Hotspot, box: Box) => {
  * screen readers; pressing it opens a small card with a link to the product. Escape, a click
  * elsewhere or the same button closes the card again.
  */
-const LookbookPicture = ({ image, alt, hotspots, products, className, priority = false, imageClassName, viewTransition }: LookbookPictureProps) => {
+const LookbookPicture = ({ image, alt, hotspots, products, className, priority = false, imageClassName, viewTransition, size = 'full' }: LookbookPictureProps) => {
   const [open, setOpen] = useState<string | null>(null);
   // The size of the picture when a card opened; the card is placed to fit in it
   const [box, setBox] = useState<Box | null>(null);
@@ -82,8 +86,10 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
 
   return (
     <div ref={containerRef} className={cn('relative overflow-hidden rounded-4xl bg-muted', className)}>
-      <img
+      <ResponsiveImage
         src={image}
+        size={size}
+        placeholder
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         data-vt={viewTransition}
@@ -131,7 +137,7 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
                 )}
               >
                 <Link to={`/products/${product.id}`} className="group/card flex gap-3">
-                  <img src={product.image} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                  <ResponsiveImage src={product.image} size="thumbnail" alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
                   <span className="min-w-0">
                     <span className="eyebrow block text-[0.65rem]">{product.company}</span>
                     <span className="block text-sm font-medium leading-snug">{product.title}</span>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { useRecentlyViewed } from '@/features/recent/useRecentlyViewed';
 import { cn } from '@/lib/utils';
 import ProductPrice from './ProductPrice';
@@ -25,7 +26,7 @@ const RecentlyViewed = ({ excludeId, title = 'Recently viewed', className, onNav
           <li key={product.id} className="w-36 shrink-0 snap-start sm:w-44">
             <Link to={`/products/${product.id}`} onClick={onNavigate} className="group block rounded-xl text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
               <div className="aspect-square overflow-hidden rounded-xl bg-muted">
-                <img src={product.image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <ResponsiveImage size="tile" src={product.image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
               </div>
               <p className="mt-2 line-clamp-2 text-sm font-medium leading-snug">{product.title}</p>
               <p className="text-sm">

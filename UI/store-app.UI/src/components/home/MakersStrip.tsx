@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { ArrowUpRight } from 'lucide-react';
 import { useGetMakersQuery } from '@/api/content';
 import Reveal from '@/components/Reveal';
@@ -26,7 +27,7 @@ const MakersStrip = () => {
         {makers.map((maker, index) => (
           <Reveal as="li" key={maker.id} delay={index * 70}>
             <Link to={`/makers/${maker.slug}`} className="group relative block aspect-3/4 overflow-hidden rounded-3xl bg-muted">
-              <img src={maker.coverImage} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-smooth group-hover:scale-105" />
+              <ResponsiveImage size="card" placeholder src={maker.coverImage} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform [transition-duration:1200ms] ease-smooth group-hover:scale-105" />
               <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-5 text-white">
                 <p className="display text-3xl">{maker.name}</p>

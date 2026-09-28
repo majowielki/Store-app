@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react';
 import type { ProductDetail } from '@/api/types';
 import LookbookPicture from '@/components/content/LookbookPicture';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 import { cn } from '@/lib/utils';
 
@@ -31,8 +32,10 @@ const ZoomPicture = ({ picture }: { picture: Picture }) => {
       onPointerLeave={() => setZoomed(false)}
       onPointerMove={(event) => event.pointerType === 'mouse' && follow(event)}
     >
-      <img
+      <ResponsiveImage
         src={picture.url}
+        size="half"
+        placeholder
         alt={picture.alt}
         loading="lazy"
         draggable={false}
@@ -128,6 +131,7 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
                   products={bySlug}
                   priority
                   viewTransition="product-image"
+                  size="half"
                   className="h-full rounded-none bg-transparent"
                   imageClassName="h-full object-cover"
                 />
@@ -157,7 +161,7 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
                 index === current ? 'border-foreground' : 'border-transparent opacity-70 hover:opacity-100',
               )}
             >
-              <img src={picture.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+              <ResponsiveImage src={picture.url} size="thumbnail" alt="" loading="lazy" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>

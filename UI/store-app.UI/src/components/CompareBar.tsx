@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { ArrowRight, X } from 'lucide-react';
 import { COMPARE_MAX, compareCleared, removedFromCompare } from '@/features/compare/compareSlice';
 import { useAppDispatch, useAppSelector } from '@/hooks';
@@ -25,7 +26,7 @@ const CompareBar = () => {
       <ul className="flex flex-1 gap-2 overflow-x-auto pr-1.5 pt-1.5">
         {products.map((product) => (
           <li key={product.id} className="relative shrink-0">
-            <img src={product.image} alt={product.title} className="h-12 w-12 rounded-lg object-cover" />
+            <ResponsiveImage size="thumbnail" src={product.image} alt={product.title} className="h-12 w-12 rounded-lg object-cover" />
             <button
               type="button"
               aria-label={`Remove ${product.title} from the comparison`}

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import ResponsiveImage from '@/components/ResponsiveImage';
 import { Trash2 } from 'lucide-react';
 import { useCartActions, type CartLine } from '@/features/cart/useCart';
 import { toast } from '@/hooks/use-toast';
@@ -34,7 +35,7 @@ const CartLineRow = ({ line }: { line: CartLine }) => {
     <li data-testid="cart-line" className="grid animate-fade-up grid-cols-[6rem_1fr] gap-5 py-6 sm:grid-cols-[8.5rem_1fr_auto] sm:gap-6">
       <Link to={`/products/${line.productId}`} className="group block aspect-5/4 overflow-hidden rounded-xl bg-muted">
         {line.image && (
-          <img src={line.image} alt={line.title} className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-105" />
+          <ResponsiveImage size="tile" src={line.image} alt={line.title} className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-105" />
         )}
       </Link>
       <div className="min-w-0">
