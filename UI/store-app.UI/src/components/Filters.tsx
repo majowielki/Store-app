@@ -78,7 +78,7 @@ const FiltersForm = ({ meta, query, onSubmitted }: FiltersProps & { onSubmitted?
       />
       <FormSelect label="select company" name="company" options={companyOptions} defaultValue={company} includeAll />
       <FormSelect label="select color" name="color" options={colorOptions} defaultValue={color} includeAll />
-      <FormSelect label="order by" name="order" options={['a-z', 'z-a', 'high', 'low']} defaultValue={order} includeAll />
+      <FormSelect label="order by" name="order" options={['a-z', 'z-a', 'high', 'low', { value: 'rating', label: 'Best rated' }]} defaultValue={order} includeAll />
       <FormRange label="price" name="price" defaultValue={price} />
       <FormCheckbox name="sale" label="sale only" defaultValue={sale} />
       <div className="flex items-center gap-2 pt-1">

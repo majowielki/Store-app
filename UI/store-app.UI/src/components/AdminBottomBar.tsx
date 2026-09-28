@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Layers, ShoppingCart, PackageSearch, UsersRound } from 'lucide-react';
+import { LayoutDashboard, Layers, MessageSquareText, ShoppingCart, PackageSearch, UsersRound } from 'lucide-react';
 
 const adminNav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { to: '/admin/products', label: 'Products', icon: PackageSearch },
+  { to: '/admin/reviews', label: 'Reviews', icon: MessageSquareText },
   { to: '/admin/users', label: 'Users', icon: UsersRound },
   { to: '/admin/content/collections', label: 'Content', icon: Layers },
 ];

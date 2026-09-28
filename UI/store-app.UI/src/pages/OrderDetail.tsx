@@ -1,12 +1,17 @@
 import { Link, useParams } from 'react-router-dom';
 import { useGetOrderQuery } from '@/api/orders';
+import { useGetMyReviewsQuery } from '@/api/reviews';
 import { Loading, OrderSummary, SectionTitle } from '@/components';
+import ReviewLineAction from '@/components/reviews/ReviewLineAction';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/utils';
 
 const OrderDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { data: order, isLoading } = useGetOrderQuery(Number(id));
+  // A paid order's pieces may be reviewed; the customer's reviews say which already are
+  const reviewable = order?.status === 'Paid' || order?.status === 'Shipped';
+  const { data: reviews } = useGetMyReviewsQuery(undefined, { skip: !reviewable });
 
   if (isLoading) return <Loading />;
   if (!order) return <SectionTitle text="Order not found" />;
@@ -29,7 +34,22 @@ const OrderDetail = () => {
       <Link to="/orders" className="link-underline mb-8 inline-block text-sm text-muted-foreground hover:text-foreground">
         ← All orders
       </Link>
-      <OrderSummary title="Your order" order={order} actions={payNow} />
+      <OrderSummary
+        title="Your order"
+        order={order}
+        actions={payNow}
+        lineActions={
+          reviewable
+            ? (item) => (
+                <ReviewLineAction
+                  productId={item.productId}
+                  productTitle={item.productTitle}
+                  review={reviews?.find((review) => review.productId === item.productId)}
+                />
+              )
+            : undefined
+        }
+      />
     </>
   );
 };

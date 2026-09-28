@@ -5,7 +5,7 @@ import { formatAsDollars } from '@/utils';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const orderLabels: Record<string, string> = { 'a-z': 'A to Z', 'z-a': 'Z to A', high: 'Price, high to low', low: 'Price, low to high' };
+const orderLabels: Record<string, string> = { 'a-z': 'A to Z', 'z-a': 'Z to A', high: 'Price, high to low', low: 'Price, low to high', rating: 'Best rated' };
 
 /**
  * The filters the listing is narrowed by, as chips: each one a link to the same listing

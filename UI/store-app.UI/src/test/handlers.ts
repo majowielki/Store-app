@@ -1,7 +1,7 @@
 import { HttpResponse, http, type DefaultBodyType, type HttpResponseInit } from 'msw';
 import { apiBaseUrl } from '@/config';
 import type { ProblemDetails } from '@/api/types';
-import { cartWithTable, emptyCart, meta, order, pricingRules, problem, product, productDetail, session, user } from './fixtures';
+import { cartWithTable, emptyCart, meta, order, pricingRules, problem, product, productDetail, reviewSummary, session, user } from './fixtures';
 
 // Node's fetch needs absolute URLs, so vitest.config.ts sets VITE_API_BASE_URL and the app and the
 // handlers read the same value
@@ -57,4 +57,12 @@ export const handlers = [
   http.get(api('/orders/has-orders'), () => json({ hasOrders: false, ordersCount: 0 })),
   http.get(api('/orders/my-orders'), () => json(page([order()]))),
   http.post(api('/orders/from-cart'), () => json(order(), { status: 201 })),
+
+  // No reviews unless a test brings some; a signed-in customer has bought nothing
+  http.get(api('/reviews'), () => json(page([]))),
+  http.get(api('/reviews/products/:id/summary'), ({ params }) =>
+    json(reviewSummary({ productId: Number(params.id), averageRating: 0, reviewCount: 0, distribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 } })),
+  ),
+  http.get(api('/reviews/products/:id/mine'), ({ params }) => json({ productId: Number(params.id), canReview: false, reason: 'notPurchased' })),
+  http.get(api('/reviews/mine'), () => json([])),
 ];

@@ -9,6 +9,9 @@ import CompareToggle from '@/components/CompareToggle';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
 import ProductGallery from '@/components/ProductGallery';
 import RecentlyViewed from '@/components/RecentlyViewed';
+import ProductReviews from '@/components/reviews/ProductReviews';
+import Stars from '@/components/reviews/Stars';
+import { formatRating } from '@/components/reviews/rating';
 import SaleBadge from '@/components/SaleBadge';
 import NotifyWhenBack from '@/components/NotifyWhenBack';
 import { StockNote } from '@/components/StockBadge';
@@ -144,6 +147,19 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
         <div className="lg:col-span-5">
           <p className="eyebrow animate-fade-up">{company}</p>
           <h1 className="display mt-3 animate-fade-up text-4xl leading-[1.02] [animation-delay:60ms] md:text-5xl">{title}</h1>
+          {product.ratingCount > 0 && (
+            <a
+              href="#reviews"
+              className="mt-4 inline-flex animate-fade-up items-center gap-2 text-sm [animation-delay:90ms] hover:underline"
+              aria-label={`Rated ${formatRating(product.ratingAverage)} out of 5, ${product.ratingCount} reviews`}
+            >
+              <Stars rating={product.ratingAverage} />
+              <span className="tabular-nums">{formatRating(product.ratingAverage)}</span>
+              <span className="text-muted-foreground">
+                · {product.ratingCount} {product.ratingCount === 1 ? 'review' : 'reviews'}
+              </span>
+            </a>
+          )}
           <div className="mt-6 flex animate-fade-up flex-wrap items-center gap-3 [animation-delay:120ms]">
             <span className={hasSale ? 'text-3xl text-brand' : 'text-3xl'}>{formatAsDollars(effectivePrice)}</span>
             {hasSale && (
@@ -219,6 +235,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
         </div>
       </section>
 
+      <ProductReviews productId={product.id} productTitle={product.title} />
       <RelatedProducts product={product} />
       <RecentlyViewed excludeId={product.id} className="mt-20 border-t pt-10" />
     </>

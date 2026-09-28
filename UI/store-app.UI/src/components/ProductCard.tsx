@@ -9,6 +9,7 @@ import ProductPrice from './ProductPrice';
 import QuickView from './QuickView';
 import SaleBadge from './SaleBadge';
 import StockBadge from './StockBadge';
+import { RatingLine } from './reviews/Stars';
 import WishlistButton from './WishlistButton';
 
 /** The first few colours a product comes in, as small swatches. */
@@ -79,6 +80,7 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
           <div className="min-w-0">
             <p className="eyebrow">{company}</p>
             <h3 className="mt-1.5 font-medium leading-snug">{title}</h3>
+            <RatingLine average={product.ratingAverage} count={product.ratingCount} className="mt-1.5" />
           </div>
           <p className="shrink-0 text-right">
             <ProductPrice product={product} stacked />

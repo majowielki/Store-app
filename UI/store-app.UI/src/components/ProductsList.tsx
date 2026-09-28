@@ -6,6 +6,7 @@ import { priceTag, type Product } from '@/utils';
 import { ColorDots, ProductPrice } from './ProductCard';
 import Reveal from './Reveal';
 import SaleBadge from './SaleBadge';
+import { RatingLine } from './reviews/Stars';
 
 const ProductRow = ({ product }: { product: Product }) => {
   const { title, image, company, description, colors } = product;
@@ -27,6 +28,7 @@ const ProductRow = ({ product }: { product: Product }) => {
       <div className="min-w-0">
         <p className="eyebrow">{company}</p>
         <h2 className="mt-1 text-lg font-medium">{title}</h2>
+        <RatingLine average={product.ratingAverage} count={product.ratingCount} className="mt-1.5" />
         <div className="hidden sm:block">
           <p className="mt-2 line-clamp-2 max-w-xl text-sm text-muted-foreground">{description}</p>
         </div>

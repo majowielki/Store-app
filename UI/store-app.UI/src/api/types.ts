@@ -8,6 +8,7 @@ import type { components as Content } from './schema/content';
 import type { components as Identity } from './schema/identity';
 import type { components as Orders } from './schema/orders';
 import type { components as Payments } from './schema/payments';
+import type { components as Reviews, paths as ReviewPaths } from './schema/reviews';
 
 /** An error response: application/problem+json with the status code that describes it. */
 export type ProblemDetails = Catalog['schemas']['StoreProblemDetails'];
@@ -81,6 +82,20 @@ export type ArticlePayload = Content['schemas']['ArticleRequest'];
 export type Lookbook = Content['schemas']['LookbookResponse'];
 export type LookbookPayload = Content['schemas']['LookbookRequest'];
 export type Hotspot = Content['schemas']['HotspotDto'];
+
+// Reviews: the published ones of a product, the customer's own in any state, the moderation queue
+export type Review = Reviews['schemas']['ReviewResponse'];
+export type ReviewsResponse = Reviews['schemas']['ReviewResponsePagedResponse'];
+export type ReviewStatus = Reviews['schemas']['ReviewStatus'];
+export type ReviewSummary = Reviews['schemas']['ReviewSummaryResponse'];
+export type MyProductReview = Reviews['schemas']['MyProductReviewResponse'];
+export type ReviewPayload = Reviews['schemas']['CreateReviewRequest'];
+export type ReviewQuery = NonNullable<ReviewPaths['/api/v1/reviews']['get']['parameters']['query']>;
+export type AdminReview = Reviews['schemas']['AdminReviewResponse'];
+export type AdminReviewsResponse = Reviews['schemas']['AdminReviewResponsePagedResponse'];
+export type AdminReviewQuery = NonNullable<ReviewPaths['/api/v1/reviews/admin']['get']['parameters']['query']>;
+export type ModerationPayload = Reviews['schemas']['ModerateReviewsRequest'];
+export type ModerationResult = Reviews['schemas']['ModerationResult'];
 
 // Audit trail
 export type AuditLog = Audit['schemas']['AuditLog'];

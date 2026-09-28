@@ -20,7 +20,6 @@ flowchart LR
     OR -->|open a payment| PA
     PA -.->|signed webhooks| OR
     RV -->|product ids of the seeded reviews| PR
-|signed webhooks| OR
   end
   subgraph MassTransit + RabbitMQ, outbox and inbox in every database
     OR -- OrderPlaced --> MQ[(RabbitMQ)]

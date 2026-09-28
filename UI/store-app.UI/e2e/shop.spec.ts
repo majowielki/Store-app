@@ -64,7 +64,8 @@ test('3. a line removed from the cart is not in the order', async ({ page, reque
   await page.getByRole('button', { name: 'Open menu' }).first().click();
   await page.getByRole('menuitem', { name: 'Order details' }).click();
 
-  await expect(page.getByRole('cell', { name: first.title })).toBeVisible();
+  // The line's first cell; its actions ("Write a review: ...") name the product too
+  await expect(page.getByRole('cell', { name: first.title }).first()).toBeVisible();
   await expect(page.getByRole('cell', { name: second.title })).toHaveCount(0);
   await expect(page.getByText('Total Items: 1')).toBeVisible();
 });

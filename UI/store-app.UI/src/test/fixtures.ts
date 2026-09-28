@@ -11,6 +11,9 @@ import type {
   ProductDetail,
   ProblemDetails,
   ProductsMeta,
+  Review,
+  ReviewSummary,
+  AdminReview,
   UserResponse,
 } from '@/api/types';
 
@@ -240,5 +243,52 @@ export const lookbook = (overrides: Partial<Lookbook> = {}): Lookbook => ({
   ],
   sortOrder: 1,
   ...published,
+  ...overrides,
+});
+
+export const review = (overrides: Partial<Review> = {}): Review => ({
+  id: 'b7a1c2d3-0000-4000-8000-000000000001',
+  productId: 7,
+  authorName: 'Marta S.',
+  rating: 5,
+  title: 'Beautiful and solid',
+  body: 'The oak has a lovely grain and nothing wobbles when you lean on it.',
+  verifiedPurchase: true,
+  status: 'published',
+  reported: false,
+  createdAt: '2026-08-01T10:00:00Z',
+  ...overrides,
+});
+
+export const reviewSummary = (overrides: Partial<ReviewSummary> = {}): ReviewSummary => ({
+  productId: 7,
+  averageRating: 4.5,
+  reviewCount: 2,
+  distribution: { '1': 0, '2': 0, '3': 0, '4': 1, '5': 1 },
+  ...overrides,
+});
+
+export const adminReview = (overrides: Partial<AdminReview> = {}): AdminReview => ({
+  id: 'c8b2d3e4-0000-4000-8000-000000000002',
+  productId: 7,
+  productSlug: null,
+  userId: 'user-1',
+  authorName: 'Anna N.',
+  rating: 4,
+  title: 'Nearly perfect',
+  body: 'Lovely table, one leg needed a shim on our old floor.',
+  status: 'pending',
+  reported: false,
+  reportCount: 0,
+  reportReasons: [],
+  rejectionReason: null,
+  source: 'customer',
+  verifiedPurchase: true,
+  demo: false,
+  expiresAt: null,
+  createdAt: '2026-09-27T10:00:00Z',
+  submittedAt: '2026-09-27T10:00:00Z',
+  moderatedAt: null,
+  moderatedBy: null,
   ...overrides,
 });

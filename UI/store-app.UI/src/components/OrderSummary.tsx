@@ -10,6 +10,8 @@ interface OrderSummaryProps {
   order: Order;
   /** Buttons under the progress, for the admin view. */
   actions?: ReactNode;
+  /** More for each line, before "View product" (the customer's "Write a review"). */
+  lineActions?: (item: Order['orderItems'][number]) => ReactNode;
 }
 
 /** One "Label: value" line; the label and the value stay in one element, the way the page reads it. */
@@ -20,7 +22,7 @@ const Line = ({ label, value, strong = false }: { label: string; value: string; 
 );
 
 /** One order in full: its progress, the customer, the amounts and the lines. Shared by the customer's and the admin's view. */
-const OrderSummary = ({ title, order, actions }: OrderSummaryProps) => (
+const OrderSummary = ({ title, order, actions, lineActions }: OrderSummaryProps) => (
   <div className="animate-fade-up">
     <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-8">
       <div>
@@ -58,9 +60,12 @@ const OrderSummary = ({ title, order, actions }: OrderSummaryProps) => (
                 <TableCell className="tabular-nums">{it.quantity}</TableCell>
                 <TableCell className="tabular-nums">{formatAsDollars(it.price)}</TableCell>
                 <TableCell className="text-right">
-                  <Link to={`/products/${it.productId}`} className="link-underline text-sm">
-                    View product
-                  </Link>
+                  <div className="flex flex-wrap items-center justify-end gap-3">
+                    {lineActions?.(it)}
+                    <Link to={`/products/${it.productId}`} className="link-underline text-sm">
+                      View product
+                    </Link>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
