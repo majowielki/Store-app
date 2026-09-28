@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import type { ProductQuery, ProductsMeta } from '@/api/types';
 import { cn } from '@/lib/utils';
+import { PageMeta } from '@/seo';
 import { categories, categoryHref } from '@/utils/categories';
 
 interface CatalogHeaderProps {
@@ -54,6 +55,8 @@ const CatalogHeader = ({ meta, query }: CatalogHeaderProps) => {
 
   return (
     <header className="border-b pb-8">
+      {/* A search's results are no page of their own for search engines */}
+      <PageMeta title={query.search ? `${eyebrow}: ${title}` : title} description={lead} noindex={Boolean(query.search)} />
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Link to="/" className="transition-colors hover:text-foreground">
           Home

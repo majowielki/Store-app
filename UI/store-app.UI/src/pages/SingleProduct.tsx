@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useGetProductQuery, useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
@@ -22,6 +22,7 @@ import { usePerks } from '@/content/perks';
 import { useAddToBag } from '@/features/cart/useAddToBag';
 import { useTrackProductView } from '@/features/recent/useRecentlyViewed';
 import type { ProductDetail } from '@/api/types';
+import { breadcrumbData, JsonLd, PageMeta, productData, type Crumb } from '@/seo';
 import { formatAsDollars, priceTag, type Product } from '@/utils';
 
 const SingleProduct = () => {
@@ -32,10 +33,12 @@ const SingleProduct = () => {
   if (isLoading) return <Loading />;
   if (!product) {
     const notFound = isApiError(error) && error.status === HttpStatus.NotFound;
+    const heading = notFound ? 'Product not found' : 'Product unavailable';
     return (
       <div className="grid place-items-center py-24 text-center">
+        <PageMeta title={heading} noindex />
         <p className="eyebrow">{notFound ? '404' : 'Unavailable'}</p>
-        <h1 className="display mt-4 text-5xl">{notFound ? 'Product not found' : 'Product unavailable'}</h1>
+        <h1 className="display mt-4 text-5xl">{heading}</h1>
         <Button asChild variant="outline" className="mt-8">
           <Link to="/products">Back to the shop</Link>
         </Button>
@@ -86,6 +89,13 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
   const perks = usePerks().filter((perk) => perk.key !== 'welcome');
   const { data: meta } = useGetProductsMetaQuery();
   const group = meta?.groupCategoryMap.find((g) => g.key === groups[0]);
+  const path = `/products/${product.id}`;
+  // The trail above the page, for search engines as for the visitor
+  const trail: Crumb[] = [
+    { name: 'Shop', path: '/products' },
+    ...(group ? [{ name: group.name, path: `/products?group=${encodeURIComponent(group.key)}` }] : []),
+    { name: title, path },
+  ];
 
   // The tick on the button fades back to the bag after a moment
   useEffect(() => {
@@ -117,24 +127,26 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
 
   return (
     <>
+      <PageMeta title={title} description={description} image={product.image} kind="product" />
+      <JsonLd data={[productData(product, path), breadcrumbData(trail)]} />
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         <Link to="/" className="transition-colors hover:text-foreground">
           Home
         </Link>
-        <ChevronRight className="h-3 w-3" />
-        <Link to="/products" className="transition-colors hover:text-foreground">
-          Shop
-        </Link>
-        {group && (
-          <>
-            <ChevronRight className="h-3 w-3" />
-            <Link to={`/products?group=${encodeURIComponent(group.key)}`} className="transition-colors hover:text-foreground">
-              {group.name}
-            </Link>
-          </>
-        )}
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-foreground">{title}</span>
+        {trail.map((crumb, index) => (
+          <Fragment key={crumb.path}>
+            <ChevronRight className="h-3 w-3" aria-hidden />
+            {index < trail.length - 1 ? (
+              <Link to={crumb.path} className="transition-colors hover:text-foreground">
+                {crumb.name}
+              </Link>
+            ) : (
+              <span className="text-foreground" aria-current="page">
+                {crumb.name}
+              </span>
+            )}
+          </Fragment>
+        ))}
       </nav>
 
       <section className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-16">

@@ -5,6 +5,7 @@ import ContentUnavailable from '@/components/content/ContentUnavailable';
 import LookbookPicture, { AddLookButton } from '@/components/content/LookbookPicture';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
+import { breadcrumbData, JsonLd, PageMeta } from '@/seo';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 
 /** A lookbook: the room with a point on every piece, the pieces below and the whole look in one go. */
@@ -18,6 +19,8 @@ const LookPage = () => {
 
   return (
     <article>
+      <PageMeta title={look.title} description={look.summary} image={look.image} />
+      <JsonLd data={breadcrumbData([{ name: 'Looks', path: '/looks' }, { name: look.title, path: `/looks/${look.slug}` }])} />
       <Link to="/looks" className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
         All looks

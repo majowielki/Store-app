@@ -1,3 +1,4 @@
+using Store.BuildingBlocks.Shop;
 using Store.Contracts.Payments.V1;
 using System.Text;
 using static Store.NotificationService.Mail.MailFormats;

@@ -7,12 +7,14 @@ import { useGetPricingRulesQuery } from '@/api/orders';
 import { signIn } from '@/features/session/sessionThunks';
 import { useAppDispatch } from '@/hooks';
 import { toast } from '@/hooks/use-toast';
+import { usePageMeta } from '@/seo';
 import { validateRegister } from '@/utils/validation';
 
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p className="-mt-2 animate-fade-up text-xs text-destructive">{message}</p> : null;
 
 const Register = () => {
+  usePageMeta({ title: 'Create an account', noindex: true });
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { data: rules } = useGetPricingRulesQuery();

@@ -77,6 +77,7 @@ builder.Services.AddSingleton<DeliveryEstimator>();
 builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
 builder.Services.AddScoped<IOrderPayments, OrderPayments>();
 builder.Services.AddScoped<DiscountCodeService>();
+builder.Services.AddScoped<ShopOrderStats>();
 builder.Services.AddHostedService<DeduplicationCleanupService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The shop's sitemaps: the pages of the UI itself, the catalogue's products and the editorial
+     pages (both from their services, see docker/default.conf.template). nginx writes the
+     shop's public address (SHOP_URL) into the addresses as it serves the file. -->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>%SHOP_URL%/sitemap-pages.xml</loc></sitemap>
+  <sitemap><loc>%SHOP_URL%/sitemap-products.xml</loc></sitemap>
+  <sitemap><loc>%SHOP_URL%/sitemap-content.xml</loc></sitemap>
+</sitemapindex>

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Store.BuildingBlocks.Shop;
 using Store.Contracts.Audit.V1;
 using Store.Contracts.Authorization;
 using Store.ProductService.Models;
@@ -5,6 +7,7 @@ using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Xml.Linq;
 using Xunit;
 
 namespace Store.Tests.Integration.Catalog;
@@ -129,6 +132,32 @@ public sealed class ProductEndpointsTests : IClassFixture<CatalogApiFactory>
         Assert.Equal("catalog", audit.ServiceName);
         Assert.Equal("true-admin-1", audit.UserId);
         Assert.Contains("Audited product", audit.NewValues);
+    }
+
+    // Search engines find the product pages through it (the UI serves it as /sitemap-products.xml)
+    [Fact]
+    public async Task The_sitemap_lists_the_pages_of_active_products_only()
+    {
+        using var admin = _factory.CreateClient().AsTrueAdmin();
+        async Task<int> CreateAsync(string title)
+        {
+            var created = await admin.PostAsJsonAsync("/api/v1/products", ValidProduct(title));
+            return JsonSerializer.Deserialize<JsonElement>(await created.Content.ReadAsStringAsync(), Json).GetProperty("id").GetInt32();
+        }
+        var kept = await CreateAsync("Sitemap sofa");
+        var deleted = await CreateAsync("Deleted sitemap sofa");
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/v1/products/{deleted}")).StatusCode);
+        using var visitor = _factory.CreateClient();
+
+        var response = await visitor.GetAsync("/api/v1/products/sitemap.xml");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(Sitemap.ContentType, response.Content.Headers.ContentType?.MediaType);
+        XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+        var pages = XDocument.Parse(await response.Content.ReadAsStringAsync()).Descendants(ns + "loc").Select(l => l.Value).ToList();
+        var links = _factory.Services.GetRequiredService<ShopLinks>();
+        Assert.Contains(links.Product(kept), pages);
+        Assert.DoesNotContain(links.Product(deleted), pages);
     }
 }
 

@@ -10,7 +10,7 @@ using Xunit;
 namespace Store.Tests.Integration.Notifications;
 
 /// <summary>The notification service as it starts: no database, the bus in memory, the e-mails caught instead of sent.</summary>
-public sealed class NotificationApiFactory : StoreApiFactory<ShopLinks>
+public sealed class NotificationApiFactory : StoreApiFactory<MailOptions>
 {
     public NotificationApiFactory(PostgresFixture postgres) : base(postgres)
     {

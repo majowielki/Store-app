@@ -347,6 +347,8 @@ resource rabbitMq 'Microsoft.App/containerApps@2025-01-01' = {
 // Known before anything is deployed, so the loops below can iterate over the services
 var vaultUri = 'https://${keyVaultName}${az.environment().suffixes.keyvaultDns}/'
 var internal = 'internal.${managedEnvironment.properties.defaultDomain}'
+// The shop's public address (the UI app), for the links that leave the API: e-mails and sitemaps
+var shopUrl = 'https://ui.${managedEnvironment.properties.defaultDomain}'
 
 var commonEnv = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
@@ -398,6 +400,7 @@ var services = [
     db: 'product'
     callsCatalog: false
     callsCart: false
+    reaches: ['shop']
     env: [
       { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
     ]
@@ -442,6 +445,7 @@ var services = [
     db: 'content'
     callsCatalog: false
     callsCart: false
+    reaches: ['shop']
     env: []
     secrets: []
   }
@@ -478,6 +482,7 @@ var cartAddress = [{ name: 'Services__CartService', value: 'http://cartservice.$
 var otherAddresses = {
   paymentService: [{ name: 'Services__PaymentService', value: 'http://paymentservice.${internal}' }]
   orderWebhooks: [{ name: 'PaymentWebhooks__Url', value: 'http://orderservice.${internal}/api/v1/webhooks/payments' }]
+  shop: [{ name: 'Shop__Url', value: shopUrl }]
 }
 var corsEnv = [for (origin, i) in corsAllowedOrigins: { name: 'Cors__AllowedOrigins__${i}', value: origin }]
 
@@ -558,7 +563,7 @@ module notificationService 'app.bicep' = {
       // Written to the log only, until the shop sends real e-mail
       { name: 'Mail__Delivery', value: 'Log' }
       { name: 'Mail__From', value: 'Store <hello@store.example>' }
-      { name: 'Mail__ShopUrl', value: 'https://${ui.outputs.fqdn}' }
+      { name: 'Shop__Url', value: shopUrl }
     ])
     keyVaultSecrets: commonSecrets
   }
@@ -611,6 +616,8 @@ module ui 'app.bicep' = {
       // nginx proxies /api to the gateway inside the environment
       { name: 'GATEWAY_UPSTREAM', value: 'https://gateway.${managedEnvironment.properties.defaultDomain}' }
       { name: 'API_BASE_URL', value: '/api/v1' }
+      // robots.txt, the sitemaps and the pictures shared on social sites need absolute addresses
+      { name: 'SHOP_URL', value: shopUrl }
     ]
     // nginx answers on /, not on /health
     probePath: '/'

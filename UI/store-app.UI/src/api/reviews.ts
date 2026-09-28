@@ -10,6 +10,7 @@ import type {
   ReviewQuery,
   ReviewSummary,
   ReviewsResponse,
+  ShopReviewStats,
 } from './types';
 
 /**
@@ -27,6 +28,12 @@ export const reviewsApi = api.injectEndpoints({
     getReviewSummary: build.query<ReviewSummary, number>({
       query: (productId) => `/reviews/products/${productId}/summary`,
       providesTags: ['Reviews'],
+    }),
+    /** The shop's own rating, every published review whatever the product. Silent: the About page shows a dash without it. */
+    getShopReviewStats: build.query<ShopReviewStats, void>({
+      query: () => '/reviews/stats',
+      providesTags: ['Reviews'],
+      extraOptions: { silent: true },
     }),
     /** Whether the signed-in customer may review the product, and their review of it in any state. */
     getMyProductReview: build.query<MyProductReview, number>({
@@ -63,6 +70,7 @@ export const reviewsApi = api.injectEndpoints({
 export const {
   useGetReviewsQuery,
   useGetReviewSummaryQuery,
+  useGetShopReviewStatsQuery,
   useGetMyProductReviewQuery,
   useGetMyReviewsQuery,
   useCreateReviewMutation,

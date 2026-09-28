@@ -7,6 +7,7 @@ using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
+using Store.BuildingBlocks.Shop;
 using Store.ContentService.Data;
 using Store.ContentService.Services;
 
@@ -34,6 +35,10 @@ builder.Services.AddStoreMessaging<ContentDbContext>(builder.Configuration, serv
 
 // Reading and editing each kind of content (makers, collections, articles, lookbooks)
 builder.Services.AddScoped(typeof(ContentStore<>));
+
+// The editorial pages in the sitemap, at their addresses in the shop
+builder.Services.AddShopLinks(builder.Configuration);
+builder.Services.AddScoped<ContentSitemap>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());

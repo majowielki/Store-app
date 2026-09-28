@@ -8,6 +8,7 @@ import { useAddToBag } from '@/features/cart/useAddToBag';
 import { useWishlist } from '@/features/wishlist/useWishlist';
 import { useAppSelector } from '@/hooks';
 import { useProductsById } from '@/hooks/use-products-by-id';
+import { usePageMeta } from '@/seo';
 import type { Product } from '@/utils';
 
 /** One piece on the list: into the bag in its first colour (and off the list), or just off the list. */
@@ -60,6 +61,7 @@ const WishlistRow = ({ product }: { product: Product }) => {
 
 /** The wishlist: the pieces kept for later, with today's prices, the one added last first. */
 const Wishlist = () => {
+  usePageMeta({ title: 'Wishlist', noindex: true });
   const user = useAppSelector((state) => state.session.user);
   const { productIds } = useWishlist();
   // In the list's order, without what the catalogue no longer sells

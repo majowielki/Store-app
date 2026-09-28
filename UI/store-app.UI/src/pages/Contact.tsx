@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import { usePageMeta } from '@/seo';
 
 const details = [
   { icon: MapPin, label: 'Visit', value: 'Strzegomska 140A, 54-429 Wrocław' },
@@ -15,6 +16,7 @@ const details = [
 ];
 
 const Contact = () => {
+  usePageMeta({ title: 'Contact', description: 'Questions about a piece, an order or a delivery: write to us, we answer within a working day.' });
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({});
 

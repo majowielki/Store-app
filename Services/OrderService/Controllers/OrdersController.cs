@@ -58,6 +58,12 @@ public class OrdersController : ControllerBase
     public Task<DiscountCodeCheckResponse> CheckDiscountCode(string code, [FromQuery] decimal subtotal, [FromServices] DiscountCodeService codes)
         => codes.CheckAsync(code, Math.Max(0m, subtotal));
 
+    /// <summary>What the shop says about its orders in public: how many were paid for.</summary>
+    [HttpGet("stats")]
+    [AllowAnonymous]
+    public Task<ShopOrderStatsResponse> GetShopStats([FromServices] ShopOrderStats stats, CancellationToken cancellationToken)
+        => stats.GetAsync(cancellationToken);
+
     private string UserId => User.GetRequiredUserId();
 
     /// <summary>

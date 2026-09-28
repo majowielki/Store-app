@@ -1,0 +1,11 @@
+#!/bin/sh
+# Sourced by the nginx entrypoint before the templates are rendered: SHOP_URL is the shop's
+# public address (https://shop.example). nginx writes it into the files that need an absolute
+# address - robots.txt, the sitemap index and the picture index.html offers to social sites -
+# and the app reads it from /config.js for its canonical links. Without it those addresses
+# stay relative, which search engines and social sites may ignore.
+SHOP_URL="${SHOP_URL:-}"
+export SHOP_URL="${SHOP_URL%/}"
+if [ -z "$SHOP_URL" ]; then
+  echo "shop url: SHOP_URL is not set - robots.txt, the sitemaps and the shared picture get relative addresses"
+fi

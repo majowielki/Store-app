@@ -1,0 +1,13 @@
+# The sitemap address is the shop's public one; nginx writes it in from SHOP_URL as it serves this file
+User-agent: *
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /wishlist
+Disallow: /compare
+Disallow: /login
+Disallow: /register
+Disallow: /api/
+
+Sitemap: %SHOP_URL%/sitemap.xml

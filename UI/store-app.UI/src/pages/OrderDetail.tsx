@@ -4,10 +4,12 @@ import { useGetMyReviewsQuery } from '@/api/reviews';
 import { Loading, OrderSummary, SectionTitle } from '@/components';
 import ReviewLineAction from '@/components/reviews/ReviewLineAction';
 import { Button } from '@/components/ui/button';
+import { usePageMeta } from '@/seo';
 import { formatDateTime } from '@/utils';
 
 const OrderDetail = () => {
   const { id } = useParams<{ id: string }>();
+  usePageMeta({ title: `Order #${id}`, noindex: true });
   const { data: order, isLoading } = useGetOrderQuery(Number(id));
   // A paid order's pieces may be reviewed; the customer's reviews say which already are
   const reviewable = order?.status === 'Paid' || order?.status === 'Shipped';

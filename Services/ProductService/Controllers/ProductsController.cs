@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Shop;
 using Store.Contracts.Authorization;
 using Store.Contracts.Catalog;
 using Store.ProductService.DTOs.Requests;
@@ -66,6 +67,13 @@ public class ProductsController : ControllerBase
     [HttpGet("suggest")]
     public Task<ProductSuggestions> Suggest([FromQuery] string? q, [FromQuery] int limit = ProductDiscovery.DefaultSuggestions)
         => _discovery.SuggestAsync(q, limit);
+
+    /// <summary>The sitemap of the catalogue: every active product's page in the shop (the UI serves it as /sitemap-products.xml).</summary>
+    [HttpGet("sitemap.xml")]
+    [Produces(Sitemap.ContentType)]
+    [ProducesResponseType<string>(StatusCodes.Status200OK)]
+    public async Task<ContentResult> GetSitemap([FromServices] ProductSitemap sitemap, CancellationToken cancellationToken)
+        => Content(await sitemap.RenderAsync(cancellationToken), Sitemap.ContentType);
 
     /// <summary>
     /// Every product, inactive ones included, sorted by <paramref name="sortBy"/> (id, price,

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { infoPages } from '@/content/pages';
 import { cn } from '@/lib/utils';
+import { PageMeta } from '@/seo';
 
 interface InfoPageProps {
   eyebrow: string;
@@ -13,6 +14,7 @@ interface InfoPageProps {
 /** The layout of the help and legal pages: a side list of all of them and the text itself. */
 const InfoPage = ({ eyebrow, title, lead, children }: InfoPageProps) => (
   <div className="grid gap-12 lg:grid-cols-12">
+    <PageMeta title={eyebrow} description={lead} />
     <nav aria-label="Help and legal pages" className="lg:col-span-3">
       <ul className="flex flex-wrap gap-2 lg:sticky lg:top-28 lg:flex-col lg:gap-1">
         {infoPages.map((page) => (

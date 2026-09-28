@@ -3,8 +3,10 @@ import { Package } from 'lucide-react';
 import { useGetMyOrdersQuery } from '@/api/orders';
 import { ComplexPaginationContainer, Loading, OrdersList, SectionTitle } from '@/components';
 import { Button } from '@/components/ui/button';
+import { usePageMeta } from '@/seo';
 
 const Orders = () => {
+  usePageMeta({ title: 'Your orders', noindex: true });
   const [searchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const { data: orders, isLoading } = useGetMyOrdersQuery({ page, pageSize: 20 });

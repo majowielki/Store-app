@@ -2,6 +2,7 @@ using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Store.BuildingBlocks.Shop;
 using Store.Contracts.Catalog.V1;
 using Store.Contracts.Orders.V1;
 using Store.Contracts.Payments.V1;
@@ -22,7 +23,7 @@ namespace Store.Tests.Unit.NotificationService;
 public class MailTemplatesTests
 {
     private const string Shop = "https://shop.example/";
-    private static readonly ShopLinks Links = new(Options.Create(new MailOptions { From = "Store <hello@store.example>", ShopUrl = Shop }));
+    private static readonly ShopLinks Links = new(Options.Create(new ShopOptions { Url = Shop }));
     private static readonly OrderPaidMail PaidMail = new(Links);
     private static readonly PaymentDeclinedMail DeclinedMail = new(Links);
     private static readonly OrderShippedMail ShippedMail = new(Links);
@@ -107,7 +108,7 @@ public class MailTemplatesTests
     [Fact]
     public void Smtp_delivery_needs_a_server()
     {
-        var options = new MailOptions { Delivery = MailDelivery.Smtp, From = "Store <hello@store.example>", ShopUrl = Shop };
+        var options = new MailOptions { Delivery = MailDelivery.Smtp, From = "Store <hello@store.example>" };
 
         var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
         Assert.False(Validator.TryValidateObject(options, new ValidationContext(options), results, validateAllProperties: true));

@@ -9,6 +9,7 @@ import { useAddToBag } from '@/features/cart/useAddToBag';
 import { compareCleared, removedFromCompare } from '@/features/compare/compareSlice';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { useProductsById } from '@/hooks/use-products-by-id';
+import { usePageMeta } from '@/seo';
 import type { Product } from '@/utils';
 
 const cm = (value?: number | null) => (typeof value === 'number' ? `${value} cm` : '—');
@@ -39,6 +40,7 @@ const rows: { label: string; value: (product: Product) => ReactNode }[] = [
  * colours. On a phone the table scrolls sideways with the row names held in place.
  */
 const Compare = () => {
+  usePageMeta({ title: 'Compare', noindex: true });
   const dispatch = useAppDispatch();
   const ids = useAppSelector((state) => state.compare.productIds);
   const { products, isLoading } = useProductsById(ids);

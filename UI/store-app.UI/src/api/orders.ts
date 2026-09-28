@@ -11,6 +11,7 @@ import type {
   OrderStatus,
   OrdersResponse,
   PricingRules,
+  ShopOrderStats,
 } from './types';
 
 export type PageQuery = {
@@ -58,6 +59,12 @@ export const ordersApi = api.injectEndpoints({
       query: () => '/orders/pricing-rules',
       // Configuration of the store (and today's delivery window), not data of a user: kept for the whole visit
       keepUnusedDataFor: KEEP_FOR_THE_VISIT,
+      extraOptions: { silent: true },
+    }),
+    /** How many orders customers paid for, which the About page prints. Silent: the page shows a dash without it. */
+    getShopOrderStats: build.query<ShopOrderStats, void>({
+      query: () => '/orders/stats',
+      providesTags: ['Stats'],
       extraOptions: { silent: true },
     }),
     /** Whether the customer has ordered before: the first order is discounted. */
@@ -119,6 +126,7 @@ export const {
   useGetOrderQuery,
   useGetMyOrdersQuery,
   useGetPricingRulesQuery,
+  useGetShopOrderStatsQuery,
   useGetHasOrdersQuery,
   useGetAdminOrdersQuery,
   useGetAdminOrderQuery,

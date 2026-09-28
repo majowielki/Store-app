@@ -7,8 +7,10 @@ import RecentlyViewed from '@/components/RecentlyViewed';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/features/cart/useCart';
 import { useAppSelector } from '@/hooks';
+import { usePageMeta } from '@/seo';
 
 const Cart = () => {
+  usePageMeta({ title: 'Cart', noindex: true });
   const user = useAppSelector((state) => state.session.user);
   const { lines, isLoading, totalItems, subtotal } = useCart();
 

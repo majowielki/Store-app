@@ -14,6 +14,9 @@
 
 name: store
 
+# The public address of the shop (the UI) for the links that leave the API: e-mails, sitemaps
+x-shop-url: &shop-url ${SHOP_URL:-http://localhost:${FRONTEND_PORT:-8081}}
+
 x-limits: &limits
   deploy:
     resources:
@@ -45,6 +48,7 @@ x-product-env: &product-env
   <<: *service-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_product_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
   InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
+  Shop__Url: *shop-url
 
 x-cart-env: &cart-env
   <<: *service-env
@@ -68,6 +72,7 @@ x-audit-env: &audit-env
 x-content-env: &content-env
   <<: *service-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_content_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+  Shop__Url: *shop-url
 
 x-payment-env: &payment-env
   <<: *service-env
@@ -86,7 +91,7 @@ x-notification-env: &notification-env
   <<: *service-env
   # Only to the log until the shop sends real e-mail; the development override points it at Mailpit
   Mail__Delivery: Log
-  Mail__ShopUrl: http://localhost:${FRONTEND_PORT:-8081}
+  Shop__Url: *shop-url
 
 x-infrastructure-ready: &infrastructure-ready
   postgres:
@@ -391,6 +396,8 @@ services:
       # The SPA calls /api on its own origin; nginx proxies it to the gateway
       GATEWAY_UPSTREAM: http://gateway:8080
       API_BASE_URL: /api/v1
+      # robots.txt, the sitemaps and the pictures shared on social sites need absolute addresses
+      SHOP_URL: *shop-url
     ports:
       - "${FRONTEND_PORT:-8081}:8080"
     networks:

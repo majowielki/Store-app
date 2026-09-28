@@ -354,6 +354,27 @@ public sealed class ReviewTests : IClassFixture<ReviewApiFactory>
         Assert.Equal(0m, summaries[2].GetProperty("averageRating").GetDecimal());
     }
 
+    // The About page prints it: every review anyone can read, whatever the product, and none waiting for the administrator
+    [Fact]
+    public async Task The_shop_rating_counts_every_published_review_and_nothing_waiting()
+    {
+        using var anonymous = _factory.CreateClient();
+        async Task<JsonElement> StatsAsync() => await ReadJson(await anonymous.GetAsync("/api/v1/reviews/stats"));
+        var before = (await StatsAsync()).GetProperty("reviewCount").GetInt32();
+
+        var product = NextProductId();
+        await PayAsync("review-stats", product);
+        var id = await WrittenAsync(Customer("review-stats"), product, rating: 1);
+        Assert.Equal(before, (await StatsAsync()).GetProperty("reviewCount").GetInt32());
+        Assert.Equal(HttpStatusCode.OK, (await ModerateAsync(id, "approve")).StatusCode);
+
+        var after = await StatsAsync();
+        Assert.Equal(before + 1, after.GetProperty("reviewCount").GetInt32());
+        using var scope = _factory.Services.CreateScope();
+        var ratings = await ReviewSummaries.Public(scope.ServiceProvider.GetRequiredService<ReviewDbContext>().Reviews).Select(r => r.Rating).ToListAsync();
+        Assert.Equal(Math.Round((decimal)ratings.Sum() / ratings.Count, 2, MidpointRounding.AwayFromZero), after.GetProperty("averageRating").GetDecimal());
+    }
+
     [Fact]
     public async Task Writing_needs_a_signed_in_customer_and_moderating_an_administrator()
     {

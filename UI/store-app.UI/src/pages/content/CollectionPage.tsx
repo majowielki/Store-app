@@ -5,6 +5,7 @@ import ContentUnavailable from '@/components/content/ContentUnavailable';
 import Markdown from '@/components/content/Markdown';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
+import { breadcrumbData, JsonLd, PageMeta } from '@/seo';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 
 /** A collection: its idea in a few paragraphs, then its products in the order it lists them. */
@@ -18,6 +19,8 @@ const CollectionPage = () => {
 
   return (
     <article>
+      <PageMeta title={collection.title} description={collection.summary} image={collection.coverImage} />
+      <JsonLd data={breadcrumbData([{ name: 'Collections', path: '/collections' }, { name: collection.title, path: `/collections/${collection.slug}` }])} />
       <ContentHero
         eyebrow="Collection"
         title={collection.title}

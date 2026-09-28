@@ -332,6 +332,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reviews/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The shop's rating: the average and the count of every published review, whatever the product. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShopReviewStatsResponse"];
+                    };
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reviews/products/{productId}/mine": {
         parameters: {
             query?: never;
@@ -701,6 +746,16 @@ export interface components {
             distribution: {
                 [key: string]: number;
             };
+        };
+        /** @description What the published reviews of the whole catalogue add up to, for the shop's own pages. */
+        ShopReviewStatsResponse: {
+            /**
+             * Format: double
+             * @description Average of the published ratings, two decimals; 0 without reviews.
+             */
+            averageRating: number;
+            /** Format: int32 */
+            reviewCount: number;
         };
         /**
          * @description The error response as this store fills it, for the document only: the RFC 9457 members

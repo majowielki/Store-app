@@ -3,6 +3,7 @@ import ContentCard from '@/components/content/ContentCard';
 import Loading from '@/components/Loading';
 import Reveal from '@/components/Reveal';
 import SectionTitle from '@/components/SectionTitle';
+import { PageMeta } from '@/seo';
 
 /** Every published lookbook. */
 const Looks = () => {
@@ -10,6 +11,7 @@ const Looks = () => {
 
   return (
     <section>
+      <PageMeta title="Shop the look" description="Rooms put together from the catalogue; select a piece in the picture to see it." />
       <SectionTitle eyebrow="Shop the look" text="Rooms to live in" />
       {isLoading ? (
         <Loading />

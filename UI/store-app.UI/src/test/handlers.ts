@@ -56,6 +56,7 @@ export const handlers = [
 
   http.get(api('/orders/pricing-rules'), () => json(pricingRules)),
   http.get(api('/orders/has-orders'), () => json({ hasOrders: false, ordersCount: 0 })),
+  http.get(api('/orders/stats'), () => json({ paidOrders: 0 })),
   http.get(api('/orders/my-orders'), () => json(page([order()]))),
   http.post(api('/orders/from-cart'), () => json(order(), { status: 201 })),
 
@@ -68,4 +69,5 @@ export const handlers = [
   ),
   http.get(api('/reviews/products/:id/mine'), ({ params }) => json({ productId: Number(params.id), canReview: false, reason: 'notPurchased' })),
   http.get(api('/reviews/mine'), () => json([])),
+  http.get(api('/reviews/stats'), () => json({ averageRating: 0, reviewCount: 0 })),
 ];

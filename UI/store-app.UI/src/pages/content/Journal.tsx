@@ -3,6 +3,7 @@ import ContentCard from '@/components/content/ContentCard';
 import Loading from '@/components/Loading';
 import Reveal from '@/components/Reveal';
 import SectionTitle from '@/components/SectionTitle';
+import { PageMeta } from '@/seo';
 import { formatDate } from '@/utils';
 
 /** The journal, newest article first. */
@@ -11,6 +12,7 @@ const Journal = () => {
 
   return (
     <section>
+      <PageMeta title="Journal" description="Ideas for living: care guides, advice on choosing furniture and stories from real rooms." />
       <SectionTitle eyebrow="Journal" text="Ideas for living" />
       {isLoading ? (
         <Loading />

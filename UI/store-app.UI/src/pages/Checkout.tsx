@@ -5,9 +5,11 @@ import DeliveryEstimate from '@/components/DeliveryEstimate';
 import FinishLabel from '@/components/swatch/FinishLabel';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/features/cart/useCart';
+import { usePageMeta } from '@/seo';
 import { formatAsDollars } from '@/utils';
 
 const Checkout = () => {
+  usePageMeta({ title: 'Checkout', noindex: true });
   const { lines, isLoading } = useCart();
 
   if (isLoading) return <Loading />;

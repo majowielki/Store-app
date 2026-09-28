@@ -44,6 +44,9 @@ public static class OrderStatusFlow
     /// <summary>The moves an administrator makes by hand; the rest belong to the saga.</summary>
     private static readonly OrderStatus[] ByAdministrator = [OrderStatus.Shipped, OrderStatus.Cancelled];
 
+    /// <summary>The statuses of an order its customer paid for and kept: paid, and shipped after that.</summary>
+    public static readonly IReadOnlyList<OrderStatus> PaidFor = [OrderStatus.Paid, OrderStatus.Shipped];
+
     /// <summary>The statuses an order in <paramref name="status"/> may move to, in the order they usually come.</summary>
     public static IReadOnlyList<OrderStatus> NextFrom(OrderStatus status) => Next[status];
 

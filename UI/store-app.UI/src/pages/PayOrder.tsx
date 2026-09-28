@@ -10,6 +10,7 @@ import CardForm from '@/components/payment/CardForm';
 import { describeCard } from '@/components/payment/cards';
 import PaymentCountdown from '@/components/payment/PaymentCountdown';
 import FinishLabel from '@/components/swatch/FinishLabel';
+import { usePageMeta } from '@/seo';
 import { Button } from '@/components/ui/button';
 import { formatAsDollars, formatDayRange } from '@/utils';
 
@@ -114,6 +115,7 @@ const Closed = ({ order }: { order: Order }) => (
  */
 const PayOrder = () => {
   const orderId = Number(useParams<{ id: string }>().id);
+  usePageMeta({ title: `Payment for order #${orderId}`, noindex: true });
   const [confirming, setConfirming] = useState(false);
   const [slow, setSlow] = useState(false);
   const [expired, setExpired] = useState(false);

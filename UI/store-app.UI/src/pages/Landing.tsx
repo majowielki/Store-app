@@ -5,6 +5,7 @@ import MakersStrip from '@/components/home/MakersStrip';
 import NewArrivals from '@/components/home/NewArrivals';
 import WelcomeBand from '@/components/home/WelcomeBand';
 import RoomsGrid from '@/components/RoomsGrid';
+import { JsonLd, PageMeta, shopData } from '@/seo';
 
 /**
  * The home page, each kind of content once: what is new, a room to shop from, the rooms of the
@@ -12,6 +13,8 @@ import RoomsGrid from '@/components/RoomsGrid';
  */
 const Landing = () => (
   <>
+    <PageMeta />
+    <JsonLd data={shopData()} />
     <Hero />
     <NewArrivals />
     <LookbookFeature />

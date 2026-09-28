@@ -1,26 +1,66 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Leaf, ShieldCheck, Sparkles, Truck } from 'lucide-react';
+import { useGetPricingRulesQuery, useGetShopOrderStatsQuery } from '@/api/orders';
+import { useGetShopReviewStatsQuery } from '@/api/reviews';
 import joinery from '@/assets/about-joinery.webp';
 import linen from '@/assets/about-linen.webp';
 import CountUp from '@/components/CountUp';
 import Reveal from '@/components/Reveal';
+import { formatRating, RATING_MAX } from '@/components/reviews/rating';
 import { Button } from '@/components/ui/button';
 import { useParallax } from '@/hooks/use-parallax';
+import { usePageMeta } from '@/seo';
+import { daysFromToday } from '@/utils';
 
 const values = [
   { icon: Leaf, title: 'Sustainable materials', text: 'We choose environmentally friendly resources, and wood from forests that are replanted.' },
   { icon: ShieldCheck, title: 'Trusted quality', text: 'Craftsmanship and attention to detail, backed by a two-year warranty.' },
-  { icon: Truck, title: 'Fast delivery', text: 'Most orders arrive within 48 hours, and returns are free for thirty days.' },
+  { icon: Truck, title: 'Honest delivery', text: 'Every product page shows the day your order should arrive, and returns are free for thirty days.' },
   { icon: Sparkles, title: 'Timeless design', text: 'Forms that never go out of style, in colours that sit well together.' },
 ];
 
-const stats: { label: string; count?: number; text: string }[] = [
-  { label: 'happy customers', count: 10, text: 'k+' },
-  { label: 'average rating', text: '4.9/5' },
-  { label: 'delivery time', count: 48, text: 'h' },
-];
+/** A figure still on its way (or one its service could not give) is a dash, never a made-up number. */
+const MISSING = '—';
+
+/**
+ * The shop in numbers, each from the service that owns it: the orders customers paid for, the
+ * rating of every published review, and how many days an order placed now takes to arrive.
+ */
+const ShopNumbers = () => {
+  const { data: orders } = useGetShopOrderStatsQuery();
+  const { data: reviews } = useGetShopReviewStatsQuery();
+  const { data: rules } = useGetPricingRulesQuery();
+
+  const rated = reviews && reviews.reviewCount > 0 ? reviews : undefined;
+  const fastest = rules ? daysFromToday(rules.deliveryFrom) : null;
+  const slowest = rules ? daysFromToday(rules.deliveryTo) : null;
+  const stats: { label: string; value: ReactNode }[] = [
+    { label: 'orders paid for', value: orders ? <CountUp value={orders.paidOrders} /> : MISSING },
+    {
+      label: rated ? `average of ${rated.reviewCount} reviews` : 'average rating',
+      value: rated ? `${formatRating(rated.averageRating)}/${RATING_MAX}` : MISSING,
+    },
+    {
+      label: 'days from order to door',
+      value: fastest !== null && slowest !== null ? (fastest === slowest ? fastest : `${fastest}–${slowest}`) : MISSING,
+    },
+  ];
+
+  return (
+    <dl className="mt-16 grid gap-8 border-y py-12 sm:grid-cols-3">
+      {stats.map((stat, index) => (
+        <Reveal key={index} delay={index * 100} className="flex flex-col-reverse items-center text-center">
+          <dt className="eyebrow mt-3">{stat.label}</dt>
+          <dd className="display text-6xl md:text-7xl">{stat.value}</dd>
+        </Reveal>
+      ))}
+    </dl>
+  );
+};
 
 const About = () => {
+  usePageMeta({ title: 'About us', description: 'Who we are and what we care about: sustainable materials, trusted quality, honest delivery and timeless design.' });
   const bandRef = useParallax<HTMLImageElement>(60);
   return (
     <div>
@@ -46,17 +86,7 @@ const About = () => {
         <img ref={bandRef} src={joinery} alt="The corner of an oak dining table, where the top meets its angled leg" className="h-full w-full scale-[1.12] object-cover" />
       </Reveal>
 
-      <dl className="mt-16 grid gap-8 border-y py-12 sm:grid-cols-3">
-        {stats.map((stat, index) => (
-          <Reveal key={stat.label} delay={index * 100} className="flex flex-col-reverse items-center text-center">
-            <dt className="eyebrow mt-3">{stat.label}</dt>
-            <dd className="display text-6xl md:text-7xl">
-              {stat.count !== undefined && <CountUp value={stat.count} />}
-              {stat.text}
-            </dd>
-          </Reveal>
-        ))}
-      </dl>
+      <ShopNumbers />
 
       <section className="mt-24 grid items-center gap-16 lg:grid-cols-2">
         <div>

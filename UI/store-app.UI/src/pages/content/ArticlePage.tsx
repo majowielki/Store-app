@@ -5,6 +5,7 @@ import ContentUnavailable from '@/components/content/ContentUnavailable';
 import Markdown from '@/components/content/Markdown';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
+import { articleData, breadcrumbData, JsonLd, PageMeta } from '@/seo';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 import { formatDate } from '@/utils';
 
@@ -16,9 +17,12 @@ const ArticlePage = () => {
 
   if (isLoading) return <Loading />;
   if (!article) return <ContentUnavailable error={error} what="Article" back={{ to: '/journal', label: 'The journal' }} />;
+  const path = `/journal/${article.slug}`;
 
   return (
     <article>
+      <PageMeta title={article.title} description={article.excerpt} image={article.coverImage} kind="article" />
+      <JsonLd data={[articleData(article, path), breadcrumbData([{ name: 'Journal', path: '/journal' }, { name: article.title, path }])]} />
       <ContentHero
         eyebrow="Journal"
         title={article.title}

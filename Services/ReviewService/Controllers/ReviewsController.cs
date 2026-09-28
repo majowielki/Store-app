@@ -54,6 +54,11 @@ public class ReviewsController : ControllerBase
         return _summaries.ForAsync(productIds, cancellationToken);
     }
 
+    /// <summary>The shop's rating: the average and the count of every published review, whatever the product.</summary>
+    [HttpGet("stats")]
+    public Task<ShopReviewStatsResponse> Stats(CancellationToken cancellationToken)
+        => _summaries.ShopWideAsync(cancellationToken);
+
     /// <summary>Whether the signed-in customer may review the product, and their review of it in any state.</summary>
     [HttpGet("products/{productId:int}/mine")]
     [Authorize(Policy = Policies.User)]

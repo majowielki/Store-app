@@ -19,7 +19,7 @@ public class ReverseProxyConfigurationTests
 
     private static readonly string[] ExpectedRoutes =
     {
-        "identity-route", "products-route", "cart-route", "wishlist-route", "pricing-rules-route", "discount-check-route", "orders-route", "content-admin-route", "content-route",
+        "identity-route", "products-route", "cart-route", "wishlist-route", "pricing-rules-route", "order-stats-route", "discount-check-route", "orders-route", "content-admin-route", "content-route",
         "payments-route", "reviews-admin-route", "reviews-route", "audit-route", "admin-orders-route", "admin-discount-codes-route", "admin-route"
     };
 
@@ -89,7 +89,7 @@ public class ReverseProxyConfigurationTests
 
         Assert.Equal("auth", routes["identity-route"].RateLimiterPolicy);
         // Every proxied route is rate limited: the shop ones per user, the admin ones stricter
-        foreach (var route in new[] { "products-route", "cart-route", "wishlist-route", "orders-route", "pricing-rules-route", "discount-check-route" })
+        foreach (var route in new[] { "products-route", "cart-route", "wishlist-route", "orders-route", "pricing-rules-route", "order-stats-route", "discount-check-route" })
         {
             Assert.Equal("api", routes[route].RateLimiterPolicy);
         }
@@ -100,6 +100,9 @@ public class ReverseProxyConfigurationTests
         // The public pricing rules must win over the orders catch-all, which requires a user
         Assert.Null(routes["pricing-rules-route"].AuthorizationPolicy);
         Assert.True(routes["pricing-rules-route"].Order < routes["orders-route"].Order);
+        // So must the shop's public order count (the About page)
+        Assert.Null(routes["order-stats-route"].AuthorizationPolicy);
+        Assert.True(routes["order-stats-route"].Order < routes["orders-route"].Order);
         Assert.Equal(Policies.User, routes["cart-route"].AuthorizationPolicy);
         Assert.Equal(Policies.User, routes["wishlist-route"].AuthorizationPolicy);
         Assert.Equal("cart-cluster", routes["wishlist-route"].ClusterId);

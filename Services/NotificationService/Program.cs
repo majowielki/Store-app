@@ -3,6 +3,7 @@ using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
+using Store.BuildingBlocks.Shop;
 using Store.Contracts.Catalog.V1;
 using Store.Contracts.Orders.V1;
 using Store.Contracts.Payments.V1;
@@ -17,7 +18,7 @@ builder.AddStoreObservability("notification");
 
 // The e-mails: to Mailpit over SMTP in development, only to the log elsewhere (the shop is a demo)
 builder.Services.AddStoreOptions<MailOptions>(builder.Configuration, MailOptions.SectionName);
-builder.Services.AddSingleton<ShopLinks>();
+builder.Services.AddShopLinks(builder.Configuration);
 builder.Services.AddSingleton<IMailTemplate<OrderPaid>, OrderPaidMail>();
 builder.Services.AddSingleton<IMailTemplate<PaymentDeclined>, PaymentDeclinedMail>();
 builder.Services.AddSingleton<IMailTemplate<OrderShipped>, OrderShippedMail>();

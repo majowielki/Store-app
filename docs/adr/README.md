@@ -20,3 +20,4 @@ what it costs.
 | [012](012-moderated-reviews.md) | Reviews are published only after moderation |
 | [013](013-order-saga.md) | An order is a saga |
 | [014](014-product-slugs.md) | Content names products by slug, not by id |
+| [015](015-search-engines.md) | Search engines read the SPA, and each service lists its own pages |

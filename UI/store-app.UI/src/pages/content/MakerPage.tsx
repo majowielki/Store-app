@@ -7,6 +7,7 @@ import ContentUnavailable from '@/components/content/ContentUnavailable';
 import Markdown from '@/components/content/Markdown';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
+import { breadcrumbData, JsonLd, PageMeta } from '@/seo';
 
 /** A maker's story and the products the catalogue has from them. */
 const MakerPage = () => {
@@ -19,6 +20,8 @@ const MakerPage = () => {
 
   return (
     <article>
+      <PageMeta title={maker.name} description={maker.tagline} image={maker.coverImage} />
+      <JsonLd data={breadcrumbData([{ name: 'Makers', path: '/makers' }, { name: maker.name, path: `/makers/${maker.slug}` }])} />
       <ContentHero
         eyebrow="Our makers"
         title={maker.name}

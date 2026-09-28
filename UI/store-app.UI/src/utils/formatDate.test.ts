@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, formatDayRange } from './formatDate';
+import { daysFromToday, formatDate, formatDateTime, formatDayRange } from './formatDate';
 
 // Newer ICU puts a narrow no-break space before AM/PM; the tests read any space as a space
 const plain = (text: string) => text.replace(/\s/g, ' ');
@@ -41,5 +41,22 @@ describe('formatDayRange', () => {
 
   it('gives an empty string for a value that is not a date', () => {
     expect(formatDayRange('soon', '2026-10-05')).toBe('');
+  });
+});
+
+describe('daysFromToday', () => {
+  const today = new Date(2026, 8, 28, 23, 30);
+
+  it('counts calendar days whatever the time of day', () => {
+    expect(daysFromToday('2026-09-28', today)).toBe(0);
+    expect(daysFromToday('2026-10-02', today)).toBe(4);
+  });
+
+  it('counts across a daylight saving change as whole days', () => {
+    expect(daysFromToday('2026-11-02', new Date(2026, 9, 24, 8, 0))).toBe(9);
+  });
+
+  it('gives null for a value that is not a date', () => {
+    expect(daysFromToday('soon', today)).toBeNull();
   });
 });

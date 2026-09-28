@@ -16,7 +16,7 @@ FROM nginxinc/nginx-unprivileged:1.31-alpine AS production
 
 COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 COPY docker/default.conf.template docker/security-headers.inc.template /etc/nginx/templates/
-COPY --chmod=755 docker/10-resolver.envsh docker/15-csp.envsh docker/40-app-config.sh /docker-entrypoint.d/
+COPY --chmod=755 docker/10-resolver.envsh docker/15-csp.envsh docker/16-shop-url.envsh docker/40-app-config.sh /docker-entrypoint.d/
 
 ENV GATEWAY_UPSTREAM=http://gateway:8080 \
     API_BASE_URL=/api/v1

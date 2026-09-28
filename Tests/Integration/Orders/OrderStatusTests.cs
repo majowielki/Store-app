@@ -146,4 +146,24 @@ public sealed class OrderStatusTests : IClassFixture<OrderApiFactory>
         Assert.True((await ReadJson(invalid)).GetProperty("errors").TryGetProperty("Status", out _));
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
+
+    // The About page prints it; an order waiting for its payment or cancelled after it is not one the shop may boast of
+    [Fact]
+    public async Task The_public_order_count_holds_the_orders_paid_for_and_kept()
+    {
+        using var anonymous = _factory.CreateClient();
+        async Task<int> PaidOrdersAsync()
+            => (await ReadJson(await anonymous.GetAsync("/api/v1/orders/stats"))).GetProperty("paidOrders").GetInt32();
+        var before = await PaidOrdersAsync();
+
+        await _journey.AwaitingPaymentAsync("stats-awaiting", 107);
+        var shipped = await _journey.PaidAsync("stats-shipped", 108);
+        var cancelled = await _journey.PaidAsync("stats-cancelled", 109);
+        Assert.Equal(before + 2, await PaidOrdersAsync());
+        using var admin = _factory.CreateClient().AsTrueAdmin();
+        Assert.Equal(HttpStatusCode.OK, (await MoveAsync(admin, shipped, "Shipped")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await MoveAsync(admin, cancelled, "Cancelled")).StatusCode);
+
+        Assert.Equal(before + 1, await PaidOrdersAsync());
+    }
 }

@@ -8,6 +8,7 @@ using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
+using Store.BuildingBlocks.Shop;
 using Store.ProductService.Consumers;
 using Store.ProductService.Data;
 using Store.ProductService.Models;
@@ -55,6 +56,8 @@ builder.Services.AddScoped<IProductService, Store.ProductService.Services.Produc
 builder.Services.AddScoped<IProductDiscovery, ProductDiscovery>();
 builder.Services.AddScoped<IStockAlerts, StockAlerts>();
 builder.Services.AddScoped<IStockLedger, StockLedger>();
+builder.Services.AddShopLinks(builder.Configuration);
+builder.Services.AddScoped<ProductSitemap>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());

@@ -566,6 +566,36 @@
         }
       }
     },
+    "/api/v1/products/sitemap.xml": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "The sitemap of the catalogue: every active product's page in the shop (the UI serves it as /sitemap-products.xml).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/products/admin": {
       "get": {
         "tags": [

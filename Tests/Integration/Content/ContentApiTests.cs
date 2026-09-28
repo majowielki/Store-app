@@ -1,7 +1,10 @@
+using Microsoft.Extensions.DependencyInjection;
+using Store.BuildingBlocks.Shop;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Xml.Linq;
 using Xunit;
 
 namespace Store.Tests.Integration.Content;
@@ -63,6 +66,29 @@ public sealed class ContentApiTests : IClassFixture<ContentApiFactory>
         var sofa = lookbook.GetProperty("hotspots").EnumerateArray().Single(h => h.GetProperty("productSlug").GetString() == "boucle-modular-sofa");
         Assert.InRange(sofa.GetProperty("x").GetDecimal(), 0m, 100m);
         Assert.InRange(sofa.GetProperty("y").GetDecimal(), 0m, 100m);
+    }
+
+    // Search engines find the editorial pages through it (the UI serves it as /sitemap-content.xml)
+    [Fact]
+    public async Task The_sitemap_lists_the_published_pages_at_their_addresses_in_the_shop()
+    {
+        using var admin = _factory.CreateClient().AsTrueAdmin();
+        var hidden = Unique("hidden-corners");
+        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/v1/content/admin/collections", Collection(hidden, published: false))).StatusCode);
+        using var visitor = _factory.CreateClient();
+
+        var response = await visitor.GetAsync("/api/v1/content/sitemap.xml");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(Sitemap.ContentType, response.Content.Headers.ContentType?.MediaType);
+        XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+        var pages = XDocument.Parse(await response.Content.ReadAsStringAsync()).Descendants(ns + "loc").Select(l => l.Value).ToList();
+        var links = _factory.Services.GetRequiredService<ShopLinks>();
+        Assert.Contains(links.Maker("modenza"), pages);
+        Assert.Contains(links.Collection("warm-minimal"), pages);
+        Assert.Contains(links.Article("caring-for-oak"), pages);
+        Assert.Contains(links.Lookbook("living-room"), pages);
+        Assert.DoesNotContain(links.Collection(hidden), pages);
     }
 
     [Fact]

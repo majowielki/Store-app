@@ -3,6 +3,7 @@ import ContentCard from '@/components/content/ContentCard';
 import Loading from '@/components/Loading';
 import Reveal from '@/components/Reveal';
 import SectionTitle from '@/components/SectionTitle';
+import { PageMeta } from '@/seo';
 
 /** The workshops behind the catalogue. */
 const Makers = () => {
@@ -10,6 +11,7 @@ const Makers = () => {
 
   return (
     <section>
+      <PageMeta title="Our makers" description="The workshops behind the catalogue: who makes each piece, where and how." />
       <SectionTitle eyebrow="Who makes it" text="Our makers" />
       {isLoading ? (
         <Loading />

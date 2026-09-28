@@ -56,6 +56,23 @@ public sealed class ReviewSummaries
         }).ToList();
     }
 
+    /// <summary>What every review everyone can see adds up to, across the catalogue: the shop's own rating.</summary>
+    public async Task<ShopReviewStatsResponse> ShopWideAsync(CancellationToken cancellationToken = default)
+    {
+        var totals = await Public(_context.Reviews.AsNoTracking())
+            .GroupBy(_ => true)
+            .Select(g => new { Count = g.Count(), Stars = g.Sum(r => r.Rating) })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return totals is null || totals.Count == 0
+            ? new ShopReviewStatsResponse()
+            : new ShopReviewStatsResponse
+            {
+                ReviewCount = totals.Count,
+                AverageRating = Math.Round((decimal)totals.Stars / totals.Count, 2, MidpointRounding.AwayFromZero)
+            };
+    }
+
     /// <summary>
     /// Publishes the current summary of each product through the outbox; the caller's next save
     /// writes the messages, in its transaction when it has one.

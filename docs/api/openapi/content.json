@@ -1205,6 +1205,36 @@
           }
         ]
       }
+    },
+    "/api/v1/content/sitemap.xml": {
+      "get": {
+        "tags": [
+          "Sitemap"
+        ],
+        "summary": "Every published maker, collection, article and lookbook at its address in the shop.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1712,6 +1742,10 @@
     {
       "name": "Makers",
       "description": "The workshops behind the catalogue. The public reads show published entries only and answer 304 to an\nunchanged If-None-Match; the admin endpoints see everything, and only the true administrator\nmay change anything."
+    },
+    {
+      "name": "Sitemap",
+      "description": "The editorial pages for search engines; the UI serves this as /sitemap-content.xml."
     }
   ]
 }

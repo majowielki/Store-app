@@ -9,7 +9,7 @@ public enum MailDelivery
     Smtp
 }
 
-/// <summary>The <c>Mail</c> section: where e-mails go, who they are from and where their links lead.</summary>
+/// <summary>The <c>Mail</c> section: where e-mails go and who they are from; their links lead to <c>Shop:Url</c>.</summary>
 public sealed class MailOptions : IValidatableObject
 {
     public const string SectionName = "Mail";
@@ -22,11 +22,6 @@ public sealed class MailOptions : IValidatableObject
     /// <summary>"Store &lt;hello@store.example&gt;".</summary>
     [Required]
     public string From { get; init; } = string.Empty;
-
-    /// <summary>The shop's address; the e-mails link to its order and product pages.</summary>
-    [Required]
-    [Url]
-    public string ShopUrl { get; init; } = string.Empty;
 
     /// <summary>The SMTP server (Mailpit in development); required for <see cref="MailDelivery.Smtp"/>.</summary>
     public string? SmtpHost { get; init; }

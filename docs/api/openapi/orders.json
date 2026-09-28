@@ -621,6 +621,36 @@
         }
       }
     },
+    "/api/v1/orders/stats": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "What the shop says about its orders in public: how many were paid for.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopOrderStatsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/orders/from-cart": {
       "post": {
         "tags": [
@@ -1608,6 +1638,21 @@
           }
         },
         "additionalProperties": { }
+      },
+      "ShopOrderStatsResponse": {
+        "required": [
+          "paidOrders"
+        ],
+        "type": "object",
+        "properties": {
+          "paidOrders": {
+            "type": "integer",
+            "description": "Orders customers paid for and did not have refunded: paid or shipped.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the shop says about its orders in public (GET /api/v1/orders/stats)."
       },
       "StoreProblemDetails": {
         "type": "object",

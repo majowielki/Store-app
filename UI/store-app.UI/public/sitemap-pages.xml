@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The pages of the UI that are not data of a service: the listings and the help and legal
+     pages (the routes in src/App.tsx); a new public page belongs here too. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>%SHOP_URL%/</loc></url>
+  <url><loc>%SHOP_URL%/products</loc></url>
+  <url><loc>%SHOP_URL%/makers</loc></url>
+  <url><loc>%SHOP_URL%/collections</loc></url>
+  <url><loc>%SHOP_URL%/journal</loc></url>
+  <url><loc>%SHOP_URL%/looks</loc></url>
+  <url><loc>%SHOP_URL%/about</loc></url>
+  <url><loc>%SHOP_URL%/contact</loc></url>
+  <url><loc>%SHOP_URL%/help</loc></url>
+  <url><loc>%SHOP_URL%/shipping</loc></url>
+  <url><loc>%SHOP_URL%/returns</loc></url>
+  <url><loc>%SHOP_URL%/terms</loc></url>
+  <url><loc>%SHOP_URL%/privacy</loc></url>
+</urlset>

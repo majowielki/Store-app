@@ -1,6 +1,8 @@
 /** Values the container injects at startup through /config.js (see docker/40-app-config.sh). */
 interface AppRuntimeConfig {
   apiBaseUrl?: string;
+  /** The shop's public address (SHOP_URL), for canonical links; empty when the container was not told. */
+  shopUrl?: string;
 }
 
 declare global {
@@ -17,5 +19,12 @@ const runtime: AppRuntimeConfig = (typeof window !== 'undefined' && window.__APP
  * proxies to the gateway. Same-origin is the normal case: the refresh cookie needs no CORS then.
  */
 export const apiBaseUrl: string = runtime.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
+/**
+ * The shop's public address, without a trailing slash: the one the container was given, else the
+ * address the app was opened at. Canonical links and the addresses in structured data use it, so a
+ * page reached through a second host name still points search engines at the first.
+ */
+export const shopUrl: string = (runtime.shopUrl || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '');
 
 export {};

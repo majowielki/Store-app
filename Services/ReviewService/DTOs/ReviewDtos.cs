@@ -80,6 +80,15 @@ public class ReviewSummaryResponse
     public Dictionary<string, int> Distribution { get; set; } = new();
 }
 
+/// <summary>What the published reviews of the whole catalogue add up to, for the shop's own pages.</summary>
+public class ShopReviewStatsResponse
+{
+    /// <summary>Average of the published ratings, two decimals; 0 without reviews.</summary>
+    public decimal AverageRating { get; set; }
+
+    public int ReviewCount { get; set; }
+}
+
 /// <summary>Whether the signed-in customer may review a product, and their review of it if they wrote one.</summary>
 public class MyProductReviewResponse
 {

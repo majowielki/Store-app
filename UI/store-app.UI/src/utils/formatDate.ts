@@ -41,3 +41,14 @@ export const formatDayRange = (from: string, to: string): string => {
   if (!first || !last) return '';
   return from === to ? dayFormat.format(first) : `${dayFormat.format(first)} – ${dayFormat.format(last)}`;
 };
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Whole days from today to a calendar date from the API ("2026-09-30"), in the visitor's zone; null for an unreadable value. */
+export const daysFromToday = (value: string, today: Date = new Date()): number | null => {
+  const day = toDay(value);
+  if (!day) return null;
+  const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  // Rounded: a day across a daylight saving change is an hour shorter or longer
+  return Math.round((day.getTime() - midnight.getTime()) / MS_PER_DAY);
+};

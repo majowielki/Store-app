@@ -8,12 +8,14 @@ import { isAdmin } from '@/features/session/roles';
 import { signIn, type SignInRequest } from '@/features/session/sessionThunks';
 import { useAppDispatch } from '@/hooks';
 import { toast } from '@/hooks/use-toast';
+import { usePageMeta } from '@/seo';
 import { validateLogin } from '@/utils/validation';
 
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p className="-mt-2 animate-fade-up text-xs text-destructive">{message}</p> : null;
 
 const Login = () => {
+  usePageMeta({ title: 'Sign in', noindex: true });
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });

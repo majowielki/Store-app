@@ -21,8 +21,10 @@ import { BookOpenText, Images, LayoutDashboard, Layers, MessageSquareText, Packa
 import AdminHeader from '@/components/AdminHeader';
 import AdminBottomBar from '@/components/AdminBottomBar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePageMeta } from '@/seo';
 
 const AdminLayout = () => {
+  usePageMeta({ title: 'Admin', noindex: true });
   const nav = [
     { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard /> },
     { to: '/admin/orders', label: 'Orders', icon: <ShoppingCart /> },

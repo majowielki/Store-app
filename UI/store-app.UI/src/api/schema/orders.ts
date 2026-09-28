@@ -682,6 +682,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the shop says about its orders in public: how many were paid for. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShopOrderStatsResponse"];
+                    };
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/from-cart": {
         parameters: {
             query?: never;
@@ -1358,6 +1403,14 @@ export interface components {
             instance?: string | null;
         } & {
             [key: string]: unknown;
+        };
+        /** @description What the shop says about its orders in public (GET /api/v1/orders/stats). */
+        ShopOrderStatsResponse: {
+            /**
+             * Format: int32
+             * @description Orders customers paid for and did not have refunded: paid or shipped.
+             */
+            paidOrders: number;
         };
         /**
          * @description The error response as this store fills it, for the document only: the RFC 9457 members

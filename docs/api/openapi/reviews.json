@@ -343,6 +343,36 @@
         }
       }
     },
+    "/api/v1/reviews/stats": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "The shop's rating: the average and the count of every published review, whatever the product.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopReviewStatsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reviews/products/{productId}/mine": {
       "get": {
         "tags": [
@@ -966,6 +996,26 @@
         },
         "additionalProperties": false,
         "description": "What the published reviews of a product add up to."
+      },
+      "ShopReviewStatsResponse": {
+        "required": [
+          "averageRating",
+          "reviewCount"
+        ],
+        "type": "object",
+        "properties": {
+          "averageRating": {
+            "type": "number",
+            "description": "Average of the published ratings, two decimals; 0 without reviews.",
+            "format": "double"
+          },
+          "reviewCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the published reviews of the whole catalogue add up to, for the shop's own pages."
       },
       "StoreProblemDetails": {
         "type": "object",

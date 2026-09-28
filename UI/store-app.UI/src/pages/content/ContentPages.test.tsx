@@ -82,8 +82,13 @@ describe('content pages', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Caring for oak' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Oil, not polish' })).toBeInTheDocument();
     expect(screen.getByText('thin').tagName).toBe('STRONG');
-    expect(container.querySelector('script')).toBeNull();
+    // The one script on the page is its structured data for search engines, never one from the text
+    expect(container.querySelector('script:not([type="application/ld+json"])')).toBeNull();
     expect(container.querySelector('b')).toBeNull();
+    const [data, trail] = JSON.parse(container.querySelector('script[type="application/ld+json"]')!.textContent!);
+    expect(data).toMatchObject({ '@type': 'Article', headline: 'Caring for oak', author: { name: article().author } });
+    expect(trail.itemListElement.map((step: { name: string }) => step.name)).toEqual(['Home', 'Journal', 'Caring for oak']);
+    expect(document.title).toBe('Caring for oak — Store');
     // A link inside the shop stays in the app
     expect(screen.getByRole('link', { name: 'See the tables' })).toHaveAttribute('href', '/products?category=tables');
     expect(within(await screen.findByRole('region', { name: 'Products in this article' })).getByText('Oak Table')).toBeInTheDocument();

@@ -3,6 +3,7 @@ import ContentCard from '@/components/content/ContentCard';
 import Loading from '@/components/Loading';
 import Reveal from '@/components/Reveal';
 import SectionTitle from '@/components/SectionTitle';
+import { PageMeta } from '@/seo';
 
 /** Every published collection; the first one gets the full width. */
 const Collections = () => {
@@ -10,6 +11,7 @@ const Collections = () => {
 
   return (
     <section>
+      <PageMeta title="Collections" description="Pieces chosen to live together, one idea at a time." />
       <SectionTitle eyebrow="Curated" text="Collections" />
       {isLoading ? (
         <Loading />
