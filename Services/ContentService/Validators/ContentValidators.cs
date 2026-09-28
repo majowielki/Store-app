@@ -1,7 +1,7 @@
 using FluentValidation;
-using Store.Contracts.Catalog;
 using Store.ContentService.DTOs;
 using Store.ContentService.Models;
+using Store.Contracts.Catalog;
 
 namespace Store.ContentService.Validators;
 

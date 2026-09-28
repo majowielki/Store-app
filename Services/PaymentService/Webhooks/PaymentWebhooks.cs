@@ -1,8 +1,8 @@
-using System.Text.Json;
 using Store.BuildingBlocks.Serialization;
 using Store.Contracts.Payments.Webhooks;
 using Store.PaymentService.Data;
 using Store.PaymentService.Models;
+using System.Text.Json;
 
 namespace Store.PaymentService.Webhooks;
 

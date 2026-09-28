@@ -49,22 +49,47 @@ public class DemoContentTests
 
         Assert.All(DemoContent.Makers(), m => AssertValid(makers.Validate(new MakerRequest
         {
-            Slug = m.Slug, Name = m.Name, Company = m.Company, Tagline = m.Tagline, Story = m.Story,
-            Location = m.Location, FoundedYear = m.FoundedYear, CoverImage = m.CoverImage, IsPublished = m.IsPublished
+            Slug = m.Slug,
+            Name = m.Name,
+            Company = m.Company,
+            Tagline = m.Tagline,
+            Story = m.Story,
+            Location = m.Location,
+            FoundedYear = m.FoundedYear,
+            CoverImage = m.CoverImage,
+            IsPublished = m.IsPublished
         })));
         Assert.All(DemoContent.Collections(), c => AssertValid(collections.Validate(new CollectionRequest
         {
-            Slug = c.Slug, Title = c.Title, Summary = c.Summary, Body = c.Body, CoverImage = c.CoverImage,
-            ProductSlugs = c.ProductSlugs, SortOrder = c.SortOrder, IsPublished = c.IsPublished
+            Slug = c.Slug,
+            Title = c.Title,
+            Summary = c.Summary,
+            Body = c.Body,
+            CoverImage = c.CoverImage,
+            ProductSlugs = c.ProductSlugs,
+            SortOrder = c.SortOrder,
+            IsPublished = c.IsPublished
         })));
         Assert.All(DemoContent.Articles(), a => AssertValid(articles.Validate(new ArticleRequest
         {
-            Slug = a.Slug, Title = a.Title, Excerpt = a.Excerpt, Body = a.Body, CoverImage = a.CoverImage,
-            Author = a.Author, PublishedAt = a.PublishedAt, ProductSlugs = a.ProductSlugs, IsPublished = a.IsPublished
+            Slug = a.Slug,
+            Title = a.Title,
+            Excerpt = a.Excerpt,
+            Body = a.Body,
+            CoverImage = a.CoverImage,
+            Author = a.Author,
+            PublishedAt = a.PublishedAt,
+            ProductSlugs = a.ProductSlugs,
+            IsPublished = a.IsPublished
         })));
         Assert.All(DemoContent.Lookbooks(), l => AssertValid(lookbooks.Validate(new LookbookRequest
         {
-            Slug = l.Slug, Title = l.Title, Summary = l.Summary, Image = l.Image, SortOrder = l.SortOrder, IsPublished = l.IsPublished,
+            Slug = l.Slug,
+            Title = l.Title,
+            Summary = l.Summary,
+            Image = l.Image,
+            SortOrder = l.SortOrder,
+            IsPublished = l.IsPublished,
             Hotspots = l.Hotspots.Select(h => new HotspotDto { X = h.X, Y = h.Y, ProductSlug = h.ProductSlug }).ToList()
         })));
     }

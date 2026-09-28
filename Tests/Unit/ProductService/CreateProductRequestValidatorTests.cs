@@ -63,7 +63,12 @@ public class CreateProductRequestValidatorTests
     {
         CreateProductRequest Model(IEnumerable<ProductImageDto> images) => new()
         {
-            Title = "Title", Description = new string('a', 20), Price = 10, Image = "http://img.com", Colors = [FinishCatalogue.Walnut.Key], Images = images.ToList()
+            Title = "Title",
+            Description = new string('a', 20),
+            Price = 10,
+            Image = "http://img.com",
+            Colors = [FinishCatalogue.Walnut.Key],
+            Images = images.ToList()
         };
 
         var picture = new ProductImageDto { Url = "https://img.test/a.webp", Alt = "A detail" };
@@ -84,7 +89,11 @@ public class CreateProductRequestValidatorTests
     {
         var model = new CreateProductRequest
         {
-            Title = "Title", Description = new string('a', 20), Price = 10, Image = "http://img.com", Colors = [FinishCatalogue.Walnut.Key],
+            Title = "Title",
+            Description = new string('a', 20),
+            Price = 10,
+            Image = "http://img.com",
+            Colors = [FinishCatalogue.Walnut.Key],
             Hotspots = [new ProductHotspotDto { X = x, Y = y, ProductSlug = slug }]
         };
 

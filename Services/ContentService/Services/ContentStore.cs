@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
-using Store.Contracts.Audit;
 using Store.ContentService.Data;
 using Store.ContentService.Models;
+using Store.Contracts.Audit;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

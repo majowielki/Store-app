@@ -2,13 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
-using Store.Contracts.Audit;
 using Store.BuildingBlocks.Observability;
 using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
 using Store.CartService.DTOs.Responses;
 using Store.CartService.Models;
+using Store.Contracts.Audit;
 using Store.Contracts.Cart;
 using Store.Contracts.Catalog;
 

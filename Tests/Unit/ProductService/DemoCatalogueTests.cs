@@ -1,8 +1,8 @@
 using Store.Contracts.Catalog;
 using Store.ProductService.Data;
-using Store.ProductService.Models;
 using Store.ProductService.DTOs.Requests;
 using Store.ProductService.DTOs.Responses;
+using Store.ProductService.Models;
 using Store.ProductService.Validators;
 using Store.Tests.Unit.TestSupport;
 using Xunit;

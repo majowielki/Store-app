@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Messaging;
-using Store.ReviewService.Models;
 using Store.Contracts.Authorization;
+using Store.ReviewService.Models;
 
 namespace Store.ReviewService.Data;
 

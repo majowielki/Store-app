@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Store.Contracts.Authorization;
 using Store.ContentService.DTOs;
 using Store.ContentService.Models;
 using Store.ContentService.Services;
+using Store.Contracts.Authorization;
 
 namespace Store.ContentService.Controllers;
 

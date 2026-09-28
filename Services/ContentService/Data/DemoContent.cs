@@ -1,5 +1,5 @@
-using Store.Contracts.Catalog;
 using Store.ContentService.Models;
+using Store.Contracts.Catalog;
 
 namespace Store.ContentService.Data;
 
@@ -291,13 +291,13 @@ public static class DemoContent
 
     private static Lookbook Look(string slug, string title, string summary, string picture, int sortOrder,
         params (string Product, decimal X, decimal Y)[] points) => new()
-    {
-        Slug = slug,
-        Title = title,
-        Summary = summary,
-        Image = Pictures + picture + ".webp",
-        SortOrder = sortOrder,
-        IsPublished = true,
-        Hotspots = points.Select(p => new Hotspot { ProductSlug = p.Product, X = p.X, Y = p.Y }).ToList(),
-    };
+        {
+            Slug = slug,
+            Title = title,
+            Summary = summary,
+            Image = Pictures + picture + ".webp",
+            SortOrder = sortOrder,
+            IsPublished = true,
+            Hotspots = points.Select(p => new Hotspot { ProductSlug = p.Product, X = p.X, Y = p.Y }).ToList(),
+        };
 }

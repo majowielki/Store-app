@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using Store.Contracts.Authorization;
 using Store.BuildingBlocks.Configuration;
+using Store.Contracts.Authorization;
 using Store.IdentityService.Models;
 using System.Security.Claims;
 using System.Security.Cryptography;

@@ -457,35 +457,35 @@ public static class DemoCatalogue
         decimal? salePrice = null,
         decimal? discountPercent = null,
         bool isNew = false) => new()
-    {
-        Title = title,
-        Slug = ProductSlug.From(title),
-        Description = description,
-        Price = price,
-        SalePrice = salePrice,
-        DiscountPercent = discountPercent,
-        Category = category,
-        Company = company,
-        NewArrival = isNew,
-        Image = Pictures + picture + "-1.webp",
-        Images =
+        {
+            Title = title,
+            Slug = ProductSlug.From(title),
+            Description = description,
+            Price = price,
+            SalePrice = salePrice,
+            DiscountPercent = discountPercent,
+            Category = category,
+            Company = company,
+            NewArrival = isNew,
+            Image = Pictures + picture + "-1.webp",
+            Images =
         [
             new() { Url = Pictures + picture + "-2.webp", Alt = $"A closer look at the {title}", SortOrder = 0 },
             new() { Url = Pictures + picture + "-3.webp", Alt = $"The {title} on its own", SortOrder = 1 },
         ],
-        Hotspots = Points.TryGetValue(picture, out var points)
+            Hotspots = Points.TryGetValue(picture, out var points)
             ? points.Select(point => new ProductHotspot { ProductSlug = point.Product, X = point.X, Y = point.Y }).ToList()
             : [],
-        Colors = finishes.Select(finish => finish.Key).ToList(),
-        Groups = [.. groups],
-        // Lowercase, the way the API stores what an administrator types
-        Materials = materials.Select(material => material.ToLowerInvariant()).ToList(),
-        WidthCm = size.Width,
-        HeightCm = size.Height,
-        DepthCm = size.Depth,
-        WeightKg = size.WeightKg,
-        StockQuantity = UnitsOnHand(ProductSlug.From(title)),
-    };
+            Colors = finishes.Select(finish => finish.Key).ToList(),
+            Groups = [.. groups],
+            // Lowercase, the way the API stores what an administrator types
+            Materials = materials.Select(material => material.ToLowerInvariant()).ToList(),
+            WidthCm = size.Width,
+            HeightCm = size.Height,
+            DepthCm = size.Depth,
+            WeightKg = size.WeightKg,
+            StockQuantity = UnitsOnHand(ProductSlug.From(title)),
+        };
 
     /// <summary>Width × height × depth in centimetres and the weight in kilograms.</summary>
     private readonly record struct Size(decimal Width, decimal Height, decimal Depth, decimal WeightKg);
