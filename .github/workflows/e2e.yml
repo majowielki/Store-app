@@ -27,6 +27,7 @@ jobs:
       RABBITMQ_PASSWORD: e2e-only-rabbitmq-password
       JWT_SECRET_KEY: e2e-only-jwt-secret-key-that-is-long-enough-0123456789
       INTERNAL_API_KEY: e2e-only-internal-api-key-0123456789abcdef
+      PAYMENT_WEBHOOK_SECRET: e2e-only-payment-webhook-secret-0123456789abcdef
       TRUE_ADMIN_PASSWORD: E2e-Admin-Pass-1!
       # The scenarios sign in as the demo accounts too
       DEMO_ENABLED: "true"

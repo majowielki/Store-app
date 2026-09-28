@@ -7,6 +7,7 @@ import type { components as Catalog, paths as CatalogPaths } from './schema/cata
 import type { components as Content } from './schema/content';
 import type { components as Identity } from './schema/identity';
 import type { components as Orders } from './schema/orders';
+import type { components as Payments } from './schema/payments';
 
 /** An error response: application/problem+json with the status code that describes it. */
 export type ProblemDetails = Catalog['schemas']['StoreProblemDetails'];
@@ -63,6 +64,12 @@ export type OrderStatus = 'Placed' | 'AwaitingPayment' | 'Paid' | 'Shipped' | 'C
 export type DiscountCodeCheck = Orders['schemas']['DiscountCodeCheckResponse'];
 export type DiscountCode = Orders['schemas']['DiscountCodeResponse'];
 export type DiscountCodePayload = Orders['schemas']['DiscountCodeRequest'];
+
+// Payments: the order service opens one, the browser confirms it with a card at the payment service
+export type OrderPayment = Orders['schemas']['OrderPaymentResponse'];
+export type Payment = Payments['schemas']['PaymentResponse'];
+export type PaymentStatus = Payments['schemas']['PaymentStatus'];
+export type CardPayload = Payments['schemas']['ConfirmPaymentRequest'];
 
 // Content: makers, collections, journal articles and lookbooks
 export type Maker = Content['schemas']['MakerResponse'];

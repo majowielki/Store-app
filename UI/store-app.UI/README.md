@@ -74,7 +74,9 @@ credentials come from `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` (compose defaults
 because every scenario signs in on its own and reloads pages (each load renews the session), the
 gateway's /auth limits have to be raised for a run (`AUTH_CREDENTIAL_LIMIT` and `AUTH_PERMIT_LIMIT`
 in compose, `--RateLimiting:Auth:CredentialPermitLimit=...` and `--RateLimiting:Auth:PermitLimit=...`
-by hand).
+by hand). The scenarios pay with the test cards through the real payment service and its
+webhooks, and top up the stock of the products they pick through the true administrator's API,
+since every run keeps the pieces it bought held (paid orders are not shipped).
 
 ## The container
 

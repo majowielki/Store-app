@@ -38,6 +38,7 @@ const router = createBrowserRouter([
       { path: 'checkout', element: <Checkout />, errorElement: <ErrorElement />, loader: requireUser },
       { path: 'orders', element: <Orders />, errorElement: <ErrorElement />, loader: requireUser },
       { path: 'orders/:id', element: <OrderDetail />, errorElement: <ErrorElement />, loader: requireUser },
+      { path: 'orders/:id/pay', lazy: page(() => import('./pages/PayOrder')), errorElement: <ErrorElement />, loader: requireUser },
       // Editorial pages (with the Markdown renderer) load on first visit
       { path: 'makers', lazy: page(() => import('./pages/content/Makers')), errorElement: <ErrorElement /> },
       { path: 'makers/:slug', lazy: page(() => import('./pages/content/MakerPage')), errorElement: <ErrorElement /> },

@@ -1,35 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Check } from 'lucide-react';
 import { CheckoutForm, Loading, CartTotals } from '@/components';
+import CheckoutSteps from '@/components/CheckoutSteps';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/features/cart/useCart';
-import { cn } from '@/lib/utils';
 import { formatAsDollars } from '@/utils';
-
-const steps = ['Cart', 'Delivery', 'Done'];
-
-/** Where the customer is in the purchase: the cart behind them, the delivery details now. */
-const Steps = ({ current }: { current: number }) => (
-  <ol className="flex items-center gap-3 text-xs">
-    {steps.map((step, index) => (
-      <li key={step} className="flex items-center gap-3">
-        <span
-          className={cn(
-            'grid h-6 w-6 place-items-center rounded-full border text-[10px] font-medium',
-            index < current && 'border-foreground bg-foreground text-background',
-            index === current && 'border-foreground',
-            index > current && 'text-muted-foreground',
-          )}
-        >
-          {index < current ? <Check className="h-3 w-3" /> : index + 1}
-        </span>
-        <span className={index > current ? 'text-muted-foreground' : 'font-medium'}>{step}</span>
-        {index < steps.length - 1 && <span className="h-px w-8 bg-border" />}
-      </li>
-    ))}
-  </ol>
-);
 
 const Checkout = () => {
   const { lines, isLoading } = useCart();
@@ -49,7 +24,7 @@ const Checkout = () => {
   return (
     <>
       <header className="animate-fade-up">
-        <Steps current={1} />
+        <CheckoutSteps current={1} />
         <h1 className="display mt-8 text-5xl md:text-7xl">Place your order</h1>
       </header>
       <div className="mt-10 grid items-start gap-10 lg:grid-cols-12 lg:gap-12">

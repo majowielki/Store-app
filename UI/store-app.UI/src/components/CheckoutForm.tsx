@@ -40,12 +40,13 @@ const CheckoutForm = () => {
     try {
       // Only a code the order service accepted goes with the order; it is checked once more there
       const discountCode = discount.check?.code;
-      await placeOrder({ order: { customerName, deliveryAddress, saveAddress, discountCode }, idempotencyKey }).unwrap();
+      const order = await placeOrder({ order: { customerName, deliveryAddress, saveAddress, discountCode }, idempotencyKey }).unwrap();
       // The identity service stores the address a moment later; the profile shown here is updated now
       if (saveAddress) dispatch(addressSaved(deliveryAddress));
       dispatch(codeRemoved());
       toast({ description: 'Order placed' });
-      navigate('/orders');
+      // The pieces are being reserved; the payment page takes over from here
+      navigate(`/orders/${order.id}/pay`);
     } catch {
       // Reported by the error middleware (an empty cart, a product that left the catalogue)
     }
@@ -60,7 +61,7 @@ const CheckoutForm = () => {
       <FormInput label="user name" name="name" type="text" defaultValue={defaultUserName} readOnly={isDemo} />
       <FormInput label="address" name="address" type="text" defaultValue={defaultAddress} readOnly={isDemo} />
       {!isDemo && <FormCheckbox name="saveAddress" label="save address to my profile" />}
-      <SubmitBtn text="Place Your Order" className="mt-4 w-full" isSubmitting={isLoading} />
+      <SubmitBtn text="Continue to payment" className="mt-4 w-full" isSubmitting={isLoading} />
     </form>
   );
 };

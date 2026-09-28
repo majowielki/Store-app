@@ -15,12 +15,12 @@ import CheckoutForm from './CheckoutForm';
 const App = () => (
   <Routes>
     <Route path="/checkout" element={<CheckoutForm />} />
-    <Route path="/orders" element={<h1>Your Orders</h1>} />
+    <Route path="/orders/:id/pay" element={<h1>Payment</h1>} />
   </Routes>
 );
 
 describe('CheckoutForm', () => {
-  it('places the order with an idempotency key, empties the cached cart and keeps the address on the profile', async () => {
+  it('places the order with an idempotency key, empties the cached cart, keeps the address on the profile and goes to the payment', async () => {
     const requests: { key: string | null; body: CreateOrderFromCartRequest }[] = [];
     server.use(
       http.post(api('/orders/from-cart'), async ({ request }) => {
@@ -34,9 +34,9 @@ describe('CheckoutForm', () => {
     await userEvent.clear(screen.getByLabelText('address'));
     await userEvent.type(screen.getByLabelText('address'), 'New Street 5');
     await userEvent.click(screen.getByLabelText('save address to my profile'));
-    await userEvent.click(screen.getByRole('button', { name: /place your order/i }));
+    await userEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
 
-    expect(await screen.findByRole('heading', { name: 'Your Orders' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Payment' })).toBeInTheDocument();
     expect(requests).toHaveLength(1);
     expect(requests[0].key).toMatch(/^[0-9a-f-]{36}$/);
     expect(requests[0].body).toEqual({ customerName: user.userName, deliveryAddress: 'New Street 5', saveAddress: true });
@@ -49,10 +49,10 @@ describe('CheckoutForm', () => {
     server.use(http.post(api('/orders/from-cart'), () => problemResponse(409, 'Oak Table is no longer available')));
     const { store } = renderWithStore(<App />, { user, route: '/checkout' });
 
-    await userEvent.click(screen.getByRole('button', { name: /place your order/i }));
+    await userEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
 
     expect(await screen.findByText('Oak Table is no longer available')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /place your order/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continue to payment/i })).toBeInTheDocument();
     expect(store.getState().session.user?.simpleAddress).toBe(user.simpleAddress);
   });
 
@@ -69,9 +69,9 @@ describe('CheckoutForm', () => {
     await store.dispatch(cartApi.endpoints.getCart.initiate());
     await waitFor(() => expect(ordersApi.endpoints.checkDiscountCode.select({ code: 'OAK50', subtotal: 320 })(store.getState()).data).toBeDefined());
 
-    await userEvent.click(screen.getByRole('button', { name: /place your order/i }));
+    await userEvent.click(screen.getByRole('button', { name: /continue to payment/i }));
 
-    expect(await screen.findByRole('heading', { name: 'Your Orders' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Payment' })).toBeInTheDocument();
     expect(bodies[0].discountCode).toBe('OAK50');
     expect(store.getState().discountCode.code).toBeNull();
   });

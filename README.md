@@ -58,7 +58,7 @@ the UI with `npm run dev`; the details are in the same document.
 | the OpenAPI documents in `docs/api/openapi` match the code | `Scripts/Export-OpenApi.ps1 -Check` | CI |
 | UI: lint, types, unit and component tests (Vitest, Testing Library, MSW) | `npm run lint`, `npx tsc -b`, `npm test` in `UI/store-app.UI` | CI `frontend` |
 | the generated API types match the documents | `npm run api:check` | CI |
-| end to end (Playwright): guest browsing, registration with cart merge, checkout, sale prices, the admin's product management, the demo admin's read-only access | `npm run e2e` against a running stack | workflow `End-to-end` (nightly, on demand, release tags) against `docker compose` |
+| end to end (Playwright): guest browsing, registration with cart merge, checkout and card payments (a declined card, 3-D Secure), sale prices, shipping, the admin's product management, the demo admin's read-only access | `npm run e2e` against a running stack | workflow `End-to-end` (nightly, on demand, release tags) against `docker compose` |
 | the infrastructure template compiles | `az bicep build` | CI `infra` |
 | images build and carry no known high or critical vulnerability | every Dockerfile, Trivy | CI `docker` |
 | no secret in the commits | gitleaks (`.gitleaks.toml` lists the test fixtures) | CI `secrets-scan` |

@@ -13,11 +13,42 @@ export const password = 'E2e-Password-1!';
 
 export const uniqueEmail = (prefix: string) => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@e2e.local`;
 
-/** The first products the catalogue lists for a query, straight from the API. */
+/** The first products the catalogue lists for a query, straight from the API, with stock enough to buy them. */
 export const findProducts = async (request: APIRequestContext, query: Record<string, string>): Promise<Product[]> => {
   const response = await request.get(`${API}/products`, { params: query });
   expect(response.ok()).toBeTruthy();
-  return ((await response.json()) as ProductsResponse).items;
+  const products = ((await response.json()) as ProductsResponse).items;
+  await restock(request, products);
+  return products;
+};
+
+let adminToken: string | undefined;
+
+/** The true administrator's authorization, for the setup a scenario makes through the API. */
+const asTrueAdmin = async (request: APIRequestContext) => {
+  if (!adminToken) {
+    const response = await request.post(`${API}/auth/login`, { data: { email: trueAdmin.email, password: trueAdmin.password } });
+    expect(response.ok()).toBeTruthy();
+    adminToken = ((await response.json()) as { accessToken: string }).accessToken;
+  }
+  return { Authorization: `Bearer ${adminToken}` };
+};
+
+/**
+ * Every run buys pieces that stay held - paid orders are never shipped - so the products the
+ * scenarios pick run out after a few runs. The true administrator counts them back in first.
+ */
+export const restock = async (request: APIRequestContext, products: Pick<Product, 'id' | 'availableQuantity'>[]) => {
+  const low = products.filter((product) => product.availableQuantity < 20);
+  if (low.length === 0) return;
+  const headers = await asTrueAdmin(request);
+  for (const product of low) {
+    const current = await request.get(`${API}/products/admin/${product.id}`, { headers });
+    expect(current.ok()).toBeTruthy();
+    const { reservedQuantity } = (await current.json()) as { reservedQuantity: number };
+    const updated = await request.put(`${API}/products/${product.id}/stock`, { headers, data: { stockQuantity: (reservedQuantity ?? 0) + 40 } });
+    expect(updated.ok()).toBeTruthy();
+  }
 };
 
 export const register = async (page: Page, email: string) => {
@@ -65,13 +96,35 @@ export const closeBag = async (page: Page) => {
   await expect(bag).toBeHidden();
 };
 
-/** Places the order from the checkout page and lands on the orders list. */
-export const checkout = async (page: Page, address = 'E2E Street 1') => {
+/** Places the order from the checkout page and lands on its payment page; returns the order id. */
+export const placeOrder = async (page: Page, address = 'E2E Street 1'): Promise<number> => {
   await page.goto('/checkout');
   await page.getByLabel('address', { exact: true }).fill(address);
-  await page.getByRole('button', { name: 'Place Your Order' }).click();
+  await page.getByRole('button', { name: 'Continue to payment' }).click();
   await expectToast(page, 'Order placed');
-  await expect(page).toHaveURL(/\/orders$/);
+  await expect(page).toHaveURL(/\/orders\/\d+\/pay$/);
+  return Number(page.url().split('/').at(-2));
+};
+
+/** On the payment page: fills the form with a test card (its "Use" button) and presses Pay. */
+export const payWith = async (page: Page, card: string) => {
+  // The form appears once the pieces are reserved, a second or two after the order
+  await page.getByRole('button', { name: `Use test card ${card}` }).click();
+  await page.getByRole('button', { name: /^Pay \$/ }).click();
+};
+
+/** Pays with a card that goes through and waits for the shop to hear of it (a webhook away). */
+export const pay = async (page: Page, card = '4242 4242 4242 4242') => {
+  await payWith(page, card);
+  await expect(page.getByText('Payment received', { exact: true })).toBeVisible({ timeout: 20_000 });
+};
+
+/** The whole purchase: places the order, pays it with 4242 and lands on the orders list; returns the order id. */
+export const checkout = async (page: Page, address = 'E2E Street 1'): Promise<number> => {
+  const orderId = await placeOrder(page, address);
+  await pay(page);
+  await page.goto('/orders');
+  return orderId;
 };
 
 /** The toast text as shown (the aria-live announcement repeats it with a prefix). */

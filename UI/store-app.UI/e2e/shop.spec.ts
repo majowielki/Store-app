@@ -104,7 +104,9 @@ test.describe('signing in again', () => {
   });
 });
 
-test('13. a quick view puts a product in the bag without leaving the catalogue', async ({ page }) => {
+test('13. a quick view puts a product in the bag without leaving the catalogue', async ({ page, request }) => {
+  // The first cards of the catalogue, in stock
+  await findProducts(request, { pageSize: '3' });
   await page.goto('/products');
   const quickView = page.getByRole('button', { name: /^Quick view: / }).first();
   const title = (await quickView.getAttribute('aria-label'))!.replace('Quick view: ', '');

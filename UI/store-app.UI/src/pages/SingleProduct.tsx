@@ -159,7 +159,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
           <div className="mt-8 grid animate-fade-up gap-8 border-t pt-8 [animation-delay:240ms]">
             <SelectProductColor colors={colors} productColor={productColor} setProductColor={setProductColor} />
             <div>
-              <h4 className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">Quantity</h4>
+              <h4 className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">{soldOut ? 'Back soon' : 'Quantity'}</h4>
               {soldOut ? (
                 <div className="mt-3 flex items-end gap-3">
                   <NotifyWhenBack productId={product.id} className="flex-1" />
@@ -179,7 +179,8 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
                 </div>
               )}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <DeliveryEstimate />
+                {/* No delivery date for a piece that cannot be ordered */}
+                {soldOut ? <span /> : <DeliveryEstimate />}
                 <CompareToggle product={product} className="-mr-2.5" />
               </div>
             </div>

@@ -27,6 +27,9 @@ class ResizeObserverStub {
 }
 window.ResizeObserver = ResizeObserverStub;
 
+// jsdom has no layout, so it cannot scroll; pages that scroll to the top on a new step do nothing here
+window.scrollTo = () => {};
+
 // Every request the app makes is answered by MSW; an unhandled one fails the test
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
