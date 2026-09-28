@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { ordersApi, useGetOrderQuery } from '@/api/orders';
-import { isApiError } from '@/api/problem';
+import { HttpStatus, isApiError } from '@/api/problem';
 import type { Order } from '@/api/types';
 import CheckoutSteps from '@/components/CheckoutSteps';
 import Loading from '@/components/Loading';
@@ -14,6 +14,9 @@ import { formatAsDollars, formatDayRange } from '@/utils';
 
 /** How long confirming may take before the page says it is taking longer than usual. */
 const SLOW_AFTER_MS = 20_000;
+
+/** How often the order is asked again while something is on its way. */
+const POLL_INTERVAL_MS = 1_000;
 
 const cancellationText: Record<string, string> = {
   'out-of-stock': 'Part of the order had sold out by the time it reached our warehouse, so nothing was charged.',
@@ -117,7 +120,7 @@ const PayOrder = () => {
   // Asked again every second while something is on its way: the reservation, the payment, the cancellation after the deadline
   const { data: seen } = ordersApi.endpoints.getOrder.useQueryState(orderId);
   const waiting = !seen || seen.status === 'Placed' || (seen.status === 'AwaitingPayment' && (confirming || expired));
-  const { data: order, isLoading, error, refetch } = useGetOrderQuery(orderId, { pollingInterval: waiting ? 1000 : 0, refetchOnMountOrArgChange: true });
+  const { data: order, isLoading, error, refetch } = useGetOrderQuery(orderId, { pollingInterval: waiting ? POLL_INTERVAL_MS : 0, refetchOnMountOrArgChange: true });
 
   useEffect(() => {
     if (!confirming) return;
@@ -139,7 +142,7 @@ const PayOrder = () => {
   if (!order) {
     return (
       <div className="grid place-items-center py-24 text-center">
-        <h1 className="display text-5xl">{isApiError(error) && error.status === 404 ? 'Order not found' : 'Order unavailable'}</h1>
+        <h1 className="display text-5xl">{isApiError(error) && error.status === HttpStatus.NotFound ? 'Order not found' : 'Order unavailable'}</h1>
         <Button asChild variant="outline" className="mt-8">
           <Link to="/orders">Your orders</Link>
         </Button>

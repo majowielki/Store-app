@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useGetProductQuery, useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
-import { isApiError } from '@/api/problem';
+import { HttpStatus, isApiError } from '@/api/problem';
 import { Loading, ProductCard, SelectProductAmount, SelectProductColor } from '@/components';
 import Reveal from '@/components/Reveal';
 import CompareToggle from '@/components/CompareToggle';
@@ -31,7 +31,7 @@ const SingleProduct = () => {
 
   if (isLoading) return <Loading />;
   if (!product) {
-    const notFound = isApiError(error) && error.status === 404;
+    const notFound = isApiError(error) && error.status === HttpStatus.NotFound;
     return (
       <div className="grid place-items-center py-24 text-center">
         <p className="eyebrow">{notFound ? '404' : 'Unavailable'}</p>

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CreditCard, Lock } from 'lucide-react';
-import { useAuthenticatePaymentMutation, useConfirmPaymentMutation, useStartPaymentMutation } from '@/api/payments';
-import { errorMessage, isApiError } from '@/api/problem';
+import { useAuthenticatePaymentMutation, useConfirmPaymentMutation, useGetTestCardsQuery, useStartPaymentMutation } from '@/api/payments';
+import { errorMessage, HttpStatus, isApiError } from '@/api/problem';
 import type { Order, Payment } from '@/api/types';
 import { fieldLabelClass } from '@/components/FormInput';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatAsDollars } from '@/utils';
-import { declineMessages, formatCardNumber, formatExpiry, parseExpiry, sampleExpiry, testCards } from './cards';
+import {
+  chargeOutcomes,
+  CVC_MAX_DIGITS,
+  declineMessages,
+  formatCardNumber,
+  formatCvc,
+  formatExpiry,
+  parseExpiry,
+  SAMPLE_CVC,
+  sampleExpiry,
+} from './cards';
 import SecureCheckDialog from './SecureCheckDialog';
 
 interface CardFormProps {
@@ -28,6 +38,7 @@ interface CardFormProps {
  */
 const CardForm = ({ order, onPaid, onClosed }: CardFormProps) => {
   const [startPayment, start] = useStartPaymentMutation();
+  const { data: testCards = [] } = useGetTestCardsQuery();
   const [confirmPayment, confirm] = useConfirmPaymentMutation();
   const [authenticatePayment, authentication] = useAuthenticatePaymentMutation();
   const [cardNumber, setCardNumber] = useState('');
@@ -51,7 +62,7 @@ const CardForm = ({ order, onPaid, onClosed }: CardFormProps) => {
 
   const fail = (error: unknown) => {
     setProblem(errorMessage(error));
-    if (isApiError(error) && error.status === 409) onClosed();
+    if (isApiError(error) && error.status === HttpStatus.Conflict) onClosed();
   };
 
   const pay = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -85,7 +96,7 @@ const CardForm = ({ order, onPaid, onClosed }: CardFormProps) => {
   const fillTestCard = (number: string) => {
     setCardNumber(number);
     setExpiry(sampleExpiry());
-    setCvc('123');
+    setCvc(SAMPLE_CVC);
     setProblem(null);
   };
 
@@ -155,10 +166,10 @@ const CardForm = ({ order, onPaid, onClosed }: CardFormProps) => {
               id="card-cvc"
               inputMode="numeric"
               autoComplete="off"
-              placeholder="123"
-              maxLength={4}
+              placeholder={SAMPLE_CVC}
+              maxLength={CVC_MAX_DIGITS}
               value={cvc}
-              onChange={(e) => setCvc(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => setCvc(formatCvc(e.target.value))}
               required
               className="h-12 min-w-0 rounded-full px-5 tabular-nums"
             />
@@ -184,7 +195,7 @@ const CardForm = ({ order, onPaid, onClosed }: CardFormProps) => {
           {testCards.map((card) => (
             <li key={card.number} className="flex items-center justify-between gap-3 text-sm">
               <span>
-                <span className="font-medium tabular-nums">{card.number}</span> <span className="text-muted-foreground">- {card.outcome}</span>
+                <span className="font-medium tabular-nums">{card.number}</span> <span className="text-muted-foreground">- {chargeOutcomes[card.outcome]}</span>
               </span>
               <Button type="button" size="sm" variant="outline" aria-label={`Use test card ${card.number}`} onClick={() => fillTestCard(card.number)}>
                 Use

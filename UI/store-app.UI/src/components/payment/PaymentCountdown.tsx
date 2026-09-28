@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const SECOND_MS = 1000;
+const SECONDS_PER_MINUTE = 60;
+
 const pad = (value: number) => String(value).padStart(2, '0');
 
 /**
@@ -13,11 +16,11 @@ const PaymentCountdown = ({ dueAt, onExpired, className }: { dueAt: string; onEx
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => setNow(Date.now()), SECOND_MS);
     return () => window.clearInterval(timer);
   }, []);
 
-  const left = Math.max(0, Math.ceil((due - now) / 1000));
+  const left = Math.max(0, Math.ceil((due - now) / SECOND_MS));
   const expired = left === 0;
 
   useEffect(() => {
@@ -31,7 +34,7 @@ const PaymentCountdown = ({ dueAt, onExpired, className }: { dueAt: string; onEx
         'The time to pay has run out.'
       ) : (
         <span>
-          Your pieces are held for <span className="font-medium tabular-nums text-foreground">{pad(Math.floor(left / 60))}:{pad(left % 60)}</span>
+          Your pieces are held for <span className="font-medium tabular-nums text-foreground">{pad(Math.floor(left / SECONDS_PER_MINUTE))}:{pad(left % SECONDS_PER_MINUTE)}</span>
         </span>
       )}
     </p>

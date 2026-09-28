@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatRating } from './rating';
+import { formatRating, RATING_MAX, RATING_MIN, ratingScale, starsLabel } from './rating';
 
 const sizes = {
   xs: 'h-3 w-3',
@@ -18,8 +18,8 @@ interface StarsProps {
 
 /** Five stars filled up to the rating (a fraction fills part of a star), read out as "Rated 4.5 out of 5". */
 const Stars = ({ rating, size = 'sm', className }: StarsProps) => (
-  <span role="img" aria-label={`Rated ${formatRating(rating)} out of 5`} className={cn('inline-flex items-center gap-0.5', className)}>
-    {[1, 2, 3, 4, 5].map((position) => {
+  <span role="img" aria-label={`Rated ${formatRating(rating)} out of ${RATING_MAX}`} className={cn('inline-flex items-center gap-0.5', className)}>
+    {ratingScale.map((position) => {
       const fill = Math.min(Math.max(rating - (position - 1), 0), 1);
       return (
         <span key={position} className="relative inline-block">
@@ -47,6 +47,7 @@ export const RatingLine = ({ average, count, className }: { average: number; cou
   );
 };
 
+/** What each number of stars says, from one up. */
 const labels = ['Poor', 'Fair', 'Good', 'Very good', 'Excellent'];
 
 interface StarsInputProps {
@@ -55,7 +56,7 @@ interface StarsInputProps {
   name?: string;
 }
 
-/** Picking 1 to 5 stars: a radio group, so arrows and the screen reader work as with any other. */
+/** Picking the stars: a radio group, so arrows and the screen reader work as with any other. */
 export const StarsInput = ({ value, onChange, name = 'rating' }: StarsInputProps) => {
   const [hovered, setHovered] = useState(0);
   const shown = hovered || value;
@@ -65,7 +66,7 @@ export const StarsInput = ({ value, onChange, name = 'rating' }: StarsInputProps
       <legend className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">Your rating</legend>
       <div className="flex items-center gap-3">
         <div className="flex" onMouseLeave={() => setHovered(0)}>
-          {[1, 2, 3, 4, 5].map((stars) => (
+          {ratingScale.map((stars) => (
             <label key={stars} className="relative cursor-pointer p-0.5" onMouseEnter={() => setHovered(stars)}>
               <input
                 type="radio"
@@ -74,7 +75,7 @@ export const StarsInput = ({ value, onChange, name = 'rating' }: StarsInputProps
                 checked={value === stars}
                 onChange={() => onChange(stars)}
                 className="peer absolute inset-0 z-10 m-0 cursor-pointer appearance-none opacity-0"
-                aria-label={stars === 1 ? '1 star' : `${stars} stars`}
+                aria-label={starsLabel(stars)}
               />
               <Star
                 aria-hidden
@@ -89,7 +90,7 @@ export const StarsInput = ({ value, onChange, name = 'rating' }: StarsInputProps
           ))}
         </div>
         <span className="text-sm text-muted-foreground" aria-live="polite">
-          {shown ? labels[shown - 1] : 'Choose 1 to 5 stars'}
+          {shown ? labels[shown - RATING_MIN] : `Choose ${RATING_MIN} to ${RATING_MAX} stars`}
         </span>
       </div>
     </fieldset>

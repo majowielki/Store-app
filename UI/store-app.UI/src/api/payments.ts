@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { CardPayload, OrderPayment, Payment } from './types';
+import type { CardPayload, OrderPayment, Payment, TestCard } from './types';
 
 /**
  * Paying an order: the order service opens its payment (the same one on every call), then the
@@ -8,6 +8,10 @@ import type { CardPayload, OrderPayment, Payment } from './types';
  */
 export const paymentsApi = api.injectEndpoints({
   endpoints: (build) => ({
+    /** The cards the payment service takes in test mode, listed next to the card form. */
+    getTestCards: build.query<TestCard[], void>({
+      query: () => '/payments/test-cards',
+    }),
     startPayment: build.mutation<OrderPayment, number>({
       query: (orderId) => ({ url: `/orders/${orderId}/payment`, method: 'POST' }),
       extraOptions: { silent: true },
@@ -23,4 +27,4 @@ export const paymentsApi = api.injectEndpoints({
   }),
 });
 
-export const { useStartPaymentMutation, useConfirmPaymentMutation, useAuthenticatePaymentMutation } = paymentsApi;
+export const { useGetTestCardsQuery, useStartPaymentMutation, useConfirmPaymentMutation, useAuthenticatePaymentMutation } = paymentsApi;

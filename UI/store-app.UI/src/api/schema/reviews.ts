@@ -15,11 +15,8 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /**
-                     * @description queue (default: waiting for a decision - new or reported), pending, reported, published,
-                     *     rejected or all.
-                     */
-                    status?: string;
+                    /** @description Which reviews: the queue (waiting for a decision - new or reported) unless another set is asked for. */
+                    status?: components["schemas"]["ReviewQueueFilter"];
                     productId?: number;
                     page?: number;
                     pageSize?: number;
@@ -151,8 +148,8 @@ export interface paths {
                     rating?: number;
                     /** @description true: only reviews by customers who bought the product. */
                     verified?: boolean;
-                    /** @description newest (default), oldest, highest or lowest. */
-                    sort?: string;
+                    /** @description Newest first unless another order is asked for. */
+                    sort?: components["schemas"]["ReviewSort"];
                     page?: number;
                     pageSize?: number;
                 };
@@ -618,8 +615,7 @@ export interface components {
             /** Format: int32 */
             productId: number;
             canReview: boolean;
-            /** @description Why not: notPurchased, alreadyReviewed, dailyLimit or signInAgain (a demo session from an old token); null when they can. */
-            reason?: string | null;
+            reason?: components["schemas"]["ReviewBlockReason"];
             review?: components["schemas"]["ReviewResponse"];
         };
         /** @description Body of POST /api/v1/reviews/{id}/report. */
@@ -627,6 +623,16 @@ export interface components {
             /** @description What is wrong with it, optional, up to 300 characters. */
             reason?: string | null;
         };
+        /**
+         * @description Why a signed-in customer may not review a product.
+         * @enum {string}
+         */
+        ReviewBlockReason: "notPurchased" | "alreadyReviewed" | "dailyLimit" | "signInAgain";
+        /**
+         * @description The sets of reviews the moderation queue shows.
+         * @enum {string}
+         */
+        ReviewQueueFilter: "queue" | "pending" | "reported" | "published" | "rejected" | "all";
         /** @description A review as the shop prints it. */
         ReviewResponse: {
             /** Format: uuid */
@@ -665,6 +671,11 @@ export interface components {
             readonly hasNextPage: boolean;
             readonly hasPreviousPage: boolean;
         };
+        /**
+         * @description The orders the published reviews of a product are listed in.
+         * @enum {string}
+         */
+        ReviewSort: "newest" | "oldest" | "highest" | "lowest";
         /**
          * @description Stored by name; tells seeded reviews from customers' ones in the admin panel.
          * @enum {string}

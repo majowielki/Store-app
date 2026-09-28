@@ -81,6 +81,7 @@ describe('PayOrder', () => {
     renderPage();
 
     expect(await screen.findByRole('timer')).toHaveTextContent(/Your pieces are held for 1[45]:\d\d/);
+    await screen.findByRole('form', { name: 'Card details' });
     await fillCard('4242424242424242');
 
     expect(await screen.findByRole('heading', { name: 'Confirming your payment' })).toBeInTheDocument();

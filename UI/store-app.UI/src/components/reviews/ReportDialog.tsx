@@ -7,8 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-const REASON_MAX = 300;
+import { REVIEW_REASON_MAX } from './rating';
 
 interface ReportDialogProps {
   reviewId: string | null;
@@ -56,7 +55,7 @@ const ReportDialog = ({ reviewId, onClose }: ReportDialogProps) => {
           <form onSubmit={submit} className="mt-5 grid gap-4" aria-label="Report this review">
             <div className="grid gap-2">
               <Label htmlFor="report-reason">What is wrong with it? (optional)</Label>
-              <Textarea id="report-reason" value={reason} maxLength={REASON_MAX} rows={3} onChange={(e) => setReason(e.target.value)} />
+              <Textarea id="report-reason" value={reason} maxLength={REVIEW_REASON_MAX} rows={3} onChange={(e) => setReason(e.target.value)} />
             </div>
             {error && (
               <p role="alert" className="text-sm text-destructive">

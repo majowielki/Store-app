@@ -82,6 +82,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/test-cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The cards the payment page may use and what each one does; empty where real cards are charged. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TestCard"][];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/{id}": {
         parameters: {
             query?: never;
@@ -286,6 +345,11 @@ export interface components {
             approve: boolean;
         };
         /**
+         * @description What the card network answers to a charge; the API writes it in camelCase.
+         * @enum {string}
+         */
+        ChargeResult: "approved" | "authenticationRequired" | "declined" | "insufficientFunds";
+        /**
          * @description Body of POST /api/v1/payments/{id}/confirm: the card, typed by the customer. Only the test
          *     cards are taken (see `TestCards`); rules: `ConfirmPaymentRequestValidator`.
          */
@@ -306,8 +370,8 @@ export interface components {
         };
         /**
          * @description Body of `POST /api/v1/payments/internal`, with which the order service opens the payment
-         *     of an order (an internal call, with the key "order-{id}" in the Idempotency-Key header). One
-         *     payment per order: asking again returns the payment made the first time.
+         *     of an order (an internal call, with the key "order-{id}" - `IdempotencyKeyFor` - in the
+         *     Idempotency-Key header). One payment per order: asking again returns the payment made the first time.
          */
         CreatePaymentRequest: {
             /**
@@ -363,8 +427,7 @@ export interface components {
             amount: number;
             /** @description ISO code, lowercase */
             currency: string;
-            /** @description requiresPaymentMethod, requiresAction, succeeded, cancelled or refunded */
-            status: string;
+            status: components["schemas"]["PaymentStatus"];
             /**
              * Format: date-time
              * @description When it was opened (UTC)
@@ -372,7 +435,7 @@ export interface components {
             createdAt: string;
         };
         /**
-         * @description Stored by name; the API writes them in camelCase.
+         * @description Where a payment stands; stored by name, written in camelCase by the APIs.
          * @enum {string}
          */
         PaymentStatus: "requiresPaymentMethod" | "requiresAction" | "succeeded" | "cancelled" | "refunded";
@@ -395,6 +458,12 @@ export interface components {
             } | null;
         } & {
             [key: string]: unknown;
+        };
+        /** @description A card number the provider takes in test mode, and what charging it does. */
+        TestCard: {
+            /** @description The number in groups of four, as printed on a card */
+            number: string;
+            outcome: components["schemas"]["ChargeResult"];
         };
     };
     responses: never;

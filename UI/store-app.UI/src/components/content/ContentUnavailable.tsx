@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { isApiError } from '@/api/problem';
+import { HttpStatus, isApiError } from '@/api/problem';
 import { Button } from '@/components/ui/button';
 
 /** What a content page shows when its entry cannot be read: 404 for an unknown slug. */
 const ContentUnavailable = ({ error, what, back }: { error: unknown; what: string; back: { to: string; label: string } }) => {
-  const notFound = isApiError(error) && error.status === 404;
+  const notFound = isApiError(error) && error.status === HttpStatus.NotFound;
   return (
     <div className="grid place-items-center py-24 text-center">
       <p className="eyebrow">{notFound ? '404' : 'Unavailable'}</p>

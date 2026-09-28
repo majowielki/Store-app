@@ -1054,7 +1054,7 @@ export interface components {
             email: string;
         };
         /**
-         * @description How a product's availability is shown to customers.
+         * @description How a product's availability is shown to customers; the API writes it in camelCase.
          * @enum {string}
          */
         StockAvailability: "inStock" | "lowStock" | "outOfStock";

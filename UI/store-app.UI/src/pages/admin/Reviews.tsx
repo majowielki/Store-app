@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Check, Flag, X } from 'lucide-react';
 import { useGetAdminReviewsQuery, useModerateReviewsMutation } from '@/api/reviews';
-import type { AdminReview } from '@/api/types';
+import type { AdminReview, ReviewQueueFilter } from '@/api/types';
 import { Roles } from '@/features/session/roles';
 import { useAppSelector } from '@/hooks';
 import { useProductsById } from '@/hooks/use-products-by-id';
@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDateTime } from '@/utils';
 import PageNumbers from '@/components/PageNumbers';
+import { REVIEW_REASON_MAX } from '@/components/reviews/rating';
 import Stars from '@/components/reviews/Stars';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,13 +22,13 @@ import { Textarea } from '@/components/ui/textarea';
 
 const PAGE_SIZE = 20;
 
-const tabs = [
+const tabs: { value: ReviewQueueFilter; label: string }[] = [
   { value: 'queue', label: 'To moderate' },
   { value: 'reported', label: 'Reported' },
   { value: 'published', label: 'Published' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'all', label: 'All' },
-] as const;
+];
 
 /** Reasons the administrator picks most often; the author of the review sees the one sent. */
 const quickReasons = ['Not about the product', 'Offensive language', 'Advertising or spam', 'Personal data'];
@@ -63,7 +64,7 @@ const RejectDialog = ({ count, busy, onReject, onCancel }: { count: number; busy
               ))}
             </div>
             <Label htmlFor="reject-reason">Reason</Label>
-            <Textarea id="reject-reason" value={reason} maxLength={300} rows={3} onChange={(e) => setReason(e.target.value)} required />
+            <Textarea id="reject-reason" value={reason} maxLength={REVIEW_REASON_MAX} rows={3} onChange={(e) => setReason(e.target.value)} required />
             <div className="mt-2 flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
                 Cancel
@@ -82,7 +83,7 @@ const RejectDialog = ({ count, busy, onReject, onCancel }: { count: number; busy
 /** The moderation queue of the reviews (ADR 012): only the true administrator decides, the demo one looks. */
 const Reviews = () => {
   const isDemoAdmin = useAppSelector((state) => state.session.user?.roles.includes(Roles.DemoAdmin) ?? false);
-  const [status, setStatus] = useState<(typeof tabs)[number]['value']>('queue');
+  const [status, setStatus] = useState<ReviewQueueFilter>('queue');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const [rejecting, setRejecting] = useState<string[]>([]);
@@ -95,7 +96,7 @@ const Reviews = () => {
   const titles = new Map(products.map((product) => [product.id, product.title]));
   const allSelected = items.length > 0 && items.every((review) => selected.includes(review.id));
 
-  const show = (value: (typeof tabs)[number]['value']) => {
+  const show = (value: ReviewQueueFilter) => {
     setStatus(value);
     setPage(1);
     setSelected([]);

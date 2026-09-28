@@ -9,12 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { REVIEW_BODY_MAX, REVIEW_BODY_MIN, REVIEW_TITLE_MAX } from './rating';
 import { StarsInput } from './Stars';
-
-// The limits the review service checks (ADR 012); the form says so before it is sent
-export const BODY_MIN = 20;
-export const BODY_MAX = 1000;
-export const TITLE_MAX = 80;
 
 interface ReviewDialogProps {
   open: boolean;
@@ -53,8 +49,8 @@ const ReviewDialog = ({ open, onOpenChange, productId, productTitle, previous }:
       setError('Choose how many stars you give it.');
       return;
     }
-    if (length < BODY_MIN) {
-      setError(`Tell us a little more - a review has at least ${BODY_MIN} characters.`);
+    if (length < REVIEW_BODY_MIN) {
+      setError(`Tell us a little more - a review has at least ${REVIEW_BODY_MIN} characters.`);
       return;
     }
     setError(null);
@@ -100,21 +96,21 @@ const ReviewDialog = ({ open, onOpenChange, productId, productTitle, previous }:
               <StarsInput value={rating} onChange={setRating} />
               <div className="grid gap-2">
                 <Label htmlFor="review-title">Title (optional)</Label>
-                <Input id="review-title" value={title} maxLength={TITLE_MAX} onChange={(e) => setTitle(e.target.value)} placeholder="Solid and warm" />
+                <Input id="review-title" value={title} maxLength={REVIEW_TITLE_MAX} onChange={(e) => setTitle(e.target.value)} placeholder="Solid and warm" />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="review-body">Review</Label>
                 <Textarea
                   id="review-body"
                   value={body}
-                  maxLength={BODY_MAX}
+                  maxLength={REVIEW_BODY_MAX}
                   rows={6}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="What do you like about it? How is it holding up?"
                   aria-describedby="review-body-count"
                 />
                 <p id="review-body-count" className="text-right text-xs tabular-nums text-muted-foreground">
-                  {length < BODY_MIN ? `${BODY_MIN - length} more characters needed` : `${length} / ${BODY_MAX}`}
+                  {length < REVIEW_BODY_MIN ? `${REVIEW_BODY_MIN - length} more characters needed` : `${length} / ${REVIEW_BODY_MAX}`}
                 </p>
               </div>
               {error && (

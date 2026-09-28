@@ -1,11 +1,12 @@
 import { useRouteError, Link, isRouteErrorResponse } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { HttpStatus } from "@/api/problem";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 
 const Error = () => {
   const error = useRouteError();
-  const notFound = isRouteErrorResponse(error) && error.status === 404;
+  const notFound = isRouteErrorResponse(error) && error.status === HttpStatus.NotFound;
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden px-6">

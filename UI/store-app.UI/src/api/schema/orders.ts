@@ -1008,8 +1008,8 @@ export interface paths {
         put?: never;
         /**
          * A payment event, signed in the Store-Signature header (HMAC-SHA256 over "t.body"). A wrong,
-         *     missing or stale (more than 5 minutes) signature is 401; an event already processed is
-         *     acknowledged again and changes nothing.
+         *     missing or stale (older than PaymentWebhooks:ToleranceSeconds) signature is 401; an event
+         *     already processed is acknowledged again and changes nothing.
          */
         post: {
             parameters: {
@@ -1173,8 +1173,7 @@ export interface components {
             amount: number;
             /** @description ISO code, lowercase. */
             currency: string;
-            /** @description The payment's status at the payment service: requiresPaymentMethod, requiresAction, succeeded... */
-            status: string;
+            status: components["schemas"]["PaymentStatus"];
             /**
              * Format: date-time
              * @description When the order is cancelled if it is still unpaid.
@@ -1266,6 +1265,11 @@ export interface components {
             /** Format: date-time */
             changedAt: string;
         };
+        /**
+         * @description Where a payment stands; stored by name, written in camelCase by the APIs.
+         * @enum {string}
+         */
+        PaymentStatus: "requiresPaymentMethod" | "requiresAction" | "succeeded" | "cancelled" | "refunded";
         /** @description The payment an event is about. */
         PaymentWebhookData: {
             /**

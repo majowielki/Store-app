@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BadgeCheck, Flag, PenLine, X } from 'lucide-react';
 import { useGetMyProductReviewQuery, useGetReviewSummaryQuery, useGetReviewsQuery } from '@/api/reviews';
-import type { MyProductReview, Review, ReviewSummary } from '@/api/types';
+import type { MyProductReview, Review, ReviewBlockReason, ReviewSort, ReviewSummary } from '@/api/types';
 import { useAppSelector } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/utils';
@@ -12,19 +12,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import ReportDialog from './ReportDialog';
 import ReviewDialog from './ReviewDialog';
-import { formatRating } from './rating';
+import { formatRating, ratingScale, starsLabel } from './rating';
 import Stars from './Stars';
 
 const PAGE = 5;
 
-const sorts = [
+const sorts: { value: ReviewSort; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'highest', label: 'Highest rated' },
   { value: 'lowest', label: 'Lowest rated' },
   { value: 'oldest', label: 'Oldest' },
-] as const;
+];
 
-const starsLabel = (stars: number) => (stars === 1 ? '1 star' : `${stars} stars`);
+/** The bars of the summary, the most stars first. */
+const barsFromTop = [...ratingScale].reverse();
 
 const pill = 'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm transition-colors';
 
@@ -73,7 +74,7 @@ const Summary = ({ summary, rating, onRating }: { summary: ReviewSummary; rating
       Based on {summary.reviewCount} {summary.reviewCount === 1 ? 'review' : 'reviews'}
     </p>
     <ul className="mt-6 grid gap-1.5">
-      {[5, 4, 3, 2, 1].map((stars) => {
+      {barsFromTop.map((stars) => {
         const count = summary.distribution[String(stars)] ?? 0;
         const share = summary.reviewCount > 0 ? (count / summary.reviewCount) * 100 : 0;
         const active = rating === stars;
@@ -103,10 +104,10 @@ const Summary = ({ summary, rating, onRating }: { summary: ReviewSummary; rating
   </div>
 );
 
-const reasons: Record<string, string> = {
+const reasons: Record<ReviewBlockReason, string> = {
   notPurchased: 'Reviews come from customers who bought the piece - yours is welcome once it is yours.',
   alreadyReviewed: 'Thank you for reviewing this piece.',
-  dailyLimit: 'You have written three reviews today - you can review this one tomorrow.',
+  dailyLimit: 'You have written as many reviews as a day allows - you can review this one tomorrow.',
   signInAgain: 'Sign in again to write a review.',
 };
 
@@ -131,7 +132,7 @@ const WritePrompt = ({ mine, signedIn, onWrite }: { mine?: MyProductReview; sign
       </Button>
     );
   }
-  return <p className="rounded-2xl bg-secondary/60 p-5 text-sm">{reasons[mine.reason ?? ''] ?? 'You cannot review this piece right now.'}</p>;
+  return <p className="rounded-2xl bg-secondary/60 p-5 text-sm">{mine.reason ? reasons[mine.reason] : 'You cannot review this piece right now.'}</p>;
 };
 
 /** The visitor's own review while others do not see it: waiting, not published, or hidden after a report. */
@@ -161,7 +162,7 @@ const ProductReviews = ({ productId, productTitle }: { productId: number; produc
   const user = useAppSelector((state) => state.session.user);
   const [rating, setRating] = useState<number | undefined>();
   const [verified, setVerified] = useState(false);
-  const [sort, setSort] = useState<(typeof sorts)[number]['value']>('newest');
+  const [sort, setSort] = useState<ReviewSort>('newest');
   const [shown, setShown] = useState(PAGE);
   const [writing, setWriting] = useState(false);
   const [reporting, setReporting] = useState<string | null>(null);

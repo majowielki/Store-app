@@ -14,6 +14,7 @@ import type {
   Review,
   ReviewSummary,
   AdminReview,
+  TestCard,
   UserResponse,
 } from '@/api/types';
 
@@ -301,3 +302,11 @@ export const adminReview = (overrides: Partial<AdminReview> = {}): AdminReview =
   moderatedBy: null,
   ...overrides,
 });
+
+/** The cards the payment service takes in test mode, as it lists them. */
+export const testCards: TestCard[] = [
+  { number: '4242 4242 4242 4242', outcome: 'approved' },
+  { number: '4000 0000 0000 3220', outcome: 'authenticationRequired' },
+  { number: '4000 0000 0000 9995', outcome: 'insufficientFunds' },
+  { number: '4000 0000 0000 0002', outcome: 'declined' },
+];

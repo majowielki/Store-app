@@ -75,6 +75,9 @@ export type OrderPayment = Orders['schemas']['OrderPaymentResponse'];
 export type Payment = Payments['schemas']['PaymentResponse'];
 export type PaymentStatus = Payments['schemas']['PaymentStatus'];
 export type CardPayload = Payments['schemas']['ConfirmPaymentRequest'];
+/** A card the payment page may use in test mode, and what charging it does. */
+export type TestCard = Payments['schemas']['TestCard'];
+export type ChargeResult = Payments['schemas']['ChargeResult'];
 
 // Content: makers, collections, journal articles and lookbooks
 export type Maker = Content['schemas']['MakerResponse'];
@@ -95,6 +98,11 @@ export type ReviewSummary = Reviews['schemas']['ReviewSummaryResponse'];
 export type MyProductReview = Reviews['schemas']['MyProductReviewResponse'];
 export type ReviewPayload = Reviews['schemas']['CreateReviewRequest'];
 export type ReviewQuery = NonNullable<ReviewPaths['/api/v1/reviews']['get']['parameters']['query']>;
+export type ReviewSort = Reviews['schemas']['ReviewSort'];
+/** Why a signed-in customer may not review a product. */
+export type ReviewBlockReason = Reviews['schemas']['ReviewBlockReason'];
+/** The sets of reviews the moderation queue shows. */
+export type ReviewQueueFilter = Reviews['schemas']['ReviewQueueFilter'];
 export type AdminReview = Reviews['schemas']['AdminReviewResponse'];
 export type AdminReviewsResponse = Reviews['schemas']['AdminReviewResponsePagedResponse'];
 export type AdminReviewQuery = NonNullable<ReviewPaths['/api/v1/reviews/admin']['get']['parameters']['query']>;

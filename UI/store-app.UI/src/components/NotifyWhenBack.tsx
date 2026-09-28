@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { BellRing, Check } from 'lucide-react';
 import { useNotifyWhenBackMutation } from '@/api/catalog';
-import { errorMessage, isApiError } from '@/api/problem';
+import { errorMessage, HttpStatus, isApiError } from '@/api/problem';
 import { useAppSelector } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+
+/** The longest address the catalogue keeps for an alert. */
+const EMAIL_MAX_LENGTH = 256;
 
 /**
  * In place of "Add to bag" on a sold-out product: an e-mail address to write to once the
@@ -25,7 +28,7 @@ const NotifyWhenBack = ({ productId, className }: { productId: number; className
       await notifyWhenBack({ id: productId, email: email.trim() }).unwrap();
       setDone(email.trim());
     } catch (failure) {
-      setError(isApiError(failure) && failure.status === 409 ? 'It is back in stock - reload the page to add it to your bag.' : errorMessage(failure));
+      setError(isApiError(failure) && failure.status === HttpStatus.Conflict ? 'It is back in stock - reload the page to add it to your bag.' : errorMessage(failure));
     }
   };
 
@@ -45,7 +48,7 @@ const NotifyWhenBack = ({ productId, className }: { productId: number; className
         <Input
           type="email"
           required
-          maxLength={256}
+          maxLength={EMAIL_MAX_LENGTH}
           aria-label="E-mail address"
           placeholder="you@example.com"
           value={email}

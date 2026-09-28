@@ -15,6 +15,15 @@ export interface ApiError {
   sessionEnded?: boolean;
 }
 
+/** The HTTP statuses the app reacts to by name. */
+export const HttpStatus = {
+  Unauthorized: 401,
+  Forbidden: 403,
+  NotFound: 404,
+  Conflict: 409,
+  TooManyRequests: 429,
+} as const;
+
 export const isApiError = (error: unknown): error is ApiError =>
   typeof error === 'object' && error !== null && 'status' in error && 'message' in error;
 
@@ -26,10 +35,10 @@ const byStatus: Record<string, string> = {
   FETCH_ERROR: 'The server could not be reached. Please try again.',
   TIMEOUT_ERROR: 'The server took too long to answer. Please try again.',
   PARSING_ERROR: 'The server sent an answer this app could not read.',
-  401: 'Please sign in to continue.',
-  403: 'You are not allowed to do this.',
-  404: 'Not found.',
-  429: 'Too many requests. Please wait a moment and try again.',
+  [HttpStatus.Unauthorized]: 'Please sign in to continue.',
+  [HttpStatus.Forbidden]: 'You are not allowed to do this.',
+  [HttpStatus.NotFound]: 'Not found.',
+  [HttpStatus.TooManyRequests]: 'Too many requests. Please wait a moment and try again.',
 };
 
 const fallback = 'Something went wrong. Please try again.';
