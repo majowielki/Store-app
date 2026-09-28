@@ -49,7 +49,7 @@ public sealed class AuthEndpointsTests : IClassFixture<IdentityApiFactory>
 
         var jwt = new JsonWebTokenHandler().ReadJsonWebToken(accessToken);
         Assert.Equal(TestTokens.Issuer, jwt.Issuer);
-        Assert.Contains(jwt.Claims, c => c.Type == "role" && c.Value == Roles.User);
+        Assert.Contains(jwt.Claims, c => c.Type == StoreClaims.Role && c.Value == Roles.User);
     }
 
     [Fact]

@@ -25,11 +25,15 @@ public static class WebhookSignature
 {
     public const string HeaderName = "Store-Signature";
 
+    /// <summary>The parts of the header: when it was signed, and the signature of scheme v1.</summary>
+    private const string TimestampKey = "t";
+    private const string SignatureKey = "v1";
+
     /// <summary>The header value for <paramref name="body"/> sent at <paramref name="timestamp"/>.</summary>
     public static string Create(string secret, DateTimeOffset timestamp, string body)
     {
         var seconds = timestamp.ToUnixTimeSeconds();
-        return $"t={seconds.ToString(CultureInfo.InvariantCulture)},v1={Compute(secret, seconds, body)}";
+        return $"{TimestampKey}={seconds.ToString(CultureInfo.InvariantCulture)},{SignatureKey}={Compute(secret, seconds, body)}";
     }
 
     /// <summary>
@@ -50,8 +54,8 @@ public static class WebhookSignature
             var separator = part.IndexOf('=', StringComparison.Ordinal);
             if (separator <= 0) continue;
             var (key, value) = (part[..separator], part[(separator + 1)..]);
-            if (key == "t" && long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)) seconds = parsed;
-            else if (key == "v1") signatures.Add(value);
+            if (key == TimestampKey && long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)) seconds = parsed;
+            else if (key == SignatureKey) signatures.Add(value);
         }
 
         if (seconds is null || signatures.Count == 0)

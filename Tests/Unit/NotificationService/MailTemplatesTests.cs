@@ -1,11 +1,13 @@
 using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Store.Contracts.Catalog.V1;
 using Store.Contracts.Orders.V1;
 using Store.Contracts.Payments.V1;
 using Store.NotificationService.Consumers;
 using Store.NotificationService.Mail;
+using Store.NotificationService.Mail.Templates;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using Xunit;
@@ -20,7 +22,11 @@ namespace Store.Tests.Unit.NotificationService;
 public class MailTemplatesTests
 {
     private const string Shop = "https://shop.example/";
-    private static readonly MailTemplates Templates = new(Shop);
+    private static readonly ShopLinks Links = new(Options.Create(new MailOptions { From = "Store <hello@store.example>", ShopUrl = Shop }));
+    private static readonly OrderPaidMail PaidMail = new(Links);
+    private static readonly PaymentDeclinedMail DeclinedMail = new(Links);
+    private static readonly OrderShippedMail ShippedMail = new(Links);
+    private static readonly BackInStockMail BackInStockMail = new(Links);
 
     private static readonly IReadOnlyList<OrderItem> Lines =
     [
@@ -44,14 +50,14 @@ public class MailTemplatesTests
         31, "Paper Arc Floor Lamp", "paper-arc-floor-lamp", "https://images.example/lamp.webp", 189m, "visitor@example.test",
         new DateTime(2026, 9, 28, 12, 0, 0, DateTimeKind.Utc));
 
-    public static TheoryData<string> Kinds => new() { "order-paid", "payment-declined", "order-shipped", "back-in-stock" };
+    public static TheoryData<string> Kinds => new() { OrderPaidMail.Kind, PaymentDeclinedMail.Kind, OrderShippedMail.Kind, BackInStockMail.Kind };
 
     private static Email Render(string kind) => kind switch
     {
-        "order-paid" => Templates.OrderPaid(Paid()),
-        "payment-declined" => Templates.PaymentDeclined(Declined(PaymentDeclineReasons.InsufficientFunds)),
-        "order-shipped" => Templates.OrderShipped(Shipped),
-        "back-in-stock" => Templates.ProductBackInStock(BackInStock),
+        OrderPaidMail.Kind => PaidMail.Render(Paid()),
+        PaymentDeclinedMail.Kind => DeclinedMail.Render(Declined(PaymentDeclineReasons.InsufficientFunds)),
+        OrderShippedMail.Kind => ShippedMail.Render(Shipped),
+        BackInStockMail.Kind => BackInStockMail.Render(BackInStock),
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     };
 
@@ -80,7 +86,7 @@ public class MailTemplatesTests
     [Fact]
     public void What_a_customer_typed_is_encoded()
     {
-        var email = Templates.OrderPaid(Paid("<script>alert(1)</script> Nowak"));
+        var email = PaidMail.Render(Paid("<script>alert(1)</script> Nowak"));
 
         Assert.DoesNotContain("<script>", email.Html);
         Assert.Contains("Hi &lt;script&gt;alert(1)&lt;/script&gt;,", email.Html);
@@ -92,7 +98,7 @@ public class MailTemplatesTests
     [InlineData(PaymentDeclineReasons.AuthenticationFailed, "the 3-D Secure check was not passed")]
     public void A_declined_payment_says_why_in_words(string reason, string words)
     {
-        var email = Templates.PaymentDeclined(Declined(reason));
+        var email = DeclinedMail.Render(Declined(reason));
 
         Assert.Contains(words, email.Text);
         Assert.Contains("We hold your pieces until 10:30 UTC on Mon, Sep 28", email.Text);
@@ -113,7 +119,10 @@ public class MailTemplatesTests
     {
         var sent = new SentMail();
         await using var provider = new ServiceCollection()
-            .AddSingleton(Templates)
+            .AddSingleton<IMailTemplate<OrderPaid>>(PaidMail)
+            .AddSingleton<IMailTemplate<PaymentDeclined>>(DeclinedMail)
+            .AddSingleton<IMailTemplate<OrderShipped>>(ShippedMail)
+            .AddSingleton<IMailTemplate<ProductBackInStock>>(BackInStockMail)
             .AddSingleton<IMailSender>(sent)
             .AddMassTransitTestHarness(bus =>
             {

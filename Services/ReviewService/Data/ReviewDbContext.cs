@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Messaging;
 using Store.ReviewService.Models;
+using Store.Contracts.Authorization;
 
 namespace Store.ReviewService.Data;
 
@@ -23,14 +24,14 @@ public class ReviewDbContext : DbContext
         {
             entity.HasKey(r => r.Id);
             entity.Property(r => r.ProductSlug).HasMaxLength(ReviewConstraints.SlugMaxLength);
-            entity.Property(r => r.UserId).HasMaxLength(450);
+            entity.Property(r => r.UserId).HasMaxLength(UserIds.MaxLength);
             entity.Property(r => r.AuthorName).IsRequired().HasMaxLength(ReviewConstraints.AuthorNameMaxLength);
             entity.Property(r => r.Title).HasMaxLength(ReviewConstraints.TitleMaxLength);
             entity.Property(r => r.Body).IsRequired().HasMaxLength(ReviewConstraints.BodyMaxLength);
             entity.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
             entity.Property(r => r.Source).HasConversion<string>().HasMaxLength(20);
             entity.Property(r => r.RejectionReason).HasMaxLength(ReviewConstraints.ReasonMaxLength);
-            entity.Property(r => r.ModeratedBy).HasMaxLength(450);
+            entity.Property(r => r.ModeratedBy).HasMaxLength(UserIds.MaxLength);
             entity.ToTable(table => table.HasCheckConstraint("CK_Reviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
 
             // A product's page and its summary read the published reviews of one product
@@ -54,13 +55,13 @@ public class ReviewDbContext : DbContext
         modelBuilder.Entity<Purchase>(entity =>
         {
             entity.HasKey(p => new { p.UserId, p.ProductId });
-            entity.Property(p => p.UserId).HasMaxLength(450);
+            entity.Property(p => p.UserId).HasMaxLength(UserIds.MaxLength);
         });
 
         modelBuilder.Entity<ReviewReport>(entity =>
         {
             entity.HasKey(r => r.Id);
-            entity.Property(r => r.ReporterId).IsRequired().HasMaxLength(450);
+            entity.Property(r => r.ReporterId).IsRequired().HasMaxLength(UserIds.MaxLength);
             entity.Property(r => r.Reason).HasMaxLength(ReviewConstraints.ReasonMaxLength);
             // One report per review and account, or per sign-in session of a shared demo account
             entity.HasIndex(r => new { r.ReviewId, r.ReporterId }).IsUnique()

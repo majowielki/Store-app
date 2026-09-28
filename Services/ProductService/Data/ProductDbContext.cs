@@ -23,7 +23,7 @@ public class ProductDbContext : DbContext
 
     /// <summary>
     /// The text without accents, the way the search vector is made ("bouclé" is "boucle"): the
-    /// store_unaccent function the search migration creates. Only for queries.
+    /// <see cref="ProductSearch.UnaccentFunction"/> the search migration creates. Only for queries.
     /// </summary>
     public static string Unaccent(string text) => throw new NotSupportedException("Translated to SQL only");
 
@@ -40,7 +40,7 @@ public class ProductDbContext : DbContext
         // Search: accent-free words and the edit distance for typo correction (ProductSearch)
         modelBuilder.HasPostgresExtension("unaccent");
         modelBuilder.HasPostgresExtension("fuzzystrmatch");
-        modelBuilder.HasDbFunction(typeof(ProductDbContext).GetMethod(nameof(Unaccent))!).HasName("store_unaccent");
+        modelBuilder.HasDbFunction(typeof(ProductDbContext).GetMethod(nameof(Unaccent))!).HasName(ProductSearch.UnaccentFunction);
 
         modelBuilder.Entity<Product>(entity =>
         {
@@ -91,7 +91,7 @@ public class ProductDbContext : DbContext
 
             // Held units come out of the units on hand; a bug that breaks it fails its transaction
             entity.ToTable(table => table.HasCheckConstraint("CK_Products_Stock",
-                "\"ReservedQuantity\" >= 0 AND \"ReservedQuantity\" <= \"StockQuantity\""));
+                $"\"{nameof(Product.ReservedQuantity)}\" >= 0 AND \"{nameof(Product.ReservedQuantity)}\" <= \"{nameof(Product.StockQuantity)}\""));
 
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");

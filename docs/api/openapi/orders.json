@@ -889,7 +889,7 @@
         "tags": [
           "PaymentWebhooks"
         ],
-        "summary": "A payment event, signed in the Store-Signature header (HMAC-SHA256 over \"t.body\"). A wrong,\nmissing or stale (more than 5 minutes) signature is 401; an event already processed is\nacknowledged again and changes nothing.",
+        "summary": "A payment event, signed in the Store-Signature header (HMAC-SHA256 over \"t.body\"). A wrong,\nmissing or stale (older than PaymentWebhooks:ToleranceSeconds) signature is 401; an event\nalready processed is acknowledged again and changes nothing.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1207,8 +1207,7 @@
             "description": "ISO code, lowercase."
           },
           "status": {
-            "type": "string",
-            "description": "The payment's status at the payment service: requiresPaymentMethod, requiresAction, succeeded..."
+            "$ref": "#/components/schemas/PaymentStatus"
           },
           "paymentDueAt": {
             "type": "string",
@@ -1455,6 +1454,17 @@
           }
         },
         "additionalProperties": false
+      },
+      "PaymentStatus": {
+        "enum": [
+          "requiresPaymentMethod",
+          "requiresAction",
+          "succeeded",
+          "cancelled",
+          "refunded"
+        ],
+        "type": "string",
+        "description": "Where a payment stands; stored by name, written in camelCase by the APIs."
       },
       "PaymentWebhookData": {
         "required": [
@@ -1750,7 +1760,7 @@
     },
     {
       "name": "PaymentWebhooks",
-      "description": "Where the payment service reports payments. Not routed by the gateway - only the payment\nservice on the internal network reaches it - and trusted only with a valid signature."
+      "description": "Where the payment service reports payments. Not routed by the gateway - only the payment\nservice on the internal network reaches it - and trusted only with a valid signature, which a\nfilter checks before the body is bound."
     }
   ]
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.Contracts.Audit;
 using Store.BuildingBlocks.Observability;
 using Store.CartService.Clients;
 using Store.CartService.Data;
@@ -79,7 +80,7 @@ public class CartService : ICartService
         await _context.SaveChangesAsync();
         _metrics.CartItemsAdded(request.Quantity);
 
-        await AuditAsync("CART_ITEM_ADDED", "CartItem", item.Id.ToString(), userId,
+        await AuditAsync(AuditActions.CartItemAdded, nameof(CartItem), item.Id.ToString(), userId,
             new { item.ProductId, item.Color, item.Quantity, item.UnitPrice });
         return await ReadBackAsync(cart);
     }
@@ -101,7 +102,7 @@ public class CartService : ICartService
         cart.UpdatedAt = now;
         await _context.SaveChangesAsync();
 
-        await AuditAsync("CART_ITEM_UPDATED", "CartItem", cartItemId.ToString(), userId,
+        await AuditAsync(AuditActions.CartItemUpdated, nameof(CartItem), cartItemId.ToString(), userId,
             new { item.ProductId, item.Color, item.Quantity });
         return await ReadBackAsync(cart);
     }
@@ -115,7 +116,7 @@ public class CartService : ICartService
         cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
-        await AuditAsync("CART_ITEM_REMOVED", "CartItem", cartItemId.ToString(), userId, new { item.ProductId });
+        await AuditAsync(AuditActions.CartItemRemoved, nameof(CartItem), cartItemId.ToString(), userId, new { item.ProductId });
         return await ReadBackAsync(cart);
     }
 
@@ -132,7 +133,7 @@ public class CartService : ICartService
         cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
-        await AuditAsync("CART_CLEARED", "Cart", cart.Id.ToString(), userId, null);
+        await AuditAsync(AuditActions.CartCleared, nameof(Cart), cart.Id.ToString(), userId, null);
     }
 
     public Task<int> GetItemCountAsync(string userId)
@@ -194,7 +195,7 @@ public class CartService : ICartService
         cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _context.SaveChangesAsync();
 
-        await AuditAsync("CART_CLEARED", "Cart", cart.Id.ToString(), userId, new { OrderId = orderId, Lines = removed });
+        await AuditAsync(AuditActions.CartCleared, nameof(Cart), cart.Id.ToString(), userId, new { OrderId = orderId, Lines = removed });
         return removed;
     }
 

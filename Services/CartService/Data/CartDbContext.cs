@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Messaging;
 using Store.CartService.Models;
+using Store.Contracts.Authorization;
 
 namespace Store.CartService.Data;
 
@@ -26,7 +27,7 @@ public class CartDbContext : DbContext
         modelBuilder.Entity<Cart>(entity =>
         {
             entity.HasKey(c => c.Id);
-            entity.Property(c => c.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(c => c.UserId).IsRequired().HasMaxLength(UserIds.MaxLength);
             entity.HasIndex(c => c.UserId).IsUnique();
 
             entity.HasMany(c => c.Items)
@@ -51,7 +52,7 @@ public class CartDbContext : DbContext
         modelBuilder.Entity<WishlistItem>(entity =>
         {
             entity.HasKey(w => w.Id);
-            entity.Property(w => w.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(w => w.UserId).IsRequired().HasMaxLength(UserIds.MaxLength);
             entity.HasIndex(w => new { w.UserId, w.ProductId }).IsUnique();
         });
 

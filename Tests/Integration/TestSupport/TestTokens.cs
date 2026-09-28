@@ -32,7 +32,7 @@ public static class TestTokens
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
         claims.AddRange(extraClaims);
-        claims.AddRange(roles.Select(role => new Claim("role", role)));
+        claims.AddRange(roles.Select(role => new Claim(StoreClaims.Role, role)));
 
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SigningKey)),
@@ -55,11 +55,11 @@ public static class TestTokens
 
     /// <summary>A customer with a name, the way the identity service signs every token.</summary>
     public static string Customer(string id, string firstName, string lastName) => For(id, $"{id}@test.local",
-        [new Claim("firstName", firstName), new Claim("lastName", lastName), new Claim(StoreClaims.SessionId, Guid.NewGuid().ToString())], Roles.User);
+        [new Claim(StoreClaims.FirstName, firstName), new Claim(StoreClaims.LastName, lastName), new Claim(StoreClaims.SessionId, Guid.NewGuid().ToString())], Roles.User);
 
     /// <summary>A visitor of the shared demo user account, in one sign-in session.</summary>
     public static string DemoUser(Guid session, string id = "demo-user") => For(id, $"{id}@test.local",
-        [new Claim("firstName", "Demo"), new Claim("lastName", "User"), new Claim(StoreClaims.SessionId, session.ToString()), new Claim(StoreClaims.DemoAccount, "true")],
+        [new Claim(StoreClaims.FirstName, "Demo"), new Claim(StoreClaims.LastName, "User"), new Claim(StoreClaims.SessionId, session.ToString()), new Claim(StoreClaims.DemoAccount, StoreClaims.DemoAccountValue)],
         Roles.User);
 }
 

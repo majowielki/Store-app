@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.Contracts.Audit;
 using Store.ContentService.Data;
 using Store.ContentService.Models;
 using System.Text.Json;
@@ -59,7 +60,7 @@ public sealed class ContentStore<TEntry> where TEntry : ContentEntry
         Entries.Add(entry);
         await _db.SaveChangesAsync();
 
-        await _audit.RecordAsync($"{Kind.ToUpperInvariant()}_CREATED", Kind, entry.Id.ToString(), actorId, newValues: entry);
+        await _audit.RecordAsync(AuditActions.Created(Kind), Kind, entry.Id.ToString(), actorId, newValues: entry);
         return entry;
     }
 
@@ -75,7 +76,7 @@ public sealed class ContentStore<TEntry> where TEntry : ContentEntry
         entry.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         await _db.SaveChangesAsync();
 
-        await _audit.RecordAsync($"{Kind.ToUpperInvariant()}_UPDATED", Kind, id.ToString(), actorId, oldValues: oldValues, newValues: entry);
+        await _audit.RecordAsync(AuditActions.Updated(Kind), Kind, id.ToString(), actorId, oldValues: oldValues, newValues: entry);
         return entry;
     }
 
@@ -89,7 +90,7 @@ public sealed class ContentStore<TEntry> where TEntry : ContentEntry
         Entries.Remove(entry);
         await _db.SaveChangesAsync();
 
-        await _audit.RecordAsync($"{Kind.ToUpperInvariant()}_DELETED", Kind, id.ToString(), actorId, oldValues: oldValues);
+        await _audit.RecordAsync(AuditActions.Deleted(Kind), Kind, id.ToString(), actorId, oldValues: oldValues);
     }
 
     private async Task EnsureSlugIsFreeAsync(string slug, int? exceptId)

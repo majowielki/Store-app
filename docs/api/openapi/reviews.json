@@ -16,9 +16,9 @@
           {
             "name": "status",
             "in": "query",
-            "description": "queue (default: waiting for a decision - new or reported), pending, reported, published,\nrejected or all.",
+            "description": "Which reviews: the queue (waiting for a decision - new or reported) unless another set is asked for.",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/ReviewQueueFilter"
             }
           },
           {
@@ -166,9 +166,9 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "newest (default), oldest, highest or lowest.",
+            "description": "Newest first unless another order is asked for.",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/ReviewSort"
             }
           },
           {
@@ -755,9 +755,7 @@
             "type": "boolean"
           },
           "reason": {
-            "type": "string",
-            "description": "Why not: notPurchased, alreadyReviewed, dailyLimit or signInAgain (a demo session from an old token); null when they can.",
-            "nullable": true
+            "$ref": "#/components/schemas/ReviewBlockReason"
           },
           "review": {
             "$ref": "#/components/schemas/ReviewResponse"
@@ -777,6 +775,28 @@
         },
         "additionalProperties": false,
         "description": "Body of POST /api/v1/reviews/{id}/report."
+      },
+      "ReviewBlockReason": {
+        "enum": [
+          "notPurchased",
+          "alreadyReviewed",
+          "dailyLimit",
+          "signInAgain"
+        ],
+        "type": "string",
+        "description": "Why a signed-in customer may not review a product."
+      },
+      "ReviewQueueFilter": {
+        "enum": [
+          "queue",
+          "pending",
+          "reported",
+          "published",
+          "rejected",
+          "all"
+        ],
+        "type": "string",
+        "description": "The sets of reviews the moderation queue shows."
       },
       "ReviewResponse": {
         "required": [
@@ -885,6 +905,16 @@
         },
         "additionalProperties": false,
         "description": "One page of a listing, the same shape for every resource."
+      },
+      "ReviewSort": {
+        "enum": [
+          "newest",
+          "oldest",
+          "highest",
+          "lowest"
+        ],
+        "type": "string",
+        "description": "The orders the published reviews of a product are listed in."
       },
       "ReviewSource": {
         "enum": [

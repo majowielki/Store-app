@@ -1769,7 +1769,7 @@
           "outOfStock"
         ],
         "type": "string",
-        "description": "How a product's availability is shown to customers."
+        "description": "How a product's availability is shown to customers; the API writes it in camelCase."
       },
       "StoreProblemDetails": {
         "type": "object",

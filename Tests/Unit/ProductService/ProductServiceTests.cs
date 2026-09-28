@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.ProductService.Data;
 using Store.ProductService.DTOs.Requests;
+using Store.ProductService.Models;
 using Store.ProductService.Services;
 using Xunit;
 
@@ -28,7 +30,8 @@ public class ProductServiceTests
             _loggerMock.Object,
             _auditTrailMock.Object,
             TimeProvider.System,
-            new ProductSearch(_dbContext)
+            new ProductSearch(_dbContext),
+            new ProductMapper(new StockPolicy(Options.Create(new StockOptions())))
         );
     }
 

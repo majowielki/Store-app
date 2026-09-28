@@ -1,6 +1,7 @@
 using MassTransit;
 using Store.AuditLogService.Models;
 using Store.AuditLogService.Services;
+using Store.Contracts.Audit;
 using Store.Contracts.Orders.V1;
 using System.Text.Json;
 
@@ -29,7 +30,7 @@ public sealed class OrderStatusChangedConsumer : IConsumer<OrderStatusChanged>
         var change = context.Message;
         await _auditLogService.CreateAuditLogAsync(new AuditLog
         {
-            Action = "ORDER_STATUS_CHANGED",
+            Action = AuditActions.OrderStatusChanged,
             EntityName = "Order",
             EntityId = change.OrderId.ToString(),
             UserId = change.ChangedBy,

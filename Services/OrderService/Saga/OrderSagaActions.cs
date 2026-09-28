@@ -1,7 +1,6 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Store.Contracts.Orders.V1;
 using Store.Contracts.Payments.V1;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
@@ -54,7 +53,7 @@ public sealed class OrderSagaActions
         var move = await _writer.MoveAsync(saga.OrderId, OrderStatus.Cancelled, actorId: null, order => order.CancellationReason = reason);
         if (move.Moved)
         {
-            await _publish.Publish(new OrderCancelled(saga.OrderId, move.Order.UserId, reason, Now));
+            await _publish.Publish(OrderEvents.Cancelled(move.Order, reason, Now));
         }
 
         Touch(saga);
@@ -98,7 +97,7 @@ public sealed class OrderSagaActions
         var move = await _writer.MoveAsync(saga.OrderId, OrderStatus.Refunded, actorId: null);
         if (move.Moved)
         {
-            await _publish.Publish(new OrderRefunded(saga.OrderId, move.Order.UserId, refund.Amount, Now));
+            await _publish.Publish(OrderEvents.Refunded(move.Order, refund.Amount, Now));
         }
 
         Touch(saga);

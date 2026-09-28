@@ -60,18 +60,18 @@ public sealed class TokenService : ITokenService
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Name, user.UserName!),
             new(ClaimTypes.Email, user.Email!),
-            new("firstName", user.FirstName ?? string.Empty),
-            new("lastName", user.LastName ?? string.Empty),
-            new("displayName", user.DisplayName),
+            new(StoreClaims.FirstName, user.FirstName ?? string.Empty),
+            new(StoreClaims.LastName, user.LastName ?? string.Empty),
+            new(StoreClaims.DisplayName, user.DisplayName),
             new(StoreClaims.SessionId, sessionId.ToString())
         };
         if (isDemoAccount)
         {
-            claims.Add(new Claim(StoreClaims.DemoAccount, "true"));
+            claims.Add(new Claim(StoreClaims.DemoAccount, StoreClaims.DemoAccountValue));
         }
 
         // One "role" claim per role, the way the bearer handlers map it to ClaimTypes.Role
-        claims.AddRange(roles.Distinct().Select(role => new Claim("role", role)));
+        claims.AddRange(roles.Distinct().Select(role => new Claim(StoreClaims.Role, role)));
 
         var token = _handler.CreateToken(new SecurityTokenDescriptor
         {

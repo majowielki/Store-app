@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.Contracts.Audit;
 using Store.ReviewService.Data;
 using Store.ReviewService.DTOs;
 using Store.ReviewService.Models;
@@ -43,14 +44,14 @@ public sealed class ReviewModeration
     public async Task<PagedResponse<AdminReviewResponse>> ListAsync(AdminReviewQuery query, ReviewViewer viewer, CancellationToken cancellationToken = default)
     {
         var reviews = _context.Reviews.AsNoTracking();
-        var status = (query.Status ?? "queue").ToLowerInvariant();
-        reviews = status switch
+        var queue = query.Status ?? ReviewQueueFilter.Queue;
+        reviews = queue switch
         {
-            "pending" => reviews.Where(r => r.Status == ReviewStatus.Pending),
-            "reported" => reviews.Where(r => r.Reported),
-            "published" => reviews.Where(r => r.Status == ReviewStatus.Published),
-            "rejected" => reviews.Where(r => r.Status == ReviewStatus.Rejected),
-            "all" => reviews,
+            ReviewQueueFilter.Pending => reviews.Where(r => r.Status == ReviewStatus.Pending),
+            ReviewQueueFilter.Reported => reviews.Where(r => r.Reported),
+            ReviewQueueFilter.Published => reviews.Where(r => r.Status == ReviewStatus.Published),
+            ReviewQueueFilter.Rejected => reviews.Where(r => r.Status == ReviewStatus.Rejected),
+            ReviewQueueFilter.All => reviews,
             _ => reviews.Where(r => r.Status == ReviewStatus.Pending || r.Reported)
         };
 
@@ -59,7 +60,7 @@ public sealed class ReviewModeration
             reviews = reviews.Where(r => r.ProductId == productId);
         }
 
-        var waiting = status is not ("published" or "rejected" or "all");
+        var waiting = queue is ReviewQueueFilter.Queue or ReviewQueueFilter.Pending or ReviewQueueFilter.Reported;
         reviews = waiting
             ? reviews.OrderBy(r => r.SubmittedAt).ThenBy(r => r.Id)
             : reviews.OrderByDescending(r => r.SubmittedAt).ThenBy(r => r.Id);
@@ -114,7 +115,7 @@ public sealed class ReviewModeration
 
         foreach (var review in reviews)
         {
-            await _auditTrail.RecordAsync(approve ? "REVIEW_APPROVED" : "REVIEW_REJECTED", nameof(Review), review.Id.ToString(), actorId,
+            await _auditTrail.RecordAsync(approve ? AuditActions.ReviewApproved : AuditActions.ReviewRejected, nameof(Review), review.Id.ToString(), actorId,
                 details: new { review.ProductId, review.Rating, source = review.Source.ToString(), reason },
                 cancellationToken: cancellationToken);
         }

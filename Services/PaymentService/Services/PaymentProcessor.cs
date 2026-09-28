@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Persistence;
+using Store.Contracts.Audit;
 using Store.Contracts.Payments;
 using Store.Contracts.Payments.V1;
 using Store.Contracts.Payments.Webhooks;
@@ -15,7 +17,8 @@ namespace Store.PaymentService.Services;
 /// <summary>
 /// The payments of the shop's orders. Every change of a payment locks its row, so a card being
 /// confirmed and the order being cancelled at the same moment are applied one after the other;
-/// every change the shop must know about writes its webhook in the same transaction.
+/// every change the shop must know about writes its webhook in the same transaction. The payment
+/// itself decides which moves its status allows (<see cref="Payment"/>).
 /// </summary>
 public sealed class PaymentProcessor
 {
@@ -51,25 +54,13 @@ public sealed class PaymentProcessor
     /// </summary>
     public async Task<(Payment Payment, bool Created)> OpenAsync(CreatePaymentRequest request, string idempotencyKey)
     {
-        var existing = await _context.Payments.AsNoTracking()
-            .FirstOrDefaultAsync(p => p.OrderId == request.OrderId || p.IdempotencyKey == idempotencyKey);
+        var existing = await FindOpenedAsync(request, idempotencyKey);
         if (existing is not null)
         {
             return (SameRequest(existing, request, idempotencyKey), false);
         }
 
-        var now = Now;
-        var payment = new Payment
-        {
-            Id = Guid.NewGuid(),
-            OrderId = request.OrderId,
-            UserId = request.UserId,
-            Amount = request.Amount,
-            Currency = request.Currency,
-            IdempotencyKey = idempotencyKey,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
+        var payment = Payment.Open(request, idempotencyKey, Now);
         _context.Payments.Add(payment);
 
         try
@@ -80,7 +71,8 @@ public sealed class PaymentProcessor
         {
             // The same order opened twice at once: the other request won, answer with its payment
             _context.ChangeTracker.Clear();
-            var winner = await _context.Payments.AsNoTracking().SingleAsync(p => p.OrderId == request.OrderId || p.IdempotencyKey == idempotencyKey);
+            var winner = await FindOpenedAsync(request, idempotencyKey)
+                ?? throw new InvalidOperationException($"The payment of order {request.OrderId} was opened by another request and is gone.");
             return (SameRequest(winner, request, idempotencyKey), false);
         }
 
@@ -88,16 +80,13 @@ public sealed class PaymentProcessor
         return (payment, true);
     }
 
-    private static Payment SameRequest(Payment existing, CreatePaymentRequest request, string idempotencyKey)
-    {
-        if (existing.OrderId != request.OrderId || existing.IdempotencyKey != idempotencyKey
-            || existing.UserId != request.UserId || existing.Amount != request.Amount || existing.Currency != request.Currency)
-        {
-            throw new ConflictException("The order already has a payment for another amount or customer, or the key was used for another order.");
-        }
+    private Task<Payment?> FindOpenedAsync(CreatePaymentRequest request, string idempotencyKey)
+        => _context.Payments.AsNoTracking().FirstOrDefaultAsync(p => p.OrderId == request.OrderId || p.IdempotencyKey == idempotencyKey);
 
-        return existing;
-    }
+    private static Payment SameRequest(Payment existing, CreatePaymentRequest request, string idempotencyKey)
+        => existing.IsOpenedBy(request, idempotencyKey)
+            ? existing
+            : throw new ConflictException("The order already has a payment for another amount or customer, or the key was used for another order.");
 
     /// <summary>A payment of the signed-in customer.</summary>
     public async Task<Payment> GetAsync(Guid id, string userId)
@@ -121,27 +110,24 @@ public sealed class PaymentProcessor
             });
         }
 
-        var digits = CardNumbers.Normalize(card.Number);
-        var brand = CardNumbers.Brand(digits);
-        var last4 = CardNumbers.Last4(digits);
-        switch (_provider.Charge(card, payment.Amount))
+        var summary = CardNumbers.Summarize(card.Number);
+        var result = _provider.Charge(card, payment.Amount);
+        switch (result)
         {
             case ChargeResult.Approved:
-                await SucceedAsync(payment, brand, last4, AttemptOutcome.Succeeded);
+                await SucceedAsync(payment, summary, AttemptOutcome.Succeeded);
                 break;
             case ChargeResult.AuthenticationRequired:
-                payment.Status = PaymentStatus.RequiresAction;
-                payment.CardBrand = brand;
-                payment.CardLast4 = last4;
-                payment.DeclineReason = null;
-                Attempt(payment, brand, last4, AttemptOutcome.AuthenticationRequired);
+                payment.RequireAuthentication(summary, Now);
                 break;
             case ChargeResult.InsufficientFunds:
-                Decline(payment, brand, last4, AttemptOutcome.InsufficientFunds, PaymentDeclineReasons.InsufficientFunds);
+                Decline(payment, summary, AttemptOutcome.InsufficientFunds, PaymentDeclineReasons.InsufficientFunds);
+                break;
+            case ChargeResult.Declined:
+                Decline(payment, summary, AttemptOutcome.Declined, PaymentDeclineReasons.CardDeclined);
                 break;
             default:
-                Decline(payment, brand, last4, AttemptOutcome.Declined, PaymentDeclineReasons.CardDeclined);
-                break;
+                throw new InvalidOperationException($"The card network answered {result}, which the payment service does not know.");
         }
 
         await _context.SaveChangesAsync();
@@ -154,19 +140,18 @@ public sealed class PaymentProcessor
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
         var payment = Owned(await LockAsync(id), id, userId);
-        if (payment.Status != PaymentStatus.RequiresAction)
+        if (payment is not { Status: PaymentStatus.RequiresAction, Card: { } card })
         {
             throw new ConflictException("The payment is not waiting for a 3-D Secure check.");
         }
 
-        var (brand, last4) = (payment.CardBrand!, payment.CardLast4!);
         if (approve)
         {
-            await SucceedAsync(payment, brand, last4, AttemptOutcome.AuthenticationApproved);
+            await SucceedAsync(payment, card, AttemptOutcome.AuthenticationApproved);
         }
         else
         {
-            Decline(payment, brand, last4, AttemptOutcome.AuthenticationRejected, PaymentDeclineReasons.AuthenticationFailed);
+            Decline(payment, card, AttemptOutcome.AuthenticationRejected, PaymentDeclineReasons.AuthenticationFailed);
         }
 
         await _context.SaveChangesAsync();
@@ -181,10 +166,8 @@ public sealed class PaymentProcessor
     public async Task CancelForOrderAsync(int orderId, CancellationToken cancellationToken = default)
     {
         var payment = await LockByOrderAsync(orderId, cancellationToken);
-        if (payment?.Status is PaymentStatus.RequiresPaymentMethod or PaymentStatus.RequiresAction)
+        if (payment is not null && payment.CancelIfOpen(Now))
         {
-            payment.Status = PaymentStatus.Cancelled;
-            payment.UpdatedAt = Now;
             await _context.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Payment {PaymentId} cancelled with order {OrderId}", payment.Id, orderId);
         }
@@ -197,7 +180,7 @@ public sealed class PaymentProcessor
     public async Task RefundAsync(int orderId, CancellationToken cancellationToken = default)
     {
         var payment = await LockByOrderAsync(orderId, cancellationToken);
-        if (payment?.Status != PaymentStatus.Succeeded)
+        if (payment is null || !payment.Refund(Now))
         {
             if (payment?.Status != PaymentStatus.Refunded)
             {
@@ -208,65 +191,41 @@ public sealed class PaymentProcessor
             return;
         }
 
-        payment.Status = PaymentStatus.Refunded;
-        payment.RefundedAt = Now;
-        payment.UpdatedAt = Now;
         _webhooks.Enqueue(payment, PaymentWebhookTypes.Refunded);
         await _context.SaveChangesAsync(cancellationToken);
-        await _auditTrail.RecordAsync("PAYMENT_REFUNDED", nameof(Payment), payment.Id.ToString(), payment.UserId,
+        await _auditTrail.RecordAsync(AuditActions.PaymentRefunded, nameof(Payment), payment.Id.ToString(), payment.UserId,
             details: new { payment.OrderId, payment.Amount, payment.Currency }, cancellationToken: cancellationToken);
         _logger.LogInformation("Payment {PaymentId} of order {OrderId} refunded", payment.Id, orderId);
     }
 
-    private async Task SucceedAsync(Payment payment, string brand, string last4, AttemptOutcome outcome)
+    private async Task SucceedAsync(Payment payment, CardSummary card, AttemptOutcome outcome)
     {
-        payment.Status = PaymentStatus.Succeeded;
-        payment.CardBrand = brand;
-        payment.CardLast4 = last4;
-        payment.DeclineReason = null;
-        payment.SucceededAt = Now;
-        Attempt(payment, brand, last4, outcome);
+        payment.Succeed(card, outcome, Now);
         _webhooks.Enqueue(payment, PaymentWebhookTypes.Succeeded);
-        await _auditTrail.RecordAsync("PAYMENT_SUCCEEDED", nameof(Payment), payment.Id.ToString(), payment.UserId,
-            details: new { payment.OrderId, payment.Amount, payment.Currency, cardBrand = brand });
-        _logger.LogInformation("Payment {PaymentId} of order {OrderId} succeeded with a {Brand} card", payment.Id, payment.OrderId, brand);
+        await _auditTrail.RecordAsync(AuditActions.PaymentSucceeded, nameof(Payment), payment.Id.ToString(), payment.UserId,
+            details: new { payment.OrderId, payment.Amount, payment.Currency, cardBrand = card.Brand });
+        _logger.LogInformation("Payment {PaymentId} of order {OrderId} succeeded with a {Brand} card", payment.Id, payment.OrderId, card.Brand);
     }
 
-    /// <summary>The card is refused; the payment stays open for another one.</summary>
-    private void Decline(Payment payment, string brand, string last4, AttemptOutcome outcome, string reason)
+    /// <summary>The card is refused; the payment stays open for another one and the shop hears why.</summary>
+    private void Decline(Payment payment, CardSummary card, AttemptOutcome outcome, string reason)
     {
-        payment.Status = PaymentStatus.RequiresPaymentMethod;
-        payment.CardBrand = brand;
-        payment.CardLast4 = last4;
-        payment.DeclineReason = reason;
-        Attempt(payment, brand, last4, outcome);
+        payment.Decline(card, outcome, reason, Now);
         _webhooks.Enqueue(payment, PaymentWebhookTypes.Failed, reason);
-        _logger.LogInformation("A {Brand} card was refused for payment {PaymentId}: {Reason}", brand, payment.Id, reason);
+        _logger.LogInformation("A {Brand} card was refused for payment {PaymentId}: {Reason}", card.Brand, payment.Id, reason);
     }
 
-    private void Attempt(Payment payment, string brand, string last4, AttemptOutcome outcome)
-    {
-        payment.UpdatedAt = Now;
-        _context.PaymentAttempts.Add(new PaymentAttempt
-        {
-            Id = Guid.NewGuid(),
-            PaymentId = payment.Id,
-            CardBrand = brand,
-            CardLast4 = last4,
-            Outcome = outcome,
-            CreatedAt = Now
-        });
-    }
-
+    /// <summary>The payment, locked until the transaction ends.</summary>
     private async Task<Payment?> LockAsync(Guid id)
     {
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "Payments" WHERE "Id" = {id} FOR UPDATE""");
+        await _context.LockForUpdateAsync<Payment, Guid>(p => p.Id, id);
         return await _context.Payments.FirstOrDefaultAsync(p => p.Id == id);
     }
 
+    /// <summary>The payment of an order, locked until the transaction ends.</summary>
     private async Task<Payment?> LockByOrderAsync(int orderId, CancellationToken cancellationToken)
     {
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "Payments" WHERE "OrderId" = {orderId} FOR UPDATE""", cancellationToken);
+        await _context.LockForUpdateAsync<Payment, int>(p => p.OrderId, orderId, cancellationToken);
         return await _context.Payments.FirstOrDefaultAsync(p => p.OrderId == orderId, cancellationToken);
     }
 
@@ -275,7 +234,7 @@ public sealed class PaymentProcessor
     {
         if (payment is null)
         {
-            throw new NotFoundException("Payment", id);
+            throw new NotFoundException(nameof(Payment), id);
         }
 
         return payment.UserId == userId ? payment : throw new ForbiddenException("This payment belongs to another customer.");

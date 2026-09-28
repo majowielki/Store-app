@@ -26,6 +26,10 @@ public class PaymentsController : ControllerBase
 
     private string UserId => User.GetRequiredUserId();
 
+    /// <summary>The cards the payment page may use and what each one does; empty where real cards are charged.</summary>
+    [HttpGet("test-cards")]
+    public IReadOnlyList<TestCard> TestCards([FromServices] IPaymentProvider provider) => provider.TestCards;
+
     /// <summary>A payment of the signed-in customer; 403 for another customer's.</summary>
     [HttpGet("{id:guid}")]
     public async Task<PaymentResponse> Get(Guid id)

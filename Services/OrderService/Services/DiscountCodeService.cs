@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.Contracts.Audit;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
@@ -53,7 +54,7 @@ public sealed class DiscountCodeService
         _context.DiscountCodes.Add(code);
         await _context.SaveChangesAsync();
 
-        await _audit.RecordAsync("DISCOUNT_CODE_CREATED", "DiscountCode", code.Id.ToString(), actorId, newValues: Map(code));
+        await _audit.RecordAsync(AuditActions.DiscountCodeCreated, nameof(DiscountCode), code.Id.ToString(), actorId, newValues: Map(code));
         return Map(code);
     }
 
@@ -66,7 +67,7 @@ public sealed class DiscountCodeService
         await EnsureCodeIsFreeAsync(code.Code, exceptId: id);
         await _context.SaveChangesAsync();
 
-        await _audit.RecordAsync("DISCOUNT_CODE_UPDATED", "DiscountCode", id.ToString(), actorId, oldValues: oldValues, newValues: Map(code));
+        await _audit.RecordAsync(AuditActions.DiscountCodeUpdated, nameof(DiscountCode), id.ToString(), actorId, oldValues: oldValues, newValues: Map(code));
         return Map(code);
     }
 
@@ -82,7 +83,7 @@ public sealed class DiscountCodeService
         _context.DiscountCodes.Remove(code);
         await _context.SaveChangesAsync();
 
-        await _audit.RecordAsync("DISCOUNT_CODE_DELETED", "DiscountCode", id.ToString(), actorId, oldValues: Map(code));
+        await _audit.RecordAsync(AuditActions.DiscountCodeDeleted, nameof(DiscountCode), id.ToString(), actorId, oldValues: Map(code));
     }
 
     private async Task<DiscountCode> FindAsync(int id, bool tracked)

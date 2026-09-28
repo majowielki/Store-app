@@ -1,6 +1,8 @@
 using MassTransit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Serialization;
 using Store.Contracts.Cart;
 using Store.Contracts.Catalog;
 using Store.Contracts.Orders.V1;
@@ -116,14 +118,14 @@ public sealed class FakeUpstreams : HttpMessageHandler
     private async Task<HttpResponseMessage> OpenPaymentAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var body = (await request.Content!.ReadFromJsonAsync<CreatePaymentRequest>(cancellationToken))!;
-        PaymentKeys.Enqueue(request.Headers.GetValues("Idempotency-Key").Single());
+        PaymentKeys.Enqueue(request.Headers.GetValues(IdempotencyKeyHeader.Name).Single());
         var created = false;
         var payment = _payments.GetOrAdd(body.OrderId, orderId =>
         {
             created = true;
-            return new PaymentSnapshot(Guid.NewGuid(), orderId, body.Amount, body.Currency, "requiresPaymentMethod", DateTime.UtcNow);
+            return new PaymentSnapshot(Guid.NewGuid(), orderId, body.Amount, body.Currency, PaymentStatus.RequiresPaymentMethod, DateTime.UtcNow);
         });
-        return new HttpResponseMessage(created ? HttpStatusCode.Created : HttpStatusCode.OK) { Content = JsonContent.Create(payment) };
+        return new HttpResponseMessage(created ? HttpStatusCode.Created : HttpStatusCode.OK) { Content = JsonContent.Create(payment, options: StoreJson.Web) };
     }
 }
 

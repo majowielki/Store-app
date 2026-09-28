@@ -132,6 +132,10 @@ public class ReviewSeed
 /// <summary>Limits the schema and the validators share.</summary>
 public static class ReviewConstraints
 {
+    /// <summary>The fewest and the most stars a review gives.</summary>
+    public const int MinRating = 1;
+    public const int MaxRating = 5;
+
     public const int BodyMinLength = 20;
     public const int BodyMaxLength = 1000;
     public const int TitleMaxLength = 80;
@@ -141,6 +145,9 @@ public static class ReviewConstraints
 
     /// <summary>Reviews one account (one session of a demo account) may write in a day.</summary>
     public const int DailyLimit = 3;
+
+    /// <summary>The span <see cref="DailyLimit"/> counts reviews over.</summary>
+    public static readonly TimeSpan DailyLimitWindow = TimeSpan.FromDays(1);
 
     /// <summary>How long a demo account's review lives.</summary>
     public static readonly TimeSpan DemoLifetime = TimeSpan.FromHours(24);

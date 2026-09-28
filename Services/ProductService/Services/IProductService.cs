@@ -19,13 +19,6 @@ public interface IProductService
     // The public catalogue: active products only
     Task<PagedResponse<ProductResponse>> GetProductsAsync(ProductQueryParams queryParams);
     Task<ProductDetailResponse> GetProductAsync(int id);
-    ProductsMeta GetProductsMeta();
-
-    /// <summary>The filter values with how many products each shows under the rest of the query, and the search's correction.</summary>
-    Task<ProductsMeta> GetProductsMetaAsync(ProductQueryParams queryParams);
-
-    /// <summary>The best matches of a search while it is typed, corrected when it finds nothing as typed.</summary>
-    Task<ProductSuggestions> SuggestAsync(string? search, int limit);
 
     // What other services may know about a product
     Task<ProductSnapshot?> GetSnapshotAsync(int id);

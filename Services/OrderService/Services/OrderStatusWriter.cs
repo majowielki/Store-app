@@ -1,6 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Orders.V1;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
@@ -49,12 +50,12 @@ public sealed class OrderStatusWriter
             throw new InvalidOperationException("An order changes status inside a transaction; the row lock lasts until it ends.");
         }
 
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "Orders" WHERE "Id" = {orderId} FOR UPDATE""", cancellationToken);
+        await _context.LockForUpdateAsync<Order, int>(o => o.Id, orderId, cancellationToken);
         var order = await _context.Orders
             .Include(o => o.Lines)
             .Include(o => o.StatusHistory)
             .SingleOrDefaultAsync(o => o.Id == orderId, cancellationToken)
-            ?? throw new NotFoundException("Order", orderId);
+            ?? throw new NotFoundException(nameof(Order), orderId);
 
         var previous = order.Status;
         if (!OrderStatusFlow.CanMove(previous, to))
@@ -85,25 +86,11 @@ public sealed class OrderStatusWriter
     /// </summary>
     private async Task ReleaseDiscountCodeAsync(string code, CancellationToken cancellationToken)
     {
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "DiscountCodes" WHERE "Code" = {code} FOR UPDATE""", cancellationToken);
+        await _context.LockForUpdateAsync<DiscountCode, string>(c => c.Code, code, cancellationToken);
         var entry = await _context.DiscountCodes.FirstOrDefaultAsync(c => c.Code == code, cancellationToken);
         if (entry is { TimesUsed: > 0 })
         {
             entry.TimesUsed--;
         }
     }
-}
-
-/// <summary>The events that tell other services about an order, built from the order in one place.</summary>
-public static class OrderEvents
-{
-    public static List<OrderItem> Items(Order order)
-        => order.Lines.Select(l => new OrderItem(l.ProductId, l.ProductTitle, l.Quantity, l.UnitPrice)).ToList();
-
-    public static OrderShipped Shipped(Order order, DateTime at)
-        => new(order.Id, order.UserId, order.UserEmail, order.CustomerName, Items(order), order.DeliveryFrom, order.DeliveryTo, at);
-
-    public static OrderPaid Paid(Order order, DateTime at)
-        => new(order.Id, order.UserId, order.UserEmail, order.CustomerName, order.Total, order.CardBrand, order.CardLast4, Items(order),
-            order.DeliveryFrom, order.DeliveryTo, at);
 }

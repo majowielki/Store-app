@@ -16,6 +16,9 @@ public sealed record OrderCancelled(int OrderId, string UserId, string Reason, D
 /// <summary>Why an order was cancelled, as <see cref="OrderCancelled.Reason"/> carries it.</summary>
 public static class OrderCancellationReasons
 {
+    /// <summary>The longest reason a service stores.</summary>
+    public const int MaxLength = 50;
+
     /// <summary>The stock could not be reserved for every line.</summary>
     public const string OutOfStock = "out-of-stock";
 

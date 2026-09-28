@@ -23,6 +23,16 @@ public class OrderState : SagaStateMachineInstance
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>The saga of an order just placed, waiting for its stock: whatever event about the order comes first finds it.</summary>
+    public static OrderState StartFor(int orderId, DateTime now) => new()
+    {
+        CorrelationId = OrderSagaIds.For(orderId),
+        CurrentState = nameof(OrderStateMachine.ReservingStock),
+        OrderId = orderId,
+        CreatedAt = now,
+        UpdatedAt = now
+    };
 }
 
 /// <summary>The saga of an order is found by the order id every event carries.</summary>

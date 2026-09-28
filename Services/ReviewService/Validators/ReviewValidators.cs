@@ -12,7 +12,9 @@ public class CreateReviewRequestValidator : AbstractValidator<CreateReviewReques
     {
         RuleFor(x => x.ProductId).GreaterThan(0).WithMessage("Choose the product to review.");
 
-        RuleFor(x => x.Rating).InclusiveBetween(1, 5).WithMessage("Give the product 1 to 5 stars.");
+        RuleFor(x => x.Rating)
+            .InclusiveBetween(ReviewConstraints.MinRating, ReviewConstraints.MaxRating)
+            .WithMessage($"Give the product {ReviewConstraints.MinRating} to {ReviewConstraints.MaxRating} stars.");
 
         RuleFor(x => x.Title)
             .Cascade(CascadeMode.Stop)

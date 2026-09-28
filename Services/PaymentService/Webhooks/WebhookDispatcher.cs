@@ -1,9 +1,12 @@
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Store.BuildingBlocks.Persistence;
 using Store.BuildingBlocks.Webhooks;
 using Store.PaymentService.Data;
 using Store.PaymentService.Models;
+using System.Net.Mime;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Store.PaymentService.Webhooks;
 
@@ -17,11 +20,9 @@ public sealed class WebhookDispatcher : BackgroundService
 {
     public const string HttpClientName = "webhooks";
 
-    /// <summary>At most this many webhooks per round; the rest wait for the next one.</summary>
-    private const int Batch = 20;
-
     private readonly IServiceScopeFactory _scopes;
     private readonly IHttpClientFactory _http;
+    private readonly WebhookSchedule _schedule;
     private readonly TimeProvider _time;
     private readonly PaymentWebhookOptions _options;
     private readonly ILogger<WebhookDispatcher> _logger;
@@ -29,12 +30,14 @@ public sealed class WebhookDispatcher : BackgroundService
     public WebhookDispatcher(
         IServiceScopeFactory scopes,
         IHttpClientFactory http,
+        WebhookSchedule schedule,
         TimeProvider time,
         IOptions<PaymentWebhookOptions> options,
         ILogger<WebhookDispatcher> logger)
     {
         _scopes = scopes;
         _http = http;
+        _schedule = schedule;
         _time = time;
         _options = options.Value;
         _logger = logger;
@@ -42,7 +45,7 @@ public sealed class WebhookDispatcher : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(_options.DispatchIntervalSeconds));
+        using var timer = new PeriodicTimer(_options.DispatchInterval, _time);
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             try
@@ -56,11 +59,11 @@ public sealed class WebhookDispatcher : BackgroundService
         }
     }
 
-    /// <summary>One round: sends what is due, up to a batch. Returns how many were attempted.</summary>
+    /// <summary>One round: sends what is due, up to <see cref="PaymentWebhookOptions.MaxPerRound"/>. Returns how many were attempted.</summary>
     public async Task<int> DispatchDueAsync(CancellationToken cancellationToken = default)
     {
         var attempted = 0;
-        while (attempted < Batch && await DispatchNextAsync(cancellationToken))
+        while (attempted < _options.MaxPerRound && await DispatchNextAsync(cancellationToken))
         {
             attempted++;
         }
@@ -74,22 +77,15 @@ public sealed class WebhookDispatcher : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
-        var now = _time.GetUtcNow().UtcDateTime;
-        var due = await context.WebhookDeliveries
-            .FromSqlInterpolated($"""
-                SELECT * FROM "WebhookDeliveries"
-                WHERE "DeliveredAt" IS NULL AND "FailedAt" IS NULL AND "NextAttemptAt" <= {now}
-                ORDER BY "NextAttemptAt"
-                LIMIT 1
-                FOR UPDATE SKIP LOCKED
-                """)
-            .ToListAsync(cancellationToken);
-        if (due.Count == 0)
+        // Not composed on (a LIMIT around it would move the lock into a subquery): the SQL takes one row itself
+        var delivery = (await context.WebhookDeliveries
+            .FromSql(NextDue(context, _time.GetUtcNow().UtcDateTime))
+            .ToListAsync(cancellationToken)).SingleOrDefault();
+        if (delivery is null)
         {
             return false;
         }
 
-        var delivery = due[0];
         var error = await SendAsync(delivery, cancellationToken);
         var after = _time.GetUtcNow().UtcDateTime;
         delivery.Attempts++;
@@ -99,7 +95,7 @@ public sealed class WebhookDispatcher : BackgroundService
             delivery.LastError = null;
             _logger.LogInformation("Webhook {EventId} ({Type}) delivered on attempt {Attempt}", delivery.Id, delivery.Type, delivery.Attempts);
         }
-        else if (WebhookSchedule.DelayAfter(delivery.Attempts) is { } delay)
+        else if (_schedule.DelayAfter(delivery.Attempts) is { } delay)
         {
             delivery.LastError = error;
             delivery.NextAttemptAt = after + delay;
@@ -119,12 +115,24 @@ public sealed class WebhookDispatcher : BackgroundService
         return true;
     }
 
+    /// <summary>The oldest webhook due and not settled, locked; one another instance holds is skipped, not waited for.</summary>
+    private static FormattableString NextDue(PaymentDbContext context, DateTime now)
+    {
+        var sql = context.Sql<WebhookDelivery>();
+        var nextAttemptAt = sql.Column(d => d.NextAttemptAt);
+        return FormattableStringFactory.Create(
+            $"SELECT * FROM {sql.Table} " +
+            $"WHERE {sql.Column(d => d.DeliveredAt)} IS NULL AND {sql.Column(d => d.FailedAt)} IS NULL AND {nextAttemptAt} <= {{0}} " +
+            $"ORDER BY {nextAttemptAt} LIMIT 1 FOR UPDATE SKIP LOCKED",
+            now);
+    }
+
     /// <summary>Posts the signed body; the error to record, or null when the shop answered 2xx.</summary>
     private async Task<string?> SendAsync(WebhookDelivery delivery, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, _options.Url)
         {
-            Content = new StringContent(delivery.Payload, Encoding.UTF8, "application/json")
+            Content = new StringContent(delivery.Payload, Encoding.UTF8, MediaTypeNames.Application.Json)
         };
         request.Headers.Add(WebhookSignature.HeaderName, WebhookSignature.Create(_options.SigningSecret, _time.GetUtcNow(), delivery.Payload));
 
@@ -135,7 +143,7 @@ public sealed class WebhookDispatcher : BackgroundService
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
         {
-            return ex.Message.Length > 450 ? ex.Message[..450] : ex.Message;
+            return ex.Message.Length > WebhookDelivery.LastErrorMaxLength ? ex.Message[..WebhookDelivery.LastErrorMaxLength] : ex.Message;
         }
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.Contracts.Audit;
 using Store.BuildingBlocks.Observability;
 using Store.Contracts.Authorization;
 using Store.IdentityService.DTOs.Requests;
@@ -166,7 +167,7 @@ public class AuthService : IAuthService
             throw RejectedByIdentity(result, "The address could not be saved");
         }
 
-        await _auditTrail.RecordAsync("USER_ADDRESS_UPDATED", nameof(ApplicationUser), user.Id, user.Id,
+        await _auditTrail.RecordAsync(AuditActions.UserAddressUpdated, nameof(ApplicationUser), user.Id, user.Id,
             oldValues: new { SimpleAddress = oldAddress is null ? null : "(set)" },
             newValues: new { SimpleAddress = user.SimpleAddress is null ? null : "(set)" });
 

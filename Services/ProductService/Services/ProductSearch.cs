@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Store.ProductService.Data;
+using Store.ProductService.Models;
 using System.Text.RegularExpressions;
 
 namespace Store.ProductService.Services;
@@ -28,28 +29,44 @@ public sealed partial class ProductSearch
     /// <summary>The text-search configuration of the vector and the queries: English stemming ("sofas" is "sofa").</summary>
     public const string Config = "english";
 
+    /// <summary>The configuration of the words a search is corrected to: as written, not stemmed.</summary>
+    private const string CorrectionConfig = "simple";
+
+    /// <summary>
+    /// The accent-stripping function of the search: an immutable wrapper of unaccent the search
+    /// migration creates, so a generated column may call it. "boucle" finds "Bouclé".
+    /// </summary>
+    public const string UnaccentFunction = "store_unaccent";
+
     /// <summary>At most this many words of a search are used.</summary>
     public const int MaxWords = 8;
 
-    /// <summary>
-    /// The generated column's expression. store_unaccent (an immutable wrapper the migration
-    /// creates) lets "boucle" find "Bouclé"; the category's enum name is split into words
-    /// ("DiningTables" is "Dining Tables").
-    /// </summary>
+    private const string Title = $"\"{nameof(Product.Title)}\"";
+    private const string Description = $"\"{nameof(Product.Description)}\"";
+    private const string Company = $"\"{nameof(Product.Company)}\"";
+
+    /// <summary>The category's enum name split into words: "DiningTables" is "Dining Tables".</summary>
+    private const string CategoryWords = $"regexp_replace(\"{nameof(Product.Category)}\", '([a-z])([A-Z])', '\\1 \\2', 'g')";
+
+    /// <summary>The generated column's expression: the title weighs most, then the category and the maker, then the description.</summary>
     public const string VectorSql =
-        "setweight(to_tsvector('english'::regconfig, store_unaccent(\"Title\")), 'A') || " +
-        "setweight(to_tsvector('english'::regconfig, store_unaccent(regexp_replace(\"Category\", '([a-z])([A-Z])', '\\1 \\2', 'g') || ' ' || \"Company\")), 'B') || " +
-        "setweight(to_tsvector('english'::regconfig, store_unaccent(\"Description\")), 'C')";
+        $"setweight(to_tsvector('{Config}'::regconfig, {UnaccentFunction}({Title})), 'A') || " +
+        $"setweight(to_tsvector('{Config}'::regconfig, {UnaccentFunction}({CategoryWords} || ' ' || {Company})), 'B') || " +
+        $"setweight(to_tsvector('{Config}'::regconfig, {UnaccentFunction}({Description})), 'C')";
+
+    /// <summary>The words a search is corrected to, as the query ts_stat reads them from: the active products' titles, categories and makers.</summary>
+    private const string CorrectionWordsQuery =
+        $"SELECT to_tsvector('{CorrectionConfig}', {UnaccentFunction}({Title} || ' ' || {CategoryWords} || ' ' || {Company})) " +
+        $"FROM \"{nameof(ProductDbContext.Products)}\" WHERE \"{nameof(Product.IsActive)}\"";
 
     /// <summary>
-    /// The nearest word to {0} within {1} edits, among the words a search is corrected to: the
-    /// unstemmed words of the active products' titles, categories and makers, as ts_stat lists
-    /// them. A constant; only the word and the distance are parameters.
+    /// The nearest word to {0} within {1} edits, the more common one on a tie. ts_stat takes its
+    /// query as a string literal, so the query's quotes are doubled; only the word and the distance
+    /// are parameters.
     /// </summary>
-    private const string NearestWordSql =
-        "SELECT word AS \"Value\" FROM ts_stat('SELECT to_tsvector(''simple'', store_unaccent(\"Title\" || '' '' || " +
-        "regexp_replace(\"Category\", ''([a-z])([A-Z])'', ''\\1 \\2'', ''g'') || '' '' || \"Company\")) FROM \"Products\" WHERE \"IsActive\"') " +
-        "WHERE levenshtein(word, store_unaccent({0})) <= {1} ORDER BY levenshtein(word, store_unaccent({0})), ndoc DESC, word LIMIT 1";
+    private static readonly string NearestWordSql =
+        $"SELECT word AS \"Value\" FROM ts_stat('{CorrectionWordsQuery.Replace("'", "''", StringComparison.Ordinal)}') " +
+        $"WHERE levenshtein(word, {UnaccentFunction}({{0}})) <= {{1}} ORDER BY levenshtein(word, {UnaccentFunction}({{0}})), ndoc DESC, word LIMIT 1";
 
     private readonly ProductDbContext _context;
 

@@ -185,7 +185,7 @@ public sealed class SessionTests : IClassFixture<IdentityApiFactory>
         Assert.NotNull(session);
         Assert.Equal(session, SessionOf(renewed));
         Assert.NotEqual(session, SessionOf(another));
-        Assert.Contains(Read(accessToken).Claims, c => c.Type == StoreClaims.DemoAccount && c.Value == "true");
+        Assert.Contains(Read(accessToken).Claims, c => c.Type == StoreClaims.DemoAccount && c.Value == StoreClaims.DemoAccountValue);
 
         var registered = await client.PostAsJsonAsync("/api/v1/auth/register", new
         {

@@ -2,6 +2,8 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Persistence;
+using Store.Contracts.Audit;
 using Store.Contracts.Catalog.V1;
 using Store.Contracts.Orders.V1;
 using Store.ProductService.Data;
@@ -10,9 +12,9 @@ using Store.ProductService.Models;
 namespace Store.ProductService.Services;
 
 /// <summary>
-/// The stock of the catalogue: units on hand, the units orders hold and the visitors waiting for
-/// a product that ran out. The order events drive it: a placed order reserves every line or
-/// none, a cancelled one gives its units back, a shipped one takes them off the stock.
+/// The stock of the catalogue: units on hand and the units orders hold. The order events drive
+/// it: a placed order reserves every line or none, a cancelled one gives its units back, a
+/// shipped one takes them off the stock.
 /// </summary>
 public interface IStockLedger
 {
@@ -38,9 +40,6 @@ public interface IStockLedger
     /// go below the units held for orders. Tells the waiting visitors when the product is back.
     /// </summary>
     Task<Product> SetStockAsync(int productId, int stockQuantity, string? actorId);
-
-    /// <summary>Asks for an e-mail when a product that ran out is back; asking twice changes nothing.</summary>
-    Task SubscribeAsync(int productId, string email);
 }
 
 public sealed class StockLedger : IStockLedger
@@ -50,14 +49,16 @@ public sealed class StockLedger : IStockLedger
 
     private readonly ProductDbContext _context;
     private readonly IPublishEndpoint _publish;
+    private readonly IStockAlerts _alerts;
     private readonly IAuditTrail _auditTrail;
     private readonly TimeProvider _time;
     private readonly ILogger<StockLedger> _logger;
 
-    public StockLedger(ProductDbContext context, IPublishEndpoint publish, IAuditTrail auditTrail, TimeProvider time, ILogger<StockLedger> logger)
+    public StockLedger(ProductDbContext context, IPublishEndpoint publish, IStockAlerts alerts, IAuditTrail auditTrail, TimeProvider time, ILogger<StockLedger> logger)
     {
         _context = context;
         _publish = publish;
+        _alerts = alerts;
         _auditTrail = auditTrail;
         _time = time;
         _logger = logger;
@@ -152,7 +153,7 @@ public sealed class StockLedger : IStockLedger
         stockOrder.Status = StockOrderStatus.Released;
         stockOrder.UpdatedAt = now;
         await _publish.Publish(new StockReleased(orderId, ToStockLines(stockOrder), now), cancellationToken);
-        await NotifyWaitingAsync(released, now, cancellationToken);
+        await _alerts.NotifyBackInStockAsync(released, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Released the stock of order {OrderId}", orderId);
     }
@@ -187,7 +188,7 @@ public sealed class StockLedger : IStockLedger
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         var products = await LockProductsAsync([productId], CancellationToken.None);
-        var product = products.GetValueOrDefault(productId) ?? throw new NotFoundException("Product", productId);
+        var product = products.GetValueOrDefault(productId) ?? throw new NotFoundException(nameof(Product), productId);
         if (stockQuantity < product.ReservedQuantity)
         {
             throw new DomainValidationException(
@@ -198,55 +199,15 @@ public sealed class StockLedger : IStockLedger
         var now = _time.GetUtcNow().UtcDateTime;
         product.StockQuantity = stockQuantity;
         product.UpdatedAt = now;
-        await NotifyWaitingAsync([product], now, CancellationToken.None);
+        await _alerts.NotifyBackInStockAsync([product]);
         await _context.SaveChangesAsync();
 
-        await _auditTrail.RecordAsync("PRODUCT_STOCK_UPDATED", nameof(Product), productId.ToString(), actorId,
+        await _auditTrail.RecordAsync(AuditActions.ProductStockUpdated, nameof(Product), productId.ToString(), actorId,
             oldValues: new { stockQuantity = previous }, newValues: new { stockQuantity, product.ReservedQuantity });
         await transaction.CommitAsync();
 
         _logger.LogInformation("Stock of product {ProductId} set from {Previous} to {Stock}", productId, previous, stockQuantity);
         return product;
-    }
-
-    public async Task SubscribeAsync(int productId, string email)
-    {
-        var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == productId && p.IsActive)
-            ?? throw new NotFoundException("Product", productId);
-        if (product.AvailableQuantity > 0)
-        {
-            throw new ConflictException($"\"{product.Title}\" is in stock - it can be added to the bag now.");
-        }
-
-        var normalized = email.Trim().ToLowerInvariant();
-        var now = _time.GetUtcNow().UtcDateTime;
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO "StockAlerts" ("ProductId", "Email", "CreatedAt") VALUES ({productId}, {normalized}, {now})
-            ON CONFLICT ("ProductId", "Email") DO NOTHING
-            """);
-    }
-
-    /// <summary>
-    /// One event per visitor waiting for a product that has units again, then their alert goes:
-    /// the address is kept only as long as it is needed.
-    /// </summary>
-    private async Task NotifyWaitingAsync(IEnumerable<Product> products, DateTime now, CancellationToken cancellationToken)
-    {
-        foreach (var product in products.Where(p => p.IsActive && p.AvailableQuantity > 0).DistinctBy(p => p.Id))
-        {
-            var alerts = await _context.StockAlerts.Where(a => a.ProductId == product.Id).ToListAsync(cancellationToken);
-            foreach (var alert in alerts)
-            {
-                await _publish.Publish(new ProductBackInStock(
-                    product.Id, product.Title, product.Slug, product.Image, product.EffectivePrice, alert.Email, now), cancellationToken);
-            }
-
-            _context.StockAlerts.RemoveRange(alerts);
-            if (alerts.Count > 0)
-            {
-                _logger.LogInformation("Product {ProductId} is back: {Count} waiting visitors notified", product.Id, alerts.Count);
-            }
-        }
     }
 
     /// <summary>
@@ -262,9 +223,8 @@ public sealed class StockLedger : IStockLedger
     /// </summary>
     private async Task<Dictionary<int, Product>> LockProductsAsync(IEnumerable<int> productIds, CancellationToken cancellationToken)
     {
-        var ids = productIds.Distinct().Order().ToArray();
-        await _context.Database.ExecuteSqlInterpolatedAsync(
-            $"""SELECT 1 FROM "Products" WHERE "Id" = ANY({ids}) ORDER BY "Id" FOR UPDATE""", cancellationToken);
+        var ids = productIds.Distinct().ToArray();
+        await _context.LockAllForUpdateAsync<Product, int>(p => p.Id, ids, cancellationToken);
         return await _context.Products.Where(p => ids.Contains(p.Id)).ToDictionaryAsync(p => p.Id, cancellationToken);
     }
 

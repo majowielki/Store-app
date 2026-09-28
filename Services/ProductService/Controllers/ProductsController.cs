@@ -18,12 +18,16 @@ namespace Store.ProductService.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
+    private readonly IProductDiscovery _discovery;
     private readonly IStockLedger _stock;
+    private readonly IStockAlerts _alerts;
 
-    public ProductsController(IProductService productService, IStockLedger stock)
+    public ProductsController(IProductService productService, IProductDiscovery discovery, IStockLedger stock, IStockAlerts alerts)
     {
         _productService = productService;
+        _discovery = discovery;
         _stock = stock;
+        _alerts = alerts;
     }
 
     /// <summary>Id of the signed-in administrator, for the audit trail.</summary>
@@ -46,15 +50,15 @@ public class ProductsController : ControllerBase
     /// </summary>
     [HttpGet("meta")]
     public Task<ProductsMeta> GetProductsMeta([FromQuery] ProductQueryParams queryParams)
-        => _productService.GetProductsMetaAsync(queryParams);
+        => _discovery.GetMetaAsync(queryParams);
 
     /// <summary>
     /// The best matches of a search while it is typed (words match as word starts, the title first),
     /// with the corrected search when the typed one finds nothing ("sfoa" finds the sofas).
     /// </summary>
     [HttpGet("suggest")]
-    public Task<ProductSuggestions> Suggest([FromQuery] string? q, [FromQuery] int limit = 6)
-        => _productService.SuggestAsync(q, limit);
+    public Task<ProductSuggestions> Suggest([FromQuery] string? q, [FromQuery] int limit = ProductDiscovery.DefaultSuggestions)
+        => _discovery.SuggestAsync(q, limit);
 
     /// <summary>
     /// Every product, inactive ones included, sorted by <paramref name="sortBy"/> (id, price,
@@ -123,7 +127,7 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> NotifyWhenBack(int id, [FromBody] StockAlertRequest request)
     {
-        await _stock.SubscribeAsync(id, request.Email);
+        await _alerts.SubscribeAsync(id, request.Email);
         return NoContent();
     }
 

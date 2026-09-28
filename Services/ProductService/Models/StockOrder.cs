@@ -47,37 +47,3 @@ public enum StockOrderStatus
     /// <summary>The order left the warehouse: its units are off the stock.</summary>
     Shipped
 }
-
-/// <summary>A visitor waiting for a product that ran out; removed once they are told it is back.</summary>
-public class StockAlert
-{
-    public int Id { get; set; }
-
-    public int ProductId { get; set; }
-
-    public string Email { get; set; } = string.Empty;
-
-    public DateTime CreatedAt { get; set; }
-}
-
-/// <summary>How a product's availability is shown to customers.</summary>
-public enum StockAvailability
-{
-    InStock,
-    LowStock,
-    OutOfStock
-}
-
-/// <summary>When a product counts as running low.</summary>
-public static class StockPolicy
-{
-    /// <summary>At most this many units left is "only a few left".</summary>
-    public const int LowStockThreshold = 3;
-
-    public static StockAvailability For(int availableQuantity) => availableQuantity switch
-    {
-        <= 0 => StockAvailability.OutOfStock,
-        <= LowStockThreshold => StockAvailability.LowStock,
-        _ => StockAvailability.InStock
-    };
-}

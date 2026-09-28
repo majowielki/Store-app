@@ -13,8 +13,8 @@ public class ReviewQuery
     /// <summary>true: only reviews by customers who bought the product.</summary>
     public bool? Verified { get; set; }
 
-    /// <summary>newest (default), oldest, highest or lowest.</summary>
-    public string? Sort { get; set; }
+    /// <summary>Newest first unless another order is asked for.</summary>
+    public ReviewSort? Sort { get; set; }
 
     public int? Page { get; set; }
 
@@ -87,8 +87,8 @@ public class MyProductReviewResponse
 
     public bool CanReview { get; set; }
 
-    /// <summary>Why not: notPurchased, alreadyReviewed, dailyLimit or signInAgain (a demo session from an old token); null when they can.</summary>
-    public string? Reason { get; set; }
+    /// <summary>Why not; null when they can.</summary>
+    public ReviewBlockReason? Reason { get; set; }
 
     /// <summary>Their review of the product in any state; a rejected one may be written again.</summary>
     public ReviewResponse? Review { get; set; }
@@ -119,11 +119,8 @@ public class ReportReviewRequest
 /// <summary>Query of GET /api/v1/reviews/admin.</summary>
 public class AdminReviewQuery
 {
-    /// <summary>
-    /// queue (default: waiting for a decision - new or reported), pending, reported, published,
-    /// rejected or all.
-    /// </summary>
-    public string? Status { get; set; }
+    /// <summary>Which reviews: the queue (waiting for a decision - new or reported) unless another set is asked for.</summary>
+    public ReviewQueueFilter? Status { get; set; }
 
     public int? ProductId { get; set; }
 
@@ -193,6 +190,47 @@ public class ModerateReviewsRequest
 
     /// <summary>Required to reject, up to 300 characters; the review's author sees it.</summary>
     public string? Reason { get; set; }
+}
+
+/// <summary>The orders the published reviews of a product are listed in.</summary>
+public enum ReviewSort
+{
+    Newest,
+    Oldest,
+
+    /// <summary>Most stars first, the newest first among equals.</summary>
+    Highest,
+
+    /// <summary>Fewest stars first, the newest first among equals.</summary>
+    Lowest
+}
+
+/// <summary>Why a signed-in customer may not review a product.</summary>
+public enum ReviewBlockReason
+{
+    /// <summary>The product is in none of their paid orders.</summary>
+    NotPurchased,
+
+    /// <summary>They reviewed it already (a rejected review may be written again).</summary>
+    AlreadyReviewed,
+
+    /// <summary>They wrote as many reviews as a day allows.</summary>
+    DailyLimit,
+
+    /// <summary>A demo account signed in with a token from before sessions were named: signing in again fixes it.</summary>
+    SignInAgain
+}
+
+/// <summary>The sets of reviews the moderation queue shows.</summary>
+public enum ReviewQueueFilter
+{
+    /// <summary>Waiting for a decision: new ones and reported ones, oldest first.</summary>
+    Queue,
+    Pending,
+    Reported,
+    Published,
+    Rejected,
+    All
 }
 
 /// <summary>Stored nowhere; serialised by name.</summary>

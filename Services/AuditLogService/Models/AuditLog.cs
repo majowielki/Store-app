@@ -1,3 +1,5 @@
+using Store.Contracts.Authorization;
+
 namespace Store.AuditLogService.Models;
 
 /// <summary>
@@ -39,7 +41,7 @@ public static class AuditLogConstraints
     public const int ActionMaxLength = 50;
     public const int EntityNameMaxLength = 100;
     public const int EntityIdMaxLength = 100;
-    public const int UserIdMaxLength = 450;
+    public const int UserIdMaxLength = UserIds.MaxLength;
     public const int ServiceNameMaxLength = 100;
     public const int CorrelationIdMaxLength = 100;
 }

@@ -1,10 +1,11 @@
+using Store.Contracts.Payments;
 using Store.PaymentService.Models;
 
 namespace Store.PaymentService.DTOs;
 
 /// <summary>
 /// Body of POST /api/v1/payments/{id}/confirm: the card, typed by the customer. Only the test
-/// cards are taken (see <c>TestCards</c>); rules: <c>ConfirmPaymentRequestValidator</c>.
+/// cards are taken (<c>GET /api/v1/payments/test-cards</c> lists them); rules: <c>ConfirmPaymentRequestValidator</c>.
 /// </summary>
 public class ConfirmPaymentRequest
 {
@@ -39,7 +40,7 @@ public class PaymentResponse
     public decimal Amount { get; set; }
 
     /// <summary>ISO code, lowercase.</summary>
-    public string Currency { get; set; } = "usd";
+    public string Currency { get; set; } = Currencies.Usd;
 
     /// <summary>requiresPaymentMethod (a card is needed, again after a refusal), requiresAction (3-D Secure), succeeded, cancelled, refunded.</summary>
     public PaymentStatus Status { get; set; }

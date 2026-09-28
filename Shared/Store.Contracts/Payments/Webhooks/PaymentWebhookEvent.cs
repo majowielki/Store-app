@@ -32,6 +32,9 @@ public sealed record PaymentWebhookData(
 /// <summary>The kinds of payment events.</summary>
 public static class PaymentWebhookTypes
 {
+    /// <summary>The longest type a service stores.</summary>
+    public const int MaxLength = 50;
+
     public const string Succeeded = "payment.succeeded";
     public const string Failed = "payment.failed";
     public const string Refunded = "payment.refunded";

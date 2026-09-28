@@ -35,7 +35,7 @@ public sealed class PaymentClient : IPaymentClient
             Content = JsonContent.Create(request, options: StoreJson.Web)
         };
         // Retries of this call (the resilience pipeline) and of the customer's click open one payment
-        message.Headers.Add("Idempotency-Key", idempotencyKey);
+        message.Headers.Add(IdempotencyKeyHeader.Name, idempotencyKey);
 
         using var response = await _httpClient.SendAsync(message, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Conflict)

@@ -9,6 +9,7 @@ using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
+using Store.Contracts.Authorization;
 using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.Models;
@@ -99,7 +100,7 @@ public class AuthServiceTests
         // The access token carries the identity the services check; the refresh token is stored only as a hash
         var jwt = new JsonWebTokenHandler().ReadJsonWebToken(session.Auth.AccessToken);
         Assert.Equal(Jwt.Issuer, jwt.Issuer);
-        Assert.Contains(jwt.Claims, c => c.Type == "role" && c.Value == "user");
+        Assert.Contains(jwt.Claims, c => c.Type == StoreClaims.Role && c.Value == Roles.User);
         Assert.Equal(request.Email, session.Auth.User.Email);
         Assert.NotEmpty(session.RefreshToken);
         var stored = Assert.Single(_dbContext.RefreshTokens);

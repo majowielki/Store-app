@@ -141,7 +141,7 @@ public class DemoCatalogueTests
 
         Assert.All(DemoCatalogue.StockedSlugs, slug => Assert.Contains(slug, slugs));
         Assert.Contains(products, p => p.StockQuantity == 0);
-        Assert.Contains(products, p => p.StockQuantity is > 0 and <= StockPolicy.LowStockThreshold);
+        Assert.Contains(products, p => p.StockQuantity is > 0 and <= StockOptions.DefaultLowStockThreshold);
         Assert.All(products.Where(p => !DemoCatalogue.StockedSlugs.Contains(p.Slug)),
             p => Assert.InRange(p.StockQuantity, 8, 40));
     }

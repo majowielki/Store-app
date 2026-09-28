@@ -6,30 +6,26 @@ using Store.NotificationService.Mail;
 
 namespace Store.NotificationService.Consumers;
 
-/// <summary>The order confirmation, once the payment has arrived.</summary>
-public sealed class OrderPaidConsumer(MailTemplates templates, IMailSender mail) : IConsumer<OrderPaid>
+/// <summary>
+/// Turns an event into its e-mail (<see cref="IMailTemplate{TEvent}"/>) and hands it over for
+/// delivery. A new e-mail is a template and a one-line consumer below; each consumer keeps its own
+/// queue, named after it.
+/// </summary>
+public abstract class MailConsumer<TEvent>(IMailTemplate<TEvent> template, IMailSender mail) : IConsumer<TEvent>
+    where TEvent : class
 {
-    public Task Consume(ConsumeContext<OrderPaid> context)
-        => mail.SendAsync(templates.OrderPaid(context.Message), context.CancellationToken);
+    public Task Consume(ConsumeContext<TEvent> context)
+        => mail.SendAsync(template.Render(context.Message), context.CancellationToken);
 }
+
+/// <summary>The order confirmation, once the payment has arrived.</summary>
+public sealed class OrderPaidConsumer(IMailTemplate<OrderPaid> template, IMailSender mail) : MailConsumer<OrderPaid>(template, mail);
 
 /// <summary>A refused card, with a link back to the payment while the order still waits.</summary>
-public sealed class PaymentDeclinedConsumer(MailTemplates templates, IMailSender mail) : IConsumer<PaymentDeclined>
-{
-    public Task Consume(ConsumeContext<PaymentDeclined> context)
-        => mail.SendAsync(templates.PaymentDeclined(context.Message), context.CancellationToken);
-}
+public sealed class PaymentDeclinedConsumer(IMailTemplate<PaymentDeclined> template, IMailSender mail) : MailConsumer<PaymentDeclined>(template, mail);
 
 /// <summary>The order has left the workshop.</summary>
-public sealed class OrderShippedConsumer(MailTemplates templates, IMailSender mail) : IConsumer<OrderShipped>
-{
-    public Task Consume(ConsumeContext<OrderShipped> context)
-        => mail.SendAsync(templates.OrderShipped(context.Message), context.CancellationToken);
-}
+public sealed class OrderShippedConsumer(IMailTemplate<OrderShipped> template, IMailSender mail) : MailConsumer<OrderShipped>(template, mail);
 
 /// <summary>A sold-out product the visitor waited for can be bought again.</summary>
-public sealed class ProductBackInStockConsumer(MailTemplates templates, IMailSender mail) : IConsumer<ProductBackInStock>
-{
-    public Task Consume(ConsumeContext<ProductBackInStock> context)
-        => mail.SendAsync(templates.ProductBackInStock(context.Message), context.CancellationToken);
-}
+public sealed class ProductBackInStockConsumer(IMailTemplate<ProductBackInStock> template, IMailSender mail) : MailConsumer<ProductBackInStock>(template, mail);

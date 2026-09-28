@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -51,7 +52,9 @@ builder.Services.AddScoped<PaymentProcessor>();
 // Signed webhooks to the shop, written with each change and sent by the dispatcher with retries
 builder.Services.AddStoreOptions<PaymentWebhookOptions>(builder.Configuration, PaymentWebhookOptions.SectionName);
 builder.Services.AddScoped<PaymentWebhooks>();
-builder.Services.AddHttpClient(WebhookDispatcher.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddSingleton<WebhookSchedule>();
+builder.Services.AddHttpClient(WebhookDispatcher.HttpClientName, (services, client) =>
+    client.Timeout = services.GetRequiredService<IOptions<PaymentWebhookOptions>>().Value.Timeout);
 builder.Services.AddSingleton<WebhookDispatcher>();
 builder.Services.AddHostedService(services => services.GetRequiredService<WebhookDispatcher>());
 

@@ -41,7 +41,7 @@ public sealed class ReviewSummaries
 
         return ids.Select(id =>
         {
-            var distribution = Enumerable.Range(1, 5).ToDictionary(
+            var distribution = Enumerable.Range(ReviewConstraints.MinRating, ReviewConstraints.MaxRating - ReviewConstraints.MinRating + 1).ToDictionary(
                 stars => stars.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 stars => counts.Where(c => c.ProductId == id && c.Rating == stars).Sum(c => c.Count));
             var count = distribution.Values.Sum();

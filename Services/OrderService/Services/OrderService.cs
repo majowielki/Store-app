@@ -3,14 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Observability;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Orders.V1;
-using Store.Contracts.Payments;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Models;
 using Store.OrderService.Saga;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -19,9 +20,6 @@ namespace Store.OrderService.Services;
 
 public class OrderService : IOrderService
 {
-    /// <summary>The shop charges in US dollars (formatAsDollars in the UI).</summary>
-    private const string Currency = "usd";
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -36,7 +34,6 @@ public class OrderService : IOrderService
     private readonly TimeProvider _time;
     private readonly DeliveryEstimator _delivery;
     private readonly OrderStatusWriter _writer;
-    private readonly IPaymentClient _payments;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -49,7 +46,6 @@ public class OrderService : IOrderService
         TimeProvider time,
         DeliveryEstimator delivery,
         OrderStatusWriter writer,
-        IPaymentClient payments,
         ILogger<OrderService> logger)
     {
         _context = context;
@@ -61,7 +57,6 @@ public class OrderService : IOrderService
         _time = time;
         _delivery = delivery;
         _writer = writer;
-        _payments = payments;
         _logger = logger;
     }
 
@@ -144,11 +139,7 @@ public class OrderService : IOrderService
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        await _context.Database.ExecuteSqlInterpolatedAsync(
-            $"""INSERT INTO "Customers" ("UserId", "OrdersPlaced") VALUES ({request.UserId}, 0) ON CONFLICT ("UserId") DO NOTHING""");
-        var customer = await _context.Customers
-            .FromSqlInterpolated($"""SELECT * FROM "Customers" WHERE "UserId" = {request.UserId} FOR UPDATE""")
-            .SingleAsync();
+        var customer = await LockCustomerAsync(request.UserId);
 
         if (idempotencyKey is not null)
         {
@@ -211,38 +202,33 @@ public class OrderService : IOrderService
             });
         }
 
-        // The saga of the order starts with it, waiting for the stock: whatever event about the
-        // order comes first finds it
-        _context.OrderStates.Add(new OrderState
-        {
-            CorrelationId = OrderSagaIds.For(order.Id),
-            CurrentState = nameof(OrderStateMachine.ReservingStock),
-            OrderId = order.Id,
-            CreatedAt = now,
-            UpdatedAt = now
-        });
+        // The saga of the order starts with it, waiting for the stock
+        _context.OrderStates.Add(OrderState.StartFor(order.Id, now));
 
         // Goes to the outbox table with this transaction; the cart, identity and audit
         // services receive it once the transaction is committed
-        await _publishEndpoint.Publish(new OrderPlaced(
-            order.Id,
-            order.UserId,
-            order.UserEmail,
-            order.CustomerName,
-            order.DeliveryAddress,
-            request.SaveAddress,
-            order.Subtotal,
-            order.DiscountAmount,
-            order.DeliveryFee,
-            order.Total,
-            order.Lines.Select(l => new OrderPlacedLine(l.ProductId, l.ProductTitle, l.Quantity, l.UnitPrice)).ToList(),
-            order.CreatedAt));
+        await _publishEndpoint.Publish(OrderEvents.Placed(order, request.SaveAddress));
 
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
 
         _metrics.OrderPlaced(order.Total, order.DiscountReason);
         return MapToOrderResponse(order);
+    }
+
+    /// <summary>
+    /// The customer's row, made on their first checkout and locked until the order commits. An
+    /// insert that finds the row already there does nothing, so two first checkouts at once both
+    /// end up waiting on the same row.
+    /// </summary>
+    private async Task<Customer> LockCustomerAsync(string userId)
+    {
+        var customers = _context.Sql<Customer>();
+        var key = customers.Column(c => c.UserId);
+        await _context.Database.ExecuteSqlAsync(FormattableStringFactory.Create(
+            $"INSERT INTO {customers.Table} ({key}, {customers.Column(c => c.OrdersPlaced)}) VALUES ({{0}}, 0) ON CONFLICT ({key}) DO NOTHING", userId));
+        await _context.LockForUpdateAsync<Customer, string>(c => c.UserId, userId);
+        return await _context.Customers.SingleAsync(c => c.UserId == userId);
     }
 
     /// <summary>
@@ -259,7 +245,7 @@ public class OrderService : IOrderService
         }
 
         var normalized = DiscountCode.Normalize(typed);
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "DiscountCodes" WHERE "Code" = {normalized} FOR UPDATE""");
+        await _context.LockForUpdateAsync<DiscountCode, string>(c => c.Code, normalized);
         var entry = await _context.DiscountCodes.FirstOrDefaultAsync(c => c.Code == normalized);
         var check = DiscountCodePolicy.Check(entry, subtotal, now);
         if (!check.IsUsable)
@@ -284,11 +270,11 @@ public class OrderService : IOrderService
 
         if (answered.UserId != userId || answered.RequestHash != requestHash)
         {
-            throw new DomainValidationException("Idempotency-Key was already used for a different request");
+            throw new DomainValidationException($"{IdempotencyKeyHeader.Name} was already used for a different request");
         }
 
         var order = await _context.Orders.AsNoTracking().Include(o => o.Lines).Include(o => o.StatusHistory).SingleAsync(o => o.Id == answered.OrderId);
-        _logger.LogInformation("Checkout with Idempotency-Key {Key} replayed order {OrderId}", idempotencyKey, order.Id);
+        _logger.LogInformation("Checkout with idempotency key {Key} replayed order {OrderId}", idempotencyKey, order.Id);
         return MapToOrderResponse(order);
     }
 
@@ -358,59 +344,12 @@ public class OrderService : IOrderService
         }
         else
         {
-            await _publishEndpoint.Publish(new OrderCancelled(order.Id, order.UserId, OrderCancellationReasons.ByAdministrator, now));
+            await _publishEndpoint.Publish(OrderEvents.Cancelled(order, OrderCancellationReasons.ByAdministrator, now));
         }
 
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
         return MapToOrderResponse(order);
-    }
-
-    /// <summary>
-    /// Opens the payment of an order waiting for it, with the key "order-{id}", so every call for the
-    /// same order - a second click, a reload of the page - gets the same payment. The browser then
-    /// pays it at the payment service; the order learns the outcome from the webhook.
-    /// </summary>
-    public async Task<OrderPaymentResponse> StartPaymentAsync(int orderId, string userId)
-    {
-        var order = await FindOrderAsync(orderId);
-        if (order.UserId != userId)
-        {
-            throw new ForbiddenException("This order belongs to another customer");
-        }
-
-        var now = _time.GetUtcNow().UtcDateTime;
-        switch (order.Status)
-        {
-            case OrderStatus.Placed:
-                throw new ConflictException("We are still reserving the pieces of this order - try again in a moment.");
-            case OrderStatus.Paid or OrderStatus.Shipped:
-                throw new ConflictException("This order has been paid already.");
-            case OrderStatus.Cancelled or OrderStatus.Refunded:
-                throw new ConflictException("This order was cancelled, so it can no longer be paid.");
-        }
-
-        if (order.PaymentDueAt is not { } due || due <= now)
-        {
-            throw new ConflictException("The time to pay this order has run out.");
-        }
-
-        var payment = await _payments.OpenAsync(new CreatePaymentRequest(order.Id, order.UserId, order.Total, Currency), $"order-{order.Id}");
-        if (order.PaymentId != payment.Id)
-        {
-            await _context.Orders.Where(o => o.Id == order.Id && o.PaymentId == null)
-                .ExecuteUpdateAsync(o => o.SetProperty(x => x.PaymentId, payment.Id));
-        }
-
-        return new OrderPaymentResponse
-        {
-            OrderId = order.Id,
-            PaymentId = payment.Id,
-            Amount = payment.Amount,
-            Currency = payment.Currency,
-            Status = payment.Status,
-            PaymentDueAt = due
-        };
     }
 
     /// <summary>"awaiting payment" for AwaitingPayment.</summary>
@@ -423,7 +362,7 @@ public class OrderService : IOrderService
             .Include(o => o.Lines)
             .Include(o => o.StatusHistory)
             .FirstOrDefaultAsync(o => o.Id == orderId)
-            ?? throw new NotFoundException("Order", orderId);
+            ?? throw new NotFoundException(nameof(Order), orderId);
 
     public Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging)
         => ListOrdersAsync(_context.Orders.Where(o => o.UserId == userId), paging);

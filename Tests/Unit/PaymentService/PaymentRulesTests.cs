@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Webhooks;
 using Store.PaymentService.DTOs;
 using Store.PaymentService.Providers;
@@ -166,13 +167,28 @@ public class ConfirmPaymentRequestValidatorTests
 
 public class WebhookScheduleTests
 {
+    private static WebhookSchedule Schedule(int[]? delaysMinutes = null)
+        => new(Options.Create(new PaymentWebhookOptions { RetryDelaysMinutes = delaysMinutes }));
+
     [Fact]
     public void A_failed_webhook_is_retried_after_1_5_30_and_30_minutes_and_then_given_up()
     {
-        Assert.Equal(5, WebhookSchedule.MaxAttempts);
+        var schedule = Schedule();
+
+        Assert.Equal(5, schedule.MaxAttempts);
         Assert.Equal(
             [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(30)],
-            Enumerable.Range(1, 4).Select(attempts => WebhookSchedule.DelayAfter(attempts)!.Value));
-        Assert.Null(WebhookSchedule.DelayAfter(5));
+            Enumerable.Range(1, 4).Select(attempts => schedule.DelayAfter(attempts)!.Value));
+        Assert.Null(schedule.DelayAfter(5));
+    }
+
+    [Fact]
+    public void The_delays_come_from_the_configuration_when_it_sets_them()
+    {
+        var schedule = Schedule([2, 10]);
+
+        Assert.Equal(3, schedule.MaxAttempts);
+        Assert.Equal(TimeSpan.FromMinutes(10), schedule.DelayAfter(2));
+        Assert.Null(schedule.DelayAfter(3));
     }
 }

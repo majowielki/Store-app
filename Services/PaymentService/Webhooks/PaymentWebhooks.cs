@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Store.BuildingBlocks.Serialization;
 using Store.Contracts.Payments.Webhooks;
@@ -6,24 +5,6 @@ using Store.PaymentService.Data;
 using Store.PaymentService.Models;
 
 namespace Store.PaymentService.Webhooks;
-
-/// <summary>Where the webhooks go and the secret they are signed with. Section "PaymentWebhooks".</summary>
-public sealed class PaymentWebhookOptions
-{
-    public const string SectionName = "PaymentWebhooks";
-
-    /// <summary>The shop's webhook endpoint (the order service, on the internal network).</summary>
-    [Required, Url]
-    public string Url { get; init; } = string.Empty;
-
-    /// <summary>Shared with the order service, min. 32 characters: PAYMENT_WEBHOOK_SECRET in compose.</summary>
-    [Required, MinLength(32)]
-    public string SigningSecret { get; init; } = string.Empty;
-
-    /// <summary>Seconds between two looks for webhooks due.</summary>
-    [Range(1, 60)]
-    public int DispatchIntervalSeconds { get; init; } = 2;
-}
 
 /// <summary>
 /// Writes a webhook for a change of a payment, next to the change and in its transaction: the
@@ -41,6 +22,7 @@ public sealed class PaymentWebhooks
         _time = time;
     }
 
+    /// <summary>A webhook of <paramref name="type"/> (<see cref="PaymentWebhookTypes"/>) about <paramref name="payment"/> as it is now.</summary>
     public void Enqueue(Payment payment, string type, string? failureReason = null)
     {
         var now = _time.GetUtcNow().UtcDateTime;
@@ -58,17 +40,4 @@ public sealed class PaymentWebhooks
             CreatedAt = now
         });
     }
-}
-
-/// <summary>When a webhook that failed is tried again: after 1, 5, 30 and 30 minutes - five attempts in all (ADR 011).</summary>
-public static class WebhookSchedule
-{
-    public static readonly IReadOnlyList<TimeSpan> RetryDelays =
-        [TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(30)];
-
-    public static int MaxAttempts => RetryDelays.Count + 1;
-
-    /// <summary>How long to wait after the <paramref name="attemptsMade"/>-th failed attempt; null once there are no attempts left.</summary>
-    public static TimeSpan? DelayAfter(int attemptsMade)
-        => attemptsMade >= 1 && attemptsMade <= RetryDelays.Count ? RetryDelays[attemptsMade - 1] : null;
 }

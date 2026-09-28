@@ -75,6 +75,50 @@
         ]
       }
     },
+    "/api/v1/payments/test-cards": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "The cards the payment page may use and what each one does; empty where real cards are charged.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestCard"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/payments/{id}": {
       "get": {
         "tags": [
@@ -265,6 +309,16 @@
         "additionalProperties": false,
         "description": "Body of POST /api/v1/payments/{id}/authenticate: the customer's answer in the 3-D Secure window."
       },
+      "ChargeResult": {
+        "enum": [
+          "approved",
+          "authenticationRequired",
+          "declined",
+          "insufficientFunds"
+        ],
+        "type": "string",
+        "description": "What the card network answers to a charge; the API writes it in camelCase."
+      },
       "ConfirmPaymentRequest": {
         "required": [
           "cardNumber",
@@ -293,7 +347,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Body of POST /api/v1/payments/{id}/confirm: the card, typed by the customer. Only the test\ncards are taken (see `TestCards`); rules: `ConfirmPaymentRequestValidator`."
+        "description": "Body of POST /api/v1/payments/{id}/confirm: the card, typed by the customer. Only the test\ncards are taken (`GET /api/v1/payments/test-cards` lists them); rules: `ConfirmPaymentRequestValidator`."
       },
       "CreatePaymentRequest": {
         "required": [
@@ -324,7 +378,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Body of `POST /api/v1/payments/internal`, with which the order service opens the payment\nof an order (an internal call, with the key \"order-{id}\" in the Idempotency-Key header). One\npayment per order: asking again returns the payment made the first time."
+        "description": "Body of `POST /api/v1/payments/internal`, with which the order service opens the payment\nof an order (an internal call, with the key \"order-{id}\" - `IdempotencyKeyFor` - in the\nIdempotency-Key header). One payment per order: asking again returns the payment made the first time."
       },
       "PaymentResponse": {
         "required": [
@@ -409,8 +463,7 @@
             "description": "ISO code, lowercase"
           },
           "status": {
-            "type": "string",
-            "description": "requiresPaymentMethod, requiresAction, succeeded, cancelled or refunded"
+            "$ref": "#/components/schemas/PaymentStatus"
           },
           "createdAt": {
             "type": "string",
@@ -430,7 +483,7 @@
           "refunded"
         ],
         "type": "string",
-        "description": "Stored by name; the API writes them in camelCase."
+        "description": "Where a payment stands; stored by name, written in camelCase by the APIs."
       },
       "StoreProblemDetails": {
         "type": "object",
@@ -475,6 +528,24 @@
         },
         "additionalProperties": { },
         "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
+      },
+      "TestCard": {
+        "required": [
+          "number",
+          "outcome"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string",
+            "description": "The number in groups of four, as printed on a card"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ChargeResult"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A card number the provider takes in test mode, and what charging it does."
       }
     },
     "securitySchemes": {

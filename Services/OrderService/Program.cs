@@ -50,6 +50,7 @@ builder.Services.AddServiceClient<IPaymentClient, PaymentClient>(builder.Configu
 // The payment service reports payments with signed webhooks (ADR 011)
 builder.Services.AddStoreOptions<PaymentWebhookOptions>(builder.Configuration, PaymentWebhookOptions.SectionName);
 builder.Services.AddScoped<PaymentWebhookHandler>();
+builder.Services.AddScoped<PaymentWebhookSignatureFilter>();
 
 // Message bus: the order events leave through the outbox in the orders database. The order saga
 // (ADR 013) keeps its rows next to the orders and is locked per order while it handles a message.
@@ -74,8 +75,9 @@ builder.Services.AddStoreOptions<PricingOptions>(builder.Configuration, PricingO
 builder.Services.AddStoreOptions<DeliveryOptions>(builder.Configuration, DeliveryOptions.SectionName);
 builder.Services.AddSingleton<DeliveryEstimator>();
 builder.Services.AddScoped<IOrderService, Store.OrderService.Services.OrderService>();
+builder.Services.AddScoped<IOrderPayments, OrderPayments>();
 builder.Services.AddScoped<DiscountCodeService>();
-builder.Services.AddHostedService<IdempotencyKeyCleanupService>();
+builder.Services.AddHostedService<DeduplicationCleanupService>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());

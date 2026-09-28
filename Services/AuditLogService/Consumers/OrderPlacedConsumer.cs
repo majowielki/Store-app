@@ -1,6 +1,7 @@
 using MassTransit;
 using Store.AuditLogService.Models;
 using Store.AuditLogService.Services;
+using Store.Contracts.Audit;
 using Store.Contracts.Orders.V1;
 using System.Text.Json;
 
@@ -30,7 +31,7 @@ public sealed class OrderPlacedConsumer : IConsumer<OrderPlaced>
         // A database that refuses the row throws: the bus retries and, after that, parks the event in the error queue
         await _auditLogService.CreateAuditLogAsync(new AuditLog
         {
-            Action = "ORDER_PLACED",
+            Action = AuditActions.OrderPlaced,
             EntityName = "Order",
             EntityId = order.OrderId.ToString(),
             UserId = order.UserId,

@@ -27,6 +27,9 @@ public sealed record PaymentDeclined(
 /// <summary>Why a card was refused, as <see cref="PaymentDeclined.Reason"/> and the payment webhooks carry it.</summary>
 public static class PaymentDeclineReasons
 {
+    /// <summary>The longest reason a service stores.</summary>
+    public const int MaxLength = 50;
+
     /// <summary>The bank refused the card.</summary>
     public const string CardDeclined = "card-declined";
 

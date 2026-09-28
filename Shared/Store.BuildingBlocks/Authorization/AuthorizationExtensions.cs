@@ -32,7 +32,7 @@ public static class AuthorizationExtensions
 
     /// <summary>True for the showcase accounts every visitor shares (demo user, demo administrator).</summary>
     public static bool IsDemoAccount(this ClaimsPrincipal principal)
-        => principal.HasClaim(StoreClaims.DemoAccount, "true");
+        => principal.HasClaim(StoreClaims.DemoAccount, StoreClaims.DemoAccountValue);
 
     /// <summary>The sign-in session the token belongs to; null for a token issued before sessions were named.</summary>
     public static Guid? GetSessionId(this ClaimsPrincipal principal)

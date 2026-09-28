@@ -2,6 +2,7 @@ using FluentValidation;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
+using Store.BuildingBlocks.Configuration;
 using Store.BuildingBlocks.Health;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
@@ -9,6 +10,7 @@ using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 using Store.ProductService.Consumers;
 using Store.ProductService.Data;
+using Store.ProductService.Models;
 using Store.ProductService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,8 +47,13 @@ builder.Services.AddStoreMessaging<ProductDbContext>(builder.Configuration, serv
 });
 
 // Business Services
+builder.Services.AddStoreOptions<StockOptions>(builder.Configuration, StockOptions.SectionName);
+builder.Services.AddSingleton<StockPolicy>();
+builder.Services.AddSingleton<ProductMapper>();
 builder.Services.AddScoped<ProductSearch>();
 builder.Services.AddScoped<IProductService, Store.ProductService.Services.ProductService>();
+builder.Services.AddScoped<IProductDiscovery, ProductDiscovery>();
+builder.Services.AddScoped<IStockAlerts, StockAlerts>();
 builder.Services.AddScoped<IStockLedger, StockLedger>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)

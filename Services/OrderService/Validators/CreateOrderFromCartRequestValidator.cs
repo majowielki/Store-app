@@ -1,5 +1,6 @@
 using FluentValidation;
 using Store.OrderService.DTOs.Requests;
+using Store.OrderService.Models;
 
 namespace Store.OrderService.Validators;
 
@@ -8,17 +9,20 @@ public class CreateOrderFromCartRequestValidator : AbstractValidator<CreateOrder
     public CreateOrderFromCartRequestValidator()
     {
         RuleFor(x => x.DeliveryAddress)
-            .MaximumLength(300).WithMessage("DeliveryAddress must be at most 300 characters.");
+            .MaximumLength(OrderConstraints.DeliveryAddressMaxLength)
+            .WithMessage($"DeliveryAddress must be at most {OrderConstraints.DeliveryAddressMaxLength} characters.");
 
         RuleFor(x => x.CustomerName)
             .NotEmpty().WithMessage("CustomerName is required.")
-            .MinimumLength(2).WithMessage("CustomerName must be at least 2 characters.")
-            .MaximumLength(100).WithMessage("CustomerName must be at most 100 characters.");
+            .MinimumLength(OrderConstraints.CustomerNameMinLength)
+            .WithMessage($"CustomerName must be at least {OrderConstraints.CustomerNameMinLength} characters.")
+            .MaximumLength(OrderConstraints.CustomerNameMaxLength)
+            .WithMessage($"CustomerName must be at most {OrderConstraints.CustomerNameMaxLength} characters.");
 
         RuleFor(x => x.Notes)
-            .MaximumLength(500).WithMessage("Notes must be at most 500 characters.");
+            .MaximumLength(OrderConstraints.NotesMaxLength).WithMessage($"Notes must be at most {OrderConstraints.NotesMaxLength} characters.");
 
         RuleFor(x => x.DiscountCode)
-            .MaximumLength(Models.DiscountCode.MaxCodeLength).WithMessage($"DiscountCode must be at most {Models.DiscountCode.MaxCodeLength} characters.");
+            .MaximumLength(DiscountCode.MaxCodeLength).WithMessage($"DiscountCode must be at most {DiscountCode.MaxCodeLength} characters.");
     }
 }

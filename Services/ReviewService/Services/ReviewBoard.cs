@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.Contracts.Audit;
 using Store.ReviewService.Data;
 using Store.ReviewService.DTOs;
 using Store.ReviewService.Models;
@@ -18,11 +19,8 @@ public sealed class ReviewBoard
     public const int DefaultPageSize = 10;
     public const int MaxPageSize = 50;
 
-    /// <summary>Reasons <see cref="MyProductReviewResponse.Reason"/> gives.</summary>
-    public const string NotPurchased = "notPurchased";
-    public const string AlreadyReviewed = "alreadyReviewed";
-    public const string DailyLimitReached = "dailyLimit";
-    public const string SignInAgain = "signInAgain";
+    /// <summary>The most of their own reviews a customer is shown at once.</summary>
+    public const int MaxOwnReviews = 200;
 
     private readonly ReviewDbContext _context;
     private readonly ReviewSummaries _summaries;
@@ -52,7 +50,7 @@ public sealed class ReviewBoard
             reviews = reviews.Where(r => !_context.ReviewReports.Any(report => report.ReviewId == r.Id && report.DemoSessionId == session));
         }
 
-        if (query.Rating is >= 1 and <= 5)
+        if (query.Rating is >= ReviewConstraints.MinRating and <= ReviewConstraints.MaxRating)
         {
             reviews = reviews.Where(r => r.Rating == query.Rating);
         }
@@ -62,11 +60,11 @@ public sealed class ReviewBoard
             reviews = reviews.Where(r => r.VerifiedPurchase);
         }
 
-        reviews = (query.Sort ?? string.Empty).ToLowerInvariant() switch
+        reviews = query.Sort switch
         {
-            "oldest" => reviews.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id),
-            "highest" => reviews.OrderByDescending(r => r.Rating).ThenByDescending(r => r.CreatedAt).ThenBy(r => r.Id),
-            "lowest" => reviews.OrderBy(r => r.Rating).ThenByDescending(r => r.CreatedAt).ThenBy(r => r.Id),
+            ReviewSort.Oldest => reviews.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id),
+            ReviewSort.Highest => reviews.OrderByDescending(r => r.Rating).ThenByDescending(r => r.CreatedAt).ThenBy(r => r.Id),
+            ReviewSort.Lowest => reviews.OrderBy(r => r.Rating).ThenByDescending(r => r.CreatedAt).ThenBy(r => r.Id),
             _ => reviews.OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id)
         };
 
@@ -82,18 +80,18 @@ public sealed class ReviewBoard
         var response = new MyProductReviewResponse { ProductId = productId };
         if (viewer.IsDemoAccount && viewer.DemoSessionId is null)
         {
-            response.Reason = SignInAgain;
+            response.Reason = ReviewBlockReason.SignInAgain;
             return response;
         }
 
         var review = await Own(viewer).AsNoTracking().FirstOrDefaultAsync(r => r.ProductId == productId, cancellationToken);
         response.Review = review is null ? null : ReviewResponse.From(review, forAuthor: true);
         response.Reason = review is { Status: not ReviewStatus.Rejected }
-            ? AlreadyReviewed
+            ? ReviewBlockReason.AlreadyReviewed
             : !await HasBoughtAsync(viewer, productId, cancellationToken)
-                ? NotPurchased
+                ? ReviewBlockReason.NotPurchased
                 : await SubmittedTodayAsync(viewer, cancellationToken) >= ReviewConstraints.DailyLimit
-                    ? DailyLimitReached
+                    ? ReviewBlockReason.DailyLimit
                     : null;
         response.CanReview = response.Reason is null;
         return response;
@@ -105,7 +103,7 @@ public sealed class ReviewBoard
         var reviews = await Own(viewer).AsNoTracking()
             .Where(r => r.ProductId != null)
             .OrderByDescending(r => r.SubmittedAt)
-            .Take(200)
+            .Take(MaxOwnReviews)
             .ToListAsync(cancellationToken);
         return reviews.Select(r => ReviewResponse.From(r, forAuthor: true)).ToList();
     }
@@ -177,7 +175,7 @@ public sealed class ReviewBoard
         }
 
         _logger.LogInformation("Review {ReviewId} of product {ProductId} waits for moderation", review.Id, review.ProductId);
-        await _auditTrail.RecordAsync("REVIEW_SUBMITTED", nameof(Review), review.Id.ToString(), viewer.UserId,
+        await _auditTrail.RecordAsync(AuditActions.ReviewSubmitted, nameof(Review), review.Id.ToString(), viewer.UserId,
             details: new { review.ProductId, review.Rating, rewritten = existing is not null, demo = viewer.IsDemoAccount },
             cancellationToken: cancellationToken);
         return ReviewResponse.From(review, forAuthor: true);
@@ -196,7 +194,7 @@ public sealed class ReviewBoard
         }
 
         var review = await ReviewSummaries.Public(_context.Reviews).FirstOrDefaultAsync(r => r.Id == reviewId, cancellationToken)
-            ?? throw new NotFoundException("Review", reviewId);
+            ?? throw new NotFoundException(nameof(Review), reviewId);
 
         if (review.UserId == viewer.UserId && review.DemoSessionId == viewer.DemoSessionId)
         {
@@ -247,7 +245,7 @@ public sealed class ReviewBoard
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        await _auditTrail.RecordAsync("REVIEW_REPORTED", nameof(Review), reviewId.ToString(), userId,
+        await _auditTrail.RecordAsync(AuditActions.ReviewReported, nameof(Review), reviewId.ToString(), userId,
             details: new { review.ProductId, hidden = !viewer.IsDemoAccount, demo = viewer.IsDemoAccount },
             cancellationToken: cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -272,10 +270,10 @@ public sealed class ReviewBoard
     private Task<bool> HasBoughtAsync(ReviewViewer viewer, int productId, CancellationToken cancellationToken)
         => _context.Purchases.AnyAsync(p => p.UserId == viewer.UserId && p.ProductId == productId, cancellationToken);
 
-    /// <summary>Reviews the viewer sent in the last 24 hours, rewritten ones included.</summary>
+    /// <summary>Reviews the viewer sent within <see cref="ReviewConstraints.DailyLimitWindow"/>, rewritten ones included.</summary>
     private Task<int> SubmittedTodayAsync(ReviewViewer viewer, CancellationToken cancellationToken)
     {
-        var since = _time.GetUtcNow().UtcDateTime - TimeSpan.FromDays(1);
+        var since = _time.GetUtcNow().UtcDateTime - ReviewConstraints.DailyLimitWindow;
         return Own(viewer).CountAsync(r => r.SubmittedAt > since, cancellationToken);
     }
 }

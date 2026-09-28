@@ -1,4 +1,6 @@
 using Store.BuildingBlocks.Authorization;
+using Store.Contracts.Authorization;
+using Store.ReviewService.Models;
 using System.Security.Claims;
 
 namespace Store.ReviewService.Services;
@@ -10,6 +12,9 @@ namespace Store.ReviewService.Services;
 /// </summary>
 public sealed record ReviewViewer(string? UserId, Guid? DemoSessionId, bool IsDemoAccount, bool IsDemoAdmin, string AuthorName)
 {
+    /// <summary>The name printed under a review when the account gives no usable one.</summary>
+    public const string DefaultAuthorName = "Customer";
+
     public static readonly ReviewViewer Anonymous = new(null, null, false, false, string.Empty);
 
     public bool SignedIn => UserId is not null;
@@ -28,7 +33,7 @@ public sealed record ReviewViewer(string? UserId, Guid? DemoSessionId, bool IsDe
             isDemo ? principal.GetSessionId() : null,
             isDemo,
             principal.IsDemoAdmin(),
-            AuthorNameOf(principal.FindFirst("firstName")?.Value, principal.FindFirst("lastName")?.Value, principal.FindFirst("displayName")?.Value));
+            AuthorNameOf(principal.FindFirst(StoreClaims.FirstName)?.Value, principal.FindFirst(StoreClaims.LastName)?.Value, principal.FindFirst(StoreClaims.DisplayName)?.Value));
     }
 
     /// <summary>"Anna N." - a first name and the initial of the last one, never the full name or the e-mail.</summary>
@@ -42,9 +47,9 @@ public sealed record ReviewViewer(string? UserId, Guid? DemoSessionId, bool IsDe
 
         if (string.IsNullOrEmpty(name) || name.Contains('@'))
         {
-            return "Customer";
+            return DefaultAuthorName;
         }
 
-        return name.Length <= Models.ReviewConstraints.AuthorNameMaxLength ? name : name[..Models.ReviewConstraints.AuthorNameMaxLength];
+        return name.Length <= ReviewConstraints.AuthorNameMaxLength ? name : name[..ReviewConstraints.AuthorNameMaxLength];
     }
 }

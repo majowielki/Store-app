@@ -28,12 +28,6 @@ public interface IOrderService
     /// </summary>
     Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId);
 
-    /// <summary>
-    /// Opens (or finds) the payment of a customer's order waiting for its payment. An order still
-    /// reserving its stock, paid, cancelled or past its deadline is a <c>ConflictException</c>.
-    /// </summary>
-    Task<OrderPaymentResponse> StartPaymentAsync(int orderId, string userId);
-
     Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging);
     Task<PagedResponse<OrderResponse>> GetAllOrdersAsync(PagedQuery paging);
     Task<int> GetUserOrdersCountAsync(string userId);

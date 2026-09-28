@@ -17,8 +17,6 @@ namespace Store.OrderService.Controllers;
 [Authorize]
 public class OrdersController : ControllerBase
 {
-    private const int IdempotencyKeyMaxLength = 128;
-
     private readonly IOrderService _orderService;
     private readonly PricingOptions _pricing;
     private readonly DeliveryEstimator _delivery;
@@ -70,15 +68,15 @@ public class OrdersController : ControllerBase
     [ProducesResponseType<OrderResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<OrderResponse>> CreateOrderFromCart(
         [FromBody] CreateOrderFromCartRequest request,
-        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
+        [FromHeader(Name = IdempotencyKeyHeader.Name)] string? idempotencyKey = null)
     {
         // Who orders and where the confirmation goes come from the token, not from the body
         request.UserId = UserId;
         request.UserEmail = User.FindFirst(ClaimTypes.Email)?.Value
             ?? throw new UnauthorizedAccessException("The token carries no e-mail address");
-        if (idempotencyKey is { Length: > IdempotencyKeyMaxLength })
+        if (idempotencyKey is { Length: > IdempotencyKeyHeader.MaxLength })
         {
-            throw new DomainValidationException($"Idempotency-Key must be at most {IdempotencyKeyMaxLength} characters");
+            throw new DomainValidationException($"{IdempotencyKeyHeader.Name} must be at most {IdempotencyKeyHeader.MaxLength} characters");
         }
 
         var order = await _orderService.CreateOrderFromCartAsync(request, string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim());
@@ -104,8 +102,8 @@ public class OrdersController : ControllerBase
     /// paid or cancelled, or after its payment deadline.
     /// </summary>
     [HttpPost("{id:int}/payment")]
-    public Task<OrderPaymentResponse> StartPayment(int id)
-        => _orderService.StartPaymentAsync(id, UserId);
+    public Task<OrderPaymentResponse> StartPayment(int id, [FromServices] IOrderPayments payments)
+        => payments.StartAsync(id, UserId);
 
     /// <summary>The customer's orders, newest first.</summary>
     [HttpGet("my-orders")]

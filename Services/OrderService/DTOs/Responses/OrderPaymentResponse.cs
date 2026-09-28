@@ -1,3 +1,5 @@
+using Store.Contracts.Payments;
+
 namespace Store.OrderService.DTOs.Responses;
 
 /// <summary>
@@ -13,10 +15,10 @@ public class OrderPaymentResponse
     public decimal Amount { get; set; }
 
     /// <summary>ISO code, lowercase.</summary>
-    public string Currency { get; set; } = "usd";
+    public string Currency { get; set; } = Currencies.Usd;
 
-    /// <summary>The payment's status at the payment service: requiresPaymentMethod, requiresAction, succeeded...</summary>
-    public string Status { get; set; } = string.Empty;
+    /// <summary>Where the payment stands at the payment service.</summary>
+    public PaymentStatus Status { get; set; }
 
     /// <summary>When the order is cancelled if it is still unpaid.</summary>
     public DateTime PaymentDueAt { get; set; }
