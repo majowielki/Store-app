@@ -49,7 +49,7 @@ param internalApiKey string
 
 @secure()
 @minLength(32)
-@description('Signs the payment service''s webhooks to the order service')
+@description('Signs the webhooks the payment service sends to the order service')
 param paymentWebhookSecret string
 
 @secure()
@@ -420,9 +420,9 @@ var services = [
     db: 'order'
     callsCatalog: true
     callsCart: true
+    reaches: ['paymentService']
     env: [
       { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
-      { name: 'Services__PaymentService', value: 'http://paymentservice.${internal}' }
       { name: 'PaymentWebhooks__SigningSecret', secretRef: 'payment-webhook-secret' }
     ]
     secrets: [internalApiSecretRef, paymentWebhookSecretRef]
@@ -451,9 +451,9 @@ var services = [
     db: 'payment'
     callsCatalog: false
     callsCart: false
+    reaches: ['orderWebhooks']
     env: [
       { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
-      { name: 'PaymentWebhooks__Url', value: 'http://orderservice.${internal}/api/v1/webhooks/payments' }
       { name: 'PaymentWebhooks__SigningSecret', secretRef: 'payment-webhook-secret' }
     ]
     secrets: [internalApiSecretRef, paymentWebhookSecretRef]
@@ -473,6 +473,12 @@ var services = [
 
 var catalogAddress = [{ name: 'Services__ProductService', value: 'http://productservice.${internal}' }]
 var cartAddress = [{ name: 'Services__CartService', value: 'http://cartservice.${internal}' }]
+// Other addresses a service names in "reaches". The internal domain is known only once the
+// environment exists, so no address may sit in the services array the loops iterate over
+var otherAddresses = {
+  paymentService: [{ name: 'Services__PaymentService', value: 'http://paymentservice.${internal}' }]
+  orderWebhooks: [{ name: 'PaymentWebhooks__Url', value: 'http://orderservice.${internal}/api/v1/webhooks/payments' }]
+}
 var corsEnv = [for (origin, i) in corsAllowedOrigins: { name: 'Cors__AllowedOrigins__${i}', value: origin }]
 
 module serviceApps 'app.bicep' = [
@@ -492,7 +498,8 @@ module serviceApps 'app.bicep' = [
         [{ name: 'ConnectionStrings__DefaultConnection', secretRef: 'db-connection' }],
         service.env,
         service.callsCatalog ? catalogAddress : [],
-        service.callsCart ? cartAddress : []
+        service.callsCart ? cartAddress : [],
+        flatten(map(service.?reaches ?? [], address => otherAddresses[address]))
       )
       keyVaultSecrets: concat(
         commonSecrets,
@@ -520,7 +527,8 @@ module migrationJobs 'job.bicep' = [
         [{ name: 'ConnectionStrings__DefaultConnection', secretRef: 'db-connection' }],
         service.env,
         service.callsCatalog ? catalogAddress : [],
-        service.callsCart ? cartAddress : []
+        service.callsCart ? cartAddress : [],
+        flatten(map(service.?reaches ?? [], address => otherAddresses[address]))
       )
       keyVaultSecrets: concat(
         commonSecrets,
@@ -531,6 +539,31 @@ module migrationJobs 'job.bicep' = [
     dependsOn: [acrPull, secretsUser, connectionSecrets]
   }
 ]
+
+// --- notifications: no database and no migration job, it only listens to the bus ------------
+
+module notificationService 'app.bicep' = {
+  name: 'app-notificationservice'
+  params: {
+    name: 'notificationservice'
+    location: location
+    environmentId: managedEnvironment.id
+    identityId: identity.id
+    acrLoginServer: acr.properties.loginServer
+    image: '${acr.properties.loginServer}/store/notification:${imageTag}'
+    external: false
+    cpu: '0.25'
+    memory: '0.5Gi'
+    env: concat(commonEnv, messagingEnv, [
+      // Written to the log only, until the shop sends real e-mail
+      { name: 'Mail__Delivery', value: 'Log' }
+      { name: 'Mail__From', value: 'Store <hello@store.example>' }
+      { name: 'Mail__ShopUrl', value: 'https://${ui.outputs.fqdn}' }
+    ])
+    keyVaultSecrets: commonSecrets
+  }
+  dependsOn: [acrPull, secretsUser, rabbitMq]
+}
 
 // --- gateway and UI -------------------------------------------------------------------------
 

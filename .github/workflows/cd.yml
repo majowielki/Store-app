@@ -59,6 +59,7 @@ jobs:
           build content  Services/ContentService/Dockerfile .
           build payment  Services/PaymentService/Dockerfile .
           build review   Services/ReviewService/Dockerfile .
+          build notification Services/NotificationService/Dockerfile .
           build gateway  Gateway/APIGateway/Dockerfile .
           build ui       UI/store-app.UI/Dockerfile UI/store-app.UI
 

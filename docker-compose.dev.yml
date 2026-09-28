@@ -3,9 +3,10 @@
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 #
 # Development environment (Swagger on every service, migrations applied by the service itself
-# too), the demo accounts, every port on the host (services 5001-5009, gateway 5000, PostgreSQL,
-# RabbitMQ with its management UI) and the Aspire dashboard on http://localhost:18888 receiving
-# the traces, metrics and logs of every host.
+# too), the demo accounts, every port on the host (services 5001-5010, gateway 5000, PostgreSQL,
+# RabbitMQ with its management UI), the Aspire dashboard on http://localhost:18888 receiving
+# the traces, metrics and logs of every host, and Mailpit on http://localhost:8025 catching the
+# shop's e-mails.
 
 x-dev-env: &dev-env
   ASPNETCORE_ENVIRONMENT: Development
@@ -131,6 +132,27 @@ services:
     environment: *dev-env
     ports:
       - "${REVIEW_SERVICE_PORT:-5009}:8080"
+
+  # The e-mails go to Mailpit instead of the log: its inbox is on http://localhost:8025
+  notificationservice:
+    environment:
+      <<: *dev-env
+      Mail__Delivery: Smtp
+      Mail__SmtpHost: mailpit
+      Mail__SmtpPort: 1025
+    depends_on:
+      mailpit:
+        condition: service_started
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-5010}:8080"
+
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+    networks:
+      - store
 
   gateway:
     environment: *dev-env

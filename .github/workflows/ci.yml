@@ -110,7 +110,7 @@ jobs:
         run: |
           az bicep install
           az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
-          IMAGE_TAG=ci POSTGRES_HOST=ci POSTGRES_PASSWORD=ci JWT_SECRET_KEY=01234567890123456789012345678901 INTERNAL_API_KEY=01234567890123456789012345678901 TRUE_ADMIN_PASSWORD=ci RABBITMQ_PASSWORD=ci az bicep build-params --file infra/bicep/main.bicepparam --stdout > /dev/null
+          IMAGE_TAG=ci POSTGRES_HOST=ci POSTGRES_PASSWORD=ci JWT_SECRET_KEY=01234567890123456789012345678901 INTERNAL_API_KEY=01234567890123456789012345678901 PAYMENT_WEBHOOK_SECRET=01234567890123456789012345678901 TRUE_ADMIN_PASSWORD=ci RABBITMQ_PASSWORD=ci az bicep build-params --file infra/bicep/main.bicepparam --stdout > /dev/null
 
   frontend:
     name: Frontend lint, types and build
@@ -158,6 +158,7 @@ jobs:
           - { name: content, dockerfile: Services/ContentService/Dockerfile }
           - { name: payment, dockerfile: Services/PaymentService/Dockerfile }
           - { name: review, dockerfile: Services/ReviewService/Dockerfile }
+          - { name: notification, dockerfile: Services/NotificationService/Dockerfile }
           - { name: ui, dockerfile: UI/store-app.UI/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

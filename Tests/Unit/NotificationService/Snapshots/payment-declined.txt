@@ -1,0 +1,7 @@
+Hi Anna,
+
+Your payment for order #104 did not go through: the card did not have enough funds. Nothing was charged.
+
+We hold your pieces until 10:30 UTC on Mon, Sep 28 - pay with another card before then to keep them.
+
+Pay with another card: https://shop.example/orders/104/pay

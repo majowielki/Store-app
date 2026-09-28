@@ -33,13 +33,15 @@ flowchart LR
     MQ -- OrderCancelled, PaymentRefundRequested --> PA
     MQ -- OrderPaid --> RV
     RV -- ReviewSummaryChanged --> MQ
+    MQ -- OrderPaid, PaymentDeclined, OrderShipped, ProductBackInStock --> NO[Notifications<br/>no database]
+    NO -.->|SMTP in development| MP[(Mailpit)]
     MQ -- ReviewSummaryChanged --> PR
     OR -- OrderStatusChanged --> MQ
     MQ -- OrderStatusChanged --> AU
     ID & PR & CA & OR & CO & PA & RV -- AuditEvent --> MQ
     MQ -- AuditEvent --> AU
   end
-  GW & ID & PR & CA & OR & AU & CO & PA & RV -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
+  GW & ID & PR & CA & OR & AU & CO & PA & RV & NO -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
 ```
 
 Each service has its own PostgreSQL database and its own entities; what crosses a boundary is a
@@ -150,6 +152,17 @@ visitors of the account, a demo report hides a review from that session only, an
 deleted after 24 hours. The reviews that come with the catalogue are seeded by slug when the
 service migrates; a background job asks the catalogue for their ids and publishes the ratings
 once it answers.
+
+## The e-mails
+
+The notification service only listens: `OrderPaid` becomes the order confirmation, `PaymentDeclined`
+a message with the link back to the payment while the order still waits, `OrderShipped` the
+shipping notice and `ProductBackInStock` (one event per waiting visitor) the "it is back" e-mail.
+The templates are HTML with inline styles plus a plain-text copy, pinned by snapshot tests. It has
+no database, so no outbox and no durable inbox: an in-memory inbox drops a message redelivered to
+the same instance, and a message redelivered after a restart may send its e-mail twice. In
+development the e-mails go over SMTP to Mailpit (<http://localhost:8025>); everywhere else they are
+only written to the log, as the shop is a demo.
 
 ## Who may do what
 

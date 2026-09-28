@@ -17,6 +17,7 @@ pipeline that migrates before it deploys.
 | **Audit** | the audit trail every service publishes as events, with a 90-day retention | `Services/AuditLogService` |
 | **Content** | the editorial side of the shop: makers, collections, journal articles and lookbooks, edited in the admin panel ([ADR 010](docs/adr/010-content-service.md)) | `Services/ContentService` |
 | **Payments** | a simulated card provider: payments opened by the shop, confirmed with test cards and 3-D Secure, refunds, signed webhooks retried until the shop takes them ([ADR 011](docs/adr/011-simulated-payments.md)) | `Services/PaymentService` |
+| **Notifications** | the e-mails that follow an order - confirmation once paid, a refused card with the link back to the payment, shipping - and "back in stock"; a worker with no database, sending to Mailpit in development and only to the log elsewhere | `Services/NotificationService` |
 | **Reviews** | product reviews after a paid order, the automatic checks and the true administrator's moderation queue, reports, the per-session sandbox of the demo accounts, the ratings the catalogue shows and sorts by ([ADR 012](docs/adr/012-moderated-reviews.md)) | `Services/ReviewService` |
 | **UI** | React 18 + TypeScript SPA: shop, cart, checkout, orders, admin panel; RTK Query over the generated API types | `UI/store-app.UI` |
 | **Shared** | `Store.Contracts` (events, snapshots, roles - data only) and `Store.BuildingBlocks` (auth, problem details, messaging, health, observability - the plumbing every host composes) | `Shared/` |
@@ -41,7 +42,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 gives the shop on <http://localhost:8081> (`FRONTEND_PORT`), the gateway on 5000, the demo accounts
 (the *Demo User* / *Demo Admin* buttons on the sign-in page), Swagger on every service and the
-Aspire dashboard with traces, logs and metrics on <http://localhost:18888>. Without the dev
+Aspire dashboard with traces, logs and metrics on <http://localhost:18888>, and the shop's e-mails
+in Mailpit on <http://localhost:8025>. Without the dev
 override the same command runs the stack the way production does (see
 [docs/DOCKER_COMPOSE.md](docs/DOCKER_COMPOSE.md)).
 

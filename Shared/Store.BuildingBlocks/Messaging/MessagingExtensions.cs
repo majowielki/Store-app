@@ -77,34 +77,70 @@ public static class MessagingExtensions
             });
 
             consumers?.Invoke(bus);
-
-            // The broker is a dependency to report, not one to stop serving requests for
-            bus.ConfigureHealthCheckOptions(options =>
-            {
-                options.Tags.Clear();
-                options.Tags.Add(HealthTag);
-                options.MinimalFailureStatus = HealthStatus.Degraded;
-            });
-
-            bus.UsingRabbitMq((context, cfg) =>
-            {
-                var options = context.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
-                cfg.Host(options.Host, options.Port, options.VirtualHost, host =>
-                {
-                    host.Username(options.Username);
-                    host.Password(options.Password);
-                });
-
-                // Three more attempts with growing delays; after that the message lands in the
-                // endpoint's _error queue instead of looping back forever
-                cfg.UseMessageRetry(retry => retry.Exponential(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(2)));
-                cfg.PrefetchCount = 16;
-
-                cfg.ConfigureEndpoints(context);
-            });
+            UseRabbitMq(bus);
         });
 
         return services;
+    }
+
+    /// <summary>
+    /// Registers the bus for a service that only reacts to events and keeps no database (the
+    /// notification service). Without an outbox and a durable inbox, every receive endpoint gets
+    /// the in-memory inbox: a redelivered message this instance already handled is dropped, while
+    /// one handled before a restart is handled again - consumers must tolerate that.
+    /// </summary>
+    /// <param name="services">Service collection</param>
+    /// <param name="configuration">Application configuration</param>
+    /// <param name="serviceName">Short name of the service, prefixed to every queue name</param>
+    /// <param name="consumers">Registers the consumers the service hosts</param>
+    public static IServiceCollection AddStoreMessagingWithoutOutbox(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        string serviceName,
+        Action<IBusRegistrationConfigurator>? consumers = null)
+    {
+        services.AddStoreOptions<RabbitMqOptions>(configuration, RabbitMqOptions.SectionName);
+        services.AddInMemoryInboxOutbox();
+
+        services.AddMassTransit(bus =>
+        {
+            bus.SetEndpointNameFormatter(new KebabCaseEndpointNameFormatter(serviceName + "-", includeNamespace: false));
+            bus.AddConfigureEndpointsCallback((context, _, endpoint) => endpoint.UseInMemoryInboxOutbox(context));
+
+            consumers?.Invoke(bus);
+            UseRabbitMq(bus);
+        });
+
+        return services;
+    }
+
+    /// <summary>The broker, its health check, the retry policy and the endpoints every bus shares.</summary>
+    private static void UseRabbitMq(IBusRegistrationConfigurator bus)
+    {
+        // The broker is a dependency to report, not one to stop serving requests for
+        bus.ConfigureHealthCheckOptions(options =>
+        {
+            options.Tags.Clear();
+            options.Tags.Add(HealthTag);
+            options.MinimalFailureStatus = HealthStatus.Degraded;
+        });
+
+        bus.UsingRabbitMq((context, cfg) =>
+        {
+            var options = context.GetRequiredService<IOptions<RabbitMqOptions>>().Value;
+            cfg.Host(options.Host, options.Port, options.VirtualHost, host =>
+            {
+                host.Username(options.Username);
+                host.Password(options.Password);
+            });
+
+            // Three more attempts with growing delays; after that the message lands in the
+            // endpoint's _error queue instead of looping back forever
+            cfg.UseMessageRetry(retry => retry.Exponential(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(2)));
+            cfg.PrefetchCount = 16;
+
+            cfg.ConfigureEndpoints(context);
+        });
     }
 
     /// <summary>Adds the outbox and inbox tables to a model. Requires a migration in the owning service.</summary>

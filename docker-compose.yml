@@ -82,6 +82,12 @@ x-review-env: &review-env
   InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
   Services__ProductService: http://productservice:8080
 
+x-notification-env: &notification-env
+  <<: *service-env
+  # Only to the log until the shop sends real e-mail; the development override points it at Mailpit
+  Mail__Delivery: Log
+  Mail__ShopUrl: http://localhost:${FRONTEND_PORT:-8081}
+
 x-infrastructure-ready: &infrastructure-ready
   postgres:
     condition: service_healthy
@@ -324,6 +330,21 @@ services:
     depends_on:
       review-migrate:
         condition: service_completed_successfully
+    networks:
+      - store
+
+  # --- notifications (no database: it only listens) -------------------------------------------
+  notificationservice:
+    build:
+      context: .
+      dockerfile: Services/NotificationService/Dockerfile
+    image: store/notification
+    <<: *limits
+    restart: unless-stopped
+    environment: *notification-env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     networks:
       - store
 
