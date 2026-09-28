@@ -4,7 +4,8 @@ namespace Store.IdentityService.Models;
 /// One refresh token of a session. The token itself never touches the database: the client
 /// holds it (in an httpOnly cookie) and the row keeps its SHA-256 hash. Each use replaces the
 /// token with a new one of the same family; a token presented after it was replaced means
-/// somebody else holds a copy, and the whole family is revoked.
+/// somebody else holds a copy, and the whole family is revoked - unless it comes back within the
+/// reuse window while its successor is unused (<c>RefreshTokenStore</c>).
 /// </summary>
 public class RefreshToken
 {
@@ -30,8 +31,9 @@ public class RefreshToken
     /// <summary>Set when the token was rotated, revoked or its family compromised.</summary>
     public DateTime? RevokedAt { get; set; }
 
-    /// <summary>Hash of the token that took this one's place after a rotation.</summary>
+    /// <summary>
+    /// Hash of the token that took this one's place after a rotation; moved on to the newest one
+    /// when this token was presented again within the reuse window.
+    /// </summary>
     public string? ReplacedByHash { get; set; }
-
-    public bool IsActive => RevokedAt is null && ExpiresAt > DateTime.UtcNow;
 }

@@ -15,7 +15,7 @@ test('20. a customer reviews a paid piece, the true administrator approves it an
   const orderId = await checkout(page);
 
   // The review service hears of the payment by an event: the product page offers the form once it has
-  // (each try waits for the answer: a reload while the page renews the session would end it)
+  // (each try waits for the page to answer before the next reload)
   const write = page.getByRole('button', { name: 'Write a review' });
   await expect(async () => {
     await page.goto(`/products/${product.id}`);

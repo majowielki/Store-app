@@ -75,7 +75,9 @@ messaging, telemetry - lives in `Store.BuildingBlocks` and every host composes i
    calls and with messages, so one request is one trace from the gateway to the consumer.
    Nothing personal in metric tags, nothing secret in logs or spans.
 7. **Sessions without a token in storage.** A 15-minute access token in memory, a rotating refresh
-   token in an httpOnly cookie, reuse of a spent refresh token revokes the whole family.
+   token in an httpOnly cookie, reuse of a spent refresh token revokes the whole family - except
+   within a 30-second reuse window while its successor is unused, where the client is taken to
+   have lost the answer and gets a new successor (ADR 009).
 
 ## How a checkout runs
 

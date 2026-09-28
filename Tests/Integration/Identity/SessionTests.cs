@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Store.BuildingBlocks.Configuration;
 using Store.Contracts.Authorization;
 using Store.IdentityService.Controllers;
 using Store.IdentityService.Data;
@@ -15,7 +17,8 @@ namespace Store.Tests.Integration.Identity;
 
 /// <summary>
 /// Sessions: a sign-in hands out a short-lived access token and a refresh token in an httpOnly
-/// cookie; refresh rotates the token, a replayed one ends the whole session, logout ends it on
+/// cookie; refresh rotates the token, a replayed one ends the whole session (unless it comes back
+/// within the reuse window while its successor is unused - a lost answer), logout ends it on
 /// purpose. Regression: the old refresh endpoint renewed any signed access token forever.
 /// </summary>
 [Collection(PostgresTests.Name)]
@@ -80,8 +83,18 @@ public sealed class SessionTests : IClassFixture<IdentityApiFactory>
         Assert.InRange(jwt.ValidTo - DateTime.UtcNow, TimeSpan.FromMinutes(13), TimeSpan.FromMinutes(16));
     }
 
+    /// <summary>Refreshes with <paramref name="refreshToken"/>: the status, and the token the response set (null when it set none).</summary>
+    private static async Task<(HttpStatusCode Status, string? Token)> RefreshAsync(HttpClient client, string refreshToken)
+    {
+        var response = await client.SendAsync(Post("/api/v1/auth/refresh", refreshToken));
+        var cookie = response.StatusCode == HttpStatusCode.OK ? RefreshCookieOf(response) : null;
+        return (response.StatusCode, cookie is null ? null : ValueOf(cookie));
+    }
+
+    private TimeSpan ReuseWindow => _factory.Services.GetRequiredService<IOptions<JwtOptions>>().Value.RefreshTokenReuseWindow;
+
     [Fact]
-    public async Task Refresh_rotates_the_token_and_a_replayed_token_ends_the_session()
+    public async Task Refresh_rotates_the_token_and_one_replayed_after_the_reuse_window_ends_the_session()
     {
         using var client = _factory.CreateClient();
         var (_, first) = await SignInAsync(client);
@@ -92,11 +105,69 @@ public sealed class SessionTests : IClassFixture<IdentityApiFactory>
         Assert.NotEqual(first, second);
         Assert.NotEmpty((await ReadJson(refreshed)).GetProperty("accessToken").GetString()!);
 
-        // The spent token is replayed - somebody has a copy - so the fresh one dies with it
-        var replayed = await client.SendAsync(Post("/api/v1/auth/refresh", first));
-        Assert.Equal(HttpStatusCode.Unauthorized, replayed.StatusCode);
-        var afterReplay = await client.SendAsync(Post("/api/v1/auth/refresh", second));
-        Assert.Equal(HttpStatusCode.Unauthorized, afterReplay.StatusCode);
+        // The spent token is replayed long after its rotation - somebody has a copy - so the fresh one dies with it
+        using (_factory.Clock.Advance(ReuseWindow + TimeSpan.FromSeconds(1)))
+        {
+            Assert.Equal(HttpStatusCode.Unauthorized, (await RefreshAsync(client, first)).Status);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await RefreshAsync(client, second)).Status);
+        }
+    }
+
+    [Fact]
+    public async Task A_token_presented_again_within_the_reuse_window_gets_a_new_successor_until_the_successor_is_used()
+    {
+        using var client = _factory.CreateClient();
+        var (_, first) = await SignInAsync(client);
+
+        // The browser left the page while its refresh was on the way: the successor never arrived
+        var (_, lost) = await RefreshAsync(client, first);
+
+        // The next page presents the spent token again, even twice (each page load renews the session)
+        var (status, second) = await RefreshAsync(client, first);
+        Assert.Equal(HttpStatusCode.OK, status);
+        Assert.NotEqual(lost, second);
+        var (again, third) = await RefreshAsync(client, first);
+        Assert.Equal(HttpStatusCode.OK, again);
+
+        // The newest token works and carries the session on; the older successors were spent unseen
+        var (next, fourth) = await RefreshAsync(client, third!);
+        Assert.Equal(HttpStatusCode.OK, next);
+        Assert.NotNull(fourth);
+
+        // Its successor has now been used, so the first token coming back is a copy: the session ends
+        Assert.Equal(HttpStatusCode.Unauthorized, (await RefreshAsync(client, first)).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await RefreshAsync(client, fourth!)).Status);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Tabs_refreshing_the_same_token_together_all_keep_the_session(int keptByTheBrowser)
+    {
+        using var client = _factory.CreateClient();
+        var (_, first) = await SignInAsync(client);
+
+        var tabs = await Task.WhenAll(Enumerable.Range(0, 3).Select(_ => RefreshAsync(client, first)));
+
+        Assert.All(tabs, tab => Assert.Equal(HttpStatusCode.OK, tab.Status));
+        // Whichever answer the browser applied last, the token it keeps still renews the session
+        Assert.Equal(HttpStatusCode.OK, (await RefreshAsync(client, tabs[keptByTheBrowser].Token!)).Status);
+    }
+
+    [Fact]
+    public async Task After_logout_a_token_spent_within_the_reuse_window_is_refused()
+    {
+        using var client = _factory.CreateClient();
+        var (_, first) = await SignInAsync(client);
+        var (_, second) = await RefreshAsync(client, first);
+
+        var logout = await client.SendAsync(Post("/api/v1/auth/logout", second));
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+
+        // The successor is revoked with the session, so the earlier token is not a lost answer
+        Assert.Equal(HttpStatusCode.Unauthorized, (await RefreshAsync(client, first)).Status);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await RefreshAsync(client, second!)).Status);
     }
 
     [Fact]

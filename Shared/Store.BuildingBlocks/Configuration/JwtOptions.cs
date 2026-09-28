@@ -37,4 +37,16 @@ public sealed class JwtOptions
     /// <summary>How long a session lasts without signing in again.</summary>
     [Range(1, 365)]
     public int RefreshTokenDays { get; init; } = 14;
+
+    /// <summary>
+    /// How long after a refresh token was rotated it may be presented once more without ending the
+    /// session (the "reuse interval" of Auth0 and Okta). A browser that leaves a page while its
+    /// refresh is on the way never stores the new token and presents the old one again; within this
+    /// window that is taken for such a race and answered with a fresh token, after it for a stolen
+    /// copy. 0 turns the tolerance off.
+    /// </summary>
+    [Range(0, 300)]
+    public int RefreshTokenReuseSeconds { get; init; } = 30;
+
+    public TimeSpan RefreshTokenReuseWindow => TimeSpan.FromSeconds(RefreshTokenReuseSeconds);
 }

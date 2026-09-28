@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
 using Store.Contracts.Authorization;
-using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
@@ -18,7 +16,7 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly IdentityDbContext _context;
+    private readonly IRefreshTokenStore _sessions;
     private readonly ITokenService _tokens;
     private readonly DemoOptions _demo;
     private readonly ILogger<AuthService> _logger;
@@ -30,7 +28,7 @@ public class AuthService : IAuthService
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<IdentityRole> roleManager,
-        IdentityDbContext context,
+        IRefreshTokenStore sessions,
         ITokenService tokens,
         IOptions<DemoOptions> demo,
         ILogger<AuthService> logger,
@@ -41,7 +39,7 @@ public class AuthService : IAuthService
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
-        _context = context;
+        _sessions = sessions;
         _tokens = tokens;
         _demo = demo.Value;
         _logger = logger;
@@ -136,66 +134,15 @@ public class AuthService : IAuthService
 
     public async Task<SignedIn> RefreshAsync(string refreshToken, string? clientAddress)
     {
-        var presented = await _context.RefreshTokens
-            .Include(t => t.User)
-            .SingleOrDefaultAsync(t => t.TokenHash == _tokens.HashRefreshToken(refreshToken))
-            ?? throw new InvalidCredentialsException("Invalid refresh token");
-
-        if (presented.RevokedAt is not null)
-        {
-            // A spent token presented again: either the client replayed it or somebody stole a
-            // copy. Both copies become useless, and the user signs in again.
-            await RevokeFamilyAsync(presented.FamilyId, "reuse");
-            _logger.LogWarning("Refresh token reuse for user {UserId}; session family {FamilyId} revoked", presented.UserId, presented.FamilyId);
-            throw new InvalidCredentialsException("Refresh token was already used");
-        }
-
-        if (presented.ExpiresAt <= _time.GetUtcNow().UtcDateTime)
-        {
-            throw new InvalidCredentialsException("Refresh token expired");
-        }
-
-        if (!presented.User.IsActive)
-        {
-            await RevokeFamilyAsync(presented.FamilyId, "inactive user");
-            throw new InvalidCredentialsException("Account is deactivated");
-        }
-
-        // Rotate: the presented token is spent, its successor takes over in the same family.
-        // Spending it is one conditional update, so two simultaneous refreshes with the same
-        // token (two tabs) rotate it once; the loser is told to try again with the new one.
-        var (token, hash) = _tokens.CreateRefreshToken();
-        var now = _time.GetUtcNow().UtcDateTime;
-        var spent = await _context.RefreshTokens
-            .Where(t => t.Id == presented.Id && t.RevokedAt == null)
-            .ExecuteUpdateAsync(set => set
-                .SetProperty(t => t.RevokedAt, now)
-                .SetProperty(t => t.ReplacedByHash, hash));
-        if (spent == 0)
-        {
-            throw new InvalidCredentialsException("Refresh token was already used");
-        }
-
-        var successor = NewRefreshToken(presented.User, presented.FamilyId, hash, clientAddress, now);
-        _context.RefreshTokens.Add(successor);
-        await _context.SaveChangesAsync();
-
-        return await IssueAsync(presented.User, token, successor.ExpiresAt, presented.FamilyId);
+        var session = await _sessions.RotateAsync(refreshToken, clientAddress);
+        return await IssueAsync(session.User, session.RefreshToken);
     }
 
     public async Task LogoutAsync(string? refreshToken)
     {
-        if (string.IsNullOrEmpty(refreshToken))
+        if (!string.IsNullOrEmpty(refreshToken))
         {
-            return;
-        }
-
-        var hash = _tokens.HashRefreshToken(refreshToken);
-        var presented = await _context.RefreshTokens.AsNoTracking().SingleOrDefaultAsync(t => t.TokenHash == hash);
-        if (presented is not null)
-        {
-            await RevokeFamilyAsync(presented.FamilyId, "logout");
-            _logger.LogInformation("User {UserId} logged out; session family {FamilyId} revoked", presented.UserId, presented.FamilyId);
+            await _sessions.EndSessionAsync(refreshToken);
         }
     }
 
@@ -237,41 +184,21 @@ public class AuthService : IAuthService
         user.UpdatedAt = now;
         await _userManager.UpdateAsync(user);
 
-        var (token, hash) = _tokens.CreateRefreshToken();
-        var refreshToken = NewRefreshToken(user, Guid.NewGuid(), hash, clientAddress, now);
-        _context.RefreshTokens.Add(refreshToken);
-        await _context.SaveChangesAsync();
-
-        return await IssueAsync(user, token, refreshToken.ExpiresAt, refreshToken.FamilyId);
+        return await IssueAsync(user, await _sessions.StartSessionAsync(user, clientAddress));
     }
 
-    private RefreshToken NewRefreshToken(ApplicationUser user, Guid familyId, string hash, string? clientAddress, DateTime now) => new()
-    {
-        User = user,
-        UserId = user.Id,
-        TokenHash = hash,
-        FamilyId = familyId,
-        CreatedAt = now,
-        ExpiresAt = now + _tokens.RefreshTokenLifetime,
-        CreatedByIp = clientAddress
-    };
-
-    private Task<int> RevokeFamilyAsync(Guid familyId, string reason)
-        => _context.RefreshTokens
-            .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
-            .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, _time.GetUtcNow().UtcDateTime));
-
-    private async Task<SignedIn> IssueAsync(ApplicationUser user, string refreshToken, DateTime refreshTokenExpiresAt, Guid sessionId)
+    /// <summary>The access token of <paramref name="refreshToken"/>'s session and what the client gets with it.</summary>
+    private async Task<SignedIn> IssueAsync(ApplicationUser user, IssuedRefreshToken refreshToken)
     {
         var roles = await _userManager.GetRolesAsync(user);
-        var (accessToken, expiresAt) = _tokens.CreateAccessToken(user, roles, sessionId, IsDemoAccount(user));
+        var (accessToken, expiresAt) = _tokens.CreateAccessToken(user, roles, refreshToken.SessionId, IsDemoAccount(user));
         var auth = new AuthResponse
         {
             AccessToken = accessToken,
             ExpiresAt = expiresAt,
             User = MapToUserResponse(user, roles)
         };
-        return new SignedIn(auth, refreshToken, refreshTokenExpiresAt);
+        return new SignedIn(auth, refreshToken.Token, refreshToken.ExpiresAt);
     }
 
     /// <summary>Identity's own rules (password policy, user name characters) as a validation problem.</summary>

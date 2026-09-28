@@ -27,7 +27,8 @@ public interface IAuthService
 
     /// <summary>
     /// Trades a refresh token for a new access token and a new refresh token. The old one is
-    /// spent; presenting it again reveals a stolen copy and ends the whole session.
+    /// spent; presenting it again ends the whole session, unless it comes back within the reuse
+    /// window while its successor is unused - a client that never received the successor.
     /// </summary>
     Task<SignedIn> RefreshAsync(string refreshToken, string? clientAddress);
 

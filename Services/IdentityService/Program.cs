@@ -63,6 +63,7 @@ builder.Services.AddStoreAuthorization();
 
 // Services: tokens of a session, accounts, and the daily purge of refresh tokens nobody can present any more
 builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
