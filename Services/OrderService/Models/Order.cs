@@ -46,6 +46,21 @@ public class Order
 
     public DateOnly? DeliveryTo { get; set; }
 
+    /// <summary>When the customer must have paid by; set once the stock is reserved.</summary>
+    public DateTime? PaymentDueAt { get; set; }
+
+    /// <summary>The payment at the payment service, once the customer has started paying.</summary>
+    public Guid? PaymentId { get; set; }
+
+    /// <summary>Brand of the card that paid (visa, mastercard); the full number never reaches this service.</summary>
+    public string? CardBrand { get; set; }
+
+    /// <summary>Last four digits of that card.</summary>
+    public string? CardLast4 { get; set; }
+
+    /// <summary>Why the order was cancelled (<c>OrderCancellationReasons</c>); none while it is not.</summary>
+    public string? CancellationReason { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public int TotalItems => Lines.Sum(line => line.Quantity);

@@ -9,6 +9,7 @@ using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Models;
+using Store.OrderService.Saga;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -30,6 +31,7 @@ public class OrderService : IOrderService
     private readonly StoreMetrics _metrics;
     private readonly TimeProvider _time;
     private readonly DeliveryEstimator _delivery;
+    private readonly OrderStatusWriter _writer;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -41,6 +43,7 @@ public class OrderService : IOrderService
         StoreMetrics metrics,
         TimeProvider time,
         DeliveryEstimator delivery,
+        OrderStatusWriter writer,
         ILogger<OrderService> logger)
     {
         _context = context;
@@ -51,6 +54,7 @@ public class OrderService : IOrderService
         _metrics = metrics;
         _time = time;
         _delivery = delivery;
+        _writer = writer;
         _logger = logger;
     }
 
@@ -200,6 +204,17 @@ public class OrderService : IOrderService
             });
         }
 
+        // The saga of the order starts with it, waiting for the stock: whatever event about the
+        // order comes first finds it
+        _context.OrderStates.Add(new OrderState
+        {
+            CorrelationId = OrderSagaIds.For(order.Id),
+            CurrentState = nameof(OrderStateMachine.ReservingStock),
+            OrderId = order.Id,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
         // Goes to the outbox table with this transaction; the cart, identity and audit
         // services receive it once the transaction is committed
         await _publishEndpoint.Publish(new OrderPlaced(
@@ -303,63 +318,50 @@ public class OrderService : IOrderService
         => MapToOrderResponse(await FindOrderAsync(orderId));
 
     /// <summary>
-    /// Moves an order to another status along <see cref="OrderStatusFlow"/>. The order row is
-    /// locked for the change, so two administrators pressing buttons at once cannot both move
-    /// it from the same status; the change, its history row and the event commit together.
+    /// The administrator ships a paid order or cancels one that is not shipped yet; paying and
+    /// refunding belong to the saga. The change goes through <see cref="OrderStatusWriter"/>, and
+    /// the event it publishes (shipped, cancelled) takes it to the stock, the payment service and
+    /// the saga - which refunds a cancelled order that had been paid.
     /// </summary>
     public async Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "Orders" WHERE "Id" = {orderId} FOR UPDATE""");
-        var order = await _context.Orders
-            .Include(o => o.Lines)
-            .Include(o => o.StatusHistory)
-            .SingleOrDefaultAsync(o => o.Id == orderId)
-            ?? throw new NotFoundException("Order", orderId);
-
-        var previous = order.Status;
-        if (!OrderStatusFlow.CanMove(previous, status))
+        if (!OrderStatusFlow.IsAdministratorMove(status))
         {
-            throw new ConflictException(previous == status
-                ? $"The order is already {Describe(status)}."
-                : $"An order that is {Describe(previous)} cannot be marked {Describe(status)}.");
+            throw new DomainValidationException("An order is shipped or cancelled by hand; payments move it on their own.");
         }
 
-        if (status == OrderStatus.Cancelled && order.DiscountCode is { } used)
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var move = await _writer.MoveAsync(orderId, status, actorId, order =>
         {
-            await ReleaseDiscountCodeAsync(used);
+            if (status == OrderStatus.Cancelled) order.CancellationReason = OrderCancellationReasons.ByAdministrator;
+        });
+        var order = move.Order;
+        if (!move.Moved)
+        {
+            throw new ConflictException(move.Previous == status
+                ? $"The order is already {Describe(status)}."
+                : $"An order that is {Describe(move.Previous)} cannot be marked {Describe(status)}.");
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
-        order.Status = status;
-        order.StatusHistory.Add(new OrderStatusChange { Status = status, ChangedAt = now, ChangedBy = actorId });
-
-        // With the change in the outbox: the audit service records it once the transaction commits
-        await _publishEndpoint.Publish(new OrderStatusChanged(order.Id, order.UserId, previous.ToString(), status.ToString(), actorId, now));
+        if (status == OrderStatus.Shipped)
+        {
+            await _publishEndpoint.Publish(OrderEvents.Shipped(order, now));
+        }
+        else
+        {
+            await _publishEndpoint.Publish(new OrderCancelled(order.Id, order.UserId, OrderCancellationReasons.ByAdministrator, now));
+        }
 
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
-
-        _logger.LogInformation("Order {OrderId} moved from {Previous} to {Status} by {ActorId}", order.Id, previous, status, actorId);
         return MapToOrderResponse(order);
     }
 
-    /// <summary>
-    /// Gives a cancelled order's code its use back, so a code limited to a few orders is not used
-    /// up by orders that never went through. The order keeps naming the code it was placed with.
-    /// </summary>
-    private async Task ReleaseDiscountCodeAsync(string code)
-    {
-        await _context.Database.ExecuteSqlInterpolatedAsync($"""SELECT 1 FROM "DiscountCodes" WHERE "Code" = {code} FOR UPDATE""");
-        var entry = await _context.DiscountCodes.FirstOrDefaultAsync(c => c.Code == code);
-        if (entry is { TimesUsed: > 0 })
-        {
-            entry.TimesUsed--;
-        }
-    }
-
-    private static string Describe(OrderStatus status) => status.ToString().ToLowerInvariant();
+    /// <summary>"awaiting payment" for AwaitingPayment.</summary>
+    private static string Describe(OrderStatus status)
+        => string.Concat(status.ToString().Select((c, i) => i > 0 && char.IsUpper(c) ? " " + char.ToLowerInvariant(c) : char.ToLowerInvariant(c).ToString()));
 
     private async Task<Order> FindOrderAsync(int orderId)
         => await _context.Orders
@@ -482,9 +484,13 @@ public class OrderService : IOrderService
                 .ThenBy(c => c.Id)
                 .Select(c => new OrderStatusChangeResponse { Status = c.Status.ToString(), ChangedAt = c.ChangedAt })
                 .ToList(),
-            NextStatuses = OrderStatusFlow.NextFrom(order.Status).Select(s => s.ToString()).ToList(),
+            NextStatuses = OrderStatusFlow.AdministratorMovesFrom(order.Status).Select(s => s.ToString()).ToList(),
             DeliveryFrom = order.DeliveryFrom,
             DeliveryTo = order.DeliveryTo,
+            PaymentDueAt = order.PaymentDueAt,
+            CardBrand = order.CardBrand,
+            CardLast4 = order.CardLast4,
+            CancellationReason = order.CancellationReason,
             CreatedAt = order.CreatedAt,
             Notes = order.Notes
         };

@@ -21,6 +21,9 @@ flowchart LR
     MQ -- OrderPlaced --> CA
     MQ -- OrderPlaced --> ID
     MQ -- OrderPlaced --> AU
+    MQ -- OrderPlaced, OrderCancelled, OrderShipped --> PR
+    PR -- StockReserved, StockUnavailable --> MQ
+    MQ -- StockReserved, StockUnavailable --> OR
     OR -- OrderStatusChanged --> MQ
     MQ -- OrderStatusChanged --> AU
     ID & PR & CA & OR & CO -- AuditEvent --> MQ
@@ -79,9 +82,14 @@ messaging, telemetry - lives in `Store.BuildingBlocks` and every host composes i
 5. The UI, having received 201, empties its cached cart and updates the profile at once rather
    than waiting for the events.
 
-After that the true administrator moves the order on - paid, shipped, or cancelled while it is
-not shipped yet (`OrderStatusFlow`); a move the status does not allow is 409. Each change locks the
-order row, adds a dated row to its history (the customer's timeline) and publishes
+After that the order is a saga (ADR 013), whose row was written with the order in step 3. The
+product service reserves every line or none under row locks and answers `StockReserved` or
+`StockUnavailable`; the saga moves the order to "awaiting payment" with a 15-minute deadline, or
+cancels it. A background job cancels the orders still unpaid after their deadline, which
+releases their stock. The administrator only ships a paid order or cancels one that is not
+shipped; cancelling a paid order asks for a refund. Whoever makes a change - saga or
+administrator - goes through one writer that locks the order row, checks the move against
+`OrderStatusFlow`, adds a dated row to the history (the customer's timeline) and publishes
 `OrderStatusChanged` through the outbox. The delivery window the checkout promises comes from
 `DeliveryPolicy` (cut-off hour, business days) and is served with the pricing rules.
 

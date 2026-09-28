@@ -1,8 +1,12 @@
+using MassTransit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Store.Contracts.Cart;
 using Store.Contracts.Catalog;
+using Store.Contracts.Orders.V1;
+using Store.Contracts.Payments.V1;
 using Store.OrderService.Data;
+using Store.OrderService.Saga;
 using Store.Tests.Integration.TestSupport;
 using System.Collections.Concurrent;
 using System.Net;
@@ -29,11 +33,26 @@ public sealed class OrderApiFactory : StoreApiFactory<OrderDbContext>
     {
         builder.UseSetting("Services:CartService", "http://cart.test");
         builder.UseSetting("Services:ProductService", "http://catalog.test");
+        // The deadline job looks every second, so a test sees an overdue order cancelled quickly
+        builder.UseSetting("OrderSaga:DeadlineCheckSeconds", "1");
     }
 
     protected override void ConfigureTestServices(IServiceCollection services)
     {
         services.ConfigureHttpClientDefaults(client => client.ConfigurePrimaryHttpMessageHandler(() => Upstreams));
+    }
+
+    protected override void ConfigureTestBus(IBusRegistrationConfigurator bus)
+    {
+        bus.AddConsumer<OrderEventProbe>();
+        // The harness keeps sagas in memory unless told otherwise; the order saga must find the row
+        // the checkout writes, so it keeps its PostgreSQL repository
+        bus.AddSagaStateMachine<OrderStateMachine, OrderState>().EntityFrameworkRepository(repository =>
+        {
+            repository.ExistingDbContext<OrderDbContext>();
+            repository.UsePostgres();
+            repository.ConcurrencyMode = ConcurrencyMode.Pessimistic;
+        });
     }
 }
 
@@ -78,4 +97,26 @@ public sealed class FakeUpstreams : HttpMessageHandler
 
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
     }
+}
+
+/// <summary>
+/// Receives what the order saga publishes from its consumers (paid, cancelled, refunds, status
+/// changes), so tests can see it as consumed.
+/// </summary>
+public sealed class OrderEventProbe :
+    IConsumer<OrderPaid>,
+    IConsumer<OrderCancelled>,
+    IConsumer<OrderRefunded>,
+    IConsumer<OrderStatusChanged>,
+    IConsumer<PaymentRefundRequested>
+{
+    public Task Consume(ConsumeContext<OrderPaid> context) => Task.CompletedTask;
+
+    public Task Consume(ConsumeContext<OrderCancelled> context) => Task.CompletedTask;
+
+    public Task Consume(ConsumeContext<OrderRefunded> context) => Task.CompletedTask;
+
+    public Task Consume(ConsumeContext<OrderStatusChanged> context) => Task.CompletedTask;
+
+    public Task Consume(ConsumeContext<PaymentRefundRequested> context) => Task.CompletedTask;
 }

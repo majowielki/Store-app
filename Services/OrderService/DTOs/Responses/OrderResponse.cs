@@ -26,12 +26,24 @@ public class OrderResponse
     /// <summary>Every status the order has been in, oldest first, with the time it changed.</summary>
     public List<OrderStatusChangeResponse> StatusHistory { get; set; } = new();
 
-    /// <summary>The statuses the order may still move to; empty once it is shipped or cancelled.</summary>
+    /// <summary>What the administrator can still do with the order: Shipped (once paid), Cancelled (until shipped).</summary>
     public List<string> NextStatuses { get; set; } = new();
 
     /// <summary>First and last day of the delivery window promised at checkout; null for older orders.</summary>
     public DateOnly? DeliveryFrom { get; set; }
     public DateOnly? DeliveryTo { get; set; }
+
+    /// <summary>When the customer must have paid by; set once the stock is reserved.</summary>
+    public DateTime? PaymentDueAt { get; set; }
+
+    /// <summary>Brand of the card that paid (visa, mastercard).</summary>
+    public string? CardBrand { get; set; }
+
+    /// <summary>Last four digits of that card.</summary>
+    public string? CardLast4 { get; set; }
+
+    /// <summary>Why the order was cancelled: out-of-stock, payment-timed-out or cancelled-by-administrator.</summary>
+    public string? CancellationReason { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public string? Notes { get; set; }

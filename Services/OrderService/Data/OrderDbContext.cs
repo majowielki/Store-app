@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Messaging;
 using Store.OrderService.Models;
+using Store.OrderService.Saga;
 
 namespace Store.OrderService.Data;
 
@@ -16,6 +17,7 @@ public class OrderDbContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
     public DbSet<DiscountCode> DiscountCodes => Set<DiscountCode>();
+    public DbSet<OrderState> OrderStates => Set<OrderState>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -37,6 +39,9 @@ public class OrderDbContext : DbContext
             entity.Property(o => o.DiscountReason).HasMaxLength(50);
             entity.Property(o => o.DiscountCode).HasMaxLength(DiscountCode.MaxCodeLength);
             entity.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(o => o.CardBrand).HasMaxLength(20);
+            entity.Property(o => o.CardLast4).HasMaxLength(4);
+            entity.Property(o => o.CancellationReason).HasMaxLength(50);
 
             // The user's order history and the admin statistics window
             entity.HasIndex(o => o.UserId);
@@ -92,6 +97,17 @@ public class OrderDbContext : DbContext
             entity.Property(k => k.RequestHash).IsRequired().HasMaxLength(64);
             // The cleanup job deletes by age
             entity.HasIndex(k => k.CreatedAt);
+        });
+
+        // The order saga: one row per order, locked while a message about the order is handled
+        modelBuilder.Entity<OrderState>(entity =>
+        {
+            entity.ToTable("OrderStates");
+            entity.HasKey(s => s.CorrelationId);
+            entity.Property(s => s.CurrentState).IsRequired().HasMaxLength(64);
+            entity.HasIndex(s => s.OrderId).IsUnique();
+            // The deadline job looks for the orders waiting past their deadline
+            entity.HasIndex(s => new { s.CurrentState, s.PaymentDueAt });
         });
 
         // Outbox and inbox of the message bus, in the same database as the orders

@@ -1,4 +1,5 @@
 using FluentValidation;
+using MassTransit;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Authentication;
 using Store.BuildingBlocks.Authorization;
@@ -12,6 +13,7 @@ using Store.BuildingBlocks.Persistence;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
+using Store.OrderService.Saga;
 using Store.OrderService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,8 +44,23 @@ builder.Services.AddServiceEndpoints(builder.Configuration,
 builder.Services.AddServiceClient<ICartClient, CartClient>(builder.Configuration, nameof(ServiceEndpointsOptions.CartService));
 builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
 
-// Message bus: OrderPlaced leaves through the outbox in the orders database; the audit service consumes it
-builder.Services.AddStoreMessaging<OrderDbContext>(builder.Configuration, serviceName: "order");
+// Message bus: the order events leave through the outbox in the orders database. The order saga
+// (ADR 013) keeps its rows next to the orders and is locked per order while it handles a message.
+builder.Services.AddStoreMessaging<OrderDbContext>(builder.Configuration, serviceName: "order", bus =>
+{
+    bus.AddSagaStateMachine<OrderStateMachine, OrderState>()
+        .EntityFrameworkRepository(repository =>
+        {
+            repository.ExistingDbContext<OrderDbContext>();
+            repository.UsePostgres();
+            repository.ConcurrencyMode = ConcurrencyMode.Pessimistic;
+        });
+});
+builder.Services.AddStoreOptions<OrderSagaOptions>(builder.Configuration, OrderSagaOptions.SectionName);
+builder.Services.AddScoped<OrderStatusWriter>();
+builder.Services.AddScoped<OrderSagaActions>();
+builder.Services.AddSingleton<PaymentDeadlineService>();
+builder.Services.AddHostedService(services => services.GetRequiredService<PaymentDeadlineService>());
 
 // Services
 builder.Services.AddStoreOptions<PricingOptions>(builder.Configuration, PricingOptions.SectionName);

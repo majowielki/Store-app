@@ -10,7 +10,9 @@ public class UpdateOrderStatusRequestValidator : AbstractValidator<UpdateOrderSt
     {
         RuleFor(x => x.Status)
             .NotEmpty().WithMessage("Status is required.")
-            .Must(status => Enum.TryParse<OrderStatus>(status, ignoreCase: false, out _) && !int.TryParse(status, out _))
-            .WithMessage($"Status must be one of: {string.Join(", ", Enum.GetNames<OrderStatus>())}.");
+            .Must(status => Enum.TryParse<OrderStatus>(status, ignoreCase: false, out var parsed)
+                && !int.TryParse(status, out _)
+                && OrderStatusFlow.IsAdministratorMove(parsed))
+            .WithMessage($"Status must be {OrderStatus.Shipped} or {OrderStatus.Cancelled}; payments move an order on their own.");
     }
 }

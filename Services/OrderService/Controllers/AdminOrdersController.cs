@@ -42,8 +42,9 @@ public class AdminOrdersController : ControllerBase
         => (await _orderService.GetOrderForAdminAsync(id)).ForViewer(User);
 
     /// <summary>
-    /// Moves an order on: placed → paid → shipped, or cancelled while it is placed or paid. A move
-    /// the order's status does not allow is 409; only the true administrator may change orders.
+    /// Ships a paid order or cancels one not shipped yet; a paid order that is cancelled is refunded
+    /// by the saga. A move the order's status does not allow is 409; only the true administrator may
+    /// change orders.
     /// </summary>
     [HttpPatch("{id:int}/status")]
     [Authorize(Policy = Policies.AdminWrite)]

@@ -23,8 +23,8 @@ public interface IOrderService
     Task<OrderResponse> GetOrderForAdminAsync(int orderId);
 
     /// <summary>
-    /// Moves an order to <paramref name="status"/>; a move the order's status does not allow is
-    /// a <c>ConflictException</c>.
+    /// Ships or cancels an order (the administrator's moves); another status is a
+    /// <c>DomainValidationException</c>, a move the order's status does not allow a <c>ConflictException</c>.
     /// </summary>
     Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId);
 

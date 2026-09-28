@@ -152,7 +152,7 @@ export const order = (overrides: Partial<Order> = {}): Order => ({
   totalItems: 1,
   status: 'Placed',
   statusHistory: [{ status: 'Placed', changedAt: '2026-01-02T00:00:00Z' }],
-  nextStatuses: ['Paid', 'Cancelled'],
+  nextStatuses: ['Cancelled'],
   deliveryFrom: '2026-01-06',
   deliveryTo: '2026-01-08',
   createdAt: '2026-01-02T00:00:00Z',

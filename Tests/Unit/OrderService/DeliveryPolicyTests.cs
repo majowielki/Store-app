@@ -77,31 +77,50 @@ public class DeliveryPolicyTests
 public class OrderStatusFlowTests
 {
     [Theory]
-    [InlineData(OrderStatus.Placed, OrderStatus.Paid)]
+    [InlineData(OrderStatus.Placed, OrderStatus.AwaitingPayment)]
     [InlineData(OrderStatus.Placed, OrderStatus.Cancelled)]
+    [InlineData(OrderStatus.AwaitingPayment, OrderStatus.Paid)]
+    [InlineData(OrderStatus.AwaitingPayment, OrderStatus.Cancelled)]
     [InlineData(OrderStatus.Paid, OrderStatus.Shipped)]
     [InlineData(OrderStatus.Paid, OrderStatus.Cancelled)]
+    [InlineData(OrderStatus.Cancelled, OrderStatus.Refunded)]
     public void An_order_moves_forward_or_is_cancelled_before_it_ships(OrderStatus from, OrderStatus to)
     {
         Assert.True(OrderStatusFlow.CanMove(from, to));
     }
 
     [Theory]
+    [InlineData(OrderStatus.Placed, OrderStatus.Paid)]
     [InlineData(OrderStatus.Placed, OrderStatus.Shipped)]
     [InlineData(OrderStatus.Placed, OrderStatus.Placed)]
+    [InlineData(OrderStatus.AwaitingPayment, OrderStatus.Shipped)]
     [InlineData(OrderStatus.Paid, OrderStatus.Placed)]
+    [InlineData(OrderStatus.Paid, OrderStatus.Refunded)]
     [InlineData(OrderStatus.Shipped, OrderStatus.Cancelled)]
     [InlineData(OrderStatus.Cancelled, OrderStatus.Paid)]
+    [InlineData(OrderStatus.Refunded, OrderStatus.Cancelled)]
     public void Skipping_a_step_going_back_or_leaving_a_final_status_is_refused(OrderStatus from, OrderStatus to)
     {
         Assert.False(OrderStatusFlow.CanMove(from, to));
     }
 
     [Fact]
-    public void Shipped_and_cancelled_are_final()
+    public void Shipped_and_refunded_are_final()
     {
         Assert.Empty(OrderStatusFlow.NextFrom(OrderStatus.Shipped));
-        Assert.Empty(OrderStatusFlow.NextFrom(OrderStatus.Cancelled));
-        Assert.Equal([OrderStatus.Paid, OrderStatus.Cancelled], OrderStatusFlow.NextFrom(OrderStatus.Placed));
+        Assert.Empty(OrderStatusFlow.NextFrom(OrderStatus.Refunded));
+        Assert.Equal([OrderStatus.AwaitingPayment, OrderStatus.Cancelled], OrderStatusFlow.NextFrom(OrderStatus.Placed));
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Placed, new[] { OrderStatus.Cancelled })]
+    [InlineData(OrderStatus.AwaitingPayment, new[] { OrderStatus.Cancelled })]
+    [InlineData(OrderStatus.Paid, new[] { OrderStatus.Shipped, OrderStatus.Cancelled })]
+    [InlineData(OrderStatus.Shipped, new OrderStatus[0])]
+    [InlineData(OrderStatus.Cancelled, new OrderStatus[0])]
+    [InlineData(OrderStatus.Refunded, new OrderStatus[0])]
+    public void The_administrator_only_ships_a_paid_order_and_cancels_one_not_shipped(OrderStatus from, OrderStatus[] moves)
+    {
+        Assert.Equal(moves, OrderStatusFlow.AdministratorMovesFrom(from));
     }
 }

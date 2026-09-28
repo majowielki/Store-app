@@ -464,8 +464,9 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Moves an order on: placed → paid → shipped, or cancelled while it is placed or paid. A move
-         *     the order's status does not allow is 409; only the true administrator may change orders.
+         * Ships a paid order or cancels one not shipped yet; a paid order that is cancelled is refunded
+         *     by the saga. A move the order's status does not allow is 409; only the true administrator may
+         *     change orders.
          */
         patch: {
             parameters: {
@@ -1062,7 +1063,7 @@ export interface components {
             status: string;
             /** @description Every status the order has been in, oldest first, with the time it changed. */
             statusHistory: components["schemas"]["OrderStatusChangeResponse"][];
-            /** @description The statuses the order may still move to; empty once it is shipped or cancelled. */
+            /** @description What the administrator can still do with the order: Shipped (once paid), Cancelled (until shipped). */
             nextStatuses: string[];
             /**
              * Format: date
@@ -1071,6 +1072,17 @@ export interface components {
             deliveryFrom?: string | null;
             /** Format: date */
             deliveryTo?: string | null;
+            /**
+             * Format: date-time
+             * @description When the customer must have paid by; set once the stock is reserved.
+             */
+            paymentDueAt?: string | null;
+            /** @description Brand of the card that paid (visa, mastercard). */
+            cardBrand?: string | null;
+            /** @description Last four digits of that card. */
+            cardLast4?: string | null;
+            /** @description Why the order was cancelled: out-of-stock, payment-timed-out or cancelled-by-administrator. */
+            cancellationReason?: string | null;
             /** Format: date-time */
             createdAt: string;
             notes?: string | null;
@@ -1177,7 +1189,7 @@ export interface components {
         };
         /** @description Body of PATCH /api/v1/admin/orders/{id}/status. Rules: `UpdateOrderStatusRequestValidator`. */
         UpdateOrderStatusRequest: {
-            /** @description The status to move the order to: Paid, Shipped or Cancelled. */
+            /** @description The status to move the order to: Shipped or Cancelled. */
             status: string;
         };
     };

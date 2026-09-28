@@ -435,7 +435,7 @@
         "tags": [
           "AdminOrders"
         ],
-        "summary": "Moves an order on: placed → paid → shipped, or cancelled while it is placed or paid. A move\nthe order's status does not allow is 409; only the true administrator may change orders.",
+        "summary": "Ships a paid order or cancels one not shipped yet; a paid order that is cancelled is refunded\nby the saga. A move the order's status does not allow is 409; only the true administrator may\nchange orders.",
         "parameters": [
           {
             "name": "id",
@@ -1166,7 +1166,7 @@
             "items": {
               "type": "string"
             },
-            "description": "The statuses the order may still move to; empty once it is shipped or cancelled."
+            "description": "What the administrator can still do with the order: Shipped (once paid), Cancelled (until shipped)."
           },
           "deliveryFrom": {
             "type": "string",
@@ -1177,6 +1177,27 @@
           "deliveryTo": {
             "type": "string",
             "format": "date",
+            "nullable": true
+          },
+          "paymentDueAt": {
+            "type": "string",
+            "description": "When the customer must have paid by; set once the stock is reserved.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cardBrand": {
+            "type": "string",
+            "description": "Brand of the card that paid (visa, mastercard).",
+            "nullable": true
+          },
+          "cardLast4": {
+            "type": "string",
+            "description": "Last four digits of that card.",
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "description": "Why the order was cancelled: out-of-stock, payment-timed-out or cancelled-by-administrator.",
             "nullable": true
           },
           "createdAt": {
@@ -1435,7 +1456,7 @@
         "properties": {
           "status": {
             "type": "string",
-            "description": "The status to move the order to: Paid, Shipped or Cancelled."
+            "description": "The status to move the order to: Shipped or Cancelled."
           }
         },
         "additionalProperties": false,
