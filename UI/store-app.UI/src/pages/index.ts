@@ -1,13 +1,6 @@
+// The pages the first screen of the shop needs: the layout, the home page and the error page. Every
+// other page is a route module loaded on its first visit (see App.tsx), so it stays out of the
+// main bundle.
 export { default as HomeLayout } from './HomeLayout';
 export { default as Landing } from './Landing';
-export { default as SingleProduct } from './SingleProduct';
-export { default as Products } from './Products';
-export { default as Cart } from './Cart';
 export { default as Error } from './Error';
-export { default as About } from './About';
-export { default as Login } from './Login';
-export { default as Register } from './Register';
-export { default as Checkout } from './Checkout';
-export { default as Orders } from './Orders';
-export { default as Contact } from './Contact';
-export { default as OrderDetail } from './OrderDetail';

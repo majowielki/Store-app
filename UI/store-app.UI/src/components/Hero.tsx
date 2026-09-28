@@ -103,13 +103,16 @@ const Hero = () => (
       <div className="relative aspect-4/5 overflow-hidden rounded-4xl bg-muted">
         <img
           src={hero1}
+          width={1200}
+          height={1800}
           alt="A light linen sofa with a woven pouf and brass side tables"
+          fetchPriority="high"
           className="h-full w-full animate-zoom-out object-cover"
         />
       </div>
       <div className="absolute -bottom-8 -left-6 w-36 animate-fade-up [animation-delay:700ms] md:-left-12 md:w-44">
         <div className="animate-float overflow-hidden rounded-2xl border-[6px] border-background shadow-2xl">
-          <img src={hero2} alt="" className="aspect-4/5 w-full object-cover" />
+          <img src={hero2} alt="" width={480} height={600} loading="lazy" className="aspect-4/5 w-full object-cover" />
         </div>
       </div>
       <RotatingBadge />

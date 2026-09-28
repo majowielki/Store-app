@@ -1,7 +1,9 @@
 name: End-to-end
 
-# The Playwright scenarios (UI/store-app.UI/e2e) against the whole stack from docker compose:
-# nightly, on demand, and whenever a release is being prepared.
+# The whole stack from docker compose, tested from the outside: the Playwright scenarios
+# (UI/store-app.UI/e2e) and Lighthouse CI with the shop's performance, accessibility and SEO
+# budget (UI/store-app.UI/lighthouserc.cjs). Nightly, on demand, and whenever a release is being
+# prepared.
 on:
   schedule:
     - cron: "0 3 * * *"
@@ -16,40 +18,30 @@ concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
+# Throw-away secrets for the stack under test; nothing here leaves the runner
+env:
+  POSTGRES_PASSWORD: e2e-only-postgres-password
+  RABBITMQ_PASSWORD: e2e-only-rabbitmq-password
+  JWT_SECRET_KEY: e2e-only-jwt-secret-key-that-is-long-enough-0123456789
+  INTERNAL_API_KEY: e2e-only-internal-api-key-0123456789abcdef
+  PAYMENT_WEBHOOK_SECRET: e2e-only-payment-webhook-secret-0123456789abcdef
+  TRUE_ADMIN_PASSWORD: E2e-Admin-Pass-1!
+  # The scenarios sign in as the demo accounts too
+  DEMO_ENABLED: "true"
+  # Every scenario signs in on its own and every page load renews the session; the production
+  # limits (10 sign-ins and 60 other /auth calls a minute) would stop them
+  AUTH_CREDENTIAL_LIMIT: 1000
+  AUTH_PERMIT_LIMIT: 1000
+
 jobs:
   playwright:
     name: Playwright against docker compose
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    env:
-      # Throw-away secrets for the stack under test; nothing here leaves the runner
-      POSTGRES_PASSWORD: e2e-only-postgres-password
-      RABBITMQ_PASSWORD: e2e-only-rabbitmq-password
-      JWT_SECRET_KEY: e2e-only-jwt-secret-key-that-is-long-enough-0123456789
-      INTERNAL_API_KEY: e2e-only-internal-api-key-0123456789abcdef
-      PAYMENT_WEBHOOK_SECRET: e2e-only-payment-webhook-secret-0123456789abcdef
-      TRUE_ADMIN_PASSWORD: E2e-Admin-Pass-1!
-      # The scenarios sign in as the demo accounts too
-      DEMO_ENABLED: "true"
-      # Every scenario signs in on its own and every page load renews the session; the production
-      # limits (10 sign-ins and 60 other /auth calls a minute) would stop them
-      AUTH_CREDENTIAL_LIMIT: 1000
-      AUTH_PERMIT_LIMIT: 1000
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-      - name: Start the stack
-        run: docker compose up --build --detach --wait --wait-timeout 600
-      - name: Wait for the catalogue to answer through the UI
-        # The service containers have no health check of their own (chiseled images); the gateway
-        # routes to a service once its probe passes
-        run: |
-          for i in $(seq 1 60); do
-            if curl -fsS http://localhost:8081/api/v1/products?pageSize=1 > /dev/null; then exit 0; fi
-            sleep 2
-          done
-          echo "::error::The stack did not answer within two minutes"
-          exit 1
+      - uses: ./.github/actions/start-stack
       - name: Show the stack
         if: always()
         run: docker compose ps
@@ -78,6 +70,34 @@ jobs:
       - name: Service logs
         if: failure()
         run: docker compose logs --no-color --tail 200
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
+
+  lighthouse:
+    name: Lighthouse budget against docker compose
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: ./.github/actions/start-stack
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: UI/store-app.UI/.nvmrc
+      - name: Run Lighthouse CI
+        working-directory: UI/store-app.UI
+        # The runner's Chrome; a product page of this database (the ids differ between databases)
+        run: |
+          export LHCI_PRODUCT_PATH="/products/$(curl -fsS 'http://localhost:8081/api/v1/products?pageSize=1' | jq '.items[0].id')"
+          npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.cjs
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lighthouse-report
+          path: UI/store-app.UI/lighthouse-report
+          retention-days: 14
       - name: Stop the stack
         if: always()
         run: docker compose down --volumes

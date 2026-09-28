@@ -1,0 +1,28 @@
+name: Start the store
+description: >
+  Builds and starts the whole store from docker-compose.yml, then waits until the pictures are in
+  the blob emulator and the catalogue answers through the UI on localhost:8081. The job gives the
+  secrets and the limits as environment variables.
+
+runs:
+  using: composite
+  steps:
+    - name: Start the stack
+      shell: bash
+      run: docker compose up --build --detach
+    - name: Wait for the pictures
+      shell: bash
+      # The one-shot blobs-seed container uploads Blobs/ into Azurite and exits
+      run: test "$(docker compose wait blobs-seed)" = "0"
+    - name: Wait for the catalogue to answer through the UI
+      shell: bash
+      # The service containers have no health check of their own (chiseled images); the gateway
+      # routes to a service once its probe passes
+      run: |
+        for i in $(seq 1 90); do
+          if curl -fsS http://localhost:8081/api/v1/products?pageSize=1 > /dev/null; then exit 0; fi
+          sleep 2
+        done
+        echo "::error::The stack did not answer within three minutes"
+        docker compose ps
+        exit 1

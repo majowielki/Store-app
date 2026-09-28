@@ -40,11 +40,13 @@ interface ProductCardProps {
    * page, whose own image already carries the transition's name.
    */
   transition?: boolean;
+  /** The card is in the first row a page shows: its picture loads first, not when scrolled to. */
+  priority?: boolean;
   className?: string;
 }
 
 /** A product tile of the grid listings (landing page, catalogue grid, related products). */
-const ProductCard = ({ product, transition = true, className }: ProductCardProps) => {
+const ProductCard = ({ product, transition = true, priority = false, className }: ProductCardProps) => {
   const { title, image, company, colors, newArrival } = product;
   const { hasSale, percent } = priceTag(product);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -65,7 +67,8 @@ const ProductCard = ({ product, transition = true, className }: ProductCardProps
             size="card"
             placeholder
             alt={title}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : undefined}
             decoding="async"
             className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-[1.06]"
           />

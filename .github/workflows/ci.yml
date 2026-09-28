@@ -133,6 +133,8 @@ jobs:
       - name: Unit and component tests (Vitest, MSW)
         run: npm run test:coverage
       - run: npm run build
+      - name: The main bundle keeps its budget
+        run: npm run check:bundle
       - name: Upload UI coverage
         if: (success() || failure()) && hashFiles('UI/store-app.UI/coverage/cobertura-coverage.xml') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

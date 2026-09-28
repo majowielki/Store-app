@@ -4,8 +4,8 @@ Three files in the repository root; the first is the base, the others are overri
 
 | File | What it adds |
 |------|--------------|
-| `docker-compose.yml` | the whole store the way it runs in production: `Production` environment, the UI on <http://localhost:8081> and nothing else on the host, no default passwords, CPU and memory limits, migrations as one-shot containers |
-| `docker-compose.dev.yml` | `Development` environment (Swagger per service), the demo accounts, every port on the host (gateway 5000, services 5001–5010, PostgreSQL 5432, RabbitMQ 5672 / 15672), the Aspire dashboard on <http://localhost:18888>, the Azurite blob emulator on 10000 filled with the product pictures and Mailpit on <http://localhost:8025> catching the e-mails |
+| `docker-compose.yml` | the whole store the way it runs in production: `Production` environment, the UI on <http://localhost:8081> and the pictures (Azurite) on 10000, nothing else on the host, no default passwords, CPU and memory limits, migrations as one-shot containers |
+| `docker-compose.dev.yml` | `Development` environment (Swagger per service), the demo accounts, every port on the host (gateway 5000, services 5001–5010, PostgreSQL 5432, RabbitMQ 5672 / 15672), the Aspire dashboard on <http://localhost:18888> and Mailpit on <http://localhost:8025> catching the e-mails |
 | `docker-compose.tools.yml` | pgAdmin on <http://localhost:8080>, behind the `tools` profile |
 
 ```bash
@@ -35,15 +35,17 @@ circuit breakers of the typed clients, and events wait in the outbox until the b
 
 ## Product pictures
 
-The catalogue points at `http://localhost:10000/devstoreaccount1/product-images/<name>.webp`. In
-development Azurite serves them: on every `up` the one-shot `blobs-seed` container uploads the
-WebP files from `Blobs/` (and replaces what is there, so a regenerated picture shows up without
-resetting the volume). The repository keeps only these WebP files; the generated originals stay
+The catalogue points at `http://localhost:10000/devstoreaccount1/product-images/<name>.webp`.
+Azurite serves them in both setups, the way Blob Storage does in Azure: on every `up` the one-shot
+`blobs-seed` container uploads the WebP files from `Blobs/` with their smaller copies from
+`Blobs/w*/` (ADR 016), and replaces what is there, so a regenerated picture shows up without
+resetting the volume. The repository keeps only these WebP files; the generated originals stay
 in `Blobs/` on the machine that made them, ignored by git. A new or regenerated picture goes
 through
 
 ```bash
 dotnet run Scripts/optimize-images.cs     # JPEG/PNG in Blobs/ -> WebP, 1600 px (products) or 2000 px (covers)
+dotnet run Scripts/make-image-sizes.cs    # the smaller copies the UI asks for by size: w400, w800, w1200, w32
 ```
 
 and `Scripts/Upload-Blobs.ps1 -AccountName <account>` does the upload for a real storage account.

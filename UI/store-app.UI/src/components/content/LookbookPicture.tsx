@@ -92,6 +92,7 @@ const LookbookPicture = ({ image, alt, hotspots, products, className, priority =
         placeholder
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
         data-vt={viewTransition}
         className={cn('block h-auto w-full', imageClassName)}
       />

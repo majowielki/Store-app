@@ -35,3 +35,7 @@ playwright-report
 
 # Incremental build state of tsc -b
 *.tsbuildinfo
+
+# Lighthouse CI (lighthouserc.cjs)
+.lighthouseci
+lighthouse-report

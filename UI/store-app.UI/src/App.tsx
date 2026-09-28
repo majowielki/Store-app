@@ -1,24 +1,13 @@
 import type { ComponentType } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { ErrorElement } from './components';
-import {
-  About,
-  Cart,
-  Checkout,
-  Contact,
-  Error,
-  HomeLayout,
-  Landing,
-  Login,
-  OrderDetail,
-  Orders,
-  Products,
-  Register,
-  SingleProduct,
-} from './pages';
+import { Error, HomeLayout, Landing } from './pages';
 import { requireAdmin, requireUser } from './routes/guards';
 
-/** A route module loaded on first visit; the admin panel (with its charts) stays out of the shop's bundle this way. */
+/**
+ * A route module loaded on first visit. Only the layout and the home page are in the main bundle;
+ * every other page, the admin panel with its charts above all, comes when it is first opened.
+ */
 const page = (load: () => Promise<{ default: ComponentType }>) => async () => ({ Component: (await load()).default });
 
 const router = createBrowserRouter([
@@ -28,18 +17,18 @@ const router = createBrowserRouter([
     errorElement: <Error />,
     children: [
       { index: true, element: <Landing />, errorElement: <ErrorElement /> },
-      { path: 'products', element: <Products />, errorElement: <ErrorElement /> },
-      { path: 'products/:id', element: <SingleProduct />, errorElement: <ErrorElement /> },
-      { path: 'cart', element: <Cart />, errorElement: <ErrorElement /> },
+      { path: 'products', lazy: page(() => import('./pages/Products')), errorElement: <ErrorElement /> },
+      { path: 'products/:id', lazy: page(() => import('./pages/SingleProduct')), errorElement: <ErrorElement /> },
+      { path: 'cart', lazy: page(() => import('./pages/Cart')), errorElement: <ErrorElement /> },
       { path: 'wishlist', lazy: page(() => import('./pages/Wishlist')), errorElement: <ErrorElement /> },
       { path: 'compare', lazy: page(() => import('./pages/Compare')), errorElement: <ErrorElement /> },
-      { path: 'about', element: <About />, errorElement: <ErrorElement /> },
-      { path: 'contact', element: <Contact />, errorElement: <ErrorElement /> },
-      { path: 'checkout', element: <Checkout />, errorElement: <ErrorElement />, loader: requireUser },
-      { path: 'orders', element: <Orders />, errorElement: <ErrorElement />, loader: requireUser },
-      { path: 'orders/:id', element: <OrderDetail />, errorElement: <ErrorElement />, loader: requireUser },
+      { path: 'about', lazy: page(() => import('./pages/About')), errorElement: <ErrorElement /> },
+      { path: 'contact', lazy: page(() => import('./pages/Contact')), errorElement: <ErrorElement /> },
+      { path: 'checkout', lazy: page(() => import('./pages/Checkout')), errorElement: <ErrorElement />, loader: requireUser },
+      { path: 'orders', lazy: page(() => import('./pages/Orders')), errorElement: <ErrorElement />, loader: requireUser },
+      { path: 'orders/:id', lazy: page(() => import('./pages/OrderDetail')), errorElement: <ErrorElement />, loader: requireUser },
       { path: 'orders/:id/pay', lazy: page(() => import('./pages/PayOrder')), errorElement: <ErrorElement />, loader: requireUser },
-      // Editorial pages (with the Markdown renderer) load on first visit
+      // Editorial pages (with the Markdown renderer)
       { path: 'makers', lazy: page(() => import('./pages/content/Makers')), errorElement: <ErrorElement /> },
       { path: 'makers/:slug', lazy: page(() => import('./pages/content/MakerPage')), errorElement: <ErrorElement /> },
       { path: 'collections', lazy: page(() => import('./pages/content/Collections')), errorElement: <ErrorElement /> },
@@ -78,8 +67,8 @@ const router = createBrowserRouter([
       { path: 'content/:kind/:id', lazy: page(() => import('./pages/admin/content/ContentForm')), errorElement: <ErrorElement /> },
     ],
   },
-  { path: '/login', element: <Login />, errorElement: <Error /> },
-  { path: '/register', element: <Register />, errorElement: <Error /> },
+  { path: '/login', lazy: page(() => import('./pages/Login')), errorElement: <Error /> },
+  { path: '/register', lazy: page(() => import('./pages/Register')), errorElement: <Error /> },
 ]);
 
 const App = () => <RouterProvider router={router} />;

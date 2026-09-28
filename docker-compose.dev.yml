@@ -22,47 +22,6 @@ services:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
 
-  # Local stand-in for Azure Blob Storage; devstoreaccount1/product-images is where seeded
-  # product images are expected to live (see DatabaseSeeder.cs)
-  azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:3.34.0
-    restart: unless-stopped
-    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose --skipApiVersionCheck"
-    volumes:
-      - azurite_data:/data
-    ports:
-      - "${AZURITE_BLOB_PORT:-10000}:10000"
-    networks:
-      - store
-
-  # Puts the product pictures from Blobs/ (the WebP files, see Scripts/optimize-images.cs, and their
-  # smaller copies in Blobs/w*/, see Scripts/make-image-sizes.cs) into the emulator and exits. It
-  # runs on every "up" and replaces what is there, so a picture regenerated since shows up without
-  # resetting the volume; "old pictures/" holds no WebP files
-  blobs-seed:
-    image: mcr.microsoft.com/azure-cli:2.77.0
-    depends_on:
-      azurite:
-        condition: service_started
-    volumes:
-      - ./Blobs:/blobs:ro
-    environment:
-      # Azurite's built-in development account: the same public key in every installation,
-      # valid only inside the emulator
-      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - >-
-        for attempt in 1 2 3 4 5 6 7 8 9 10; do
-        az storage container create --name product-images --public-access blob --only-show-errors --output none && break;
-        sleep 2; done &&
-        az storage blob upload-batch --destination product-images --source /blobs --pattern '*.webp'
-        --content-type image/webp --content-cache-control 'public, max-age=86400'
-        --overwrite --no-progress --only-show-errors --output none &&
-        echo "product pictures uploaded"
-    networks:
-      - store
-
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13.5
     restart: unless-stopped
@@ -159,11 +118,3 @@ services:
     environment: *dev-env
     ports:
       - "${GATEWAY_SERVICE_PORT:-5000}:8080"
-
-  ui:
-    environment:
-      # Lets the browser load product images straight from the local blob emulator
-      CSP_IMG_SRC_EXTRA: http://localhost:${AZURITE_BLOB_PORT:-10000}
-
-volumes:
-  azurite_data:

@@ -146,6 +146,49 @@ services:
     networks:
       - store
 
+  # --- pictures ------------------------------------------------------------------------------
+  # The product and editorial pictures, as Azure Blob Storage serves them in production: Azurite
+  # with the devstoreaccount1/product-images container the demo data points at.
+  # Its port is on the host because the browser loads the pictures from it.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.34.0
+    restart: unless-stopped
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose --skipApiVersionCheck"
+    volumes:
+      - azurite_data:/data
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    networks:
+      - store
+
+  # Puts the product pictures from Blobs/ (the WebP files, see Scripts/optimize-images.cs, and their
+  # smaller copies in Blobs/w*/, see Scripts/make-image-sizes.cs) into the emulator and exits. It
+  # runs on every "up" and replaces what is there, so a picture regenerated since shows up without
+  # resetting the volume; "old pictures/" holds no WebP files
+  blobs-seed:
+    image: mcr.microsoft.com/azure-cli:2.77.0
+    depends_on:
+      azurite:
+        condition: service_started
+    volumes:
+      - ./Blobs:/blobs:ro
+    environment:
+      # Azurite's built-in development account: the same public key in every installation,
+      # valid only inside the emulator
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        for attempt in 1 2 3 4 5 6 7 8 9 10; do
+        az storage container create --name product-images --public-access blob --only-show-errors --output none && break;
+        sleep 2; done &&
+        az storage blob upload-batch --destination product-images --source /blobs --pattern '*.webp'
+        --content-type image/webp --content-cache-control 'public, max-age=86400'
+        --overwrite --no-progress --only-show-errors --output none &&
+        echo "product pictures uploaded"
+    networks:
+      - store
+
   # --- identity ------------------------------------------------------------------------------
   identity-migrate:
     image: store/identity
@@ -398,6 +441,8 @@ services:
       API_BASE_URL: /api/v1
       # robots.txt, the sitemaps and the pictures shared on social sites need absolute addresses
       SHOP_URL: *shop-url
+      # The pictures come from the blob emulator (Azurite) on this machine
+      CSP_IMG_SRC_EXTRA: http://localhost:${AZURITE_BLOB_PORT:-10000}
     ports:
       - "${FRONTEND_PORT:-8081}:8080"
     networks:
@@ -406,6 +451,7 @@ services:
 volumes:
   postgres_data:
   rabbitmq_data:
+  azurite_data:
 
 networks:
   store:
