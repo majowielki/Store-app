@@ -10,7 +10,7 @@ name: CD
 #               AZURE_CONTAINER_REGISTRY (login server, e.g. storeacrxxxx.azurecr.io),
 #               POSTGRES_HOST, optionally POSTGRES_USER and DEMO_ENABLED
 #   secrets:    POSTGRES_PASSWORD, JWT_SECRET_KEY, INTERNAL_API_KEY, TRUE_ADMIN_PASSWORD,
-#               RABBITMQ_PASSWORD
+#               RABBITMQ_PASSWORD, PAYMENT_WEBHOOK_SECRET
 # The service principal behind AZURE_CLIENT_ID needs Contributor on the resource group,
 # AcrPush on the registry, Key Vault Secrets Officer on the vault and User Access Administrator
 # for the two role assignments in main.bicep. See docs/runbooks/deploy.md.
@@ -57,6 +57,7 @@ jobs:
           build order    Services/OrderService/Dockerfile .
           build audit    Services/AuditLogService/Dockerfile .
           build content  Services/ContentService/Dockerfile .
+          build payment  Services/PaymentService/Dockerfile .
           build gateway  Gateway/APIGateway/Dockerfile .
           build ui       UI/store-app.UI/Dockerfile UI/store-app.UI
 
@@ -75,6 +76,7 @@ jobs:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+      PAYMENT_WEBHOOK_SECRET: ${{ secrets.PAYMENT_WEBHOOK_SECRET }}
       TRUE_ADMIN_PASSWORD: ${{ secrets.TRUE_ADMIN_PASSWORD }}
       RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
     steps:
@@ -95,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           registry="${{ vars.AZURE_CONTAINER_REGISTRY }}"
-          for service in identityservice:identity productservice:product cartservice:cart orderservice:order auditlogservice:audit contentservice:content; do
+          for service in identityservice:identity productservice:product cartservice:cart orderservice:order auditlogservice:audit contentservice:content paymentservice:payment; do
             job="${service%%:*}-migrate"
             image="$registry/store/${service##*:}:$IMAGE_TAG"
             if ! az containerapp job show -g "$RESOURCE_GROUP" -n "$job" -o none 2>/dev/null; then
@@ -131,7 +133,7 @@ jobs:
         # Only when a job was missing above: the template has just created it
         run: |
           set -euo pipefail
-          for service in identityservice productservice cartservice orderservice auditlogservice contentservice; do
+          for service in identityservice productservice cartservice orderservice auditlogservice contentservice paymentservice; do
             job="$service-migrate"
             if [ "$(az containerapp job execution list -g "$RESOURCE_GROUP" -n "$job" --query 'length(@)' -o tsv)" = "0" ]; then
               execution=$(az containerapp job start -g "$RESOURCE_GROUP" -n "$job" --query name -o tsv)

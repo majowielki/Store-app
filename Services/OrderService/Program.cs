@@ -15,6 +15,7 @@ using Store.OrderService.Data;
 using Store.OrderService.Models;
 using Store.OrderService.Saga;
 using Store.OrderService.Services;
+using Store.OrderService.Webhooks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,11 +39,17 @@ builder.Services.AddStoreAuthorization();
 // Addresses of the services this one calls; startup fails when any is missing
 builder.Services.AddServiceEndpoints(builder.Configuration,
     nameof(ServiceEndpointsOptions.ProductService),
-    nameof(ServiceEndpointsOptions.CartService));
+    nameof(ServiceEndpointsOptions.CartService),
+    nameof(ServiceEndpointsOptions.PaymentService));
 
 // Other services, through typed clients with timeouts, retries and a circuit breaker
 builder.Services.AddServiceClient<ICartClient, CartClient>(builder.Configuration, nameof(ServiceEndpointsOptions.CartService));
 builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configuration, nameof(ServiceEndpointsOptions.ProductService));
+builder.Services.AddServiceClient<IPaymentClient, PaymentClient>(builder.Configuration, nameof(ServiceEndpointsOptions.PaymentService));
+
+// The payment service reports payments with signed webhooks (ADR 011)
+builder.Services.AddStoreOptions<PaymentWebhookOptions>(builder.Configuration, PaymentWebhookOptions.SectionName);
+builder.Services.AddScoped<PaymentWebhookHandler>();
 
 // Message bus: the order events leave through the outbox in the orders database. The order saga
 // (ADR 013) keeps its rows next to the orders and is locked per order while it handles a message.

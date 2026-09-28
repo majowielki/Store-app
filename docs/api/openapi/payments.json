@@ -1,0 +1,499 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Payment Service API",
+    "description": "Payment Service API API documentation",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/payments/internal": {
+      "post": {
+        "tags": [
+          "InternalPayments"
+        ],
+        "summary": "Opens the payment of an order; the order service calls it with the Idempotency-Key\n\"order-{id}\". Opening it again returns the same payment (200 instead of 201); the same order\nwith another amount or customer is 409.",
+        "parameters": [
+          {
+            "name": "idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSnapshot"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSnapshot"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/{id}": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "A payment of the signed-in customer; 403 for another customer's.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/{id}/confirm": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Pays with a card. The answer is the payment after the charge: succeeded, waiting for the\n3-D Secure check (requiresAction), or still open with the reason the card was refused. A\npayment already paid, cancelled or waiting for its check is 409.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/payments/{id}/authenticate": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "The customer's answer in the 3-D Secure window: approved pays, rejected refuses the card.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthenticatePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthenticatePaymentRequest": {
+        "required": [
+          "approve"
+        ],
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/payments/{id}/authenticate: the customer's answer in the 3-D Secure window."
+      },
+      "ConfirmPaymentRequest": {
+        "required": [
+          "cardNumber",
+          "cvc",
+          "expMonth",
+          "expYear"
+        ],
+        "type": "object",
+        "properties": {
+          "cardNumber": {
+            "type": "string",
+            "description": "Digits, spaces and dashes allowed."
+          },
+          "expMonth": {
+            "type": "integer",
+            "description": "1-12.",
+            "format": "int32"
+          },
+          "expYear": {
+            "type": "integer",
+            "description": "Four digits.",
+            "format": "int32"
+          },
+          "cvc": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/payments/{id}/confirm: the card, typed by the customer. Only the test\ncards are taken (see `TestCards`); rules: `ConfirmPaymentRequestValidator`."
+      },
+      "CreatePaymentRequest": {
+        "required": [
+          "amount",
+          "currency",
+          "orderId",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "description": "The order to be paid",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The customer; only they may pay it"
+          },
+          "amount": {
+            "type": "number",
+            "description": "What the order costs",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO code, lowercase (\"usd\")"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of `POST /api/v1/payments/internal`, with which the order service opens the payment\nof an order (an internal call, with the key \"order-{id}\" in the Idempotency-Key header). One\npayment per order: asking again returns the payment made the first time."
+      },
+      "PaymentResponse": {
+        "required": [
+          "amount",
+          "createdAt",
+          "currency",
+          "id",
+          "orderId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO code, lowercase."
+          },
+          "status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          },
+          "cardBrand": {
+            "type": "string",
+            "description": "Brand of the card that paid, or of the one waiting for its 3-D Secure check, or of the one refused.",
+            "nullable": true
+          },
+          "cardLast4": {
+            "type": "string",
+            "nullable": true
+          },
+          "declineReason": {
+            "type": "string",
+            "description": "Why the last card was refused: card-declined, insufficient-funds or authentication-failed.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A payment as its customer sees it."
+      },
+      "PaymentSnapshot": {
+        "required": [
+          "amount",
+          "createdAt",
+          "currency",
+          "id",
+          "orderId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Id of the payment; the browser confirms it with a card at the payment service",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "integer",
+            "description": "The order it pays for",
+            "format": "int32"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount to take",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO code, lowercase"
+          },
+          "status": {
+            "type": "string",
+            "description": "requiresPaymentMethod, requiresAction, succeeded, cancelled or refunded"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was opened (UTC)",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the payment service tells the order service about a payment."
+      },
+      "PaymentStatus": {
+        "enum": [
+          "requiresPaymentMethod",
+          "requiresAction",
+          "succeeded",
+          "cancelled",
+          "refunded"
+        ],
+        "type": "string",
+        "description": "Stored by name; the API writes them in camelCase."
+      },
+      "StoreProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "description": "W3C trace id of the request, to find it in the logs.",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Messages per field of a 422 problem.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { },
+        "description": "The error response as this store fills it, for the document only: the RFC 9457 members\nplus the trace id every problem carries and the field messages of a validation problem."
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Access token issued by the identity service",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "InternalPayments",
+      "description": "What the shop itself calls, with the internal API key."
+    },
+    {
+      "name": "Payments",
+      "description": "A payment as the customer handles it: they confirm it with a card and answer the 3-D Secure\nwindow. The outcome reaches the shop as a signed webhook, not through the browser; the shop\nopens the payment through Store.PaymentService.Controllers.InternalPaymentsController."
+    }
+  ]
+}

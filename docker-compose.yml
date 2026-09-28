@@ -58,6 +58,8 @@ x-order-env: &order-env
   InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
   Services__ProductService: http://productservice:8080
   Services__CartService: http://cartservice:8080
+  Services__PaymentService: http://paymentservice:8080
+  PaymentWebhooks__SigningSecret: ${PAYMENT_WEBHOOK_SECRET:?PAYMENT_WEBHOOK_SECRET is required - set it in .env, see .env.example}
 
 x-audit-env: &audit-env
   <<: *service-env
@@ -66,6 +68,13 @@ x-audit-env: &audit-env
 x-content-env: &content-env
   <<: *service-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_content_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+
+x-payment-env: &payment-env
+  <<: *service-env
+  ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_payment_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
+  InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
+  PaymentWebhooks__Url: http://orderservice:8080/api/v1/webhooks/payments
+  PaymentWebhooks__SigningSecret: ${PAYMENT_WEBHOOK_SECRET:?PAYMENT_WEBHOOK_SECRET is required - set it in .env, see .env.example}
 
 x-infrastructure-ready: &infrastructure-ready
   postgres:
@@ -264,6 +273,30 @@ services:
     networks:
       - store
 
+  # --- payments ------------------------------------------------------------------------------
+  payment-migrate:
+    image: store/payment
+    environment: *payment-env
+    command: ["--migrate"]
+    restart: "no"
+    depends_on: *infrastructure-ready
+    networks:
+      - store
+
+  paymentservice:
+    build:
+      context: .
+      dockerfile: Services/PaymentService/Dockerfile
+    image: store/payment
+    <<: *limits
+    restart: unless-stopped
+    environment: *payment-env
+    depends_on:
+      payment-migrate:
+        condition: service_completed_successfully
+    networks:
+      - store
+
   # --- gateway and UI ------------------------------------------------------------------------
   gateway:
     build:
@@ -283,6 +316,7 @@ services:
       ReverseProxy__Clusters__cart-cluster__Destinations__destination1__Address: http://cartservice:8080/
       ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address: http://orderservice:8080/
       ReverseProxy__Clusters__content-cluster__Destinations__destination1__Address: http://contentservice:8080/
+      ReverseProxy__Clusters__payments-cluster__Destinations__destination1__Address: http://paymentservice:8080/
       ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address: http://auditlogservice:8080/
       # Sign-ins, and other /auth calls (a page load renews the session), per minute per client; the
       # end-to-end tests raise both, every scenario signs in on its own and reloads pages

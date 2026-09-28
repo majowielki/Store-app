@@ -500,6 +500,27 @@ namespace Store.OrderService.Migrations
                     b.ToTable("OrderStates", (string)null);
                 });
 
+            modelBuilder.Entity("Store.OrderService.Webhooks.ProcessedWebhookEvent", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("ReceivedAt");
+
+                    b.ToTable("ProcessedWebhookEvents");
+                });
+
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
                 {
                     b.HasOne("MassTransit.EntityFrameworkCoreIntegration.OutboxState", null)

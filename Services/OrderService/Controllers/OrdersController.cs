@@ -98,6 +98,15 @@ public class OrdersController : ControllerBase
         return await _orderService.GetOrderAsync(id, UserId);
     }
 
+    /// <summary>
+    /// Opens the payment of the customer's order once its stock is reserved; calling it again gives
+    /// the same payment. 409 while the stock is still being reserved (try again), once the order is
+    /// paid or cancelled, or after its payment deadline.
+    /// </summary>
+    [HttpPost("{id:int}/payment")]
+    public Task<OrderPaymentResponse> StartPayment(int id)
+        => _orderService.StartPaymentAsync(id, UserId);
+
     /// <summary>The customer's orders, newest first.</summary>
     [HttpGet("my-orders")]
     public Task<PagedResponse<OrderResponse>> GetMyOrders([FromQuery] PagedQuery paging)

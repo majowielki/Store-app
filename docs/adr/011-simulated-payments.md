@@ -18,7 +18,10 @@ payment service keeps the card's brand and last four digits only, and reports th
 order service with a webhook signed with HMAC-SHA256 over a timestamp and the body; the order
 service rejects a stale or wrong signature and ignores an event id it has already processed.
 Undelivered webhooks are retried after 1, 5 and 30 minutes, five attempts at most. Refunds go
-the same way. The test cards follow the numbers of Stripe's test mode (4242 4242 4242 4242 pays,
+the same way: the order saga asks for one with an event the payment service consumes (a cancelled
+order cancels its open payment the same way) and the refund webhook confirms it; a real provider
+would get these requests through its API. A refused card leaves the payment open for another
+card. The test cards follow the numbers of Stripe's test mode (4242 4242 4242 4242 pays,
 4000 0000 0000 3220 asks for 3-D Secure, 4000 0000 0000 9995 has no funds, 4000 0000 0000 0002 is
 declined), and any other number is refused, so nobody can type a real card into the demo.
 

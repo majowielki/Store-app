@@ -19,6 +19,7 @@ public sealed class ServiceEndpointsOptions
     [Url] public string? CartService { get; init; }
     [Url] public string? OrderService { get; init; }
     [Url] public string? AuditLogService { get; init; }
+    [Url] public string? PaymentService { get; init; }
 
     /// <summary>Configured value for a service name, e.g. <c>nameof(ProductService)</c>.</summary>
     public string? Get(string serviceName) => serviceName switch
@@ -28,6 +29,7 @@ public sealed class ServiceEndpointsOptions
         nameof(CartService) => CartService,
         nameof(OrderService) => OrderService,
         nameof(AuditLogService) => AuditLogService,
+        nameof(PaymentService) => PaymentService,
         _ => throw new ArgumentOutOfRangeException(nameof(serviceName), serviceName, "unknown service")
     };
 

@@ -8,6 +8,7 @@
     <Project Path="Services/ContentService/Store.ContentService.csproj" />
     <Project Path="Services/IdentityService/Store.IdentityService.csproj" />
     <Project Path="Services/OrderService/Store.OrderService.csproj" />
+    <Project Path="Services/PaymentService/Store.PaymentService.csproj" />
     <Project Path="Services/ProductService/Store.ProductService.csproj" />
   </Folder>
   <Folder Name="/Shared/">

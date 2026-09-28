@@ -36,6 +36,7 @@ public class OrderServiceTests
             TimeProvider.System,
             new DeliveryEstimator(Options.Create(new DeliveryOptions()), TimeProvider.System),
             null!, // status changes need PostgreSQL; the integration tests cover them
+            Mock.Of<IPaymentClient>(),
             _loggerMock.Object
         );
     }

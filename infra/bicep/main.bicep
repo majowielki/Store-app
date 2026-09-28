@@ -48,6 +48,11 @@ param jwtSecretKey string
 param internalApiKey string
 
 @secure()
+@minLength(32)
+@description('Signs the payment service''s webhooks to the order service')
+param paymentWebhookSecret string
+
+@secure()
 param trueAdminPassword string
 
 param trueAdminEmail string = 'trueadmin@store.com'
@@ -148,7 +153,7 @@ resource secretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-var databases = ['identity', 'product', 'cart', 'order', 'audit', 'content']
+var databases = ['identity', 'product', 'cart', 'order', 'audit', 'content', 'payment']
 
 resource connectionSecrets 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = [
   for db in databases: {
@@ -173,6 +178,14 @@ resource internalApiSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'internal-api-key'
   properties: {
     value: internalApiKey
+  }
+}
+
+resource paymentWebhookSecretEntry 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'payment-webhook-secret'
+  properties: {
+    value: paymentWebhookSecret
   }
 }
 
@@ -358,6 +371,7 @@ var commonSecrets = [
 ]
 
 var internalApiSecretRef = { name: 'internal-api-key', keyVaultUrl: '${vaultUri}secrets/internal-api-key' }
+var paymentWebhookSecretRef = { name: 'payment-webhook-secret', keyVaultUrl: '${vaultUri}secrets/payment-webhook-secret' }
 
 // Every service: which database, which extra variables and secrets, which image. The
 // addresses of the neighbours are added in the loop, since the environment's domain is only
@@ -408,8 +422,10 @@ var services = [
     callsCart: true
     env: [
       { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
+      { name: 'Services__PaymentService', value: 'http://paymentservice.${internal}' }
+      { name: 'PaymentWebhooks__SigningSecret', secretRef: 'payment-webhook-secret' }
     ]
-    secrets: [internalApiSecretRef]
+    secrets: [internalApiSecretRef, paymentWebhookSecretRef]
   }
   {
     name: 'auditlogservice'
@@ -428,6 +444,19 @@ var services = [
     callsCart: false
     env: []
     secrets: []
+  }
+  {
+    name: 'paymentservice'
+    image: 'store/payment'
+    db: 'payment'
+    callsCatalog: false
+    callsCart: false
+    env: [
+      { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
+      { name: 'PaymentWebhooks__Url', value: 'http://orderservice.${internal}/api/v1/webhooks/payments' }
+      { name: 'PaymentWebhooks__SigningSecret', secretRef: 'payment-webhook-secret' }
+    ]
+    secrets: [internalApiSecretRef, paymentWebhookSecretRef]
   }
 ]
 
@@ -512,6 +541,7 @@ module gateway 'app.bicep' = {
       { name: 'ReverseProxy__Clusters__orders-cluster__Destinations__destination1__Address', value: 'http://orderservice.${internal}/' }
       { name: 'ReverseProxy__Clusters__audit-cluster__Destinations__destination1__Address', value: 'http://auditlogservice.${internal}/' }
       { name: 'ReverseProxy__Clusters__content-cluster__Destinations__destination1__Address', value: 'http://contentservice.${internal}/' }
+      { name: 'ReverseProxy__Clusters__payments-cluster__Destinations__destination1__Address', value: 'http://paymentservice.${internal}/' }
     ], corsEnv)
     keyVaultSecrets: [
       { name: 'jwt-secret-key', keyVaultUrl: '${vaultUri}secrets/jwt-secret-key' }

@@ -1,12 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Store.OrderService.Data;
 using Store.OrderService.Models;
+using Store.OrderService.Webhooks;
 
 namespace Store.OrderService.Services;
 
 /// <summary>
-/// Deletes idempotency keys older than <see cref="IdempotencyKey.Lifetime"/> once an hour.
-/// A client retrying a day-old checkout gets a fresh order, which is the intended behaviour.
+/// Deletes idempotency keys older than <see cref="IdempotencyKey.Lifetime"/> and processed payment
+/// webhooks older than <see cref="ProcessedWebhookEvent.Lifetime"/> once an hour. A client retrying a
+/// day-old checkout gets a fresh order, which is the intended behaviour; a webhook that old fails
+/// its signature's time check before its id is looked up.
 /// </summary>
 public sealed class IdempotencyKeyCleanupService : BackgroundService
 {
@@ -41,6 +44,9 @@ public sealed class IdempotencyKeyCleanupService : BackgroundService
                 {
                     _logger.LogInformation("Deleted {Count} expired idempotency keys", deleted);
                 }
+
+                var webhooksBefore = _time.GetUtcNow().UtcDateTime - ProcessedWebhookEvent.Lifetime;
+                await context.ProcessedWebhookEvents.Where(e => e.ReceivedAt < webhooksBefore).ExecuteDeleteAsync(stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

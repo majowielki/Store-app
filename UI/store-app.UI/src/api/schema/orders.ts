@@ -811,6 +811,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{id}/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Opens the payment of the customer's order once its stock is reserved; calling it again gives
+         *     the same payment. 409 while the stock is still being reserved (try again), once the order is
+         *     paid or cancelled, or after its payment deadline.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrderPaymentResponse"];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/my-orders": {
         parameters: {
             query?: never;
@@ -932,6 +997,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/webhooks/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A payment event, signed in the Store-Signature header (HMAC-SHA256 over "t.body"). A wrong,
+         *     missing or stale (more than 5 minutes) signature is 401; an event already processed is
+         *     acknowledged again and changes nothing.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PaymentWebhookEvent"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WebhookReceipt"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1033,6 +1160,27 @@ export interface components {
             /** Format: double */
             lineTotal: number;
         };
+        /**
+         * @description The payment of an order, for the payment page: the browser confirms it with a card straight at
+         *     the payment service (POST /api/v1/payments/{paymentId}/confirm) before Store.OrderService.DTOs.Responses.OrderPaymentResponse.PaymentDueAt.
+         */
+        OrderPaymentResponse: {
+            /** Format: int32 */
+            orderId: number;
+            /** Format: uuid */
+            paymentId: string;
+            /** Format: double */
+            amount: number;
+            /** @description ISO code, lowercase. */
+            currency: string;
+            /** @description The payment's status at the payment service: requiresPaymentMethod, requiresAction, succeeded... */
+            status: string;
+            /**
+             * Format: date-time
+             * @description When the order is cancelled if it is still unpaid.
+             */
+            paymentDueAt: string;
+        };
         OrderResponse: {
             /** Format: int32 */
             id: number;
@@ -1118,6 +1266,53 @@ export interface components {
             /** Format: date-time */
             changedAt: string;
         };
+        /** @description The payment an event is about. */
+        PaymentWebhookData: {
+            /**
+             * Format: uuid
+             * @description Id of the payment
+             */
+            paymentId: string;
+            /**
+             * Format: int32
+             * @description The order it pays for
+             */
+            orderId: number;
+            /**
+             * Format: double
+             * @description Amount taken, refused or returned
+             */
+            amount: number;
+            /** @description ISO code, lowercase */
+            currency: string;
+            /** @description Brand of the card (visa, mastercard), when a card was used */
+            cardBrand?: string | null;
+            /** @description Last four digits of the card; the full number is never sent */
+            cardLast4?: string | null;
+            /** @description For a failed payment: one of Store.Contracts.Payments.V1.PaymentDeclineReasons */
+            failureReason?: string | null;
+        };
+        /**
+         * @description What the payment service posts to the order service's webhook when a payment changes, the way
+         *     a card provider reports to a shop: JSON in camelCase, signed in the `Store-Signature`
+         *     header (`WebhookSignature`). An event may arrive more than once and out of order; its
+         *     Id tells a repeat from a new one.
+         */
+        PaymentWebhookEvent: {
+            /**
+             * Format: uuid
+             * @description Unique per event; the same when a delivery is retried
+             */
+            id: string;
+            /** @description One of Store.Contracts.Payments.Webhooks.PaymentWebhookTypes */
+            type: string;
+            /**
+             * Format: date-time
+             * @description When the event happened (UTC)
+             */
+            created: string;
+            data: components["schemas"]["PaymentWebhookData"];
+        };
         /**
          * @description The rules the order service prices an order by, so the cart page can preview the amounts
          *     the same way instead of keeping its own copy of the numbers. The order itself is always
@@ -1149,6 +1344,16 @@ export interface components {
              * @description Last day an order placed now should arrive on.
              */
             deliveryTo: string;
+        };
+        ProblemDetails: {
+            type?: string | null;
+            title?: string | null;
+            /** Format: int32 */
+            status?: number | null;
+            detail?: string | null;
+            instance?: string | null;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * @description The error response as this store fills it, for the document only: the RFC 9457 members
@@ -1191,6 +1396,12 @@ export interface components {
         UpdateOrderStatusRequest: {
             /** @description The status to move the order to: Shipped or Cancelled. */
             status: string;
+        };
+        /** @description The acknowledgement of a webhook: its id, and whether it had been received before. */
+        WebhookReceipt: {
+            /** Format: uuid */
+            eventId: string;
+            duplicate: boolean;
         };
     };
     responses: never;

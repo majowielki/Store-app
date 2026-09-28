@@ -11,19 +11,22 @@ pipeline that migrates before it deploys.
 |------|--------------|-------|
 | **Gateway** | the one public entry point: routes `/api/v1/*` to the services (YARP), validates the bearer token, applies the authorization policies and the per-client rate limits, sets the API's security headers | `Gateway/APIGateway` |
 | **Identity** | accounts, sign-in, 15-minute access tokens and rotating refresh tokens in an httpOnly cookie, the admin's user listing, the demo accounts | `Services/IdentityService` |
-| **Catalogue** | products, filters, the admin's product management (soft delete), product snapshots for the other services | `Services/ProductService` |
+| **Catalogue** | products, filters, the admin's product management (soft delete), the stock with its reservations and "notify me when it is back", product snapshots for the other services | `Services/ProductService` |
 | **Cart** | the signed-in customer's cart, priced from the catalogue and refreshed when it is read; the guest cart merges into it at sign-in | `Services/CartService` |
-| **Orders** | checkout from the server cart with idempotency keys and the pricing rules (delivery, first-order discount), the customer's orders, the admin's order views and statistics | `Services/OrderService` |
+| **Orders** | checkout from the server cart with idempotency keys and the pricing rules (delivery, first-order discount), the order saga that waits for the stock and the payment ([ADR 013](docs/adr/013-order-saga.md)), the signed payment webhooks, the customer's orders, the admin's order views and statistics | `Services/OrderService` |
 | **Audit** | the audit trail every service publishes as events, with a 90-day retention | `Services/AuditLogService` |
 | **Content** | the editorial side of the shop: makers, collections, journal articles and lookbooks, edited in the admin panel ([ADR 010](docs/adr/010-content-service.md)) | `Services/ContentService` |
+| **Payments** | a simulated card provider: payments opened by the shop, confirmed with test cards and 3-D Secure, refunds, signed webhooks retried until the shop takes them ([ADR 011](docs/adr/011-simulated-payments.md)) | `Services/PaymentService` |
 | **UI** | React 18 + TypeScript SPA: shop, cart, checkout, orders, admin panel; RTK Query over the generated API types | `UI/store-app.UI` |
 | **Shared** | `Store.Contracts` (events, snapshots, roles - data only) and `Store.BuildingBlocks` (auth, problem details, messaging, health, observability - the plumbing every host composes) | `Shared/` |
 
 The services own their data (one PostgreSQL database each) and talk to each other in two ways:
 synchronously through typed HTTP clients with retries and circuit breakers (cart → catalogue,
-orders → cart and catalogue), and asynchronously through RabbitMQ with MassTransit and a
-transactional outbox/inbox (`OrderPlaced` empties the cart, stores the address, feeds the audit;
-every audited action is an `AuditEvent`). [docs/architecture.md](docs/architecture.md) has the
+orders → cart, catalogue and payments), and asynchronously through RabbitMQ with MassTransit and a
+transactional outbox/inbox (`OrderPlaced` empties the cart, stores the address, reserves the stock
+and feeds the audit; the order saga follows the stock and the payment; every audited action is an
+`AuditEvent`). The payment service reports to the order service the way a card provider would: with
+webhooks signed with HMAC. [docs/architecture.md](docs/architecture.md) has the
 picture and the reasoning; [docs/adr](docs/adr) the decisions.
 
 ## Running it

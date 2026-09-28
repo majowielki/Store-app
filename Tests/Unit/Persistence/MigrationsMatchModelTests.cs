@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Store.AuditLogService.Data;
 using Store.CartService.Data;
+using Store.ContentService.Data;
 using Store.IdentityService.Data;
 using Store.OrderService.Data;
+using Store.PaymentService.Data;
 using Store.ProductService.Data;
 using Xunit;
 
@@ -52,6 +54,20 @@ public class MigrationsMatchModelTests
     public void Audit_model_has_no_pending_changes()
     {
         using var context = new AuditLogDbContext(Options<AuditLogDbContext>());
+        Assert.False(context.Database.HasPendingModelChanges());
+    }
+
+    [Fact]
+    public void Content_model_has_no_pending_changes()
+    {
+        using var context = new ContentDbContext(Options<ContentDbContext>());
+        Assert.False(context.Database.HasPendingModelChanges());
+    }
+
+    [Fact]
+    public void Payment_model_has_no_pending_changes()
+    {
+        using var context = new PaymentDbContext(Options<PaymentDbContext>());
         Assert.False(context.Database.HasPendingModelChanges());
     }
 }

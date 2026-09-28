@@ -17,6 +17,7 @@ public static class TestTokens
     public const string Issuer = "Store.API";
     public const string Audience = "Store.Client";
     public const string InternalApiKey = "integration-tests-internal-api-key-32-characters-long";
+    public const string WebhookSecret = "integration-tests-payment-webhook-secret-32-characters";
 
     public static string For(string userId, string email, params string[] roles)
     {

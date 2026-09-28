@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Messaging;
 using Store.OrderService.Models;
 using Store.OrderService.Saga;
+using Store.OrderService.Webhooks;
 
 namespace Store.OrderService.Data;
 
@@ -18,6 +19,7 @@ public class OrderDbContext : DbContext
     public DbSet<IdempotencyKey> IdempotencyKeys => Set<IdempotencyKey>();
     public DbSet<DiscountCode> DiscountCodes => Set<DiscountCode>();
     public DbSet<OrderState> OrderStates => Set<OrderState>();
+    public DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents => Set<ProcessedWebhookEvent>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -97,6 +99,14 @@ public class OrderDbContext : DbContext
             entity.Property(k => k.RequestHash).IsRequired().HasMaxLength(64);
             // The cleanup job deletes by age
             entity.HasIndex(k => k.CreatedAt);
+        });
+
+        // Payment webhooks already acted on, by event id
+        modelBuilder.Entity<ProcessedWebhookEvent>(entity =>
+        {
+            entity.HasKey(e => e.EventId);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.ReceivedAt);
         });
 
         // The order saga: one row per order, locked while a message about the order is handled

@@ -6,8 +6,9 @@ the portal after the one-time preparation below.
 
 ## One-time preparation
 
-1. **PostgreSQL** - an Azure Database for PostgreSQL flexible server with the five databases
-   (`store_identity_db`, `store_product_db`, `store_cart_db`, `store_order_db`, `store_audit_db`, `store_content_db`)
+1. **PostgreSQL** - an Azure Database for PostgreSQL flexible server with the seven databases
+   (`store_identity_db`, `store_product_db`, `store_cart_db`, `store_order_db`, `store_audit_db`,
+   `store_content_db`, `store_payment_db`)
    owned by the application user; `Infrastructure/scripts/init-databases.sql` creates them.
    Automatic backups: 7 days at least, geo-redundant for production (see
    [database-restore.md](database-restore.md)). Allow the Container Apps environment's outbound
@@ -27,12 +28,13 @@ the portal after the one-time preparation below.
    either create the registry by hand first or grant the role after the first run and run the
    workflow again.
 3. **Repository settings** - environment `production` with a required reviewer; the variables
-   and secrets listed at the top of `cd.yml`. Generate `JWT_SECRET_KEY` and `INTERNAL_API_KEY`
-   with `openssl rand -base64 48`; the template hands the same value to every app.
+   and secrets listed at the top of `cd.yml`. Generate `JWT_SECRET_KEY`, `INTERNAL_API_KEY` and
+   `PAYMENT_WEBHOOK_SECRET` with `openssl rand -base64 48`; the template hands the same value to
+   every app that needs it.
 
 ## What a deployment does
 
-1. `az acr build` builds the seven images in the registry, tagged with the commit SHA.
+1. `az acr build` builds the nine images in the registry, tagged with the commit SHA.
 2. For every service, its migration job (`<service>-migrate`: the service image started with
    `--migrate`) is updated to the new image and run; the pipeline waits for `Succeeded`. A failed
    migration stops the deployment before any service changes.

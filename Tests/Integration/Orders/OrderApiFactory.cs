@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Store.Contracts.Cart;
 using Store.Contracts.Catalog;
 using Store.Contracts.Orders.V1;
+using Store.Contracts.Payments;
 using Store.Contracts.Payments.V1;
 using Store.OrderService.Data;
 using Store.OrderService.Saga;
@@ -33,6 +34,8 @@ public sealed class OrderApiFactory : StoreApiFactory<OrderDbContext>
     {
         builder.UseSetting("Services:CartService", "http://cart.test");
         builder.UseSetting("Services:ProductService", "http://catalog.test");
+        builder.UseSetting("Services:PaymentService", "http://payment.test");
+        builder.UseSetting("PaymentWebhooks:SigningSecret", TestTokens.WebhookSecret);
         // The deadline job looks every second, so a test sees an overdue order cancelled quickly
         builder.UseSetting("OrderSaga:DeadlineCheckSeconds", "1");
     }
@@ -57,12 +60,19 @@ public sealed class OrderApiFactory : StoreApiFactory<OrderDbContext>
 }
 
 /// <summary>
-/// Plays the cart and the catalogue for the order service under test.
+/// Plays the cart, the catalogue and the payment service for the order service under test.
 /// </summary>
 public sealed class FakeUpstreams : HttpMessageHandler
 {
     private readonly ConcurrentDictionary<string, CartSnapshot> _carts = new();
     private readonly ConcurrentDictionary<int, ProductSnapshot> _products = new();
+    private readonly ConcurrentDictionary<int, PaymentSnapshot> _payments = new();
+
+    /// <summary>The Idempotency-Key of every payment the order service opened, in order.</summary>
+    public ConcurrentQueue<string> PaymentKeys { get; } = new();
+
+    /// <summary>The payment the order service opened for an order, if any.</summary>
+    public PaymentSnapshot? PaymentOf(int orderId) => _payments.GetValueOrDefault(orderId);
 
     public void AddProduct(int id, decimal effectivePrice, string title = "Fake product", bool isActive = true, int available = 50)
         => _products[id] = new ProductSnapshot(id, title, "https://example.test/fake.jpg", "Modenza", new[] { "black" }, effectivePrice, effectivePrice, isActive, DateTime.UtcNow, available);
@@ -95,7 +105,25 @@ public sealed class FakeUpstreams : HttpMessageHandler
                 : new HttpResponseMessage(HttpStatusCode.NotFound));
         }
 
+        if (host == "payment.test" && request.Method == HttpMethod.Post && path == "/api/v1/payments/internal")
+        {
+            return OpenPaymentAsync(request, cancellationToken);
+        }
+
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
+    }
+
+    private async Task<HttpResponseMessage> OpenPaymentAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var body = (await request.Content!.ReadFromJsonAsync<CreatePaymentRequest>(cancellationToken))!;
+        PaymentKeys.Enqueue(request.Headers.GetValues("Idempotency-Key").Single());
+        var created = false;
+        var payment = _payments.GetOrAdd(body.OrderId, orderId =>
+        {
+            created = true;
+            return new PaymentSnapshot(Guid.NewGuid(), orderId, body.Amount, body.Currency, "requiresPaymentMethod", DateTime.UtcNow);
+        });
+        return new HttpResponseMessage(created ? HttpStatusCode.Created : HttpStatusCode.OK) { Content = JsonContent.Create(payment) };
     }
 }
 

@@ -5,18 +5,24 @@
 .DESCRIPTION
   Services refuse to start without:
     - JwtSettings:SecretKey  (gateway + all services, min. 32 characters)
-    - InternalApi:ApiKey     (product, cart, order; min. 32 characters)
-  and neither value is kept in appsettings*.json. When running the projects outside Docker
+    - InternalApi:ApiKey     (product, cart, order, payment; min. 32 characters)
+    - PaymentWebhooks:SigningSecret (order, payment; min. 32 characters)
+  and none of them is kept in appsettings*.json. When running the projects outside Docker
   (Visual Studio, dotnet run) this script writes the same values into each project's
   `dotnet user-secrets` store, which lives in the user profile and never reaches the repository.
 
-  For docker compose set JWT_SECRET_KEY and INTERNAL_API_KEY in .env instead (see .env.example).
+  For docker compose set JWT_SECRET_KEY, INTERNAL_API_KEY and PAYMENT_WEBHOOK_SECRET in .env
+  instead (see .env.example).
 
 .PARAMETER JwtSecretKey
   JWT signing key. When omitted a random 48-byte key is generated and printed.
 
 .PARAMETER InternalApiKey
   Service-to-service key. When omitted a random 48-byte key is generated and printed.
+
+.PARAMETER PaymentWebhookSecret
+  Key the payment service signs its webhooks with. When omitted a random 48-byte key is generated
+  and printed.
 
 .PARAMETER TrueAdminPassword
   Optional. Password for the seeded true-admin account (IdentityService). It is never generated
@@ -29,6 +35,7 @@
 param(
   [string]$JwtSecretKey,
   [string]$InternalApiKey,
+  [string]$PaymentWebhookSecret,
   [string]$TrueAdminPassword,
   [string]$RootPath = (Split-Path -Parent $PSScriptRoot)
 )
@@ -53,9 +60,11 @@ function Assert-KeyLength([string]$Name, [string]$Value) {
 $generated = @()
 if (-not $JwtSecretKey) { $JwtSecretKey = New-RandomKey; $generated += "JWT_SECRET_KEY=$JwtSecretKey" }
 if (-not $InternalApiKey) { $InternalApiKey = New-RandomKey; $generated += "INTERNAL_API_KEY=$InternalApiKey" }
+if (-not $PaymentWebhookSecret) { $PaymentWebhookSecret = New-RandomKey; $generated += "PAYMENT_WEBHOOK_SECRET=$PaymentWebhookSecret" }
 
 Assert-KeyLength "JwtSecretKey" $JwtSecretKey
 Assert-KeyLength "InternalApiKey" $InternalApiKey
+Assert-KeyLength "PaymentWebhookSecret" $PaymentWebhookSecret
 if ($TrueAdminPassword -and $TrueAdminPassword.Length -lt 8) { throw "TrueAdminPassword must be at least 8 characters long." }
 
 if ($generated.Count -gt 0) {
@@ -69,9 +78,10 @@ $projects = [ordered]@{
   "Services/IdentityService/Store.IdentityService.csproj"   = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/ProductService/Store.ProductService.csproj"     = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/CartService/Store.CartService.csproj"           = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
-  "Services/OrderService/Store.OrderService.csproj"         = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
+  "Services/OrderService/Store.OrderService.csproj"         = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey; "PaymentWebhooks:SigningSecret" = $PaymentWebhookSecret }
   "Services/AuditLogService/Store.AuditLogService.csproj"   = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey }
   "Services/ContentService/Store.ContentService.csproj"     = @{ "JwtSettings:SecretKey" = $JwtSecretKey }
+  "Services/PaymentService/Store.PaymentService.csproj"     = @{ "JwtSettings:SecretKey" = $JwtSecretKey; "InternalApi:ApiKey" = $InternalApiKey; "PaymentWebhooks:SigningSecret" = $PaymentWebhookSecret }
 }
 
 if ($TrueAdminPassword) {

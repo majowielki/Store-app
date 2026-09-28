@@ -12,9 +12,12 @@ flowchart LR
     GW --> OR[Orders]
     GW --> AU[Audit read API]
     GW --> CO[Content]
+    GW --> PA[Payments]
     CA -->|product snapshots<br/>typed client, internal key| PR
     OR -->|cart snapshot| CA
     OR -->|product snapshots| PR
+    OR -->|open a payment| PA
+    PA -.->|signed webhooks| OR
   end
   subgraph MassTransit + RabbitMQ, outbox and inbox in every database
     OR -- OrderPlaced --> MQ[(RabbitMQ)]
@@ -24,12 +27,14 @@ flowchart LR
     MQ -- OrderPlaced, OrderCancelled, OrderShipped --> PR
     PR -- StockReserved, StockUnavailable --> MQ
     MQ -- StockReserved, StockUnavailable --> OR
+    OR -- PaymentAccepted, PaymentRefunded --> MQ
+    MQ -- OrderCancelled, PaymentRefundRequested --> PA
     OR -- OrderStatusChanged --> MQ
     MQ -- OrderStatusChanged --> AU
-    ID & PR & CA & OR & CO -- AuditEvent --> MQ
+    ID & PR & CA & OR & CO & PA -- AuditEvent --> MQ
     MQ -- AuditEvent --> AU
   end
-  GW & ID & PR & CA & OR & AU & CO -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
+  GW & ID & PR & CA & OR & AU & CO & PA -.OTLP: traces, metrics, logs.-> OT[Aspire dashboard / Azure Monitor]
 ```
 
 Each service has its own PostgreSQL database and its own entities; what crosses a boundary is a
@@ -92,6 +97,29 @@ administrator - goes through one writer that locks the order row, checks the mov
 `OrderStatusFlow`, adds a dated row to the history (the customer's timeline) and publishes
 `OrderStatusChanged` through the outbox. The delivery window the checkout promises comes from
 `DeliveryPolicy` (cut-off hour, business days) and is served with the pricing rules.
+
+## How a payment runs
+
+The payment service plays a card provider in test mode (ADR 011), so the order service treats it
+the way a shop treats Stripe: it never sees a card, and it believes only signed webhooks.
+
+1. Once the order waits for its payment, the payment page asks the order service
+   (`POST /api/v1/orders/{id}/payment`), which opens the payment at the payment service over the
+   internal key with the Idempotency-Key `order-{id}`: every click and reload gets the same one.
+2. The browser confirms it with a card straight at the payment service
+   (`POST /api/v1/payments/{id}/confirm`, through the gateway). Only the test cards are taken; a
+   3-D Secure card waits for the customer's answer in a second call. Only the brand and the last
+   four digits are stored, and nothing logs the number.
+3. The outcome - succeeded, failed, refunded - is written as a webhook in the same transaction and
+   sent by a dispatcher: signed with HMAC-SHA256 over "timestamp.body", retried after 1, 5, 30
+   and 30 minutes until the order service answers 2xx.
+4. The order service's webhook endpoint is not routed by the gateway. It refuses a wrong or
+   stale (5 minutes) signature with 401, records the event id with the outbox message it
+   publishes (`PaymentAccepted`, `PaymentDeclined`, `PaymentRefunded`) and acknowledges a repeat
+   without acting on it again. The saga takes it from there.
+
+A cancelled order cancels its open payment; a refund is asked for with `PaymentRefundRequested`
+and confirmed by the refund webhook.
 
 ## Who may do what
 

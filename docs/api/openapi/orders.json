@@ -732,6 +732,58 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/payment": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Opens the payment of the customer's order once its stock is reserved; calling it again gives\nthe same payment. 409 while the stock is still being reserved (try again), once the order is\npaid or cancelled, or after its payment deadline.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderPaymentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/orders/my-orders": {
       "get": {
         "tags": [
@@ -830,6 +882,55 @@
             "Bearer": [ ]
           }
         ]
+      }
+    },
+    "/api/v1/webhooks/payments": {
+      "post": {
+        "tags": [
+          "PaymentWebhooks"
+        ],
+        "summary": "A payment event, signed in the Store-Signature header (HMAC-SHA256 over \"t.body\"). A wrong,\nmissing or stale (more than 5 minutes) signature is 401; an event already processed is\nacknowledged again and changes nothing.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentWebhookEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -1078,6 +1179,46 @@
         },
         "additionalProperties": false
       },
+      "OrderPaymentResponse": {
+        "required": [
+          "amount",
+          "currency",
+          "orderId",
+          "paymentDueAt",
+          "paymentId",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "paymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO code, lowercase."
+          },
+          "status": {
+            "type": "string",
+            "description": "The payment's status at the payment service: requiresPaymentMethod, requiresAction, succeeded..."
+          },
+          "paymentDueAt": {
+            "type": "string",
+            "description": "When the order is cancelled if it is still unpaid.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The payment of an order, for the payment page: the browser confirms it with a card straight at\nthe payment service (POST /api/v1/payments/{paymentId}/confirm) before Store.OrderService.DTOs.Responses.OrderPaymentResponse.PaymentDueAt."
+      },
       "OrderResponse": {
         "required": [
           "createdAt",
@@ -1315,6 +1456,83 @@
         },
         "additionalProperties": false
       },
+      "PaymentWebhookData": {
+        "required": [
+          "amount",
+          "currency",
+          "orderId",
+          "paymentId"
+        ],
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "description": "Id of the payment",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "integer",
+            "description": "The order it pays for",
+            "format": "int32"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount taken, refused or returned",
+            "format": "double"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO code, lowercase"
+          },
+          "cardBrand": {
+            "type": "string",
+            "description": "Brand of the card (visa, mastercard), when a card was used",
+            "nullable": true
+          },
+          "cardLast4": {
+            "type": "string",
+            "description": "Last four digits of the card; the full number is never sent",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "description": "For a failed payment: one of Store.Contracts.Payments.V1.PaymentDeclineReasons",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The payment an event is about."
+      },
+      "PaymentWebhookEvent": {
+        "required": [
+          "created",
+          "data",
+          "id",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique per event; the same when a delivery is retried",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "description": "One of Store.Contracts.Payments.Webhooks.PaymentWebhookTypes"
+          },
+          "created": {
+            "type": "string",
+            "description": "When the event happened (UTC)",
+            "format": "date-time"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PaymentWebhookData"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the payment service posts to the order service's webhook when a payment changes, the way\na card provider reports to a shop: JSON in camelCase, signed in the `Store-Signature`\nheader (`WebhookSignature`). An event may arrive more than once and out of order; its\nId tells a repeat from a new one."
+      },
       "PricingRulesResponse": {
         "required": [
           "deliveryFee",
@@ -1353,6 +1571,33 @@
         },
         "additionalProperties": false,
         "description": "The rules the order service prices an order by, so the cart page can preview the amounts\nthe same way instead of keeping its own copy of the numbers. The order itself is always\npriced here, at checkout."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
       },
       "StoreProblemDetails": {
         "type": "object",
@@ -1461,6 +1706,24 @@
         },
         "additionalProperties": false,
         "description": "Body of PATCH /api/v1/admin/orders/{id}/status. Rules: `UpdateOrderStatusRequestValidator`."
+      },
+      "WebhookReceipt": {
+        "required": [
+          "duplicate",
+          "eventId"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The acknowledgement of a webhook: its id, and whether it had been received before."
       }
     },
     "securitySchemes": {
@@ -1484,6 +1747,10 @@
     {
       "name": "Orders",
       "description": "The signed-in customer's orders. The admin panel has its own routes under /admin/orders."
+    },
+    {
+      "name": "PaymentWebhooks",
+      "description": "Where the payment service reports payments. Not routed by the gateway - only the payment\nservice on the internal network reaches it - and trusted only with a valid signature."
     }
   ]
 }

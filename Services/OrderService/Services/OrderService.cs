@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Observability;
 using Store.Contracts.Orders.V1;
+using Store.Contracts.Payments;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
@@ -18,6 +19,9 @@ namespace Store.OrderService.Services;
 
 public class OrderService : IOrderService
 {
+    /// <summary>The shop charges in US dollars (formatAsDollars in the UI).</summary>
+    private const string Currency = "usd";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -32,6 +36,7 @@ public class OrderService : IOrderService
     private readonly TimeProvider _time;
     private readonly DeliveryEstimator _delivery;
     private readonly OrderStatusWriter _writer;
+    private readonly IPaymentClient _payments;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
@@ -44,6 +49,7 @@ public class OrderService : IOrderService
         TimeProvider time,
         DeliveryEstimator delivery,
         OrderStatusWriter writer,
+        IPaymentClient payments,
         ILogger<OrderService> logger)
     {
         _context = context;
@@ -55,6 +61,7 @@ public class OrderService : IOrderService
         _time = time;
         _delivery = delivery;
         _writer = writer;
+        _payments = payments;
         _logger = logger;
     }
 
@@ -357,6 +364,53 @@ public class OrderService : IOrderService
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
         return MapToOrderResponse(order);
+    }
+
+    /// <summary>
+    /// Opens the payment of an order waiting for it, with the key "order-{id}", so every call for the
+    /// same order - a second click, a reload of the page - gets the same payment. The browser then
+    /// pays it at the payment service; the order learns the outcome from the webhook.
+    /// </summary>
+    public async Task<OrderPaymentResponse> StartPaymentAsync(int orderId, string userId)
+    {
+        var order = await FindOrderAsync(orderId);
+        if (order.UserId != userId)
+        {
+            throw new ForbiddenException("This order belongs to another customer");
+        }
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        switch (order.Status)
+        {
+            case OrderStatus.Placed:
+                throw new ConflictException("We are still reserving the pieces of this order - try again in a moment.");
+            case OrderStatus.Paid or OrderStatus.Shipped:
+                throw new ConflictException("This order has been paid already.");
+            case OrderStatus.Cancelled or OrderStatus.Refunded:
+                throw new ConflictException("This order was cancelled, so it can no longer be paid.");
+        }
+
+        if (order.PaymentDueAt is not { } due || due <= now)
+        {
+            throw new ConflictException("The time to pay this order has run out.");
+        }
+
+        var payment = await _payments.OpenAsync(new CreatePaymentRequest(order.Id, order.UserId, order.Total, Currency), $"order-{order.Id}");
+        if (order.PaymentId != payment.Id)
+        {
+            await _context.Orders.Where(o => o.Id == order.Id && o.PaymentId == null)
+                .ExecuteUpdateAsync(o => o.SetProperty(x => x.PaymentId, payment.Id));
+        }
+
+        return new OrderPaymentResponse
+        {
+            OrderId = order.Id,
+            PaymentId = payment.Id,
+            Amount = payment.Amount,
+            Currency = payment.Currency,
+            Status = payment.Status,
+            PaymentDueAt = due
+        };
     }
 
     /// <summary>"awaiting payment" for AwaitingPayment.</summary>

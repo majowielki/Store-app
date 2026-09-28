@@ -38,6 +38,7 @@ $services = [ordered]@{
     orders   = 'OrderService'
     audit    = 'AuditLogService'
     content  = 'ContentService'
+    payments = 'PaymentService'
 }
 
 if (-not $NoBuild) {
@@ -59,6 +60,9 @@ $placeholders = @{
     RabbitMQ__Password                     = 'openapi'
     Services__ProductService               = 'http://localhost:5003'
     Services__CartService                  = 'http://localhost:5005'
+    Services__PaymentService               = 'http://localhost:5008'
+    PaymentWebhooks__SigningSecret         = 'openapi-export-placeholder-webhook-secret-32'
+    PaymentWebhooks__Url                   = 'http://localhost:5006/api/v1/webhooks/payments'
 }
 $previous = @{}
 foreach ($name in $placeholders.Keys) {

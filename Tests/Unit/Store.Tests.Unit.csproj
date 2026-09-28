@@ -44,6 +44,7 @@
     <ProjectReference Include="..\..\Services\ProductService\Store.ProductService.csproj" />
     <ProjectReference Include="..\..\Services\AuditLogService\Store.AuditLogService.csproj" />
     <ProjectReference Include="..\..\Services\ContentService\Store.ContentService.csproj" />
+    <ProjectReference Include="..\..\Services\PaymentService\Store.PaymentService.csproj" />
   </ItemGroup>
 
 </Project>
