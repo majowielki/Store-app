@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Audit;
 using Store.ReviewService.Data;
 using Store.ReviewService.DTOs;
 using Store.ReviewService.Models;
+using Store.ReviewService.Moderation;
 
 namespace Store.ReviewService.Services;
 
@@ -129,6 +131,53 @@ public sealed class ReviewModeration
         };
     }
 
+    /// <summary>
+    /// Whether a review is still the one the model was asked about: waiting, unread by the model,
+    /// and not sent again since <paramref name="submittedAt"/> (a rejected review may be rewritten).
+    /// </summary>
+    public static bool AwaitsModel(Review review, DateTime submittedAt)
+        => review is { Status: ReviewStatus.Pending, ModelVerdict: null } && review.SubmittedAt == submittedAt;
+
+    /// <summary>
+    /// The model's verdict on a review it read as sent at <paramref name="submittedAt"/> (ADR 019): a
+    /// clean one is published, a doubtful one keeps waiting with the model's reason for the
+    /// administrator. A review moderated, rewritten or deleted while the model read it is left as it
+    /// is. Runs in the caller's transaction (the inbox's), which holds the review's row lock.
+    /// </summary>
+    public async Task ApplyModelVerdictAsync(Guid reviewId, DateTime submittedAt, ModelJudgement judgement, string model, CancellationToken cancellationToken = default)
+    {
+        await _context.LockForUpdateAsync<Review, Guid>(r => r.Id, reviewId, cancellationToken);
+        var review = await _context.Reviews.FirstOrDefaultAsync(r => r.Id == reviewId, cancellationToken);
+        if (review is null || !AwaitsModel(review, submittedAt))
+        {
+            return;
+        }
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        var clean = judgement.Verdict == ModelVerdict.Clean;
+        review.ModelVerdict = judgement.Verdict;
+        review.ModelReason = judgement.Reason;
+        review.UpdatedAt = now;
+        if (clean)
+        {
+            review.Status = ReviewStatus.Published;
+            review.ModeratedAt = now;
+            review.ModeratedBy = null;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        if (clean && review.ProductId is { } productId)
+        {
+            await _summaries.PublishAsync([productId], cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        await _auditTrail.RecordAsync(clean ? AuditActions.ReviewPublishedByModel : AuditActions.ReviewHeldByModel, nameof(Review), review.Id.ToString(), userId: null,
+            details: new { review.ProductId, review.Rating, model, reason = judgement.Reason },
+            cancellationToken: cancellationToken);
+        _logger.LogInformation("The model found review {ReviewId} {Verdict}", review.Id, judgement.Verdict);
+    }
+
     private static bool IsPublic(Review review) => review is { Status: ReviewStatus.Published, Reported: false };
 
     private static AdminReviewResponse Map(Review review, List<string> reportReasons, bool forDemoAdmin)
@@ -158,7 +207,9 @@ public sealed class ReviewModeration
             CreatedAt = review.CreatedAt,
             SubmittedAt = review.SubmittedAt,
             ModeratedAt = review.ModeratedAt,
-            ModeratedBy = forDemoAdmin && review.ModeratedBy is not null ? AnonymizedUserId : review.ModeratedBy
+            ModeratedBy = forDemoAdmin && review.ModeratedBy is not null ? AnonymizedUserId : review.ModeratedBy,
+            ModelVerdict = review.ModelVerdict,
+            ModelReason = hideText ? null : review.ModelReason
         };
     }
 }

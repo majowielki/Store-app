@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup Label="Infrastructure">
+    <PackageVersion Include="Anthropic" Version="12.51.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
     <PackageVersion Include="MassTransit" Version="8.5.10" />
     <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.5.10" />

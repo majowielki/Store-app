@@ -32,6 +32,8 @@ public class ReviewDbContext : DbContext
             entity.Property(r => r.Source).HasConversion<string>().HasMaxLength(20);
             entity.Property(r => r.RejectionReason).HasMaxLength(ReviewConstraints.ReasonMaxLength);
             entity.Property(r => r.ModeratedBy).HasMaxLength(UserIds.MaxLength);
+            entity.Property(r => r.ModelVerdict).HasConversion<string>().HasMaxLength(20);
+            entity.Property(r => r.ModelReason).HasMaxLength(ReviewConstraints.ModelReasonMaxLength);
             entity.ToTable(table => table.HasCheckConstraint("CK_Reviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
 
             // A product's page and its summary read the published reviews of one product

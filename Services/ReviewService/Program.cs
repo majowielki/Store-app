@@ -12,6 +12,7 @@ using Store.BuildingBlocks.Persistence;
 using Store.ReviewService.Clients;
 using Store.ReviewService.Consumers;
 using Store.ReviewService.Data;
+using Store.ReviewService.Moderation;
 using Store.ReviewService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,11 +43,15 @@ builder.Services.AddServiceClient<ICatalogClient, CatalogClient>(builder.Configu
 builder.Services.AddStoreMessaging<ReviewDbContext>(builder.Configuration, serviceName: "review", bus =>
 {
     bus.AddConsumer<OrderPaidConsumer>();
+    bus.AddConsumer<ReviewAwaitsModelConsumer>(typeof(ReviewAwaitsModelConsumerDefinition));
 });
 
 builder.Services.AddScoped<ReviewSummaries>();
 builder.Services.AddScoped<ReviewBoard>();
 builder.Services.AddScoped<ReviewModeration>();
+
+// A model reads new reviews first when it is enabled and has a key (ADR 019); otherwise they wait for the administrator
+builder.Services.AddReviewModel(builder.Configuration);
 
 // The seeded reviews learn their product ids; the demo accounts' reviews and reports go after a day
 builder.Services.AddSingleton<SeedReviewLinker>();

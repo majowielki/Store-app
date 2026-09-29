@@ -46,6 +46,27 @@ describe('the moderation queue', () => {
     expect(flagged).toHaveTextContent('Seeded');
   });
 
+  it('shows what the model made of a review and why', async () => {
+    server.use(
+      http.get(api('/reviews/admin'), () =>
+        json(
+          page([
+            adminReview({ modelVerdict: 'doubtful', modelReason: 'It asks readers to get in touch.' }),
+            adminReview({ id: 'c8b2d3e4-0000-4000-8000-000000000004', productId: 8, authorName: 'Lucas B.', status: 'published', modelVerdict: 'clean', modelReason: 'An opinion about the lamp.', moderatedAt: '2026-09-29T10:00:00Z', moderatedBy: null }),
+          ]),
+        ),
+      ),
+    );
+    renderWithStore(<Reviews />, { user: admin });
+
+    const held = await screen.findByRole('listitem', { name: 'Review of Oak Table by Anna N.' });
+    expect(held).toHaveTextContent('Model: doubtful');
+    expect(held).toHaveTextContent('Model: It asks readers to get in touch.');
+    const published = await screen.findByRole('listitem', { name: 'Review of Brass Lamp by Lucas B.' });
+    expect(published).toHaveTextContent('Model: clean');
+    expect(published).toHaveTextContent(/published by the model/);
+  });
+
   it('approves one review', async () => {
     const user = userEvent.setup();
     renderWithStore(<Reviews />, { user: admin });

@@ -6,6 +6,7 @@ using Store.Contracts.Audit;
 using Store.ReviewService.Data;
 using Store.ReviewService.DTOs;
 using Store.ReviewService.Models;
+using Store.ReviewService.Moderation;
 
 namespace Store.ReviewService.Services;
 
@@ -24,14 +25,16 @@ public sealed class ReviewBoard
 
     private readonly ReviewDbContext _context;
     private readonly ReviewSummaries _summaries;
+    private readonly ReviewModelDispatcher _modelDispatcher;
     private readonly IAuditTrail _auditTrail;
     private readonly TimeProvider _time;
     private readonly ILogger<ReviewBoard> _logger;
 
-    public ReviewBoard(ReviewDbContext context, ReviewSummaries summaries, IAuditTrail auditTrail, TimeProvider time, ILogger<ReviewBoard> logger)
+    public ReviewBoard(ReviewDbContext context, ReviewSummaries summaries, ReviewModelDispatcher modelDispatcher, IAuditTrail auditTrail, TimeProvider time, ILogger<ReviewBoard> logger)
     {
         _context = context;
         _summaries = summaries;
+        _modelDispatcher = modelDispatcher;
         _auditTrail = auditTrail;
         _time = time;
         _logger = logger;
@@ -157,12 +160,17 @@ public sealed class ReviewBoard
         review.RejectionReason = null;
         review.ModeratedAt = null;
         review.ModeratedBy = null;
+        review.ModelVerdict = null;
+        review.ModelReason = null;
         review.SubmittedAt = now;
         review.UpdatedAt = now;
         if (existing is null)
         {
             _context.Reviews.Add(review);
         }
+
+        // The model, when there is one, reads it first; the request goes out with this save
+        await _modelDispatcher.SendAsync(review, cancellationToken);
 
         try
         {

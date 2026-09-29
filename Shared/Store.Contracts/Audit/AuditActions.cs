@@ -33,6 +33,8 @@ public static class AuditActions
     public const string ReviewReported = "REVIEW_REPORTED";
     public const string ReviewApproved = "REVIEW_APPROVED";
     public const string ReviewRejected = "REVIEW_REJECTED";
+    public const string ReviewPublishedByModel = "REVIEW_PUBLISHED_BY_MODEL";
+    public const string ReviewHeldByModel = "REVIEW_HELD_BY_MODEL";
 
     /// <summary>"MAKER_CREATED" for the content kind "Maker"; the content service records its entries this way.</summary>
     public static string Created(string entityName) => Of(entityName, "CREATED");

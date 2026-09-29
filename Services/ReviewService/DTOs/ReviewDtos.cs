@@ -185,7 +185,14 @@ public class AdminReviewResponse
 
     public DateTime? ModeratedAt { get; set; }
 
+    /// <summary>The administrator who approved or rejected it; null when the model published it.</summary>
     public string? ModeratedBy { get; set; }
+
+    /// <summary>What the model that reads new reviews first made of it; null when it has not read it.</summary>
+    public ModelVerdict? ModelVerdict { get; set; }
+
+    /// <summary>The model's reason; hidden from the demo administrator with the text it is about.</summary>
+    public string? ModelReason { get; set; }
 }
 
 /// <summary>Body of POST /api/v1/reviews/admin/moderate: one decision for one or many reviews.</summary>

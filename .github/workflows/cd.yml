@@ -79,6 +79,8 @@ jobs:
       JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
       INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
       PAYMENT_WEBHOOK_SECRET: ${{ secrets.PAYMENT_WEBHOOK_SECRET }}
+      # Optional; empty keeps the review model off (ADR 019)
+      REVIEW_MODEL_API_KEY: ${{ secrets.REVIEW_MODEL_API_KEY }}
       TRUE_ADMIN_PASSWORD: ${{ secrets.TRUE_ADMIN_PASSWORD }}
       RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
     steps:

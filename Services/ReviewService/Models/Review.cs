@@ -59,8 +59,24 @@ public class Review
 
     public DateTime? ModeratedAt { get; set; }
 
-    /// <summary>The administrator who approved or rejected it.</summary>
+    /// <summary>The administrator who approved or rejected it; none when the model published it.</summary>
     public string? ModeratedBy { get; set; }
+
+    /// <summary>What the model that reads new reviews first made of it (ADR 019); none when it has not read it.</summary>
+    public ModelVerdict? ModelVerdict { get; set; }
+
+    /// <summary>The model's one sentence on why, for the administrator.</summary>
+    public string? ModelReason { get; set; }
+}
+
+/// <summary>Stored by name. The model's reading of a new review (ADR 019).</summary>
+public enum ModelVerdict
+{
+    /// <summary>An opinion about the product or the purchase, favourable or not: published without waiting.</summary>
+    Clean,
+
+    /// <summary>Something a person should read first, or the model was not sure: it waits for the administrator.</summary>
+    Doubtful
 }
 
 /// <summary>Stored by name.</summary>
@@ -141,6 +157,7 @@ public static class ReviewConstraints
     public const int TitleMaxLength = 80;
     public const int AuthorNameMaxLength = 60;
     public const int ReasonMaxLength = 300;
+    public const int ModelReasonMaxLength = 300;
     public const int SlugMaxLength = 220;
 
     /// <summary>Reviews one account (one session of a demo account) may write in a day.</summary>

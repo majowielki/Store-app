@@ -140,6 +140,9 @@ Nothing a visitor writes is public before a person has read it (ADR 012).
 2. Before it is stored, the review passes the automatic checks: 20 to 1000 characters, no links,
    e-mail addresses or phone numbers, no word from the English and Polish profanity list, at most
    three reviews a day. It then waits; its author sees it marked as awaiting moderation.
+   When the review model is switched on (ADR 019), a message through the outbox has Claude Haiku
+   read it first: a clean review is published at once, a doubtful one keeps waiting with the
+   model's reason for the administrator, and without a verdict it simply waits.
 3. The true administrator approves or rejects it (with a reason its author sees), one at a time
    or in bulk; every decision is audited. The demo administrator sees the queue without the texts
    nobody has approved and without anyone's account, and changes nothing.

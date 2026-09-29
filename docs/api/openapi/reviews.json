@@ -627,6 +627,15 @@
           },
           "moderatedBy": {
             "type": "string",
+            "description": "The administrator who approved or rejected it; null when the model published it.",
+            "nullable": true
+          },
+          "modelVerdict": {
+            "$ref": "#/components/schemas/ModelVerdict"
+          },
+          "modelReason": {
+            "type": "string",
+            "description": "The model's reason; hidden from the demo administrator with the text it is about.",
             "nullable": true
           }
         },
@@ -710,6 +719,14 @@
         },
         "additionalProperties": false,
         "description": "Body of POST /api/v1/reviews. Rules: `CreateReviewRequestValidator` and Store.ReviewService.Services.ReviewContentRules."
+      },
+      "ModelVerdict": {
+        "enum": [
+          "clean",
+          "doubtful"
+        ],
+        "type": "string",
+        "description": "Stored by name. The model's reading of a new review (ADR 019)."
       },
       "ModerateReviewsRequest": {
         "required": [

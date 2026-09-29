@@ -91,6 +91,9 @@ x-review-env: &review-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_review_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
   InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
   Services__ProductService: http://productservice:8080
+  # The model that reads new reviews first (ADR 019); off without a key
+  ReviewModel__Enabled: ${REVIEW_MODEL_ENABLED:-false}
+  ReviewModel__ApiKey: ${REVIEW_MODEL_API_KEY:-}
 
 x-notification-env: &notification-env
   <<: *service-env
