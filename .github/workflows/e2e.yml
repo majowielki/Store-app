@@ -2,9 +2,11 @@ name: End-to-end
 
 # The whole stack from docker compose, tested from the outside: the Playwright scenarios
 # (UI/store-app.UI/e2e) and Lighthouse CI with the shop's performance, accessibility and SEO
-# budget (UI/store-app.UI/lighthouserc.cjs). Nightly, on demand, and whenever a release is being
-# prepared.
+# budget (UI/store-app.UI/lighthouserc.cjs). On every pull request to main, so a change that breaks
+# a purchase does not get in; nightly, on demand, and whenever a release is being prepared.
 on:
+  pull_request:
+    branches: [main]
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:

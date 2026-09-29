@@ -17,6 +17,9 @@ name: store
 # The public address of the shop (the UI) for the links that leave the API: e-mails, sitemaps
 x-shop-url: &shop-url ${SHOP_URL:-http://localhost:${FRONTEND_PORT:-8081}}
 
+# Where the browser loads the pictures the demo data points at: Azurite's container, on the host port
+x-pictures-url: &pictures-url http://localhost:${AZURITE_BLOB_PORT:-10000}/devstoreaccount1/product-images/
+
 x-limits: &limits
   deploy:
     resources:
@@ -49,6 +52,7 @@ x-product-env: &product-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_product_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
   InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
   Shop__Url: *shop-url
+  Pictures__BaseUrl: *pictures-url
 
 x-cart-env: &cart-env
   <<: *service-env
@@ -73,6 +77,7 @@ x-content-env: &content-env
   <<: *service-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_content_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
   Shop__Url: *shop-url
+  Pictures__BaseUrl: *pictures-url
 
 x-payment-env: &payment-env
   <<: *service-env

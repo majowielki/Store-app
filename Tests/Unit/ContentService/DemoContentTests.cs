@@ -14,14 +14,14 @@ namespace Store.Tests.Unit.ContentService;
 /// </summary>
 public class DemoContentTests
 {
-    private static readonly HashSet<string> CatalogueSlugs = DemoCatalogue.Products().Select(p => p.Slug).ToHashSet(StringComparer.Ordinal);
+    private static readonly HashSet<string> CatalogueSlugs = DemoCatalogue.Products(DemoPictures.Links).Select(p => p.Slug).ToHashSet(StringComparer.Ordinal);
 
     [Fact]
     public void Every_product_the_content_names_is_in_the_demo_catalogue()
     {
-        var named = DemoContent.Collections().SelectMany(c => c.ProductSlugs)
-            .Concat(DemoContent.Articles().SelectMany(a => a.ProductSlugs))
-            .Concat(DemoContent.Lookbooks().SelectMany(l => l.Hotspots.Select(h => h.ProductSlug)))
+        var named = DemoContent.Collections(DemoPictures.Links).SelectMany(c => c.ProductSlugs)
+            .Concat(DemoContent.Articles(DemoPictures.Links).SelectMany(a => a.ProductSlugs))
+            .Concat(DemoContent.Lookbooks(DemoPictures.Links).SelectMany(l => l.Hotspots.Select(h => h.ProductSlug)))
             .Distinct();
 
         Assert.All(named, slug => Assert.Contains(slug, CatalogueSlugs));
@@ -30,10 +30,10 @@ public class DemoContentTests
     [Fact]
     public void Every_picture_of_the_content_is_in_Blobs()
     {
-        var pictures = DemoContent.Makers().Select(m => m.CoverImage)
-            .Concat(DemoContent.Collections().Select(c => c.CoverImage))
-            .Concat(DemoContent.Articles().Select(a => a.CoverImage))
-            .Concat(DemoContent.Lookbooks().Select(l => l.Image));
+        var pictures = DemoContent.Makers(DemoPictures.Links).Select(m => m.CoverImage)
+            .Concat(DemoContent.Collections(DemoPictures.Links).Select(c => c.CoverImage))
+            .Concat(DemoContent.Articles(DemoPictures.Links).Select(a => a.CoverImage))
+            .Concat(DemoContent.Lookbooks(DemoPictures.Links).Select(l => l.Image));
 
         Assert.All(pictures, url => Assert.True(
             File.Exists(Repository.PathTo("Blobs", new Uri(url).Segments[^1])), $"{url} has no file in Blobs/"));
@@ -47,7 +47,7 @@ public class DemoContentTests
         var articles = new ArticleRequestValidator();
         var lookbooks = new LookbookRequestValidator();
 
-        Assert.All(DemoContent.Makers(), m => AssertValid(makers.Validate(new MakerRequest
+        Assert.All(DemoContent.Makers(DemoPictures.Links), m => AssertValid(makers.Validate(new MakerRequest
         {
             Slug = m.Slug,
             Name = m.Name,
@@ -59,7 +59,7 @@ public class DemoContentTests
             CoverImage = m.CoverImage,
             IsPublished = m.IsPublished
         })));
-        Assert.All(DemoContent.Collections(), c => AssertValid(collections.Validate(new CollectionRequest
+        Assert.All(DemoContent.Collections(DemoPictures.Links), c => AssertValid(collections.Validate(new CollectionRequest
         {
             Slug = c.Slug,
             Title = c.Title,
@@ -70,7 +70,7 @@ public class DemoContentTests
             SortOrder = c.SortOrder,
             IsPublished = c.IsPublished
         })));
-        Assert.All(DemoContent.Articles(), a => AssertValid(articles.Validate(new ArticleRequest
+        Assert.All(DemoContent.Articles(DemoPictures.Links), a => AssertValid(articles.Validate(new ArticleRequest
         {
             Slug = a.Slug,
             Title = a.Title,
@@ -82,7 +82,7 @@ public class DemoContentTests
             ProductSlugs = a.ProductSlugs,
             IsPublished = a.IsPublished
         })));
-        Assert.All(DemoContent.Lookbooks(), l => AssertValid(lookbooks.Validate(new LookbookRequest
+        Assert.All(DemoContent.Lookbooks(DemoPictures.Links), l => AssertValid(lookbooks.Validate(new LookbookRequest
         {
             Slug = l.Slug,
             Title = l.Title,

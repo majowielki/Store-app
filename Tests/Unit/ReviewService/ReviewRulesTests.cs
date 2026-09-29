@@ -4,6 +4,7 @@ using Store.ReviewService.DTOs;
 using Store.ReviewService.Models;
 using Store.ReviewService.Services;
 using Store.ReviewService.Validators;
+using Store.Tests.Unit.TestSupport;
 using Xunit;
 
 namespace Store.Tests.Unit.ReviewService;
@@ -45,7 +46,7 @@ public class DemoReviewsTests
     [Fact]
     public void Every_product_of_the_demo_catalogue_has_reviews_and_only_those_do()
     {
-        var catalogue = DemoCatalogue.Products().Select(p => p.Slug).Order(StringComparer.Ordinal).ToList();
+        var catalogue = DemoCatalogue.Products(DemoPictures.Links).Select(p => p.Slug).Order(StringComparer.Ordinal).ToList();
 
         Assert.Equal(catalogue, DemoReviews.Products.Keys.Order(StringComparer.Ordinal).ToList());
     }

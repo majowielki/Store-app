@@ -1,3 +1,4 @@
+using Store.BuildingBlocks.Pictures;
 using Store.Contracts.Catalog;
 using Store.ProductService.Models;
 
@@ -5,7 +6,7 @@ namespace Store.ProductService.Data;
 
 /// <summary>
 /// The demo catalogue: every product the seeder puts into a database, each with its pictures in
-/// the product-images container ("Name-1.webp" is the main one, a room; "-2" a detail and "-3"
+/// the pictures container ("Name-1.webp" is the main one, a room; "-2" a detail and "-3"
 /// the product on its own make the gallery; the files live in Blobs/).
 /// <see cref="Version"/> goes up whenever products already seeded change, so that
 /// <see cref="DatabaseSeeder"/> brings a database seeded by an earlier version up to date once.
@@ -20,8 +21,6 @@ public static class DemoCatalogue
     /// on hand in the warehouse; 5 - colours as the finishes the pictures show (<see cref="FinishCatalogue"/>).
     /// </summary>
     public const int Version = 5;
-
-    private const string Pictures = "http://localhost:10000/devstoreaccount1/product-images/";
 
     /// <summary>Products of earlier versions that no longer fit the shop; deactivated once, never deleted.</summary>
     public static IReadOnlyList<string> RetiredTitles { get; } =
@@ -149,7 +148,28 @@ public static class DemoCatalogue
         ["UpholsteredLinenBed"] = [("oak-bedside-table", 95m, 60m), ("stonewashed-linen-bedding-set", 50m, 55m)],
     };
 
-    public static List<Product> Products() =>
+    /// <summary>
+    /// The demo products with their pictures at their addresses in the pictures container
+    /// (<c>Pictures:BaseUrl</c>): the database stores whole addresses, as for a picture an
+    /// administrator gives.
+    /// </summary>
+    public static List<Product> Products(PictureLinks pictures)
+    {
+        var products = Catalogue();
+        foreach (var product in products)
+        {
+            product.Image = pictures.Of(product.Image);
+            foreach (var image in product.Images)
+            {
+                image.Url = pictures.Of(image.Url);
+            }
+        }
+
+        return products;
+    }
+
+    /// <summary>The demo products, their pictures named by file ("BoucleModularSofa-1.webp").</summary>
+    private static List<Product> Catalogue() =>
     [
         // Living room and the rest of the house
         Item("Bouclé Modular Sofa", "BoucleModularSofa", Category.Sofas, Company.Luxora, 1499.99m, isNew: true,
@@ -467,11 +487,11 @@ public static class DemoCatalogue
             Category = category,
             Company = company,
             NewArrival = isNew,
-            Image = Pictures + picture + "-1.webp",
+            Image = picture + "-1.webp",
             Images =
         [
-            new() { Url = Pictures + picture + "-2.webp", Alt = $"A closer look at the {title}", SortOrder = 0 },
-            new() { Url = Pictures + picture + "-3.webp", Alt = $"The {title} on its own", SortOrder = 1 },
+            new() { Url = picture + "-2.webp", Alt = $"A closer look at the {title}", SortOrder = 0 },
+            new() { Url = picture + "-3.webp", Alt = $"The {title} on its own", SortOrder = 1 },
         ],
             Hotspots = Points.TryGetValue(picture, out var points)
             ? points.Select(point => new ProductHotspot { ProductSlug = point.Product, X = point.X, Y = point.Y }).ToList()

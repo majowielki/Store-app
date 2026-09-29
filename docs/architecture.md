@@ -185,6 +185,7 @@ the password-less demo logins exist only where `Demo:Enabled` is on.
 |-|---------|-------|
 | hosts | `docker compose` (chiseled, non-root images) or the IDE | Container Apps, internal ingress for the services, external for the gateway and the UI ([infra/bicep](../infra/bicep)) |
 | data | PostgreSQL and RabbitMQ containers | PostgreSQL flexible server; RabbitMQ as a single replica on Azure Files |
+| pictures | Azurite, filled from `Blobs/` by the `blobs-seed` container on every `up` | a storage account of their own with a public, read-only container, filled by the CD pipeline; `Pictures:BaseUrl` points the demo data at it |
 | secrets | `.env` / user secrets | Key Vault, referenced by the apps through a managed identity |
 | telemetry | Aspire dashboard | the environment's OpenTelemetry agent into Application Insights |
 | migrations | one-shot `<service>-migrate` containers before each service | Container Apps jobs run by the CD pipeline before the deployment |

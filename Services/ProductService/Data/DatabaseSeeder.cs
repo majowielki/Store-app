@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Pictures;
 using Store.ProductService.Models;
 
 namespace Store.ProductService.Data;
@@ -17,9 +18,9 @@ public static class DatabaseSeeder
     /// demo product renamed by an admin does come back under its original title</item>
     /// </list>
     /// </summary>
-    public static async Task SeedAsync(ProductDbContext context)
+    public static async Task SeedAsync(ProductDbContext context, PictureLinks pictures)
     {
-        var demo = DemoCatalogue.Products();
+        var demo = DemoCatalogue.Products(pictures);
         var existing = (await context.Products.Include(p => p.Images).ToListAsync())
             .GroupBy(p => p.Title, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);

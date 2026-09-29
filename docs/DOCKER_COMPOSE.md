@@ -9,13 +9,14 @@ Three files in the repository root; the first is the base, the others are overri
 | `docker-compose.tools.yml` | pgAdmin on <http://localhost:8080>, behind the `tools` profile |
 
 ```bash
-cp .env.example .env            # then fill in every empty value - compose refuses to start otherwise
+Scripts/new-env.sh              # .env from .env.example with a fresh random value for every secret
 docker compose up --build       # prod-like
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build            # development
 docker compose --profile tools -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tools.yml up
 ```
 
-`--build` matters: the migration containers reuse the image of their service (`store/identity`
+Instead of the script, `.env.example` can be copied to `.env` and every empty value filled in by
+hand; compose refuses to start while one is missing. `--build` matters: the migration containers reuse the image of their service (`store/identity`
 and so on) and there is nothing to pull.
 
 ## What happens on `up`
@@ -35,8 +36,9 @@ circuit breakers of the typed clients, and events wait in the outbox until the b
 
 ## Product pictures
 
-The catalogue points at `http://localhost:10000/devstoreaccount1/product-images/<name>.webp`.
-Azurite serves them in both setups, the way Blob Storage does in Azure: on every `up` the one-shot
+The demo catalogue and the editorial pages point at `<Pictures:BaseUrl><name>.webp`, which the
+compose file sets to `http://localhost:${AZURITE_BLOB_PORT:-10000}/devstoreaccount1/product-images/`.
+Azurite serves them in both setups, the way the pictures account does in Azure: on every `up` the one-shot
 `blobs-seed` container uploads the WebP files from `Blobs/` with their smaller copies from
 `Blobs/w*/` (ADR 016), and replaces what is there, so a regenerated picture shows up without
 resetting the volume. The repository keeps only these WebP files; the generated originals stay
@@ -48,7 +50,8 @@ dotnet run Scripts/optimize-images.cs     # JPEG/PNG in Blobs/ -> WebP, 1600 px 
 dotnet run Scripts/make-image-sizes.cs    # the smaller copies the UI asks for by size: w400, w800, w1200, w32
 ```
 
-and `Scripts/Upload-Blobs.ps1 -AccountName <account>` does the upload for a real storage account.
+and `Scripts/Upload-Blobs.ps1 -AccountName <account>` does the upload for a real storage account
+(the CD workflow runs it after every deployment, see [runbooks/deploy.md](runbooks/deploy.md)).
 
 ## Images
 

@@ -7,6 +7,7 @@ using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
+using Store.BuildingBlocks.Pictures;
 using Store.BuildingBlocks.Shop;
 using Store.ContentService.Data;
 using Store.ContentService.Services;
@@ -38,6 +39,8 @@ builder.Services.AddScoped(typeof(ContentStore<>));
 
 // The editorial pages in the sitemap, at their addresses in the shop
 builder.Services.AddShopLinks(builder.Configuration);
+// Where the demo data points its pictures
+builder.Services.AddPictureLinks(builder.Configuration);
 builder.Services.AddScoped<ContentSitemap>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
@@ -67,7 +70,7 @@ app.MapStoreHealthChecks();
 // Migrations and the demo content: applied here in Development, by "--migrate" in a deployment;
 // pending migrations stop the start
 if (await app.PrepareDatabaseAsync<ContentDbContext>(args,
-        seed: services => ContentSeeder.SeedAsync(services.GetRequiredService<ContentDbContext>(), services.GetRequiredService<TimeProvider>())))
+        seed: services => ContentSeeder.SeedAsync(services.GetRequiredService<ContentDbContext>(), services.GetRequiredService<PictureLinks>(), services.GetRequiredService<TimeProvider>())))
 {
     return;
 }

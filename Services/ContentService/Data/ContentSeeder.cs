@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Pictures;
 using Store.ContentService.Models;
 
 namespace Store.ContentService.Data;
@@ -10,16 +11,16 @@ public static class ContentSeeder
     /// so entries added to <see cref="DemoContent"/> later reach a database seeded earlier. What
     /// is there already - edited, unpublished - is left alone; a deleted entry comes back.
     /// </summary>
-    public static async Task SeedAsync(ContentDbContext context, TimeProvider time)
+    public static async Task SeedAsync(ContentDbContext context, PictureLinks pictures, TimeProvider time)
     {
         var now = time.GetUtcNow().UtcDateTime;
 
         // A maker is also unique by company: one edited to another slug is not added twice
         var companies = (await context.Makers.Select(m => m.Company).ToListAsync()).ToHashSet();
-        await AddMissingAsync(context.Makers, DemoContent.Makers().Where(m => companies.Add(m.Company)), now);
-        await AddMissingAsync(context.Collections, DemoContent.Collections(), now);
-        await AddMissingAsync(context.Articles, DemoContent.Articles(), now);
-        await AddMissingAsync(context.Lookbooks, DemoContent.Lookbooks(), now);
+        await AddMissingAsync(context.Makers, DemoContent.Makers(pictures).Where(m => companies.Add(m.Company)), now);
+        await AddMissingAsync(context.Collections, DemoContent.Collections(pictures), now);
+        await AddMissingAsync(context.Articles, DemoContent.Articles(pictures), now);
+        await AddMissingAsync(context.Lookbooks, DemoContent.Lookbooks(pictures), now);
 
         await context.SaveChangesAsync();
     }

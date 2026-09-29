@@ -19,7 +19,7 @@ pipeline that migrates before it deploys.
 | **Payments** | a simulated card provider: payments opened by the shop, confirmed with test cards and 3-D Secure, refunds, signed webhooks retried until the shop takes them ([ADR 011](docs/adr/011-simulated-payments.md)) | `Services/PaymentService` |
 | **Notifications** | the e-mails that follow an order - confirmation once paid, a refused card with the link back to the payment, shipping - and "back in stock"; a worker with no database, sending to Mailpit in development and only to the log elsewhere | `Services/NotificationService` |
 | **Reviews** | product reviews after a paid order, the automatic checks and the true administrator's moderation queue, reports, the per-session sandbox of the demo accounts, the ratings the catalogue shows and sorts by ([ADR 012](docs/adr/012-moderated-reviews.md)) | `Services/ReviewService` |
-| **UI** | React 18 + TypeScript SPA: shop, cart, checkout, orders, admin panel; RTK Query over the generated API types | `UI/store-app.UI` |
+| **UI** | React 19 + TypeScript SPA: shop, cart, checkout and card payment, orders, reviews, the editorial pages, admin panel; RTK Query over the generated API types; WCAG 2.2 AA ([ADR 017](docs/adr/017-accessibility.md)), a Storybook of its components | `UI/store-app.UI` |
 | **Shared** | `Store.Contracts` (events, snapshots, roles - data only) and `Store.BuildingBlocks` (auth, problem details, messaging, health, observability - the plumbing every host composes) | `Shared/` |
 
 The services own their data (one PostgreSQL database each) and talk to each other in two ways:
@@ -34,7 +34,8 @@ picture and the reasoning; [docs/adr](docs/adr) the decisions.
 
 ## Running it
 
-**Everything in containers** - copy `.env.example` to `.env`, fill in the secrets, then
+**Everything in containers** - `Scripts/new-env.sh` writes `.env` with fresh random secrets (or
+copy `.env.example` to `.env` and fill them in), then
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
@@ -61,8 +62,11 @@ the UI with `npm run dev`; the details are in the same document.
 | integration tests: every service in-process against PostgreSQL in Testcontainers, the bus on the in-memory transport, the other services faked | `dotnet test Tests/Integration` (needs Docker) | CI |
 | the OpenAPI documents in `docs/api/openapi` match the code | `Scripts/Export-OpenApi.ps1 -Check` | CI |
 | UI: lint, types, unit and component tests (Vitest, Testing Library, MSW) | `npm run lint`, `npx tsc -b`, `npm test` in `UI/store-app.UI` | CI `frontend` |
+| the main bundle stays under 500 kB | `npm run check:bundle` after `npm run build` | CI `frontend` |
+| every component story looks as it did: a screenshot of each Storybook story, pixel for pixel | `npm run storybook:build`, `npm run test:visual:docker` | CI `frontend` |
 | the generated API types match the documents | `npm run api:check` | CI |
-| end to end (Playwright): guest browsing, registration with cart merge, checkout and card payments (a declined card, 3-D Secure), sale prices, shipping, a review approved by the administrator before it shows, the admin's product management, the demo admin's read-only access | `npm run e2e` against a running stack | workflow `End-to-end` (nightly, on demand, release tags) against `docker compose` |
+| end to end (Playwright): guest browsing, registration with cart merge, checkout and card payments (a declined card, 3-D Secure), sale prices, shipping, a review approved by the administrator before it shows, the admin's product management, the demo admin's read-only access, search, the sitemaps and structured data, a whole purchase with the keyboard alone and the key pages scanned with axe (no serious or critical finding) | `npm run e2e` against a running stack | workflow `End-to-end` (pull requests to main, nightly, on demand, release tags) against `docker compose` |
+| Lighthouse budget: performance, accessibility, best practices and SEO on five pages | `lighthouserc.cjs` in `UI/store-app.UI` | workflow `End-to-end` |
 | the infrastructure template compiles | `az bicep build` | CI `infra` |
 | images build and carry no known high or critical vulnerability | every Dockerfile, Trivy | CI `docker` |
 | no secret in the commits | gitleaks (`.gitleaks.toml` lists the test fixtures) | CI `secrets-scan` |
@@ -73,8 +77,9 @@ the UI with `npm run dev`; the details are in the same document.
 
 `infra/bicep/main.bicep` describes the store on Azure Container Apps and
 `.github/workflows/cd.yml` deploys it: images built in the registry, each service's migrations
-run as a job, then the new revisions, then a smoke test. The one-time preparation and the
-runbooks (restore, key rotation, dead letters) are in [docs/runbooks](docs/runbooks);
+run as a job, then the new revisions, the pictures uploaded to their public container, then a smoke
+test. The one-time preparation and the
+runbooks (restore, key rotation, dead letters, payments, reviews, e-mails, content) are in [docs/runbooks](docs/runbooks);
 [docs/observability.md](docs/observability.md) says where the telemetry goes and which alerts to
 set.
 

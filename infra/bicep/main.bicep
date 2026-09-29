@@ -74,6 +74,9 @@ param extraAllowedHosts array = []
 var acrName = replace('${baseName}acr${uniqueString(resourceGroup().id)}', '-', '')
 var keyVaultName = take('${baseName}-kv-${uniqueString(resourceGroup().id)}', 24)
 var storageAccountName = replace('${baseName}st${uniqueString(resourceGroup().id)}', '-', '')
+var picturesAccountName = replace('${baseName}px${uniqueString(resourceGroup().id)}', '-', '')
+// The container the pictures are uploaded to (Scripts/Upload-Blobs.ps1) and the demo data points at
+var picturesContainerName = 'product-images'
 
 // --- monitoring -----------------------------------------------------------------------------
 
@@ -342,6 +345,38 @@ resource rabbitMq 'Microsoft.App/containerApps@2025-01-01' = {
   dependsOn: [secretsUser]
 }
 
+// --- the pictures ---------------------------------------------------------------------------
+
+// The product and editorial pictures are public, so they get an account of their own: the one
+// above keeps the RabbitMQ share behind its keys and lets nobody read anything anonymously
+resource picturesStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: picturesAccountName
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    allowBlobPublicAccess: true
+    minimumTlsVersion: 'TLS1_2'
+    supportsHttpsTrafficOnly: true
+  }
+}
+
+resource picturesBlobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  parent: picturesStorage
+  name: 'default'
+}
+
+// Anyone may read a picture by its address; nobody may list the container
+resource picturesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: picturesBlobService
+  name: picturesContainerName
+  properties: {
+    publicAccess: 'Blob'
+  }
+}
+
 // --- the services ---------------------------------------------------------------------------
 
 // Known before anything is deployed, so the loops below can iterate over the services
@@ -349,6 +384,8 @@ var vaultUri = 'https://${keyVaultName}${az.environment().suffixes.keyvaultDns}/
 var internal = 'internal.${managedEnvironment.properties.defaultDomain}'
 // The shop's public address (the UI app), for the links that leave the API: e-mails and sitemaps
 var shopUrl = 'https://ui.${managedEnvironment.properties.defaultDomain}'
+// Where the pictures are published, for the demo data the catalogue and the content service seed
+var picturesBaseUrl = '${picturesStorage.properties.primaryEndpoints.blob}${picturesContainerName}/'
 
 var commonEnv = [
   { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
@@ -400,7 +437,7 @@ var services = [
     db: 'product'
     callsCatalog: false
     callsCart: false
-    reaches: ['shop']
+    reaches: ['shop', 'pictures']
     env: [
       { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
     ]
@@ -445,7 +482,7 @@ var services = [
     db: 'content'
     callsCatalog: false
     callsCart: false
-    reaches: ['shop']
+    reaches: ['shop', 'pictures']
     env: []
     secrets: []
   }
@@ -483,6 +520,7 @@ var otherAddresses = {
   paymentService: [{ name: 'Services__PaymentService', value: 'http://paymentservice.${internal}' }]
   orderWebhooks: [{ name: 'PaymentWebhooks__Url', value: 'http://orderservice.${internal}/api/v1/webhooks/payments' }]
   shop: [{ name: 'Shop__Url', value: shopUrl }]
+  pictures: [{ name: 'Pictures__BaseUrl', value: picturesBaseUrl }]
 }
 var corsEnv = [for (origin, i) in corsAllowedOrigins: { name: 'Cors__AllowedOrigins__${i}', value: origin }]
 
@@ -632,3 +670,5 @@ output containerRegistry string = acr.properties.loginServer
 output keyVault string = keyVault.name
 output environmentName string = managedEnvironment.name
 output migrationJobs array = [for (service, i) in services: migrationJobs[i].outputs.name]
+output picturesAccount string = picturesStorage.name
+output picturesUrl string = picturesBaseUrl

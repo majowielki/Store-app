@@ -20,7 +20,7 @@ public class DemoCatalogueTests
     public static TheoryData<string> Titles()
     {
         var titles = new TheoryData<string>();
-        foreach (var product in DemoCatalogue.Products())
+        foreach (var product in DemoCatalogue.Products(DemoPictures.Links))
         {
             titles.Add(product.Title);
         }
@@ -32,7 +32,7 @@ public class DemoCatalogueTests
     [MemberData(nameof(Titles))]
     public void Every_product_has_its_main_picture_and_the_two_gallery_shots_in_Blobs(string title)
     {
-        var product = DemoCatalogue.Products().Single(p => p.Title == title);
+        var product = DemoCatalogue.Products(DemoPictures.Links).Single(p => p.Title == title);
         var picture = Path.GetFileNameWithoutExtension(new Uri(product.Image).Segments[^1]);
 
         Assert.EndsWith("-1", picture, StringComparison.Ordinal);
@@ -47,7 +47,7 @@ public class DemoCatalogueTests
     [MemberData(nameof(Titles))]
     public void Every_product_passes_the_rules_of_the_create_endpoint(string title)
     {
-        var product = DemoCatalogue.Products().Single(p => p.Title == title);
+        var product = DemoCatalogue.Products(DemoPictures.Links).Single(p => p.Title == title);
         var request = new CreateProductRequest
         {
             Title = product.Title,
@@ -80,7 +80,7 @@ public class DemoCatalogueTests
     [MemberData(nameof(Titles))]
     public void Every_gallery_shows_the_detail_and_the_product_on_its_own_after_the_main_picture(string title)
     {
-        var product = DemoCatalogue.Products().Single(p => p.Title == title);
+        var product = DemoCatalogue.Products(DemoPictures.Links).Single(p => p.Title == title);
         var main = product.Image[..^"-1.webp".Length];
 
         Assert.Equal([main + "-2.webp", main + "-3.webp"], product.Images.OrderBy(i => i.SortOrder).Select(i => i.Url));
@@ -91,7 +91,7 @@ public class DemoCatalogueTests
     [Fact]
     public void Points_lead_to_other_products_of_the_catalogue_or_awaited_ones_and_stay_on_the_picture()
     {
-        var products = DemoCatalogue.Products();
+        var products = DemoCatalogue.Products(DemoPictures.Links);
         var catalogue = products.Select(p => p.Slug).ToHashSet(StringComparer.Ordinal);
         var known = catalogue.Concat(DemoCatalogue.AwaitedSlugs).ToHashSet(StringComparer.Ordinal);
 
@@ -114,17 +114,17 @@ public class DemoCatalogueTests
     [Fact]
     public void Titles_are_unique_and_no_retired_product_comes_back()
     {
-        var titles = DemoCatalogue.Products().Select(p => p.Title).ToList();
+        var titles = DemoCatalogue.Products(DemoPictures.Links).Select(p => p.Title).ToList();
 
         Assert.Equal(titles.Count, titles.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.Equal(titles.Count, DemoCatalogue.Products().Select(p => p.Slug).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(titles.Count, DemoCatalogue.Products(DemoPictures.Links).Select(p => p.Slug).Distinct(StringComparer.Ordinal).Count());
         Assert.Empty(titles.Intersect(DemoCatalogue.RetiredTitles, StringComparer.OrdinalIgnoreCase));
     }
 
     [Fact]
     public void Every_room_of_the_shop_offers_at_least_eight_products()
     {
-        var products = DemoCatalogue.Products();
+        var products = DemoCatalogue.Products(DemoPictures.Links);
         var rooms = Enum.GetValues<Group>().Where(g => g != Group.All).Select(g => g.ToString().ToLowerInvariant());
 
         Assert.All(rooms, room => Assert.True(
@@ -136,7 +136,7 @@ public class DemoCatalogueTests
     [Fact]
     public void Most_products_are_in_stock_and_the_named_ones_are_low_or_sold_out()
     {
-        var products = DemoCatalogue.Products();
+        var products = DemoCatalogue.Products(DemoPictures.Links);
         var slugs = products.Select(p => p.Slug).ToHashSet(StringComparer.Ordinal);
 
         Assert.All(DemoCatalogue.StockedSlugs, slug => Assert.Contains(slug, slugs));

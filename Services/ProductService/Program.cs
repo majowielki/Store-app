@@ -8,6 +8,7 @@ using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
 using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
+using Store.BuildingBlocks.Pictures;
 using Store.BuildingBlocks.Shop;
 using Store.ProductService.Consumers;
 using Store.ProductService.Data;
@@ -57,6 +58,8 @@ builder.Services.AddScoped<IProductDiscovery, ProductDiscovery>();
 builder.Services.AddScoped<IStockAlerts, StockAlerts>();
 builder.Services.AddScoped<IStockLedger, StockLedger>();
 builder.Services.AddShopLinks(builder.Configuration);
+// Where the demo data points its pictures
+builder.Services.AddPictureLinks(builder.Configuration);
 builder.Services.AddScoped<ProductSitemap>();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
@@ -90,7 +93,7 @@ app.MapStoreHealthChecks();
 // Migrations and the demo catalogue: applied here in Development, by "--migrate" in a deployment;
 // pending migrations stop the start
 if (await app.PrepareDatabaseAsync<ProductDbContext>(args,
-        seed: services => DatabaseSeeder.SeedAsync(services.GetRequiredService<ProductDbContext>())))
+        seed: services => DatabaseSeeder.SeedAsync(services.GetRequiredService<ProductDbContext>(), services.GetRequiredService<PictureLinks>())))
 {
     return;
 }

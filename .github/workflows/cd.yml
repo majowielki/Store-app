@@ -128,8 +128,16 @@ jobs:
             -f infra/bicep/main.bicep -p infra/bicep/main.bicepparam -o none
           ui=$(az deployment group show -g "$RESOURCE_GROUP" -n "store-$IMAGE_TAG" --query properties.outputs.uiUrl.value -o tsv)
           gateway=$(az deployment group show -g "$RESOURCE_GROUP" -n "store-$IMAGE_TAG" --query properties.outputs.gatewayUrl.value -o tsv)
+          pictures=$(az deployment group show -g "$RESOURCE_GROUP" -n "store-$IMAGE_TAG" --query properties.outputs.picturesAccount.value -o tsv)
           echo "ui=$ui" >> "$GITHUB_OUTPUT"
           echo "gateway=$gateway" >> "$GITHUB_OUTPUT"
+          echo "pictures=$pictures" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the pictures
+        # Blobs/ with the smaller copies, into the public container the demo data points at; it
+        # replaces what is there, so pictures regenerated since reach the shop
+        shell: pwsh
+        run: ./Scripts/Upload-Blobs.ps1 -AccountName '${{ steps.outputs.outputs.pictures }}' -AuthMode key
 
       - name: Run the migrations after the first deployment
         # Only when a job was missing above: the template has just created it
@@ -154,8 +162,10 @@ jobs:
         run: |
           set -euo pipefail
           for _ in $(seq 1 30); do
+            # The gateway is ready, the catalogue answers through the UI, and its first picture loads
             if curl -fsS "${{ steps.outputs.outputs.gateway }}/health/ready" > /dev/null \
-               && curl -fsS "${{ steps.outputs.outputs.ui }}/api/v1/products?pageSize=1" > /dev/null; then
+               && picture=$(curl -fsS "${{ steps.outputs.outputs.ui }}/api/v1/products?pageSize=1" | jq -er '.items[0].image') \
+               && curl -fsS -o /dev/null "$picture"; then
               echo "the store answers at ${{ steps.outputs.outputs.ui }}"
               exit 0
             fi

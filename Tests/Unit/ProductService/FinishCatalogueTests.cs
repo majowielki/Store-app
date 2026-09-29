@@ -86,7 +86,7 @@ public class FinishCatalogueTests
     [Fact]
     public void Every_demo_product_is_sold_in_known_finishes()
     {
-        Assert.All(DemoCatalogue.Products(), product =>
+        Assert.All(DemoCatalogue.Products(DemoPictures.Links), product =>
         {
             Assert.NotEmpty(product.Colors);
             Assert.All(product.Colors, key => Assert.True(FinishCatalogue.Exists(key), $"{product.Title}: {key} is not a finish"));

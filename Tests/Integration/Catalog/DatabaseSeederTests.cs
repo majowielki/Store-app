@@ -35,8 +35,8 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
         await db.SaveChangesAsync();
         var before = await db.Products.CountAsync();
 
-        await DatabaseSeeder.SeedAsync(db);
-        await DatabaseSeeder.SeedAsync(db);
+        await DatabaseSeeder.SeedAsync(db, DemoPictures.Links);
+        await DatabaseSeeder.SeedAsync(db, DemoPictures.Links);
 
         Assert.Equal(before + 1, await db.Products.CountAsync());
         Assert.Equal(1, await db.Products.CountAsync(p => p.Title == removed.Title));
@@ -76,7 +76,7 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
         });
         await db.SaveChangesAsync();
 
-        await DatabaseSeeder.SeedAsync(db);
+        await DatabaseSeeder.SeedAsync(db, DemoPictures.Links);
         db.ChangeTracker.Clear();
 
         var updated = await db.Products.SingleAsync(p => p.Title == "8-Drawer Dresser");
@@ -93,7 +93,7 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
         mattress.IsActive = true;
         updated.Description = "The dresser as the shop owner describes it.";
         await db.SaveChangesAsync();
-        await DatabaseSeeder.SeedAsync(db);
+        await DatabaseSeeder.SeedAsync(db, DemoPictures.Links);
         db.ChangeTracker.Clear();
 
         Assert.True((await db.Products.SingleAsync(p => p.Title == "Memory Foam Mattress")).IsActive);
@@ -108,7 +108,7 @@ public sealed class DatabaseSeederTests : IClassFixture<CatalogApiFactory>
 
         var titles = await db.Products.Select(p => p.Title).ToListAsync();
 
-        Assert.All(DemoCatalogue.Products(), product => Assert.Contains(product.Title, titles));
+        Assert.All(DemoCatalogue.Products(DemoPictures.Links), product => Assert.Contains(product.Title, titles));
         Assert.Empty(titles.Intersect(DemoCatalogue.RetiredTitles));
         Assert.Equal(DemoCatalogue.Version, (await db.CatalogueSeeds.SingleAsync()).Version);
     }

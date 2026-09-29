@@ -37,17 +37,27 @@ the portal after the one-time preparation below.
 
 ## What a deployment does
 
-1. `az acr build` builds the nine images in the registry, tagged with the commit SHA.
+1. `az acr build` builds the eleven images in the registry, tagged with the commit SHA.
 2. For every service, its migration job (`<service>-migrate`: the service image started with
    `--migrate`) is updated to the new image and run; the pipeline waits for `Succeeded`. A failed
    migration stops the deployment before any service changes.
 3. `az deployment group create` applies the template: new revisions of the apps with the new
    images. A service in `Production` refuses to start against a schema it does not know, so a
    revision that came up before its migration stays unhealthy and the previous one keeps serving.
-4. The smoke test asks the gateway's `/health/ready` and the catalogue through the UI.
+4. `Scripts/Upload-Blobs.ps1 -AuthMode key` uploads `Blobs/` (the pictures and their smaller
+   copies) to the public `product-images` container of the pictures account (the template's output
+   `picturesAccount`), replacing what is there. The catalogue's and the content service's demo data
+   point there: the template gives them `Pictures__BaseUrl`, the container's address.
+5. The smoke test asks the gateway's `/health/ready`, the catalogue through the UI and the first
+   product's picture.
 
 The first deployment has no jobs yet: the template creates them, the workflow runs them once and
 restarts the services' revisions.
+
+The pictures account is not the environment's storage account: that one keeps the RabbitMQ share
+behind its keys and allows no anonymous read, while anyone may read a picture by its address (not
+list the container). The seed writes whole addresses into the databases, so a later change of the
+container's address reaches only what is seeded after it; existing rows need an update by hand.
 
 ## After a deployment
 
