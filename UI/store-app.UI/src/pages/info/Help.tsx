@@ -49,7 +49,7 @@ const Help = () => (
     <Accordion type="single" collapsible className="border-t">
       {questions.map(({ q, a }, index) => (
         <AccordionItem key={q} value={`q-${index}`}>
-          <AccordionTrigger className="text-left text-lg">{q}</AccordionTrigger>
+          <AccordionTrigger headingLevel={2} className="text-left text-lg">{q}</AccordionTrigger>
           <AccordionContent className="text-base leading-relaxed text-muted-foreground">{a}</AccordionContent>
         </AccordionItem>
       ))}

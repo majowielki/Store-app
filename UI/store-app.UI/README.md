@@ -78,6 +78,10 @@ by hand). The scenarios pay with the test cards through the real payment service
 webhooks, and top up the stock of the products they pick through the true administrator's API,
 since every run keeps the pieces it bought held (paid orders are not shipped).
 
+`e2e/accessibility.spec.ts` scans the key pages with axe (`e2e/a11y.ts`, WCAG 2.2 AA; a serious
+or critical finding fails) and makes a whole purchase with the keyboard alone; see ADR 017 for the
+skip link and where the focus goes when the page changes.
+
 ## The container
 
 `Dockerfile` builds the bundle and serves it with nginx (`docker/`): `/api/` is proxied to

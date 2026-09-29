@@ -45,7 +45,8 @@ describe('swatches', () => {
     await user.click(within(colours).getByRole('radio', { name: 'Navy linen' }));
 
     expect(within(colours).getByRole('radio', { name: 'Navy linen' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('heading', { name: 'Colour — Navy linen' })).toBeInTheDocument();
+    // The caption above the swatches names the chosen one
+    expect(screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === 'Colour — Navy linen')).toBeInTheDocument();
   });
 
   it('puts a dark tick on a light swatch and a light one on a dark swatch', () => {

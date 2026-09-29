@@ -49,7 +49,7 @@ const Footer = () => (
       <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:col-span-7">
         {columns.map((column) => (
           <div key={column.title}>
-            <h4 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">{column.title}</h4>
+            <h2 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">{column.title}</h2>
             <ul className="mt-5 space-y-3 text-sm">
               {column.links.map((link) => (
                 <li key={link.label}>
@@ -62,7 +62,7 @@ const Footer = () => (
           </div>
         ))}
         <div>
-          <h4 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">Visit</h4>
+          <h2 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">Visit</h2>
           <address className="mt-5 space-y-3 text-sm not-italic text-primary-foreground/60 dark:text-muted-foreground">
             <p>
               Strzegomska 140A
@@ -92,10 +92,12 @@ const Footer = () => (
       </button>
     </div>
 
+    {/* The wordmark is a texture, not text: drawn by CSS, so neither a screen reader nor a contrast check reads it */}
     <div aria-hidden className="overflow-hidden">
-      <p className="display select-none text-center text-[27vw] leading-[0.72] tracking-tighter text-primary-foreground/[0.07] dark:text-foreground/6">
-        store.
-      </p>
+      <div
+        data-wordmark="store."
+        className="display select-none text-center text-[27vw] leading-[0.72] tracking-tighter text-primary-foreground/[0.07] before:content-[attr(data-wordmark)] dark:text-foreground/6"
+      />
     </div>
   </footer>
 );

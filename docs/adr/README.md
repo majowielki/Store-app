@@ -22,3 +22,4 @@ what it costs.
 | [014](014-product-slugs.md) | Content names products by slug, not by id |
 | [015](015-search-engines.md) | Search engines read the SPA, and each service lists its own pages |
 | [016](016-picture-sizes.md) | Every picture has smaller copies next to it, found by name |
+| [017](017-accessibility.md) | The shop keeps to WCAG 2.2 AA, checked by axe in the end-to-end tests |

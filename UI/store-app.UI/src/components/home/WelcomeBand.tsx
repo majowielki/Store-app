@@ -22,7 +22,7 @@ const WelcomeBand = () => {
         <span aria-hidden className="absolute -right-24 -top-24 h-104 w-104 rounded-full border border-current opacity-20" />
         <span aria-hidden className="absolute -bottom-40 left-1/3 h-80 w-80 rounded-full bg-brand-foreground opacity-[0.07] blur-2xl" />
         <div className="relative">
-          <p className="eyebrow text-current opacity-75">{user ? 'With every order' : 'New here?'}</p>
+          <p className="eyebrow text-current">{user ? 'With every order' : 'New here?'}</p>
           <h2 id="welcome" className="display mt-4 text-5xl leading-[0.95] md:text-6xl">
             {user ? (
               <>
@@ -36,7 +36,7 @@ const WelcomeBand = () => {
           </h2>
           {!user && (
             <>
-              <p className="mt-6 max-w-md opacity-85">
+              <p className="mt-6 max-w-md">
                 Create an account and the discount comes off at checkout — no code to remember, no newsletter to sign up for.
               </p>
               <div className="mt-10 flex flex-wrap items-center gap-4">
@@ -61,7 +61,7 @@ const WelcomeBand = () => {
               </span>
               <div>
                 <h3 className="font-medium">{title}</h3>
-                <p className="mt-1 text-sm opacity-80">{description}</p>
+                <p className="mt-1 text-sm">{description}</p>
               </div>
             </li>
           ))}

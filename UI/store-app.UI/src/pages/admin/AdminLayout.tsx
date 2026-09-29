@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import {
   Sidebar,
@@ -20,7 +21,10 @@ import { Card } from '@/components/ui/card';
 import { BookOpenText, Images, LayoutDashboard, Layers, MessageSquareText, PackageSearch, Store, TicketPercent, UsersRound, ShoppingCart } from 'lucide-react';
 import AdminHeader from '@/components/AdminHeader';
 import AdminBottomBar from '@/components/AdminBottomBar';
+import SkipLink from '@/components/SkipLink';
+import { useFocusOnNavigate } from '@/hooks/use-focus-on-navigate';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { MAIN_CONTENT_ID } from '@/lib/focus';
 import { usePageMeta } from '@/seo';
 
 const AdminLayout = () => {
@@ -41,9 +45,12 @@ const AdminLayout = () => {
     { to: '/admin/content/makers', label: 'Makers', icon: <Store /> },
   ];
   const isMobile = useIsMobile();
+  const main = useRef<HTMLElement>(null);
+  useFocusOnNavigate(main);
 
   return (
     <SidebarProvider>
+      <SkipLink />
       <div className="flex min-h-screen w-full">
         <Sidebar variant="sidebar" collapsible="icon">
           <SidebarHeader className="flex items-center justify-between">
@@ -94,7 +101,7 @@ const AdminLayout = () => {
         </Sidebar>
         <SidebarInset>
           <AdminHeader />
-          <main className="p-4 pb-24 md:pb-4">
+          <main id={MAIN_CONTENT_ID} ref={main} tabIndex={-1} className="p-4 pb-24 focus:outline-none md:pb-4">
             <Outlet />
           </main>
           {isMobile && <AdminBottomBar />}

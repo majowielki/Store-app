@@ -1,0 +1,9 @@
+{
+  // The Playwright scenarios: they run in Node, and the callbacks they pass to the page
+  // (evaluate, waitForFunction) run in the browser, so both sets of types apply
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["playwright.config.ts", "e2e"]
+}

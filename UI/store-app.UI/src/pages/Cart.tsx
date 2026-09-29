@@ -49,6 +49,8 @@ const Cart = () => {
       </header>
       <div className="mt-10 grid items-start gap-12 lg:grid-cols-12">
         <div className="lg:col-span-7">
+          {/* The list's own heading, level with "Order summary", for moving by headings */}
+          <h2 className="sr-only">Pieces in your bag</h2>
           <CartItemsList lines={lines} />
           <Link to="/products" className="group mt-6 inline-flex items-center gap-2 text-sm font-medium">
             <ArrowRight className="h-4 w-4 rotate-180 transition-transform duration-300 group-hover:-translate-x-1" />

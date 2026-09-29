@@ -20,6 +20,7 @@ const Collections = () => {
           {collections?.map((collection, index) => (
             <Reveal key={collection.id} delay={(index % 2) * 90} className={index === 0 ? 'md:col-span-2' : undefined}>
               <ContentCard
+                headingLevel={2}
                 to={`/collections/${collection.slug}`}
                 image={collection.coverImage}
                 eyebrow={`${collection.productSlugs.length} pieces`}

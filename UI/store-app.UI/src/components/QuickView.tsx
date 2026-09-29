@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Eye, ShoppingBag, X } from 'lucide-react';
 import { useAddToBag } from '@/features/cart/useAddToBag';
+import { keepFocusOnNewPage } from '@/lib/focus';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/utils';
 import DeliveryEstimate from './DeliveryEstimate';
@@ -53,7 +54,7 @@ const QuickViewContent = ({ product, trigger, onAdding }: { product: Product; tr
             <NotifyWhenBack productId={product.id} />
           ) : (
             <div className="flex gap-3">
-              <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} max={product.availableQuantity} />
+              <SelectProductAmount mode={Mode.SingleProduct} label="Quantity" amount={amount} setAmount={setAmount} max={product.availableQuantity} />
               <Button size="lg" className="h-12 flex-1" onClick={add} disabled={adding}>
                 <ShoppingBag />
                 Add to bag
@@ -97,7 +98,7 @@ const QuickView = ({ product, className }: { product: Product; className?: strin
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border bg-background p-5 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6">
+        <Dialog.Content onCloseAutoFocus={keepFocusOnNewPage} className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border bg-background p-5 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-6">
           <QuickViewContent product={product} trigger={triggerRef} onAdding={() => setOpen(false)} />
           <Dialog.Close className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-background/80 opacity-80 transition-opacity hover:opacity-100 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
             <X className="h-4 w-4" />

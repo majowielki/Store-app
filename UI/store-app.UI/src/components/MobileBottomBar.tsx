@@ -12,6 +12,7 @@ import { isAdmin } from '@/features/session/roles';
 import { useSignOut } from '@/features/session/useSignOut';
 import { useAppSelector } from '@/hooks';
 import { cn } from '@/lib/utils';
+import { countOf } from '@/utils';
 import { CartCount } from './CartButton';
 
 const itemClass = (active = false) =>
@@ -30,7 +31,7 @@ const MobileBottomBar = ({ onMenuClick }: { onMenuClick: () => void }) => {
   return (
     <nav
       aria-label="Quick links"
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-1 rounded-full border bg-background/80 p-1.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
+      className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-sm items-center gap-1 rounded-full border bg-background/95 p-1.5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
     >
       <button type="button" onClick={onMenuClick} className={itemClass()} aria-label="Menu">
         <Menu className="h-5 w-5" />
@@ -88,14 +89,16 @@ const MobileBottomBar = ({ onMenuClick }: { onMenuClick: () => void }) => {
       </DropdownMenu>
       <NavLink
         to="/cart"
-        aria-label={`Cart, ${totalItems} items`}
         className={({ isActive }) => cn(itemClass(isActive), isActive && 'bg-foreground text-background hover:text-background')}
       >
         <span className="relative">
           <ShoppingBag className="h-5 w-5" />
           <CartCount count={totalItems} className="-right-2.5 -top-1.5" />
         </span>
-        Cart
+        {/* Read out as "Cart, 2 items": the word shown first, so a voice command naming it works */}
+        <span>
+          Cart<span className="sr-only">, {countOf(totalItems, 'item')}</span>
+        </span>
       </NavLink>
     </nav>
   );

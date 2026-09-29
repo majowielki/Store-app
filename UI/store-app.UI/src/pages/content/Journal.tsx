@@ -21,6 +21,7 @@ const Journal = () => {
           {articles?.map((article, index) => (
             <Reveal key={article.id} delay={(index % 3) * 90}>
               <ContentCard
+                headingLevel={2}
                 to={`/journal/${article.slug}`}
                 image={article.coverImage}
                 eyebrow={formatDate(article.publishedAt)}

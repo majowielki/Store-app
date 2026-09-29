@@ -38,7 +38,8 @@ describe('the reviews of a product', () => {
     expect(screen.getByText('Based on 2 reviews')).toBeInTheDocument();
     expect(screen.getAllByRole('img', { name: 'Rated 4.5 out of 5' }).length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole('button', { name: '4 stars: 1 review' }));
+    // The count is read out with its word ("4 stars: 1 review"); jsdom spaces the hidden parts its own way
+    await user.click(screen.getByRole('button', { name: /^4 stars\s*:\s*1 review$/ }));
 
     expect(await screen.findByRole('button', { name: /4 stars only/ })).toBeInTheDocument();
     expect(screen.queryByRole('article', { name: 'Review by Marta S.' })).not.toBeInTheDocument();

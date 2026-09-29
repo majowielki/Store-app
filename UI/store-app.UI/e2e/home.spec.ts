@@ -1,8 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-/** What the scenario reads from an <img> in the page (the e2e project has no DOM types). */
-type Picture = { complete: boolean; naturalWidth: number; src: string };
-
 // The home page shows every kind of content once, in this order, and nothing on it is broken
 const sections = [
   'New arrivals, fresh from the workshop.',
@@ -49,9 +46,9 @@ test('10. the home page shows each section once, with its content and every pict
     await page.waitForTimeout(50);
   }
   const pictures = page.locator('main img');
-  await expect.poll(() => pictures.evaluateAll((images) => images.filter((image) => !(image as Picture).complete).length)).toBe(0);
-  const broken = await pictures.evaluateAll((images) =>
-    images.filter((image) => (image as Picture).naturalWidth === 0).map((image) => (image as Picture).src),
+  await expect.poll(() => pictures.evaluateAll((images: HTMLImageElement[]) => images.filter((image) => !image.complete).length)).toBe(0);
+  const broken = await pictures.evaluateAll((images: HTMLImageElement[]) =>
+    images.filter((image) => image.naturalWidth === 0).map((image) => image.src),
   );
   expect(broken).toEqual([]);
   expect(errors).toEqual([]);

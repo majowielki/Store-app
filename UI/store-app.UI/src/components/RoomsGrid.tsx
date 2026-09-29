@@ -62,7 +62,7 @@ const SaleTile = ({ delay }: { delay: number }) => {
       >
         <span className="absolute -right-16 -top-16 h-64 w-64 rounded-full border border-current opacity-20 transition-transform duration-1000 ease-smooth group-hover:scale-125" />
         <span className="absolute -right-4 -top-4 h-40 w-40 rounded-full border border-current opacity-20 transition-transform duration-1000 ease-smooth group-hover:scale-150" />
-        <p className="text-[0.65rem] uppercase tracking-[0.2em] opacity-75">{data ? `${data.totalCount} pieces reduced` : 'Reduced'}</p>
+        <p className="text-[0.65rem] uppercase tracking-[0.2em]">{data ? `${data.totalCount} pieces reduced` : 'Reduced'}</p>
         <div className="flex items-end justify-between gap-4">
           <p className="display text-4xl md:text-6xl">
             Sale{deepest > 0 && <em className="block text-2xl opacity-80 md:ml-3 md:inline md:text-4xl">up to -{deepest}%</em>}

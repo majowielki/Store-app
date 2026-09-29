@@ -20,7 +20,6 @@ const RotatingBadge = () => {
   return (
     <Link
       to={welcome ? '/register' : '/products?sale=on'}
-      aria-label={phrase}
       className="group absolute -right-3 -top-8 grid h-32 w-32 place-items-center rounded-full bg-brand text-brand-foreground shadow-xl transition-transform duration-500 ease-smooth hover:scale-105 md:-right-8 md:h-36 md:w-36"
     >
       <svg viewBox="0 0 120 120" className="absolute inset-0 h-full w-full animate-spin-slow" aria-hidden>
@@ -33,7 +32,9 @@ const RotatingBadge = () => {
           </textPath>
         </text>
       </svg>
-      <ArrowUpRight className="h-7 w-7 transition-transform duration-500 ease-smooth group-hover:rotate-45" />
+      {/* The circle repeats the phrase for the eye; a screen reader hears it once */}
+      <span className="sr-only">{phrase}</span>
+      <ArrowUpRight className="h-7 w-7 transition-transform duration-500 ease-smooth group-hover:rotate-45" aria-hidden />
     </Link>
   );
 };

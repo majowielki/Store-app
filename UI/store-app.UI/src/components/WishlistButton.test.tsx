@@ -23,7 +23,7 @@ describe('WishlistButton', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save Oak Table to your wishlist' }));
 
     expect(screen.getByRole('button', { name: 'Remove Oak Table from your wishlist' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('link', { name: 'Wishlist, 1 items' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Wishlist, 1 item' })).toBeInTheDocument();
     expect(store.getState().guestWishlist.productIds).toEqual([7]);
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove Oak Table from your wishlist' }));

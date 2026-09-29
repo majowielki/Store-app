@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { useFinishes } from '@/hooks/use-finishes';
 import { cn } from '@/lib/utils';
+import { fieldLabelClass } from './FormInput';
 import { isLightSwatch } from './swatch/contrast';
 import Swatch from './swatch/Swatch';
 
@@ -20,9 +21,9 @@ const SelectProductColor = ({
 
   return (
     <div>
-      <h4 className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+      <p className={fieldLabelClass}>
         Colour — <span className="normal-case tracking-normal text-foreground">{nameOf(productColor)}</span>
-      </h4>
+      </p>
       <div className="mt-3 flex flex-wrap gap-2.5" role="radiogroup" aria-label="Colour">
         {colors.map((color) => {
           const selected = color === productColor;

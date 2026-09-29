@@ -7,6 +7,7 @@ import { Loading, ProductCard, SelectProductAmount, SelectProductColor } from '@
 import Reveal from '@/components/Reveal';
 import CompareToggle from '@/components/CompareToggle';
 import DeliveryEstimate from '@/components/DeliveryEstimate';
+import { fieldLabelClass } from '@/components/FormInput';
 import ProductGallery from '@/components/ProductGallery';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import ProductReviews from '@/components/reviews/ProductReviews';
@@ -163,10 +164,12 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
             <a
               href="#reviews"
               className="mt-4 inline-flex animate-fade-up items-center gap-2 text-sm [animation-delay:90ms] hover:underline"
-              aria-label={`Rated ${formatRating(product.ratingAverage)} out of 5, ${product.ratingCount} reviews`}
             >
+              {/* The stars are read out with the average ("Rated 4.5 out of 5"), so the number is for the eye */}
               <Stars rating={product.ratingAverage} />
-              <span className="tabular-nums">{formatRating(product.ratingAverage)}</span>
+              <span className="tabular-nums" aria-hidden>
+                {formatRating(product.ratingAverage)}
+              </span>
               <span className="text-muted-foreground">
                 · {product.ratingCount} {product.ratingCount === 1 ? 'review' : 'reviews'}
               </span>
@@ -187,7 +190,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
           <div className="mt-8 grid animate-fade-up gap-8 border-t pt-8 [animation-delay:240ms]">
             <SelectProductColor colors={colors} productColor={productColor} setProductColor={setProductColor} />
             <div>
-              <h4 className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">{soldOut ? 'Back soon' : 'Quantity'}</h4>
+              <p className={fieldLabelClass}>{soldOut ? 'Back soon' : 'Quantity'}</p>
               {soldOut ? (
                 <div className="mt-3 flex items-end gap-3">
                   <NotifyWhenBack productId={product.id} className="flex-1" />
@@ -195,7 +198,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
                 </div>
               ) : (
                 <div className="mt-3 flex gap-3">
-                  <SelectProductAmount mode={Mode.SingleProduct} amount={amount} setAmount={setAmount} max={product.availableQuantity} />
+                  <SelectProductAmount mode={Mode.SingleProduct} label="Quantity" amount={amount} setAmount={setAmount} max={product.availableQuantity} />
                   <Button size="lg" className="group h-12 flex-1" onClick={addToCart} disabled={adding}>
                     <span className="relative h-4 w-4">
                       <ShoppingBag className={`absolute inset-0 transition-all duration-300 ${added ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`} />
@@ -227,7 +230,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
 
           {(specs.length > 0 || materialsText) && (
             <div className="mt-10">
-              <h3 className="display text-2xl">Specifications</h3>
+              <h2 className="display text-2xl">Specifications</h2>
               <dl className="mt-4 grid grid-cols-2 border-t">
                 {specs.map((spec) => (
                   <div key={spec.label} className="border-b py-4 odd:pr-4">

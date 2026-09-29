@@ -20,6 +20,7 @@ const Looks = () => {
           {looks?.map((look, index) => (
             <Reveal key={look.id} delay={(index % 2) * 90} className={index === 0 ? 'md:col-span-2' : undefined}>
               <ContentCard
+                headingLevel={2}
                 to={`/looks/${look.slug}`}
                 image={look.image}
                 eyebrow={`${look.hotspots.length} pieces`}

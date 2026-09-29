@@ -11,7 +11,12 @@ import { Mode } from "./selectProductAmountMode";
 
 export { Mode };
 
-interface SelectProductAmountProps {
+interface AmountLabel {
+  /** What the choice is called for a screen reader ("Quantity"); the number chosen is read after it. */
+  label: string;
+}
+
+interface SelectProductAmountProps extends AmountLabel {
   mode: Mode.SingleProduct;
   amount: number;
   setAmount: React.Dispatch<React.SetStateAction<number>>;
@@ -20,7 +25,7 @@ interface SelectProductAmountProps {
   className?: string;
 };
 
-interface SelectCartItemAmountProps {
+interface SelectCartItemAmountProps extends AmountLabel {
   mode: Mode.CartItem;
   amount: number;
   setAmount: (value: number) => void;
@@ -28,7 +33,7 @@ interface SelectCartItemAmountProps {
 };
 
 const SelectProductAmount = (props: SelectProductAmountProps | SelectCartItemAmountProps) => {
-  const { mode, amount, setAmount, className } = props;
+  const { mode, amount, setAmount, label, className } = props;
   const cartItem = mode === Mode.CartItem;
   const max = props.mode === Mode.SingleProduct ? props.max : undefined;
   const choices = cartItem ? amount + 10 : Math.max(1, Math.min(10, max ?? 10));
@@ -38,7 +43,8 @@ const SelectProductAmount = (props: SelectProductAmountProps | SelectCartItemAmo
       defaultValue={amount.toString()}
       onValueChange={(value) => setAmount(Number(value))}
     >
-      <SelectTrigger aria-label="Amount" className={cn(cartItem ? "h-9 w-18 rounded-full" : "h-12 w-24 rounded-full", className)}>
+      {/* The button shows only the number, so its name is the label followed by that number */}
+      <SelectTrigger aria-label={`${label}, ${amount}`} className={cn(cartItem ? "h-9 w-18 rounded-full" : "h-12 w-24 rounded-full", className)}>
         <SelectValue placeholder={amount} />
       </SelectTrigger>
       <SelectContent>

@@ -46,7 +46,7 @@ const CartLineRow = ({ line }: { line: CartLine }) => {
           <span>Price: {formatAsDollars(line.unitPrice)}</span>
         </div>
         <div className="mt-4 flex items-center gap-2">
-          <SelectProductAmount amount={line.quantity} setAmount={changeQuantity} mode={Mode.CartItem} />
+          <SelectProductAmount mode={Mode.CartItem} label={`Quantity of ${line.title}`} amount={line.quantity} setAmount={changeQuantity} />
           <Button variant="ghost" size="sm" className="h-9 capitalize text-muted-foreground hover:text-destructive" onClick={removeLine}>
             <Trash2 />
             remove

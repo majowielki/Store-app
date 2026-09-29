@@ -20,6 +20,7 @@ const Makers = () => {
           {makers?.map((maker, index) => (
             <Reveal key={maker.id} delay={(index % 3) * 90}>
               <ContentCard
+                headingLevel={2}
                 to={`/makers/${maker.slug}`}
                 image={maker.coverImage}
                 eyebrow={maker.location}

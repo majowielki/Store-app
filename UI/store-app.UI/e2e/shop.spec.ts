@@ -25,7 +25,7 @@ test('1. a visitor browses, filters by colour, opens a product and adds it to th
   await page.keyboard.press('Escape');
   await expect(bag).toBeHidden();
   await expect(page.getByRole('button', { name: 'Add to bag' })).toBeFocused();
-  await expect(page.getByRole('link', { name: 'Cart, 1 items' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Cart, 1 item' })).toBeVisible();
   await page.goto('/cart');
   await expect(page.getByRole('heading', { name: gray.title })).toBeVisible();
 });
@@ -133,7 +133,7 @@ test('14. a visitor keeps pieces on the wishlist, signs up and finds them on the
   const title = (await heart.getAttribute('aria-label'))!.replace(/^Save | to your wishlist$/g, '');
   await heart.click();
   await expect(page.getByRole('button', { name: `Remove ${title} from your wishlist` }).first()).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('link', { name: 'Wishlist, 1 items' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Wishlist, 1 item' })).toBeVisible();
 
   // The list waits in the browser and joins the new account at sign-up
   await register(page, uniqueEmail('wishlist'));

@@ -89,13 +89,19 @@ const Summary = ({ summary, rating, onRating }: { summary: ReviewSummary; rating
                 'grid w-full grid-cols-[3.5rem_1fr_2rem] items-center gap-3 rounded-lg px-2 py-1 text-sm transition-colors enabled:hover:bg-secondary/70 disabled:opacity-50',
                 active && 'bg-secondary',
               )}
-              aria-label={`${starsLabel(stars)}: ${count} ${count === 1 ? 'review' : 'reviews'}`}
             >
-              <span className="text-left tabular-nums">{starsLabel(stars)}</span>
+              {/* Read out as "4 stars: 12 reviews", the words on the button first */}
+              <span className="text-left tabular-nums">
+                {starsLabel(stars)}
+                <span className="sr-only">: </span>
+              </span>
               <span className="h-1.5 overflow-hidden rounded-full bg-foreground/10">
                 <span className="block h-full rounded-full bg-foreground transition-[width] duration-500" style={{ width: `${share}%` }} />
               </span>
-              <span className="text-right tabular-nums text-muted-foreground">{count}</span>
+              <span className="text-right tabular-nums text-muted-foreground">
+                {count}
+                <span className="sr-only"> {count === 1 ? 'review' : 'reviews'}</span>
+              </span>
             </button>
           </li>
         );

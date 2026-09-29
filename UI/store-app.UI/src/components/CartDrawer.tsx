@@ -81,7 +81,7 @@ const CartDrawer = () => {
             {lines.map((line) => (
               <li key={line.key} className="flex items-center gap-4">
                 <Link to={`/products/${line.productId}`} onClick={close} className="block h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
-                  {line.image && <ResponsiveImage size="thumbnail" src={line.image} alt="" className="h-full w-full object-cover" />}
+                  {line.image && <ResponsiveImage size="thumbnail" src={line.image} alt={line.title} className="h-full w-full object-cover" />}
                 </Link>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{line.title}</p>

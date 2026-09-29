@@ -6,3 +6,4 @@ export * from './productQuery';
 export * from './pagination';
 export * from './categories';
 export * from './formatDate';
+export * from './countOf';

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/features/cart/useCart';
 import { cn } from '@/lib/utils';
+import { countOf } from '@/utils';
 import { Button } from './ui/button';
 
 /** The count on the bag: re-keyed on every change, so it bumps when something goes in. */
@@ -23,7 +24,7 @@ const CartButton = () => {
   const { totalItems } = useCart();
   return (
     <Button asChild variant="ghost" size="icon" className="relative">
-      <Link to="/cart" aria-label={`Cart, ${totalItems} items`}>
+      <Link to="/cart" aria-label={`Cart, ${countOf(totalItems, 'item')}`}>
         <ShoppingBag className="h-[1.15rem]! w-[1.15rem]!" />
         <CartCount count={totalItems} />
       </Link>

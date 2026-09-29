@@ -26,9 +26,9 @@ const ProductsContainer = ({ page }: { page: ProductsResponse }) => {
   return (
     <>
       <div className="mb-8 flex items-center justify-between gap-4">
-        <h4 className="text-sm text-muted-foreground">
+        <h2 className="text-sm text-muted-foreground">
           {totalProducts} product{totalProducts !== 1 && 's'}
-        </h4>
+        </h2>
         <div className="flex items-center gap-1 rounded-full border p-1" role="group" aria-label="Layout">
           <button type="button" onClick={() => setLayout('grid')} className={layoutButton(currentLayout === 'grid')} aria-label="Grid view" aria-pressed={currentLayout === 'grid'}>
             <LayoutGrid />

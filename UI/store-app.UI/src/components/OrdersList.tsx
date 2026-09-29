@@ -19,7 +19,7 @@ const OrdersList = ({ orders }: { orders: OrdersResponse }) => {
 
   return (
     <div className="mt-10">
-      <h4 className="eyebrow mb-4">total orders : {orders.totalCount}</h4>
+      <p className="eyebrow mb-4">total orders : {orders.totalCount}</p>
       <div className="overflow-hidden rounded-2xl border bg-card">
         <Table>
           <TableCaption className="mb-4">A list of your recent orders.</TableCaption>

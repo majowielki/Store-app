@@ -11,7 +11,7 @@ const ErrorElement = () => {
   return (
     <div className="grid place-items-center py-24 text-center">
       <p className="eyebrow">Something went wrong</p>
-      <h4 className="display mt-4 text-5xl">There was an error...</h4>
+      <h1 className="display mt-4 text-5xl">There was an error...</h1>
       <p className="mt-4 max-w-md text-muted-foreground">{message}</p>
       <Button asChild variant="outline" className="mt-8">
         <Link to="/">Back to the home page</Link>
