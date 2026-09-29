@@ -156,7 +156,7 @@ services:
   # with the devstoreaccount1/product-images container the demo data points at.
   # Its port is on the host because the browser loads the pictures from it.
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:3.34.0
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
     restart: unless-stopped
     command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --loose --skipApiVersionCheck"
     volumes:
@@ -171,7 +171,7 @@ services:
   # runs on every "up" and replaces what is there, so a picture regenerated since shows up without
   # resetting the volume; "old pictures/" holds no WebP files
   blobs-seed:
-    image: mcr.microsoft.com/azure-cli:2.77.0
+    image: mcr.microsoft.com/azure-cli:2.90.0
     depends_on:
       azurite:
         condition: service_started
