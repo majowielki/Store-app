@@ -15,6 +15,12 @@
 *.css       text
 *.html      text
 *.sh        text eol=lf
+# Read inside Linux containers, where a CR at the end of a line breaks them (the nginx entrypoint
+# sources the .envsh scripts with sh), so a Windows checkout keeps LF too
+*.envsh     text eol=lf
+*.template  text eol=lf
+Dockerfile  text eol=lf
+*.sql       text eol=lf
 *.ps1       text eol=crlf
 *.cmd       text eol=crlf
 

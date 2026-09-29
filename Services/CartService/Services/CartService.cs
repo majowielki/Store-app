@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
+using Store.BuildingBlocks.Persistence;
 using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Requests;
@@ -75,9 +77,8 @@ public class CartService : ICartService
             throw new DomainValidationException($"Product {request.ProductId} is not available");
         }
 
-        var cart = await GetOrCreateCartAsync(userId);
-        var item = AddOrMerge(cart, product, request.Color, request.Quantity);
-        await _context.SaveChangesAsync();
+        CartItem item = null!;
+        var cart = await ChangeCartAsync(userId, cart => item = AddOrMerge(cart, product, request.Color, request.Quantity));
         _metrics.CartItemsAdded(request.Quantity);
 
         await AuditAsync(AuditActions.CartItemAdded, nameof(CartItem), item.Id.ToString(), userId,
@@ -150,7 +151,8 @@ public class CartService : ICartService
             return await GetCartAsync(userId);
         }
 
-        var cart = await GetOrCreateCartAsync(userId);
+        // The catalogue is asked before the cart is locked, so the lock is held only while the lines change
+        var lines = new List<(ProductSnapshot Product, SyncCartItemRequest Line)>();
         foreach (var item in request.Items)
         {
             var product = await _catalog.GetSnapshotAsync(item.ProductId);
@@ -160,9 +162,16 @@ public class CartService : ICartService
                 _logger.LogWarning("Skipping sync item - product not found: {ProductId}", item.ProductId);
                 continue;
             }
-            AddOrMerge(cart, product, item.Color, item.Quantity);
+            lines.Add((product, item));
         }
-        await _context.SaveChangesAsync();
+
+        var cart = await ChangeCartAsync(userId, cart =>
+        {
+            foreach (var (product, line) in lines)
+            {
+                AddOrMerge(cart, product, line.Color, line.Quantity);
+            }
+        });
 
         return MapToCartResponse(cart, priceChanged: false);
     }
@@ -202,19 +211,63 @@ public class CartService : ICartService
     private Task<Cart?> FindCartAsync(string userId)
         => _context.Carts.Include(c => c.Items).FirstOrDefaultAsync(c => c.UserId == userId);
 
-    private async Task<Cart> GetOrCreateCartAsync(string userId)
+    /// <summary>
+    /// Adds to the user's cart, created on the first line, with its row locked for the change: two
+    /// requests at the same moment (a double click, two tabs, the guest cart merged while a piece
+    /// goes in) take turns, and the second one sees the first one's lines instead of inserting the
+    /// same line again or overwriting its quantity.
+    /// </summary>
+    private async Task<Cart> ChangeCartAsync(string userId, Action<Cart> change)
     {
-        var cart = await FindCartAsync(userId);
-        if (cart != null)
+        var cartId = await EnsureCartAsync(userId);
+
+        // The unit tests' in-memory store has neither transactions nor row locks, nor two requests at once
+        await using var transaction = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync() : null;
+        if (transaction is not null)
         {
-            return cart;
+            await _context.LockForUpdateAsync<Cart, int>(c => c.Id, cartId);
+        }
+
+        // Read after the lock, so the lines are the ones the request before this one saved
+        var cart = await _context.Carts.Include(c => c.Items).SingleAsync(c => c.Id == cartId);
+        change(cart);
+        await _context.SaveChangesAsync();
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
+
+        return cart;
+    }
+
+    /// <summary>The id of the user's cart, created when there is none; a cart created at the same moment by another request is used.</summary>
+    private async Task<int> EnsureCartAsync(string userId)
+    {
+        var existing = await _context.Carts.Where(c => c.UserId == userId).Select(c => c.Id).FirstOrDefaultAsync();
+        if (existing != default)
+        {
+            return existing;
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
-        cart = new Cart { UserId = userId, CreatedAt = now, UpdatedAt = now };
+        var cart = new Cart { UserId = userId, CreatedAt = now, UpdatedAt = now };
         _context.Carts.Add(cart);
-        await _context.SaveChangesAsync();
-        return cart;
+        try
+        {
+            await _context.SaveChangesAsync();
+            return cart.Id;
+        }
+        catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Another request created it first; one cart per user (the unique index on UserId)
+            _context.ChangeTracker.Clear();
+            return await _context.Carts.Where(c => c.UserId == userId).Select(c => c.Id).SingleAsync();
+        }
+        finally
+        {
+            // The cart is read again under the lock; nothing tracked from here may stand in for it
+            _context.ChangeTracker.Clear();
+        }
     }
 
     /// <summary>A line of the user's own cart; lines of other carts are as unknown as missing ones.</summary>

@@ -242,8 +242,10 @@
     --muted-foreground: 32 9% 62%;
     --accent: 24 7% 16%;
     --accent-foreground: 36 25% 91%;
-    --destructive: 4 62% 52%;
-    --destructive-foreground: 36 25% 96%;
+    /* A lighter red with dark text, as the brand colour has: white on a darker red, and a darker
+       red on the dark page, both stay under the 4.5:1 that text needs */
+    --destructive: 4 70% 62%;
+    --destructive-foreground: 24 10% 8%;
     --border: 24 7% 18%;
     --input: 24 7% 24%;
     --ring: 18 80% 60%;
