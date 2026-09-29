@@ -17,10 +17,12 @@ namespace Store.AuditLogService.Controllers;
 public class AuditLogController : ControllerBase
 {
     private readonly IAuditLogService _auditLogService;
+    private readonly PurchaseFunnel _funnel;
 
-    public AuditLogController(IAuditLogService auditLogService)
+    public AuditLogController(IAuditLogService auditLogService, PurchaseFunnel funnel)
     {
         _auditLogService = auditLogService;
+        _funnel = funnel;
     }
 
     /// <summary>
@@ -30,6 +32,14 @@ public class AuditLogController : ControllerBase
     [HttpGet]
     public Task<PagedResponse<AuditLog>> GetAuditLogs([FromQuery] AuditLogQuery query, [FromQuery] PagedQuery paging)
         => _auditLogService.GetAuditLogsAsync(query, paging);
+
+    /// <summary>
+    /// The purchase funnel over a number of days from midnight UTC (30 unless given), the window of the
+    /// dashboard's order statistics: products viewed, put in the bag, and orders placed.
+    /// </summary>
+    [HttpGet("funnel")]
+    public Task<FunnelResponse> GetFunnel(CancellationToken cancellationToken, [FromQuery] int days = PurchaseFunnel.DefaultDays)
+        => _funnel.CountAsync(days, cancellationToken);
 
     /// <summary>One entry; 404 for an unknown id.</summary>
     [HttpGet("{id:long}")]

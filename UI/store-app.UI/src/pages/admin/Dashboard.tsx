@@ -1,5 +1,7 @@
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useGetFunnelQuery } from '@/api/funnel';
 import { useGetOrderStatsQuery } from '@/api/orders';
+import FunnelChart from '@/components/FunnelChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatAsDollars } from '@/utils';
@@ -8,6 +10,8 @@ const DAYS = 30;
 
 const Dashboard = () => {
   const { data: stats, isLoading, isError } = useGetOrderStatsQuery({ days: DAYS });
+  // The same window as the order statistics, so its last stage is the order count above
+  const { data: funnel, isError: funnelFailed } = useGetFunnelQuery({ days: DAYS });
 
   if (isLoading) return <div>Loading dashboard...</div>;
   if (isError || !stats) return <div className="text-red-500">Failed to load dashboard stats.</div>;
@@ -41,6 +45,20 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Purchase funnel</CardTitle>
+          <p className="text-xs text-muted-foreground">Last {DAYS} days: products viewed and put in the bag in the shop, and the orders placed</p>
+        </CardHeader>
+        <CardContent>
+          {funnel ? (
+            <FunnelChart stages={funnel.stages} />
+          ) : (
+            <p className="text-sm text-muted-foreground">{funnelFailed ? 'The funnel could not be loaded.' : 'Loading the funnel...'}</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

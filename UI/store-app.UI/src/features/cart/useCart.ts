@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAddCartItemMutation, useGetCartQuery, useRemoveCartItemMutation, useUpdateCartItemMutation } from '@/api/cart';
+import { useCountAddedToBag } from '@/features/funnel/useShopEvents';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { itemAdded, itemRemoved, quantityChanged, type GuestCartItem } from './guestCartSlice';
 
@@ -86,6 +87,7 @@ export const useCartActions = (): CartActions => {
   const [addItem] = useAddCartItemMutation();
   const [updateItem] = useUpdateCartItemMutation();
   const [removeItem] = useRemoveCartItemMutation();
+  const countAddedToBag = useCountAddedToBag();
 
   const add = useCallback(
     async (item: GuestCartItem) => {
@@ -94,8 +96,10 @@ export const useCartActions = (): CartActions => {
       } else {
         dispatch(itemAdded(item));
       }
+      // Whichever page it came from, a product in the bag is a step of the purchase funnel
+      countAddedToBag(item.productId);
     },
-    [user, addItem, dispatch],
+    [user, addItem, dispatch, countAddedToBag],
   );
 
   const setQuantity = useCallback(

@@ -29,6 +29,7 @@ builder.Services.AddStoreAuthorization();
 
 // Services
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<PurchaseFunnel>();
 
 // Message bus: every audit entry arrives as an event from the service that performed the action
 builder.Services.AddStoreMessaging<AuditLogDbContext>(builder.Configuration, serviceName: "audit", bus =>

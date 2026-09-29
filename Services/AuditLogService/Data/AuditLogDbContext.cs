@@ -12,6 +12,8 @@ public class AuditLogDbContext : DbContext
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    public DbSet<ShopEvent> ShopEvents => Set<ShopEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -34,6 +36,15 @@ public class AuditLogDbContext : DbContext
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Timestamp);
             entity.HasIndex(e => new { e.EntityName, e.EntityId });
+        });
+
+        // The purchase funnel counts over a window of time and the retention job deletes by it
+        modelBuilder.Entity<ShopEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => e.OccurredAt);
         });
 
         // Inbox of the message bus: audit entries arrive as events

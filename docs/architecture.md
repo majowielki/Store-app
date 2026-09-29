@@ -166,6 +166,14 @@ to that instance which order changed and to what; the panel then reads the order
 with the demo administrator's masking. The WebSocket goes through nginx and the gateway, which takes
 the token from the query string on that one route and forwards it as the Authorization header.
 
+## The purchase funnel
+
+The admin dashboard shows how many products were viewed, how many went into the bag and how many
+orders were placed over its 30 days (ADR 020). The pages send the first two to the audit service
+(`POST /api/v1/shop-events`, anonymous, rate limited; the product and the step, nothing about the
+visitor); the orders are the `OrderPlaced` events it already records, counted from the same
+midnight as the order statistics, so the funnel ends at the dashboard's order count.
+
 ## The e-mails
 
 The notification service only listens: `OrderPaid` becomes the order confirmation, `PaymentDeclined`

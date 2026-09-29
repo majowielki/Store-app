@@ -10,6 +10,7 @@ const Privacy = () => (
         <li>The delivery address you give at checkout, if you ask us to remember it.</li>
         <li>Your orders, for as long as your account exists.</li>
         <li>A record of changes made in the admin panel, kept for 90 days.</li>
+        <li>A count of the pieces looked at and put in the bag - which piece and when, nothing about who - kept for 90 days.</li>
       </ul>
     </InfoSection>
     <InfoSection title="Cookies and your browser">

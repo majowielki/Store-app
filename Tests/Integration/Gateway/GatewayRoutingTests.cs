@@ -230,6 +230,17 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
             (await client.GetAsync($"/api/v1/admin/orders?{AccessTokenInQuery.QueryParameter}={TestTokens.TrueAdmin("live-true-admin")}")).StatusCode);
     }
 
+    // Visitors count their steps for the purchase funnel without signing in; nothing else of the audit service is open
+    [Fact]
+    public async Task Only_posting_a_shop_event_reaches_the_audit_service_anonymously()
+    {
+        using var client = ClientFrom("10.0.13.1");
+
+        Assert.Equal(PassedTheGateway, (await client.PostAsJsonAsync("/api/v1/shop-events", new { kind = "productViewed", productId = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, (await client.GetAsync("/api/v1/shop-events")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auditlog/funnel")).StatusCode);
+    }
+
     [Fact]
     public async Task The_gateway_serves_no_endpoints_of_its_own()
     {

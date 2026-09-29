@@ -118,3 +118,8 @@ export type ModerationResult = Reviews['schemas']['ModerationResult'];
 
 // Audit trail
 export type AuditLog = Audit['schemas']['AuditLog'];
+
+// Purchase funnel: the steps the shop's pages count, and the stages the admin dashboard shows
+export type ShopEventKind = Audit['schemas']['ShopEventKind'];
+export type Funnel = Audit['schemas']['FunnelResponse'];
+export type FunnelStage = Audit['schemas']['FunnelStage'];
