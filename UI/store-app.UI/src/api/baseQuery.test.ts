@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
-import { baseQuery } from './baseQuery';
+import { baseQuery, freshAccessToken } from './baseQuery';
 import { getAccessToken, onSessionEnded, setAccessToken } from './session';
 import { session } from '@/test/fixtures';
 import { api, json, problemResponse } from '@/test/handlers';
@@ -110,5 +110,31 @@ describe('baseQuery', () => {
     const result = await call('/auth/me', { silent: true });
 
     expect(result.meta).toEqual({ silent: true });
+  });
+});
+
+describe('freshAccessToken', () => {
+  /** A token whose exp claim is the given number of seconds from now; the signature is not read. */
+  const tokenExpiringIn = (seconds: number) => {
+    const claims = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    return `header.${claims}.signature`;
+  };
+
+  it('keeps a token that has a while to live', async () => {
+    const token = tokenExpiringIn(10 * 60);
+    setAccessToken(token);
+
+    expect(await freshAccessToken()).toBe(token);
+  });
+
+  it('renews a token about to expire', async () => {
+    server.use(http.post(api('/auth/refresh'), () => json({ ...session(), accessToken: 'renewed' })));
+    setAccessToken(tokenExpiringIn(10));
+
+    expect(await freshAccessToken()).toBe('renewed');
+    expect(getAccessToken()).toBe('renewed');
   });
 });

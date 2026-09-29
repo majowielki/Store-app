@@ -67,3 +67,26 @@ test('12. a returning customer applies a discount code in the cart and the order
   await expect(page.getByText('Code OAK50:')).toBeVisible();
   await expect(page.getByText('-$50.00')).toBeVisible();
 });
+
+test('25. the administrator sees a new order and its payment on the list without reloading it', async ({ page, browser, request }) => {
+  const [product] = await findProducts(request, { pageSize: '1' });
+  const adminContext = await browser.newContext();
+  const admin = await adminContext.newPage();
+  await login(admin, trueAdmin.email, trueAdmin.password);
+  await admin.goto('/admin/orders');
+  await expect(admin.getByRole('status').filter({ hasText: 'Live' })).toBeVisible();
+
+  await register(page, uniqueEmail('live'));
+  await addToCart(page, product.id);
+  const orderId = await placeOrder(page);
+
+  // The list follows by itself, within two seconds of the order
+  const row = admin.getByRole('row').filter({ has: admin.getByRole('cell', { name: String(orderId), exact: true }) });
+  await expect(row).toBeVisible({ timeout: 2_000 });
+  await expectToast(admin, `New order #${orderId}.`);
+
+  await pay(page);
+  await expect(row).toContainText('Paid', { timeout: 2_000 });
+  await expectToast(admin, `Order #${orderId} is paid.`);
+  await adminContext.close();
+});

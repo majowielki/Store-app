@@ -14,6 +14,17 @@ const REMEMBERED_KEY = 'store.session';
 
 export const getAccessToken = (): string | null => accessToken;
 
+/** When a token expires, in milliseconds since the epoch, read from its exp claim; null when it cannot be read. */
+export const tokenExpiresAt = (token: string): number | null => {
+  try {
+    const payload = token.split('.')[1] ?? '';
+    const claims = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as { exp?: unknown };
+    return typeof claims.exp === 'number' ? claims.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
 export const setAccessToken = (token: string | null): void => {
   accessToken = token;
 };

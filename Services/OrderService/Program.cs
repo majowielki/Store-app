@@ -12,6 +12,7 @@ using Store.BuildingBlocks.OpenApi;
 using Store.BuildingBlocks.Persistence;
 using Store.OrderService.Clients;
 using Store.OrderService.Data;
+using Store.OrderService.Live;
 using Store.OrderService.Models;
 using Store.OrderService.Saga;
 using Store.OrderService.Services;
@@ -63,6 +64,7 @@ builder.Services.AddStoreMessaging<OrderDbContext>(builder.Configuration, servic
             repository.UsePostgres();
             repository.ConcurrencyMode = ConcurrencyMode.Pessimistic;
         });
+    bus.AddLiveOrdersRelay();
 });
 builder.Services.AddStoreOptions<OrderSagaOptions>(builder.Configuration, OrderSagaOptions.SectionName);
 builder.Services.AddScoped<OrderStatusWriter>();
@@ -79,6 +81,9 @@ builder.Services.AddScoped<IOrderPayments, OrderPayments>();
 builder.Services.AddScoped<DiscountCodeService>();
 builder.Services.AddScoped<ShopOrderStats>();
 builder.Services.AddHostedService<DeduplicationCleanupService>();
+
+// The admin panel's live feed of new orders and status changes, reached through the gateway
+builder.Services.AddLiveOrders();
 
 // Health checks: /health/live, /health/ready (database), /health (details)
 builder.Services.AddStoreHealthChecks(builder.Configuration.GetStoreConnectionString());
@@ -102,6 +107,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapLiveOrders();
 app.MapStoreHealthChecks();
 
 // Migrations and the demo discount codes: applied here in Development, by "--migrate" in a deployment;

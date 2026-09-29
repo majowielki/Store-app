@@ -1,7 +1,7 @@
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import { apiBaseUrl } from '@/config';
 import { describeProblem, type ApiError } from './problem';
-import { endSession, getAccessToken, setAccessToken } from './session';
+import { endSession, getAccessToken, setAccessToken, tokenExpiresAt } from './session';
 import type { AuthResponse, ProblemDetails } from './types';
 
 /** One request as the endpoints describe it; a bare string is a GET of that path. */
@@ -89,6 +89,21 @@ export const refreshAccessToken = (): Promise<string | null> => {
       refreshing = null;
     });
   return refreshing;
+};
+
+/** How long before its expiry a token is renewed rather than used: it could expire on the way. */
+const RENEW_BEFORE_EXPIRY_MS = 30_000;
+
+/**
+ * An access token good for a while yet: the current one, or a new one when it is about to expire.
+ * For a connection that cannot answer a 401 by trying again the way the base query does - the
+ * admin panel's live feed opens a WebSocket with it.
+ */
+export const freshAccessToken = async (): Promise<string | null> => {
+  const token = getAccessToken();
+  const expiresAt = token === null ? null : tokenExpiresAt(token);
+  if (token !== null && (expiresAt === null || expiresAt - Date.now() > RENEW_BEFORE_EXPIRY_MS)) return token;
+  return refreshAccessToken();
 };
 
 type Attempt = { data: unknown } | { error: ApiError };

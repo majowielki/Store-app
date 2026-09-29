@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { useGetAdminOrdersQuery } from '@/api/orders';
+import LiveStatusIndicator from '@/components/LiveStatusIndicator';
 import { OrderStatusBadge } from '@/components/OrderTimeline';
 import PageNumbers from '@/components/PageNumbers';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ const Orders = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Orders</h2>
+        <LiveStatusIndicator />
       </div>
       <Card className="p-2">
         {isLoading ? (

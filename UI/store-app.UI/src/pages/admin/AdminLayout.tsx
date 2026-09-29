@@ -22,6 +22,8 @@ import { BookOpenText, Images, LayoutDashboard, Layers, MessageSquareText, Packa
 import AdminHeader from '@/components/AdminHeader';
 import AdminBottomBar from '@/components/AdminBottomBar';
 import SkipLink from '@/components/SkipLink';
+import { useLiveOrders } from '@/features/live/useLiveOrders';
+import { LiveStatusContext } from '@/features/live/liveStatusContext';
 import { useFocusOnNavigate } from '@/hooks/use-focus-on-navigate';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MAIN_CONTENT_ID } from '@/lib/focus';
@@ -47,6 +49,8 @@ const AdminLayout = () => {
   const isMobile = useIsMobile();
   const main = useRef<HTMLElement>(null);
   useFocusOnNavigate(main);
+  // New orders and status changes arrive by themselves while the panel is open
+  const liveStatus = useLiveOrders();
 
   return (
     <SidebarProvider>
@@ -102,7 +106,9 @@ const AdminLayout = () => {
         <SidebarInset>
           <AdminHeader />
           <main id={MAIN_CONTENT_ID} ref={main} tabIndex={-1} className="p-4 pb-24 focus:outline-none md:pb-4">
-            <Outlet />
+            <LiveStatusContext value={liveStatus}>
+              <Outlet />
+            </LiveStatusContext>
           </main>
           {isMobile && <AdminBottomBar />}
         </SidebarInset>

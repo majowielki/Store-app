@@ -155,6 +155,14 @@ deleted after 24 hours. The reviews that come with the catalogue are seeded by s
 service migrates; a background job asks the catalogue for their ids and publishes the ratings
 once it answers.
 
+## The admin panel's live feed
+
+The order service maps a SignalR hub for administrators (ADR 018). A consumer of `OrderPlaced`
+and `OrderStatusChanged`, on a temporary queue of each instance's own, tells the panels connected
+to that instance which order changed and to what; the panel then reads the order through the API,
+with the demo administrator's masking. The WebSocket goes through nginx and the gateway, which takes
+the token from the query string on that one route and forwards it as the Authorization header.
+
 ## The e-mails
 
 The notification service only listens: `OrderPaid` becomes the order confirmation, `PaymentDeclined`
