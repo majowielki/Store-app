@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'playwright-report', 'test-results'] },
+  { ignores: ['dist', 'coverage', 'playwright-report', 'test-results', 'storybook-static', '.storybook/public'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -35,8 +35,15 @@ export default tseslint.config(
     },
   },
   {
+    // Storybook's own modules export story objects and settings, not the app's components
+    files: ['.storybook/**/*.{ts,tsx}', 'src/**/*.stories.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     // Test files and tooling run under Node
-    files: ['src/**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}', 'e2e/**/*.ts', '*.config.ts', 'scripts/**/*.mjs'],
+    files: ['src/**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}', 'e2e/**/*.ts', 'visual/**/*.ts', '*.config.ts', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
     },

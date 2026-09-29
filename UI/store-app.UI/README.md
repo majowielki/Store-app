@@ -15,6 +15,9 @@ or newer, which Vite 8 needs (`.nvmrc` names 22, CI and the `node:22-alpine` ima
 | `npm test` | Vitest: unit and component tests (`src/**/*.test.ts(x)`), API mocked with MSW |
 | `npm run test:coverage` | the same with a coverage report (`coverage/`) |
 | `npm run e2e` | Playwright scenarios in `e2e/` against a running stack (see below) |
+| `npm run storybook` | Storybook on <http://localhost:6006>: the components with the API mocked by MSW |
+| `npm run storybook:build` | the static Storybook in `storybook-static/` |
+| `npm run test:visual:docker` | a screenshot of every story, compared with `visual/__screenshots__` (in the Playwright image; `-- --update-snapshots` after an intended change) |
 | `npm run api:generate` | regenerates `src/api/schema/*.ts` from `docs/api/openapi/*.json` |
 | `npm run api:check` | fails when the generated schema files are out of date (CI) |
 
@@ -81,6 +84,22 @@ since every run keeps the pieces it bought held (paid orders are not shipped).
 `e2e/accessibility.spec.ts` scans the key pages with axe (`e2e/a11y.ts`, WCAG 2.2 AA; a serious
 or critical finding fails) and makes a whole purchase with the keyboard alone; see ADR 017 for the
 skip link and where the focus goes when the page changes.
+
+## Storybook and the visual tests
+
+`.storybook/` renders the components the way the app does: a fresh store and a router per story,
+the theme from the toolbar, and the MSW handlers of `src/test/handlers.ts` answering the API in the
+browser (a story adds its own under `parameters.msw.handlers.overrides`). The stories sit next to
+their components (`*.stories.tsx`); `src/stories/data.ts` holds real catalogue pieces with their
+pictures, which Storybook serves from `Blobs/w400` at `/pictures`.
+
+`visual/stories.spec.ts` opens every story of the built Storybook and compares a screenshot of it
+with the one committed in `visual/__screenshots__`, pixel for pixel. Fonts are drawn differently on
+every system, so the screenshots are Linux ones: `npm run test:visual:docker` runs the tests in the
+Playwright image of the installed version, as CI does after `npm run storybook:build`. A failed run
+leaves the expected, actual and difference images in `test-results-visual/` (an artifact in CI);
+after an intended change, or a Playwright upgrade, run it with `-- --update-snapshots` and commit
+the new screenshots.
 
 ## The container
 

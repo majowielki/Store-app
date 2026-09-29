@@ -9,3 +9,8 @@ coverage
 test-results
 playwright-report
 e2e
+storybook-static
+test-results-visual
+playwright-report-visual
+visual
+.storybook

@@ -1,0 +1,8 @@
+/*
+ * The film grain the shop lays over every page (index.css, body::after) is noise: it belongs to
+ * the page, not to a component, and would make every screenshot of the visual tests a picture
+ * of random pixels.
+ */
+body::after {
+  content: none;
+}

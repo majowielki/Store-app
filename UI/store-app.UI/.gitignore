@@ -39,3 +39,8 @@ playwright-report
 # Lighthouse CI (lighthouserc.cjs)
 .lighthouseci
 lighthouse-report
+
+# Storybook build and the visual tests (the screenshots in visual/__screenshots__ are kept)
+storybook-static
+test-results-visual
+playwright-report-visual

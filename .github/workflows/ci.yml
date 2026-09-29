@@ -113,7 +113,7 @@ jobs:
           IMAGE_TAG=ci POSTGRES_HOST=ci POSTGRES_PASSWORD=ci JWT_SECRET_KEY=01234567890123456789012345678901 INTERNAL_API_KEY=01234567890123456789012345678901 PAYMENT_WEBHOOK_SECRET=01234567890123456789012345678901 TRUE_ADMIN_PASSWORD=ci RABBITMQ_PASSWORD=ci az bicep build-params --file infra/bicep/main.bicepparam --stdout > /dev/null
 
   frontend:
-    name: Frontend lint, types and build
+    name: Frontend lint, types, build and visual tests
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -135,6 +135,17 @@ jobs:
       - run: npm run build
       - name: The main bundle keeps its budget
         run: npm run check:bundle
+      - name: Storybook builds
+        run: npm run storybook:build
+      - name: Components look as they did (a screenshot of every story, in the Playwright image)
+        run: npm run test:visual:docker
+      - name: Upload the visual differences
+        if: failure() && hashFiles('UI/store-app.UI/test-results-visual/**') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-differences
+          path: UI/store-app.UI/test-results-visual
+          retention-days: 14
       - name: Upload UI coverage
         if: (success() || failure()) && hashFiles('UI/store-app.UI/coverage/cobertura-coverage.xml') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
