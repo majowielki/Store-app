@@ -23,7 +23,7 @@ services:
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
 
   aspire-dashboard:
-    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.5
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6
     restart: unless-stopped
     environment:
       # Nothing here leaves the machine; the dashboard keeps nothing across restarts either
