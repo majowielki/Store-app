@@ -1,5 +1,9 @@
+using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Models;
 using Store.AuditLogService.Services;
@@ -118,5 +122,51 @@ public sealed class PurchaseFunnelTests : IClassFixture<AuditApiFactory>
 
         using var check = _factory.Services.CreateScope();
         Assert.Null(await check.ServiceProvider.GetRequiredService<AuditLogDbContext>().ShopEvents.FindAsync(old));
+    }
+
+    [Fact]
+    public async Task Replayed_order_with_a_new_transport_id_is_counted_once()
+    {
+        var before = await FunnelAsync();
+        var order = Placed(DateTime.UtcNow);
+        await _factory.Bus.Bus.Publish(order);
+        await Eventually.AssertAsync(async () => Assert.Equal(before["orderPlaced"] + 1, (await FunnelAsync())["orderPlaced"]));
+        await _factory.Bus.Bus.Publish(order, c => c.MessageId = Guid.NewGuid());
+        Assert.True(await Eventually.BecomesTrueAsync(() => Task.FromResult(_factory.Bus.Consumed.Select<OrderPlaced>(e => e.Context.Message.OrderId == order.OrderId).Count() == 2)));
+        Assert.Equal(before["orderPlaced"] + 1, (await FunnelAsync())["orderPlaced"]);
+    }
+
+    [Fact]
+    public async Task Retention_preserves_the_whole_oldest_funnel_day()
+    {
+        var clock = new FixedClock(new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero));
+        var options = Options.Create(new AuditRetentionOptions { RetentionDays = 3 });
+        var boundary = clock.GetUtcNow().UtcDateTime.Date.AddDays(-3);
+        long oldest;
+        long expired;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
+            var retained = new ShopEvent { Kind = ShopEventKind.ProductViewed, ProductId = 990002, OccurredAt = boundary.AddHours(1) };
+            var removed = new ShopEvent { Kind = ShopEventKind.ProductViewed, ProductId = 990002, OccurredAt = boundary.AddTicks(-10) };
+            db.ShopEvents.AddRange(retained, removed);
+            await db.SaveChangesAsync();
+            oldest = retained.Id;
+            expired = removed.Id;
+            var funnel = await new PurchaseFunnel(db, options, clock).CountAsync(30);
+            Assert.Equal(3, funnel.Days);
+            Assert.Equal(boundary, funnel.Since);
+        }
+        var retention = new AuditRetentionService(_factory.Services.GetRequiredService<IServiceScopeFactory>(), options, clock, NullLogger<AuditRetentionService>.Instance);
+        await retention.PurgeAsync(CancellationToken.None);
+        using var check = _factory.Services.CreateScope();
+        var context = check.ServiceProvider.GetRequiredService<AuditLogDbContext>();
+        Assert.True(await context.ShopEvents.AnyAsync(e => e.Id == oldest));
+        Assert.False(await context.ShopEvents.AnyAsync(e => e.Id == expired));
+    }
+
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 }

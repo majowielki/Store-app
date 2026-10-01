@@ -827,6 +827,16 @@ export interface components {
              * @description Units
              */
             quantity: number;
+            /**
+             * Format: int32
+             * @description Identity of the purchased cart line; zero for legacy callers.
+             */
+            itemId: number;
+            /**
+             * Format: date-time
+             * @description Revision timestamp of the purchased line.
+             */
+            updatedAt: string;
         };
         CartResponse: {
             /** Format: int32 */

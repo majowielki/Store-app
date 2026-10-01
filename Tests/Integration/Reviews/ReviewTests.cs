@@ -3,8 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Store.Contracts.Audit.V1;
 using Store.Contracts.Orders.V1;
 using Store.Contracts.Reviews.V1;
+using Store.ProductService.Data;
 using Store.ReviewService.Data;
 using Store.ReviewService.Services;
+using Store.Tests.Integration.Catalog;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -20,17 +22,19 @@ namespace Store.Tests.Integration.Reviews;
 /// their sign-in session and are gone a day later.
 /// </summary>
 [Collection(PostgresTests.Name)]
-public sealed class ReviewTests : IClassFixture<ReviewApiFactory>
+public sealed class ReviewTests : IClassFixture<ReviewApiFactory>, IClassFixture<CatalogApiFactory>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static int _lastOrderId = 30000;
     private static int _lastProductId = 500;
 
     private readonly ReviewApiFactory _factory;
+    private readonly CatalogApiFactory _catalog;
 
-    public ReviewTests(ReviewApiFactory factory)
+    public ReviewTests(ReviewApiFactory factory, CatalogApiFactory catalog)
     {
         _factory = factory;
+        _catalog = catalog;
     }
 
     private static int NextProductId() => Interlocked.Increment(ref _lastProductId);
@@ -386,5 +390,79 @@ public sealed class ReviewTests : IClassFixture<ReviewApiFactory>
         using var customer = _factory.CreateClient().AsUser("review-nosy");
         Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/api/v1/reviews/admin")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await ModerateAsync(Guid.NewGuid(), "approve", admin: customer)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Concurrent_submissions_to_different_products_share_the_daily_quota()
+    {
+        const string user = "review-parallel-quota";
+        var products = Enumerable.Range(0, 4).Select(_ => NextProductId()).ToArray();
+        await PayAsync(user, products);
+        using var client = Customer(user);
+        var responses = await Task.WhenAll(products.Select(id => WriteAsync(client, id)));
+        Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.Created));
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
+    public async Task Rewrites_count_as_new_submission_attempts()
+    {
+        const string user = "review-rewrite-quota";
+        var product = NextProductId();
+        await PayAsync(user, product);
+        using var client = Customer(user);
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var id = await WrittenAsync(client, product);
+            Assert.Equal(HttpStatusCode.OK, (await ModerateAsync(id, "reject", "Please rewrite it.")).StatusCode);
+        }
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await WriteAsync(client, product)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Parallel_moderation_publishes_a_complete_strictly_ordered_rating()
+    {
+        var product = NextProductId();
+        await PayAsync("review-parallel-a", product);
+        await PayAsync("review-parallel-b", product);
+        using var a = Customer("review-parallel-a");
+        using var b = Customer("review-parallel-b");
+        var first = await WrittenAsync(a, product, 3);
+        var second = await WrittenAsync(b, product, 5);
+        var responses = await Task.WhenAll(ModerateAsync(first, "approve"), ModerateAsync(second, "approve"));
+        Assert.All(responses, r => Assert.Equal(HttpStatusCode.OK, r.StatusCode));
+        var summary = await SummaryAsync(product);
+        Assert.Equal(2, summary.GetProperty("reviewCount").GetInt32());
+        Assert.Equal(4m, summary.GetProperty("averageRating").GetDecimal());
+        Assert.True(await RatingPublishedAsync(product, 2));
+        var messages = _factory.Bus.Consumed.Select<ReviewSummaryChanged>(e => e.Context.Message.ProductId == product)
+            .Select(e => e.Context.Message).OrderBy(e => e.ChangedAt).ToList();
+        Assert.Equal(2, messages.Count);
+        Assert.True(messages[0].ChangedAt < messages[1].ChangedAt);
+        Assert.Equal(2, messages[1].ReviewCount);
+        Assert.Equal(4m, messages[1].AverageRating);
+        using (var scope = _catalog.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
+            db.Products.Add(new Store.ProductService.Models.Product
+            {
+                Id = product,
+                Slug = $"parallel-review-{product}",
+                Title = "Parallel review fixture",
+                Price = 10m,
+                Image = "https://example.test/review.jpg",
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+        }
+        // Deliver the actual aggregate messages out of order through the catalogue's consumer.
+        foreach (var message in messages.AsEnumerable().Reverse()) await _catalog.Bus.Bus.Publish(message);
+        using var publicCatalog = _catalog.CreateClient();
+        await Eventually.AssertAsync(async () =>
+        {
+            var view = await publicCatalog.GetFromJsonAsync<JsonElement>($"/api/v1/products/{product}", Json);
+            Assert.Equal(2, view.GetProperty("ratingCount").GetInt32());
+            Assert.Equal(4m, view.GetProperty("ratingAverage").GetDecimal());
+        });
     }
 }

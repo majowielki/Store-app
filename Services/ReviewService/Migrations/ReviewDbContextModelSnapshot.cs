@@ -388,6 +388,44 @@ namespace Store.ReviewService.Migrations
                     b.ToTable("ReviewSeeds");
                 });
 
+            modelBuilder.Entity("Store.ReviewService.Models.ReviewSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DemoSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DemoSessionId", "SubmittedAt");
+
+                    b.ToTable("ReviewSubmissions");
+                });
+
+            modelBuilder.Entity("Store.ReviewService.Models.ReviewSummaryClock", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ProductId");
+
+                    b.ToTable("ReviewSummaryClocks");
+                });
+
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
                 {
                     b.HasOne("MassTransit.EntityFrameworkCoreIntegration.OutboxState", null)

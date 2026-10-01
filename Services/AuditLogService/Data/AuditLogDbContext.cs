@@ -13,6 +13,7 @@ public class AuditLogDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public DbSet<ShopEvent> ShopEvents => Set<ShopEvent>();
+    public DbSet<OrderReceipt> OrderReceipts => Set<OrderReceipt>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,11 +44,13 @@ public class AuditLogDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).ValueGeneratedOnAdd();
-            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(ShopEvent.KindMaxLength);
             entity.HasIndex(e => e.OccurredAt);
         });
 
         // Inbox of the message bus: audit entries arrive as events
+        modelBuilder.Entity<OrderReceipt>().HasKey(o => o.OrderId);
+        modelBuilder.Entity<OrderReceipt>().Property(o => o.OrderId).ValueGeneratedNever();
         modelBuilder.AddStoreMessagingTables();
     }
 }

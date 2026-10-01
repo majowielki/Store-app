@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.AuditLogService.Data;
 using Store.AuditLogService.Models;
+using Store.BuildingBlocks.Api;
 using Store.Contracts.Audit;
 
 namespace Store.AuditLogService.Services;
@@ -40,8 +41,9 @@ public sealed class PurchaseFunnel
     /// </summary>
     public async Task<FunnelResponse> CountAsync(int days, CancellationToken cancellationToken = default)
     {
-        var window = Math.Clamp(days, 1, _retention.RetentionDays);
-        var since = _time.GetUtcNow().UtcDateTime.Date.AddDays(-window);
+        _ = StatisticsWindow.Since(_time, days);
+        var window = Math.Min(days, _retention.RetentionDays);
+        var since = StatisticsWindow.Since(_time, window);
 
         var events = await _context.ShopEvents.AsNoTracking()
             .Where(e => e.OccurredAt >= since)
@@ -49,7 +51,8 @@ public sealed class PurchaseFunnel
             .Select(g => new { Kind = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.Kind, g => g.Count, cancellationToken);
         var orders = await _context.AuditLogs.AsNoTracking()
-            .CountAsync(a => a.Action == AuditActions.OrderPlaced && a.Timestamp >= since, cancellationToken);
+            .Where(a => a.Action == AuditActions.OrderPlaced && a.EntityName == "Order" && a.Timestamp >= since)
+            .Select(a => a.EntityId).Distinct().CountAsync(cancellationToken);
 
         return new FunnelResponse
         {

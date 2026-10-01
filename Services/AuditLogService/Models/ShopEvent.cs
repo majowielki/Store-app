@@ -8,6 +8,7 @@ namespace Store.AuditLogService.Models;
 /// </summary>
 public class ShopEvent : IHasLongId
 {
+    public const int KindMaxLength = 20;
     public long Id { get; set; }
 
     public ShopEventKind Kind { get; set; }

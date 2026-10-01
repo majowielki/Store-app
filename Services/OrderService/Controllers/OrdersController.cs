@@ -85,7 +85,7 @@ public class OrdersController : ControllerBase
             throw new DomainValidationException($"{IdempotencyKeyHeader.Name} must be at most {IdempotencyKeyHeader.MaxLength} characters");
         }
 
-        var order = await _orderService.CreateOrderFromCartAsync(request, string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim());
+        var order = await _orderService.CreateOrderFromCartAsync(request, string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim(), cancellationToken: HttpContext.RequestAborted);
         return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
     }
 
@@ -95,11 +95,11 @@ public class OrdersController : ControllerBase
     {
         if (User.IsStoreAdmin())
         {
-            var adminOrder = await _orderService.GetOrderForAdminAsync(id);
+            var adminOrder = await _orderService.GetOrderForAdminAsync(id, cancellationToken: HttpContext.RequestAborted);
             return adminOrder.ForViewer(User);
         }
 
-        return await _orderService.GetOrderAsync(id, UserId);
+        return await _orderService.GetOrderAsync(id, UserId, cancellationToken: HttpContext.RequestAborted);
     }
 
     /// <summary>
@@ -114,13 +114,13 @@ public class OrdersController : ControllerBase
     /// <summary>The customer's orders, newest first.</summary>
     [HttpGet("my-orders")]
     public Task<PagedResponse<OrderResponse>> GetMyOrders([FromQuery] PagedQuery paging)
-        => _orderService.GetUserOrdersAsync(UserId, paging);
+        => _orderService.GetUserOrdersAsync(UserId, paging, cancellationToken: HttpContext.RequestAborted);
 
     /// <summary>Whether the customer has ordered before - the first order is discounted.</summary>
     [HttpGet("has-orders")]
     public async Task<HasOrdersResponse> HasOrders()
     {
-        var count = await _orderService.GetUserOrdersCountAsync(UserId);
+        var count = await _orderService.GetUserOrdersCountAsync(UserId, cancellationToken: HttpContext.RequestAborted);
         return new HasOrdersResponse { HasOrders = count > 0, OrdersCount = count };
     }
 }

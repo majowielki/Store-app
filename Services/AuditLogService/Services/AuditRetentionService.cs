@@ -68,7 +68,7 @@ public sealed class AuditRetentionService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
-        var cutoff = _time.GetUtcNow().UtcDateTime.AddDays(-_options.RetentionDays);
+        var cutoff = _time.GetUtcNow().UtcDateTime.Date.AddDays(-_options.RetentionDays);
 
         var entries = await DeleteInBatchesAsync(context.AuditLogs, a => a.Timestamp < cutoff, cancellationToken);
         var shopEvents = await DeleteInBatchesAsync(context.ShopEvents, e => e.OccurredAt < cutoff, cancellationToken);

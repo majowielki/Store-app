@@ -1297,7 +1297,10 @@ export interface components {
             readonly hasPreviousPage: boolean;
         };
         OrderStatsResponse: {
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Value of placed orders, including unpaid, cancelled and refunded orders; not cash revenue.
+             */
             totalRevenue: number;
             /** Format: int32 */
             totalOrders: number;
@@ -1446,7 +1449,10 @@ export interface components {
             productTitle: string;
             /** Format: int32 */
             quantity: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Gross ordered line value before order discounts, including all statuses.
+             */
             revenue: number;
         };
         /** @description Body of PATCH /api/v1/admin/orders/{id}/status. Rules: `UpdateOrderStatusRequestValidator`. */

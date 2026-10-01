@@ -1,5 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Shop;
+using Store.ContentService.Data;
+using Store.ContentService.Services;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -217,5 +221,46 @@ public sealed class ContentApiTests : IClassFixture<ContentApiFactory>
         Assert.NotEqual(tag, changed.Headers.ETag);
 
         await admin.DeleteAsync($"/api/v1/content/admin/collections/{(await Body(created)).GetProperty("id").GetInt32()}");
+    }
+
+    [Fact]
+    public async Task Concurrent_requests_for_the_same_slug_return_created_and_conflict()
+    {
+        using var admin = _factory.CreateClient().AsTrueAdmin();
+        var slug = Unique("parallel-slug");
+        var responses = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => admin.PostAsJsonAsync("/api/v1/content/admin/collections", Collection(slug))));
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.Created);
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.Conflict);
+    }
+
+    [Theory]
+    [InlineData("create")]
+    [InlineData("update")]
+    [InlineData("delete")]
+    public async Task An_audit_failure_rolls_back_the_content_change(string operation)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ContentDbContext>();
+        var slug = Unique("audit-rollback");
+        var entry = new Store.ContentService.Models.Collection { Slug = slug, Title = "Original" };
+        if (operation != "create") { db.Collections.Add(entry); await db.SaveChangesAsync(); }
+        var store = new ContentStore<Store.ContentService.Models.Collection>(db, new RefusingAudit(), TimeProvider.System);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            if (operation == "create") await store.CreateAsync(entry, "test");
+            else if (operation == "update") await store.UpdateAsync(entry.Id, e => e.Title = "Changed", "test");
+            else await store.DeleteAsync(entry.Id, "test");
+        });
+        db.ChangeTracker.Clear();
+        var persisted = await db.Collections.AsNoTracking().SingleOrDefaultAsync(e => e.Slug == slug);
+        if (operation == "create") Assert.Null(persisted);
+        else { Assert.NotNull(persisted); Assert.Equal("Original", persisted.Title); }
+    }
+
+    private sealed class RefusingAudit : IAuditTrail
+    {
+        public Task RecordAsync(string action, string entityName, string? entityId, string? userId,
+            object? details = null, object? oldValues = null, object? newValues = null, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Simulated outbox failure");
     }
 }

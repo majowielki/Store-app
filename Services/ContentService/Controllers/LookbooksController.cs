@@ -30,7 +30,7 @@ public class LookbooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<ActionResult<List<LookbookResponse>>> List()
     {
-        var entries = await _store.PublishedAsync(q => q.OrderBy(e => e.SortOrder).ThenBy(e => e.Title));
+        var entries = await _store.PublishedAsync(q => q.OrderBy(e => e.SortOrder).ThenBy(e => e.Title), cancellationToken: HttpContext.RequestAborted);
         return this.OkUnlessUnchanged(entries.Select(e => e.ToResponse()).ToList(), entries);
     }
 
@@ -39,7 +39,7 @@ public class LookbooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<ActionResult<LookbookResponse>> Get(string slug)
     {
-        var entry = await _store.PublishedAsync(slug);
+        var entry = await _store.PublishedAsync(slug, cancellationToken: HttpContext.RequestAborted);
         return this.OkUnlessUnchanged(entry.ToResponse(), [entry]);
     }
 
@@ -47,12 +47,12 @@ public class LookbooksController : ControllerBase
     [HttpGet("admin/lookbooks")]
     [Authorize(Policy = Policies.Admin)]
     public async Task<List<LookbookResponse>> ListForAdmin()
-        => (await _store.AllAsync(q => q.OrderBy(e => e.SortOrder).ThenBy(e => e.Title))).Select(e => e.ToResponse()).ToList();
+        => (await _store.AllAsync(q => q.OrderBy(e => e.SortOrder).ThenBy(e => e.Title), cancellationToken: HttpContext.RequestAborted)).Select(e => e.ToResponse()).ToList();
 
     [HttpGet("admin/lookbooks/{id:int}")]
     [Authorize(Policy = Policies.Admin)]
     public async Task<LookbookResponse> GetForAdmin(int id)
-        => (await _store.FindAsync(id)).ToResponse();
+        => (await _store.FindAsync(id, cancellationToken: HttpContext.RequestAborted)).ToResponse();
 
     /// <summary>Creates an entry; 409 when the slug is taken.</summary>
     [HttpPost("admin/lookbooks")]
@@ -62,7 +62,7 @@ public class LookbooksController : ControllerBase
     {
         var entry = new Lookbook();
         request.ApplyTo(entry);
-        await _store.CreateAsync(entry, ActorId);
+        await _store.CreateAsync(entry, ActorId, cancellationToken: HttpContext.RequestAborted);
         return CreatedAtAction(nameof(GetForAdmin), new { id = entry.Id }, entry.ToResponse());
     }
 
@@ -70,14 +70,14 @@ public class LookbooksController : ControllerBase
     [HttpPut("admin/lookbooks/{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
     public async Task<LookbookResponse> Update(int id, [FromBody] LookbookRequest request)
-        => (await _store.UpdateAsync(id, entry => request.ApplyTo(entry), ActorId)).ToResponse();
+        => (await _store.UpdateAsync(id, entry => request.ApplyTo(entry), ActorId, cancellationToken: HttpContext.RequestAborted)).ToResponse();
 
     [HttpDelete("admin/lookbooks/{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(int id)
     {
-        await _store.DeleteAsync(id, ActorId);
+        await _store.DeleteAsync(id, ActorId, cancellationToken: HttpContext.RequestAborted);
         return NoContent();
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Audit;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
@@ -47,6 +48,7 @@ public sealed class DiscountCodeService
 
     public async Task<DiscountCodeResponse> CreateAsync(DiscountCodeRequest request, string actorId)
     {
+        await using var transaction = await _context.BeginStoreTransactionAsync();
         var code = new DiscountCode { CreatedAt = _time.GetUtcNow().UtcDateTime };
         Apply(code, request);
         await EnsureCodeIsFreeAsync(code.Code, exceptId: null);
@@ -55,11 +57,13 @@ public sealed class DiscountCodeService
         await _context.SaveChangesAsync();
 
         await _audit.RecordAsync(AuditActions.DiscountCodeCreated, nameof(DiscountCode), code.Id.ToString(), actorId, newValues: Map(code));
+        if (transaction is not null) await transaction.CommitAsync();
         return Map(code);
     }
 
     public async Task<DiscountCodeResponse> UpdateAsync(int id, DiscountCodeRequest request, string actorId)
     {
+        await using var transaction = await _context.BeginStoreTransactionAsync();
         var code = await FindAsync(id, tracked: true);
         var oldValues = Map(code);
 
@@ -68,12 +72,14 @@ public sealed class DiscountCodeService
         await _context.SaveChangesAsync();
 
         await _audit.RecordAsync(AuditActions.DiscountCodeUpdated, nameof(DiscountCode), id.ToString(), actorId, oldValues: oldValues, newValues: Map(code));
+        if (transaction is not null) await transaction.CommitAsync();
         return Map(code);
     }
 
     /// <summary>A code no order used can be deleted; one that was used stays, deactivated, so the orders still name it.</summary>
     public async Task DeleteAsync(int id, string actorId)
     {
+        await using var transaction = await _context.BeginStoreTransactionAsync();
         var code = await FindAsync(id, tracked: true);
         if (code.TimesUsed > 0)
         {
@@ -84,6 +90,7 @@ public sealed class DiscountCodeService
         await _context.SaveChangesAsync();
 
         await _audit.RecordAsync(AuditActions.DiscountCodeDeleted, nameof(DiscountCode), id.ToString(), actorId, oldValues: Map(code));
+        if (transaction is not null) await transaction.CommitAsync();
     }
 
     private async Task<DiscountCode> FindAsync(int id, bool tracked)

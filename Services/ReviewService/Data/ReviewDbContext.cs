@@ -15,6 +15,8 @@ public class ReviewDbContext : DbContext
     public DbSet<Purchase> Purchases => Set<Purchase>();
     public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
     public DbSet<ReviewSeed> ReviewSeeds => Set<ReviewSeed>();
+    public DbSet<ReviewSubmission> ReviewSubmissions => Set<ReviewSubmission>();
+    public DbSet<ReviewSummaryClock> ReviewSummaryClocks => Set<ReviewSummaryClock>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,6 +85,14 @@ public class ReviewDbContext : DbContext
         });
 
         // Outbox and inbox of the message bus: purchases arrive, summaries and audit entries leave
+        modelBuilder.Entity<ReviewSubmission>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.UserId).HasMaxLength(UserIds.MaxLength);
+            entity.HasIndex(s => new { s.UserId, s.DemoSessionId, s.SubmittedAt });
+        });
+        modelBuilder.Entity<ReviewSummaryClock>().HasKey(s => s.ProductId);
+        modelBuilder.Entity<ReviewSummaryClock>().Property(s => s.ProductId).ValueGeneratedNever();
         modelBuilder.AddStoreMessagingTables();
     }
 }

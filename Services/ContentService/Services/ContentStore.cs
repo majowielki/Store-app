@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.ContentService.Data;
@@ -37,65 +38,82 @@ public sealed class ContentStore<TEntry> where TEntry : ContentEntry
 
     private DbSet<TEntry> Entries => _db.Set<TEntry>();
 
-    public Task<List<TEntry>> PublishedAsync(Func<IQueryable<TEntry>, IQueryable<TEntry>> order)
-        => order(Entries.AsNoTracking().Where(e => e.IsPublished)).ToListAsync();
+    public Task<List<TEntry>> PublishedAsync(Func<IQueryable<TEntry>, IQueryable<TEntry>> order, CancellationToken cancellationToken = default)
+        => order(Entries.AsNoTracking().Where(e => e.IsPublished)).ToListAsync(cancellationToken);
 
     /// <summary>A published entry; 404 for an unknown slug or an unpublished entry alike.</summary>
-    public async Task<TEntry> PublishedAsync(string slug)
-        => await Entries.AsNoTracking().FirstOrDefaultAsync(e => e.IsPublished && e.Slug == slug)
+    public async Task<TEntry> PublishedAsync(string slug, CancellationToken cancellationToken = default)
+        => await Entries.AsNoTracking().FirstOrDefaultAsync(e => e.IsPublished && e.Slug == slug, cancellationToken)
             ?? throw new NotFoundException(Kind, slug);
 
-    public Task<List<TEntry>> AllAsync(Func<IQueryable<TEntry>, IQueryable<TEntry>> order)
-        => order(Entries.AsNoTracking()).ToListAsync();
+    public Task<List<TEntry>> AllAsync(Func<IQueryable<TEntry>, IQueryable<TEntry>> order, CancellationToken cancellationToken = default)
+        => order(Entries.AsNoTracking()).ToListAsync(cancellationToken);
 
-    public async Task<TEntry> FindAsync(int id)
-        => await Entries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id)
+    public async Task<TEntry> FindAsync(int id, CancellationToken cancellationToken = default)
+        => await Entries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
             ?? throw new NotFoundException(Kind, id);
 
-    public async Task<TEntry> CreateAsync(TEntry entry, string? actorId)
+    public async Task<TEntry> CreateAsync(TEntry entry, string? actorId, CancellationToken cancellationToken = default)
     {
-        await EnsureSlugIsFreeAsync(entry.Slug, exceptId: null);
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await EnsureSlugIsFreeAsync(entry.Slug, exceptId: null, cancellationToken: cancellationToken);
 
         entry.CreatedAt = entry.UpdatedAt = _time.GetUtcNow().UtcDateTime;
         Entries.Add(entry);
-        await _db.SaveChangesAsync();
+        await SaveAsync(cancellationToken);
 
-        await _audit.RecordAsync(AuditActions.Created(Kind), Kind, entry.Id.ToString(), actorId, newValues: entry);
+        await _audit.RecordAsync(AuditActions.Created(Kind), Kind, entry.Id.ToString(), actorId, newValues: entry, cancellationToken: cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return entry;
     }
 
     /// <summary>Replaces the entry's content with what <paramref name="apply"/> writes into it.</summary>
-    public async Task<TEntry> UpdateAsync(int id, Action<TEntry> apply, string? actorId)
+    public async Task<TEntry> UpdateAsync(int id, Action<TEntry> apply, string? actorId, CancellationToken cancellationToken = default)
     {
-        var entry = await Entries.FirstOrDefaultAsync(e => e.Id == id)
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        var entry = await Entries.FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
             ?? throw new NotFoundException(Kind, id);
         var oldValues = JsonSerializer.Serialize(entry, AuditJson);
 
         apply(entry);
-        await EnsureSlugIsFreeAsync(entry.Slug, exceptId: id);
+        await EnsureSlugIsFreeAsync(entry.Slug, exceptId: id, cancellationToken: cancellationToken);
         entry.UpdatedAt = _time.GetUtcNow().UtcDateTime;
-        await _db.SaveChangesAsync();
+        await SaveAsync(cancellationToken);
 
-        await _audit.RecordAsync(AuditActions.Updated(Kind), Kind, id.ToString(), actorId, oldValues: oldValues, newValues: entry);
+        await _audit.RecordAsync(AuditActions.Updated(Kind), Kind, id.ToString(), actorId, oldValues: oldValues, newValues: entry, cancellationToken: cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return entry;
     }
 
     /// <summary>Content has nothing depending on it, so a delete removes the row; unpublishing hides it instead.</summary>
-    public async Task DeleteAsync(int id, string? actorId)
+    public async Task DeleteAsync(int id, string? actorId, CancellationToken cancellationToken = default)
     {
-        var entry = await Entries.FirstOrDefaultAsync(e => e.Id == id)
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        var entry = await Entries.FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
             ?? throw new NotFoundException(Kind, id);
         var oldValues = JsonSerializer.Serialize(entry, AuditJson);
 
         Entries.Remove(entry);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.RecordAsync(AuditActions.Deleted(Kind), Kind, id.ToString(), actorId, oldValues: oldValues);
+        await _audit.RecordAsync(AuditActions.Deleted(Kind), Kind, id.ToString(), actorId, oldValues: oldValues, cancellationToken: cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
-    private async Task EnsureSlugIsFreeAsync(string slug, int? exceptId)
+    private async Task SaveAsync(CancellationToken cancellationToken)
     {
-        if (await Entries.AnyAsync(e => e.Slug == slug && e.Id != exceptId))
+        try { await _db.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+        { SqlState: PostgresErrorCodes.UniqueViolation } pg
+            && pg.ConstraintName == $"IX_{_db.Model.FindEntityType(typeof(TEntry))!.GetTableName()}_Slug")
+        {
+            throw new ConflictException($"Another {Kind.ToLowerInvariant()} already uses this address.");
+        }
+    }
+
+    private async Task EnsureSlugIsFreeAsync(string slug, int? exceptId, CancellationToken cancellationToken = default)
+    {
+        if (await Entries.AnyAsync(e => e.Slug == slug && e.Id != exceptId, cancellationToken))
         {
             throw new ConflictException($"Another {Kind.ToLowerInvariant()} already uses the address \"{slug}\".");
         }

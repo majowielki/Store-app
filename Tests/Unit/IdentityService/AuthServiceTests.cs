@@ -60,7 +60,8 @@ public class AuthServiceTests
             Mock.Of<ILogger<AuthService>>(),
             Mock.Of<IAuditTrail>(),
             new StoreMetrics(),
-            TimeProvider.System
+            TimeProvider.System,
+            _dbContext
         );
     }
 

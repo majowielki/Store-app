@@ -68,6 +68,7 @@ public class AuditLogService : IAuditLogService
         var totalCount = await entries.CountAsync();
         var page = await entries
             .OrderByDescending(a => a.Timestamp)
+            .ThenByDescending(a => a.Id)
             .Skip(paging.Skip)
             .Take(paging.PageSize)
             .ToListAsync();

@@ -77,20 +77,20 @@ describe('useLiveOrders', () => {
   it('reads the orders again and announces a new order when the feed tells of one', async () => {
     renderWithStore(<Panel />, { user: admin });
     expect(await screen.findByText('live')).toBeInTheDocument();
-    expect(await screen.findByText('1 orders')).toBeInTheDocument();
+    expect(await screen.findByText('2 orders')).toBeInTheDocument();
 
     act(() => connection.hear({ orderId: 2, status: 'Placed', at: '2026-09-29T10:00:00Z' }));
 
-    expect(await screen.findByText('2 orders')).toBeInTheDocument();
+    expect(await screen.findByText('3 orders')).toBeInTheDocument();
     expect(screen.getByText('New order #2.')).toBeInTheDocument();
   });
 
   it('announces a paid order but only reads the list again for other changes', async () => {
     renderWithStore(<Panel />, { user: admin });
-    await screen.findByText('1 orders');
+    await screen.findByText('2 orders');
 
     act(() => connection.hear({ orderId: 1, status: 'AwaitingPayment', at: '2026-09-29T10:00:00Z' }));
-    await screen.findByText('2 orders');
+    await screen.findByText('3 orders');
     act(() => connection.hear({ orderId: 1, status: 'Paid', at: '2026-09-29T10:01:00Z' }));
 
     expect(await screen.findByText('Order #1 is paid.')).toBeInTheDocument();
@@ -99,13 +99,13 @@ describe('useLiveOrders', () => {
 
   it('reads the orders again after a reconnect, having missed what happened meanwhile', async () => {
     renderWithStore(<Panel />, { user: admin });
-    await screen.findByText('1 orders');
+    await screen.findByText('2 orders');
 
     act(() => connection.reconnecting());
     expect(screen.getByText('reconnecting')).toBeInTheDocument();
     act(() => connection.reconnected());
 
-    expect(await screen.findByText('2 orders')).toBeInTheDocument();
+    expect(await screen.findByText('3 orders')).toBeInTheDocument();
     expect(screen.getByText('live')).toBeInTheDocument();
   });
 
@@ -119,6 +119,15 @@ describe('useLiveOrders', () => {
 
     await waitFor(() => expect(connection.start).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('live')).toBeInTheDocument();
+    expect(await screen.findByText('2 orders')).toBeInTheDocument();
+  });
+
+  it('reconciles projections that commit after the live notification', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderWithStore(<Panel />, { user: admin });
+    await screen.findByText('2 orders');
+    await act(() => vi.advanceTimersByTimeAsync(15_001));
+    expect(await screen.findByText('3 orders')).toBeInTheDocument();
   });
 
   it('closes the connection when the panel is left', async () => {

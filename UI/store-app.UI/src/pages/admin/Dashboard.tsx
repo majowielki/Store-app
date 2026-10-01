@@ -2,16 +2,18 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { useGetFunnelQuery } from '@/api/funnel';
 import { useGetOrderStatsQuery } from '@/api/orders';
 import FunnelChart from '@/components/FunnelChart';
+import { dashboardDays } from '@/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatAsDollars } from '@/utils';
 
-const DAYS = 30;
+const DAYS = dashboardDays;
 
 const Dashboard = () => {
-  const { data: stats, isLoading, isError } = useGetOrderStatsQuery({ days: DAYS });
   // The same window as the order statistics, so its last stage is the order count above
   const { data: funnel, isError: funnelFailed } = useGetFunnelQuery({ days: DAYS });
+  const days = funnel?.days ?? DAYS;
+  const { data: stats, isLoading, isError } = useGetOrderStatsQuery({ days });
 
   if (isLoading) return <div>Loading dashboard...</div>;
   if (isError || !stats) return <div className="text-red-500">Failed to load dashboard stats.</div>;
@@ -28,11 +30,12 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue</CardTitle>
+            <CardTitle>Placed order value</CardTitle>
+            <p className="text-xs text-muted-foreground">Includes unpaid and cancelled orders; not collected revenue.</p>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{formatAsDollars(stats.totalRevenue)}</p>
-            <p className="text-xs text-muted-foreground">Last {DAYS} days</p>
+            <p className="text-xs text-muted-foreground">Last {days} days</p>
           </CardContent>
         </Card>
         <Card>
@@ -41,7 +44,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{stats.totalOrders}</p>
-            <p className="text-xs text-muted-foreground">Last {DAYS} days</p>
+            <p className="text-xs text-muted-foreground">Last {days} days</p>
           </CardContent>
         </Card>
       </div>
@@ -49,7 +52,8 @@ const Dashboard = () => {
       <Card>
         <CardHeader>
           <CardTitle>Purchase funnel</CardTitle>
-          <p className="text-xs text-muted-foreground">Last {DAYS} days: products viewed and put in the bag in the shop, and the orders placed</p>
+          <p className="text-xs text-muted-foreground">Event counts, not unique visitors. Browser events may be missing, so later stages can exceed earlier ones.</p>
+          <p className="text-xs text-muted-foreground">Last {days} days: products viewed and put in the bag in the shop, and the orders placed</p>
         </CardHeader>
         <CardContent>
           {funnel ? (
@@ -62,7 +66,7 @@ const Dashboard = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Revenue & Orders (Daily)</CardTitle>
+          <CardTitle>Placed value & Orders (Daily)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="w-full h-72">
@@ -74,8 +78,8 @@ const Dashboard = () => {
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#2563eb" name="Revenue" dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#16a34a" name="Orders" dot={false} />
+                <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="var(--chart-1)" name="Placed value" dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="orders" stroke="var(--chart-2)" name="Orders" dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -85,6 +89,7 @@ const Dashboard = () => {
       <Card>
         <CardHeader>
           <CardTitle>Top Products</CardTitle>
+          <p className="text-xs text-muted-foreground">Ordered quantities and line values before discounts, including unpaid and cancelled orders.</p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -93,7 +98,7 @@ const Dashboard = () => {
                 <TableRow>
                   <TableHead>Product</TableHead>
                   <TableHead>Quantity</TableHead>
-                  <TableHead>Revenue</TableHead>
+                  <TableHead>Gross line value</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

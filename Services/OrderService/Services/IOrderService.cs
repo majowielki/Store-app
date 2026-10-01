@@ -14,22 +14,23 @@ public interface IOrderService
 {
     /// <param name="request">Checkout data; UserId is set by the caller from the token</param>
     /// <param name="idempotencyKey">Optional Idempotency-Key header: a retry with the same key gets the same order</param>
-    Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null);
+    /// <param name="cancellationToken">Request cancellation before commit; committed events remain durable.</param>
+    Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null, CancellationToken cancellationToken = default);
 
     /// <summary>An order of the given customer; other customers' orders are forbidden.</summary>
-    Task<OrderResponse> GetOrderAsync(int orderId, string userId);
+    Task<OrderResponse> GetOrderAsync(int orderId, string userId, CancellationToken cancellationToken = default);
 
     /// <summary>Any order, for the admin panel.</summary>
-    Task<OrderResponse> GetOrderForAdminAsync(int orderId);
+    Task<OrderResponse> GetOrderForAdminAsync(int orderId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Ships or cancels an order (the administrator's moves); another status is a
     /// <c>DomainValidationException</c>, a move the order's status does not allow a <c>ConflictException</c>.
     /// </summary>
-    Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId);
+    Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId, CancellationToken cancellationToken = default);
 
-    Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging);
-    Task<PagedResponse<OrderResponse>> GetAllOrdersAsync(PagedQuery paging);
-    Task<int> GetUserOrdersCountAsync(string userId);
-    Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = 30);
+    Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging, CancellationToken cancellationToken = default);
+    Task<PagedResponse<OrderResponse>> GetAllOrdersAsync(PagedQuery paging, CancellationToken cancellationToken = default);
+    Task<int> GetUserOrdersCountAsync(string userId, CancellationToken cancellationToken = default);
+    Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = 30, CancellationToken cancellationToken = default);
 }

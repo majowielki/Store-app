@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Store.OrderService.Models;
 
 /// <summary>Delivery times, bound from the <c>Delivery</c> section; the defaults are the store's current rules.</summary>
-public sealed class DeliveryOptions
+public sealed class DeliveryOptions : IValidatableObject
 {
     public const string SectionName = "Delivery";
 
@@ -17,6 +17,12 @@ public sealed class DeliveryOptions
 
     [Range(0, 30)]
     public int TransitDaysMax { get; init; } = 4;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (TransitDaysMin > TransitDaysMax)
+            yield return new ValidationResult("TransitDaysMin must not exceed TransitDaysMax.", [nameof(TransitDaysMin), nameof(TransitDaysMax)]);
+    }
 }
 
 /// <summary>The dates a parcel should arrive between, both included.</summary>

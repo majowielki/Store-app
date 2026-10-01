@@ -32,7 +32,7 @@ public class ArticlesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<ActionResult<List<ArticleResponse>>> List()
     {
-        var entries = await _store.PublishedAsync(q => q.OrderByDescending(e => e.PublishedAt));
+        var entries = await _store.PublishedAsync(q => q.OrderByDescending(e => e.PublishedAt), cancellationToken: HttpContext.RequestAborted);
         return this.OkUnlessUnchanged(entries.Select(e => e.ToResponse()).ToList(), entries);
     }
 
@@ -41,7 +41,7 @@ public class ArticlesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<ActionResult<ArticleResponse>> Get(string slug)
     {
-        var entry = await _store.PublishedAsync(slug);
+        var entry = await _store.PublishedAsync(slug, cancellationToken: HttpContext.RequestAborted);
         return this.OkUnlessUnchanged(entry.ToResponse(), [entry]);
     }
 
@@ -49,12 +49,12 @@ public class ArticlesController : ControllerBase
     [HttpGet("admin/articles")]
     [Authorize(Policy = Policies.Admin)]
     public async Task<List<ArticleResponse>> ListForAdmin()
-        => (await _store.AllAsync(q => q.OrderByDescending(e => e.PublishedAt))).Select(e => e.ToResponse()).ToList();
+        => (await _store.AllAsync(q => q.OrderByDescending(e => e.PublishedAt), cancellationToken: HttpContext.RequestAborted)).Select(e => e.ToResponse()).ToList();
 
     [HttpGet("admin/articles/{id:int}")]
     [Authorize(Policy = Policies.Admin)]
     public async Task<ArticleResponse> GetForAdmin(int id)
-        => (await _store.FindAsync(id)).ToResponse();
+        => (await _store.FindAsync(id, cancellationToken: HttpContext.RequestAborted)).ToResponse();
 
     /// <summary>Creates an entry; 409 when the slug is taken.</summary>
     [HttpPost("admin/articles")]
@@ -64,7 +64,7 @@ public class ArticlesController : ControllerBase
     {
         var entry = new Article();
         request.ApplyTo(entry, _time.GetUtcNow().UtcDateTime);
-        await _store.CreateAsync(entry, ActorId);
+        await _store.CreateAsync(entry, ActorId, cancellationToken: HttpContext.RequestAborted);
         return CreatedAtAction(nameof(GetForAdmin), new { id = entry.Id }, entry.ToResponse());
     }
 
@@ -72,14 +72,14 @@ public class ArticlesController : ControllerBase
     [HttpPut("admin/articles/{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
     public async Task<ArticleResponse> Update(int id, [FromBody] ArticleRequest request)
-        => (await _store.UpdateAsync(id, entry => request.ApplyTo(entry, _time.GetUtcNow().UtcDateTime), ActorId)).ToResponse();
+        => (await _store.UpdateAsync(id, entry => request.ApplyTo(entry, _time.GetUtcNow().UtcDateTime), ActorId, cancellationToken: HttpContext.RequestAborted)).ToResponse();
 
     [HttpDelete("admin/articles/{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(int id)
     {
-        await _store.DeleteAsync(id, ActorId);
+        await _store.DeleteAsync(id, ActorId, cancellationToken: HttpContext.RequestAborted);
         return NoContent();
     }
 }

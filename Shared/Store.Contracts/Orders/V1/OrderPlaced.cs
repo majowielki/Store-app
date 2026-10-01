@@ -18,6 +18,7 @@ namespace Store.Contracts.Orders.V1;
 /// <param name="Total">Amount the customer pays</param>
 /// <param name="Lines">Product lines</param>
 /// <param name="PlacedAt">When the order was committed (UTC)</param>
+/// <param name="Cart">Checkout snapshot used to remove only unchanged purchased cart lines.</param>
 public sealed record OrderPlaced(
     int OrderId,
     string UserId,
@@ -30,7 +31,8 @@ public sealed record OrderPlaced(
     decimal DeliveryFee,
     decimal Total,
     IReadOnlyList<OrderPlacedLine> Lines,
-    DateTime PlacedAt);
+    DateTime PlacedAt,
+    Store.Contracts.Cart.CartSnapshot? Cart = null);
 
 /// <summary>One product line of a placed order.</summary>
 /// <param name="ProductId">Catalogue product id</param>

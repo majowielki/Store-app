@@ -251,6 +251,16 @@ namespace Store.AuditLogService.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("Store.AuditLogService.Models.OrderReceipt", b =>
+                {
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("OrderId");
+
+                    b.ToTable("OrderReceipts");
+                });
+
             modelBuilder.Entity("Store.AuditLogService.Models.ShopEvent", b =>
                 {
                     b.Property<long>("Id")

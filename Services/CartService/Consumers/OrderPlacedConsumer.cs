@@ -22,7 +22,7 @@ public sealed class OrderPlacedConsumer : IConsumer<OrderPlaced>
     public async Task Consume(ConsumeContext<OrderPlaced> context)
     {
         var order = context.Message;
-        var removed = await _cartService.ClearAfterOrderAsync(order.UserId, order.OrderId);
+        var removed = await _cartService.ClearAfterOrderAsync(order.UserId, order.OrderId, order.Cart);
         _logger.LogInformation("Order {OrderId} placed: removed {Lines} lines from the cart of user {UserId}",
             order.OrderId, removed, order.UserId);
     }

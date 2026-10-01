@@ -40,7 +40,7 @@ const FunnelChart = ({ stages }: { stages: Funnel['stages'] }) => {
             </div>
             <div aria-hidden="true" className="h-5">
               {stage.count > 0 && (
-                <div className="h-full rounded-r-[4px] bg-chart-1" style={{ width: `max(${MIN_BAR_PX}px, ${share * 100}%)` }} />
+                <div className="h-full rounded-r-[4px] bg-chart-1" style={{ width: `max(${MIN_BAR_PX}px, ${Math.min(1, share) * 100}%)` }} />
               )}
             </div>
             {previous && (

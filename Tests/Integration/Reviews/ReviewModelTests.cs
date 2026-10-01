@@ -73,7 +73,9 @@ public sealed class ReviewModelTests : IClassFixture<ReviewModelApiFactory>
 
         Assert.True(await AuditedAsync(AuditActions.ReviewPublishedByModel, id));
         using var anonymous = _factory.CreateClient();
-        var published = await ReadJson(await anonymous.GetAsync($"/api/v1/reviews?productId={product}"));
+        var publishedResponse = await anonymous.GetAsync($"/api/v1/reviews?productId={product}");
+        Assert.True(publishedResponse.IsSuccessStatusCode, $"{publishedResponse.StatusCode}: {await publishedResponse.Content.ReadAsStringAsync()}");
+        var published = await ReadJson(publishedResponse);
         Assert.Equal(id, Assert.Single(published.GetProperty("items").EnumerateArray()).GetProperty("id").GetGuid());
         Assert.True(await Eventually.BecomesTrueAsync(() => _factory.Bus.Consumed
             .Select<ReviewSummaryChanged>(e => e.Context.Message.ProductId == product && e.Context.Message.ReviewCount == 1).Any()));
@@ -152,7 +154,7 @@ public sealed class ReviewModelApiFactory : StoreApiFactory<ReviewDbContext>
 
     protected override void ConfigureTestBus(IBusRegistrationConfigurator bus)
     {
-        bus.AddConsumer<ReviewSummaryProbe>();
+        AddProbe<ReviewSummaryProbe>(bus);
     }
 }
 

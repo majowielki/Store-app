@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
-import { baseQuery, freshAccessToken } from './baseQuery';
+import { baseQuery, freshAccessToken, refreshAccessToken } from './baseQuery';
 import { getAccessToken, onSessionEnded, setAccessToken } from './session';
 import { session } from '@/test/fixtures';
 import { api, json, problemResponse } from '@/test/handlers';
@@ -136,5 +136,55 @@ describe('freshAccessToken', () => {
 
     expect(await freshAccessToken()).toBe('renewed');
     expect(getAccessToken()).toBe('renewed');
+  });
+});
+
+describe('bounded refresh and response bodies', () => {
+  it('keeps the session through a transient refresh failure and allows another attempt', async () => {
+    setAccessToken('still-signed-in');
+    server.use(http.post(api('/auth/refresh'), () => problemResponse(503, 'try later')));
+    expect(await refreshAccessToken()).toBeNull();
+    expect(getAccessToken()).toBe('still-signed-in');
+    server.use(http.post(api('/auth/refresh'), () => json({ ...session(), accessToken: 'recovered' })));
+    expect(await refreshAccessToken()).toBe('recovered');
+  });
+
+  it('times out after headers while reading a stalled body', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => ({
+      ok: true,
+      text: () => new Promise<string>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+      }),
+    }) as Response);
+    try {
+      const pending = call('/products');
+      await vi.advanceTimersByTimeAsync(15_001);
+      expect((await pending).error?.status).toBe('TIMEOUT_ERROR');
+    } finally {
+      fetchMock.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('bounds a shared stalled refresh and clears it for a subsequent successful refresh', async () => {
+    vi.useFakeTimers();
+    setAccessToken('signed-in');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+    }));
+    try {
+      const a = refreshAccessToken();
+      const b = refreshAccessToken();
+      expect(a).toBe(b);
+      await vi.advanceTimersByTimeAsync(15_001);
+      expect(await a).toBeNull();
+      expect(getAccessToken()).toBe('signed-in');
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ accessToken: 'recovered' }), { status: 200 }));
+      expect(await refreshAccessToken()).toBe('recovered');
+    } finally {
+      fetchMock.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });

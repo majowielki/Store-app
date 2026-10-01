@@ -49,7 +49,7 @@ public sealed class OrderApiFactory : StoreApiFactory<OrderDbContext>
 
     protected override void ConfigureTestBus(IBusRegistrationConfigurator bus)
     {
-        bus.AddConsumer<OrderEventProbe>();
+        AddProbe<OrderEventProbe>(bus);
         // The harness keeps sagas in memory unless told otherwise; the order saga must find the row
         // the checkout writes, so it keeps its PostgreSQL repository
         bus.AddSagaStateMachine<OrderStateMachine, OrderState>().EntityFrameworkRepository(repository =>

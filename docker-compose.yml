@@ -449,6 +449,9 @@ services:
       API_BASE_URL: /api/v1
       # robots.txt, the sitemaps and the pictures shared on social sites need absolute addresses
       SHOP_URL: *shop-url
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-15000}
+      RENEW_BEFORE_EXPIRY_MS: ${RENEW_BEFORE_EXPIRY_MS:-30000}
+      DASHBOARD_DAYS: ${DASHBOARD_DAYS:-30}
       # The pictures come from the blob emulator (Azurite) on this machine
       CSP_IMG_SRC_EXTRA: http://localhost:${AZURITE_BLOB_PORT:-10000}
     ports:

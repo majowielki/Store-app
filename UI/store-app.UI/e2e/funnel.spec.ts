@@ -1,13 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { Funnel, OrderStatsResponse } from '../src/api/types';
-import { addToCart, findProducts, login, placeOrder, register, trueAdmin, uniqueEmail } from './helpers';
+import { addToCart, asTrueAdmin, findProducts, login, placeOrder, register, trueAdmin, uniqueEmail } from './helpers';
 
 const dashboard = async (page: Page) => {
-  const statsResponse = page.waitForResponse((response) => response.url().includes('/admin/orders/stats?days=30') && response.ok());
-  const funnelResponse = page.waitForResponse((response) => response.url().includes('/auditlog/funnel?days=30') && response.ok());
+  const headers = await asTrueAdmin(page.request);
   await page.goto('/admin');
-  const stats = (await (await statsResponse).json()) as OrderStatsResponse;
-  const funnel = (await (await funnelResponse).json()) as Funnel;
+  // SignalR can replace a browser fetch during navigation. Read stable API
+  // responses here; below we independently verify the values rendered by the UI.
+  const [statsResponse, funnelResponse] = await Promise.all([
+    page.request.get('/api/v1/admin/orders/stats?days=30', { headers }),
+    page.request.get('/api/v1/auditlog/funnel?days=30', { headers }),
+  ]);
+  expect(statsResponse.ok()).toBeTruthy();
+  expect(funnelResponse.ok()).toBeTruthy();
+  const stats = await statsResponse.json() as OrderStatsResponse;
+  const funnel = await funnelResponse.json() as Funnel;
   expect(funnel.days).toBe(30);
   return { stats, funnel };
 };

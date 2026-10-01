@@ -94,6 +94,7 @@ public sealed class ReviewModeration
         var reason = approve ? null : request.Reason?.Trim();
 
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.LockAllForUpdateAsync<Review, Guid>(r => r.Id, ids, cancellationToken);
         var reviews = await _context.Reviews.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
         var changedRatings = new HashSet<int>();
         foreach (var review in reviews)

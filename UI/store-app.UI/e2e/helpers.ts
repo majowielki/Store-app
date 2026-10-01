@@ -25,7 +25,7 @@ export const findProducts = async (request: APIRequestContext, query: Record<str
 let adminToken: string | undefined;
 
 /** The true administrator's authorization, for the setup a scenario makes through the API. */
-const asTrueAdmin = async (request: APIRequestContext) => {
+export const asTrueAdmin = async (request: APIRequestContext) => {
   if (!adminToken) {
     const response = await request.post(`${API}/auth/login`, { data: { email: trueAdmin.email, password: trueAdmin.password } });
     expect(response.ok()).toBeTruthy();

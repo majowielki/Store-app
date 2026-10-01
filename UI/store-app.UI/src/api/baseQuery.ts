@@ -1,5 +1,5 @@
 import type { BaseQueryFn } from '@reduxjs/toolkit/query';
-import { apiBaseUrl } from '@/config';
+import { apiBaseUrl, httpOptions } from '@/config';
 import { describeProblem, type ApiError } from './problem';
 import { endSession, getAccessToken, setAccessToken, tokenExpiresAt } from './session';
 import type { AuthResponse, ProblemDetails } from './types';
@@ -24,7 +24,7 @@ export interface ApiResultMeta {
   silent: boolean;
 }
 
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = httpOptions.requestTimeoutMs;
 
 /** Requests that establish or end a session; a 401 from them is an answer, not an expired token. */
 const isSessionRequest = (url: string) => /^\/auth\/(login|register|demo-login|demo-admin-login|logout)$/.test(url);
@@ -74,25 +74,30 @@ let refreshing: Promise<string | null> | null = null;
  * a burst of expired requests refreshes once; a refusal ends the session for the whole app.
  */
 export const refreshAccessToken = (): Promise<string | null> => {
-  refreshing ??= fetch(`${apiBaseUrl}/auth/refresh`, { method: 'POST', credentials: 'include' })
-    .then(async (response) => {
-      if (!response.ok) throw new Error(`refresh refused: ${response.status}`);
-      const session = (await response.json()) as AuthResponse;
+  refreshing ??= (async () => {
+    const timeout = withTimeout(new AbortController().signal);
+    try {
+      const response = await fetch(`${apiBaseUrl}/auth/refresh`, { method: 'POST', credentials: 'include', signal: timeout.signal });
+      if (response.status === 401 || response.status === 403) {
+        endSession();
+        return null;
+      }
+      if (!response.ok) return null;
+      const session = (await readBody(response)) as AuthResponse;
       setAccessToken(session.accessToken);
       return session.accessToken;
-    })
-    .catch(() => {
-      endSession();
+    } catch {
+      // A network outage does not revoke the refresh cookie or the user's session.
       return null;
-    })
-    .finally(() => {
-      refreshing = null;
-    });
+    } finally {
+      timeout.clear();
+    }
+  })().finally(() => { refreshing = null; });
   return refreshing;
 };
 
 /** How long before its expiry a token is renewed rather than used: it could expire on the way. */
-const RENEW_BEFORE_EXPIRY_MS = 30_000;
+const RENEW_BEFORE_EXPIRY_MS = httpOptions.renewBeforeExpiryMs;
 
 /**
  * An access token good for a while yet: the current one, or a new one when it is about to expire.
@@ -116,33 +121,31 @@ const send = async (request: ApiRequest, signal: AbortSignal): Promise<Attempt> 
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   const timeout = withTimeout(signal);
-  let response: Response;
   try {
-    response = await fetch(buildUrl(request.url, request.params), {
+    const response = await fetch(buildUrl(request.url, request.params), {
       method: request.method ?? 'GET',
       headers,
       body: request.body === undefined ? undefined : JSON.stringify(request.body),
-      // The refresh cookie must travel with the auth requests when the API is on another origin
       credentials: 'include',
       signal: timeout.signal,
     });
-  } catch (error) {
-    const timedOut = error instanceof DOMException && error.name === 'TimeoutError';
+    let body: unknown;
+    try {
+      body = await readBody(response);
+    } catch (error) {
+      if (timeout.signal.aborted) throw error;
+      return { error: { status: 'PARSING_ERROR', message: describeProblem('PARSING_ERROR') } };
+    }
+    if (response.ok) return { data: body };
+    const problem = asProblem(body);
+    return { error: { status: response.status, problem, message: describeProblem(response.status, problem) } };
+  } catch {
+    const timedOut = timeout.signal.reason instanceof DOMException && timeout.signal.reason.name === 'TimeoutError';
     const status = timedOut ? 'TIMEOUT_ERROR' : 'FETCH_ERROR';
     return { error: { status, message: describeProblem(status) } };
   } finally {
     timeout.clear();
   }
-
-  let body: unknown;
-  try {
-    body = await readBody(response);
-  } catch {
-    return { error: { status: 'PARSING_ERROR', message: describeProblem('PARSING_ERROR') } };
-  }
-  if (response.ok) return { data: body };
-  const problem = asProblem(body);
-  return { error: { status: response.status, problem, message: describeProblem(response.status, problem) } };
 };
 
 /**
@@ -170,5 +173,5 @@ export const baseQuery: BaseQueryFn<ApiRequest | string, unknown, ApiError, ApiE
     return { error: { ...second.error, sessionEnded: true }, meta };
   }
   // A visitor who never had a token is simply anonymous; a user whose refresh was refused was signed out
-  return { error: { ...first.error, sessionEnded: hadToken }, meta };
+  return { error: { ...first.error, sessionEnded: hadToken && getAccessToken() === null }, meta };
 };

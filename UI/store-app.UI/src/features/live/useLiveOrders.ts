@@ -22,7 +22,7 @@ export const useLiveOrders = (): LiveStatus => {
     const start = async (attempt = 0): Promise<void> => {
       try {
         await connection.start();
-        if (!stopped) setStatus('live');
+        if (!stopped) { setStatus('live'); readAgain(); }
       } catch {
         if (stopped) return;
         setStatus('offline');
@@ -48,10 +48,14 @@ export const useLiveOrders = (): LiveStatus => {
       retry = window.setTimeout(() => void start(1), RECONNECT_DELAYS_MS[1]);
     });
 
+    // Independent projections can commit after the live notification. Reconcile
+    // while the panel is mounted, including during reconnects or lost messages.
+    const reconcile = window.setInterval(readAgain, 15_000);
     void start();
     return () => {
       stopped = true;
       window.clearTimeout(retry);
+      window.clearInterval(reconcile);
       void connection.stop();
     };
   }, [dispatch]);

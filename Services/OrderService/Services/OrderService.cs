@@ -1,300 +1,48 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
-using Store.BuildingBlocks.Observability;
-using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Orders.V1;
-using Store.OrderService.Clients;
 using Store.OrderService.Data;
 using Store.OrderService.DTOs.Requests;
 using Store.OrderService.DTOs.Responses;
 using Store.OrderService.Models;
-using Store.OrderService.Saga;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 
 namespace Store.OrderService.Services;
 
 public class OrderService : IOrderService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
+    private readonly OrderCheckout _checkout;
+    private readonly OrderStatistics _statistics;
     private readonly OrderDbContext _context;
-    private readonly ICartClient _cart;
-    private readonly ICatalogClient _catalog;
     private readonly IPublishEndpoint _publishEndpoint;
-    private readonly PricingOptions _pricing;
-    private readonly StoreMetrics _metrics;
     private readonly TimeProvider _time;
-    private readonly DeliveryEstimator _delivery;
     private readonly OrderStatusWriter _writer;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
         OrderDbContext context,
-        ICartClient cart,
-        ICatalogClient catalog,
+        OrderCheckout checkout,
+        OrderStatistics statistics,
         IPublishEndpoint publishEndpoint,
-        IOptions<PricingOptions> pricing,
-        StoreMetrics metrics,
         TimeProvider time,
-        DeliveryEstimator delivery,
         OrderStatusWriter writer,
         ILogger<OrderService> logger)
     {
+        _checkout = checkout;
+        _statistics = statistics;
         _context = context;
-        _cart = cart;
-        _catalog = catalog;
         _publishEndpoint = publishEndpoint;
-        _pricing = pricing.Value;
-        _metrics = metrics;
         _time = time;
-        _delivery = delivery;
         _writer = writer;
         _logger = logger;
     }
 
-    public async Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null)
+    public Task<OrderResponse> CreateOrderFromCartAsync(CreateOrderFromCartRequest request, string? idempotencyKey = null, CancellationToken cancellationToken = default)
+        => _checkout.CreateOrderFromCartAsync(request, idempotencyKey, cancellationToken);
+
+    public async Task<OrderResponse> GetOrderAsync(int orderId, string userId, CancellationToken cancellationToken = default)
     {
-        var requestHash = idempotencyKey is null ? null : HashRequest(request);
-        if (idempotencyKey is not null)
-        {
-            // A retry of an answered checkout gets the same order back, before any work is done
-            var replayed = await FindAnsweredAsync(idempotencyKey, request.UserId, requestHash!);
-            if (replayed is not null)
-            {
-                return replayed;
-            }
-        }
-
-        var cart = await _cart.GetSnapshotAsync(request.UserId);
-        if (cart is null || cart.Lines.Count == 0)
-        {
-            throw new DomainValidationException("The cart is empty");
-        }
-
-        // Price the lines from the catalogue as it is now; the cart's prices may be stale
-        var lines = new List<OrderLine>(cart.Lines.Count);
-        var available = new Dictionary<int, int>();
-        var repricedLines = 0;
-        foreach (var line in cart.Lines)
-        {
-            var product = await _catalog.GetSnapshotAsync(line.ProductId);
-            if (product is null || !product.IsActive)
-            {
-                throw new ConflictException($"\"{line.Title}\" is no longer available. Remove it from the cart to continue.");
-            }
-
-            available[product.Id] = product.AvailableQuantity;
-            if (product.EffectivePrice != line.UnitPrice) repricedLines++;
-            lines.Add(new OrderLine
-            {
-                ProductId = product.Id,
-                ProductTitle = product.Title,
-                ProductImage = product.Image,
-                Company = product.Company,
-                Color = line.Color,
-                UnitPrice = product.EffectivePrice,
-                Quantity = line.Quantity
-            });
-        }
-
-        // The reservation after checkout is what holds the units; this only spares the customer an
-        // order that is sure to be cancelled. A product can be in the cart in two colours.
-        foreach (var product in lines.GroupBy(l => l.ProductId))
-        {
-            var wanted = product.Sum(l => l.Quantity);
-            var left = available[product.Key];
-            if (wanted > left)
-            {
-                var title = product.First().ProductTitle;
-                throw new ConflictException(left == 0
-                    ? $"\"{title}\" has sold out. Remove it from the cart to continue."
-                    : $"Only {left} of \"{title}\" left. Lower the quantity to continue.");
-            }
-        }
-
-        if (repricedLines > 0) _metrics.PriceMismatch(repricedLines, "checkout");
-
-        // The audit service records the order from the OrderPlaced event
-        return await PlaceOrderAsync(request, lines, idempotencyKey, requestHash);
-    }
-
-    /// <summary>
-    /// Writes the order, the idempotency key and the order-placed event in one transaction.
-    /// The customer row is locked first, so concurrent checkouts of the same customer are
-    /// serialised: only one of them can be the first order, and a duplicate that waited on the
-    /// lock finds the key its twin stored and returns that order instead of creating another.
-    /// </summary>
-    private async Task<OrderResponse> PlaceOrderAsync(
-        CreateOrderFromCartRequest request, List<OrderLine> lines, string? idempotencyKey, string? requestHash)
-    {
-        var now = _time.GetUtcNow().UtcDateTime;
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        var customer = await LockCustomerAsync(request.UserId);
-
-        if (idempotencyKey is not null)
-        {
-            var replayed = await FindAnsweredAsync(idempotencyKey, request.UserId, requestHash!);
-            if (replayed is not null)
-            {
-                await transaction.RollbackAsync();
-                return replayed;
-            }
-        }
-
-        var subtotal = lines.Sum(l => l.LineTotal);
-        var code = await LockDiscountCodeAsync(request.DiscountCode, subtotal, now);
-        var totals = PricingPolicy.Calculate(subtotal, isFirstOrder: customer.OrdersPlaced == 0, _pricing, code?.Discount ?? 0m);
-        var delivery = _delivery.EstimateNow();
-
-        var order = new Order
-        {
-            UserId = request.UserId,
-            UserEmail = request.UserEmail,
-            DeliveryAddress = request.DeliveryAddress,
-            CustomerName = request.CustomerName,
-            Notes = request.Notes,
-            Lines = lines,
-            Subtotal = totals.Subtotal,
-            DiscountAmount = totals.DiscountAmount,
-            DiscountReason = totals.DiscountReason,
-            DeliveryFee = totals.DeliveryFee,
-            Total = totals.Total,
-            Status = OrderStatus.Placed,
-            StatusHistory = [new OrderStatusChange { Status = OrderStatus.Placed, ChangedAt = now, ChangedBy = request.UserId }],
-            DeliveryFrom = delivery.From,
-            DeliveryTo = delivery.To,
-            CreatedAt = now
-        };
-
-        // The code counts as used only when it, not the first-order discount, took the money off
-        if (code is { } applied && totals.DiscountReason == PricingPolicy.CodeDiscountReason)
-        {
-            applied.Entry.TimesUsed++;
-            order.DiscountCode = applied.Entry.Code;
-        }
-
-        customer.OrdersPlaced++;
-        customer.FirstOrderAt ??= now;
-        customer.LastOrderAt = now;
-
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
-
-        if (idempotencyKey is not null)
-        {
-            _context.IdempotencyKeys.Add(new IdempotencyKey
-            {
-                Key = idempotencyKey,
-                UserId = request.UserId,
-                RequestHash = requestHash!,
-                OrderId = order.Id,
-                CreatedAt = now
-            });
-        }
-
-        // The saga of the order starts with it, waiting for the stock
-        _context.OrderStates.Add(OrderState.StartFor(order.Id, now));
-
-        // Goes to the outbox table with this transaction; the cart, identity and audit
-        // services receive it once the transaction is committed
-        await _publishEndpoint.Publish(OrderEvents.Placed(order, request.SaveAddress));
-
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-
-        _metrics.OrderPlaced(order.Total, order.DiscountReason);
-        return MapToOrderResponse(order);
-    }
-
-    /// <summary>
-    /// The customer's row, made on their first checkout and locked until the order commits. An
-    /// insert that finds the row already there does nothing, so two first checkouts at once both
-    /// end up waiting on the same row.
-    /// </summary>
-    private async Task<Customer> LockCustomerAsync(string userId)
-    {
-        var customers = _context.Sql<Customer>();
-        var key = customers.Column(c => c.UserId);
-        await _context.Database.ExecuteSqlAsync(FormattableStringFactory.Create(
-            $"INSERT INTO {customers.Table} ({key}, {customers.Column(c => c.OrdersPlaced)}) VALUES ({{0}}, 0) ON CONFLICT ({key}) DO NOTHING", userId));
-        await _context.LockForUpdateAsync<Customer, string>(c => c.UserId, userId);
-        return await _context.Customers.SingleAsync(c => c.UserId == userId);
-    }
-
-    /// <summary>
-    /// The discount code the customer typed, locked until the order commits so its usage limit
-    /// holds when many checkouts use it at once, with what it takes off the subtotal. A code
-    /// that cannot be used refuses the order with the reason, rather than charging more than the
-    /// cart promised.
-    /// </summary>
-    private async Task<(DiscountCode Entry, decimal Discount)?> LockDiscountCodeAsync(string? typed, decimal subtotal, DateTime now)
-    {
-        if (string.IsNullOrWhiteSpace(typed))
-        {
-            return null;
-        }
-
-        var normalized = DiscountCode.Normalize(typed);
-        await _context.LockForUpdateAsync<DiscountCode, string>(c => c.Code, normalized);
-        var entry = await _context.DiscountCodes.FirstOrDefaultAsync(c => c.Code == normalized);
-        var check = DiscountCodePolicy.Check(entry, subtotal, now);
-        if (!check.IsUsable)
-        {
-            throw new DomainValidationException(check.Refusal!);
-        }
-
-        return (entry!, check.Amount);
-    }
-
-    /// <summary>
-    /// The order an earlier request with this key received, or null when the key is new. The
-    /// same key with a different body or from a different customer is rejected.
-    /// </summary>
-    private async Task<OrderResponse?> FindAnsweredAsync(string idempotencyKey, string userId, string requestHash)
-    {
-        var answered = await _context.IdempotencyKeys.AsNoTracking().FirstOrDefaultAsync(k => k.Key == idempotencyKey);
-        if (answered is null)
-        {
-            return null;
-        }
-
-        if (answered.UserId != userId || answered.RequestHash != requestHash)
-        {
-            throw new DomainValidationException($"{IdempotencyKeyHeader.Name} was already used for a different request");
-        }
-
-        var order = await _context.Orders.AsNoTracking().Include(o => o.Lines).Include(o => o.StatusHistory).SingleAsync(o => o.Id == answered.OrderId);
-        _logger.LogInformation("Checkout with idempotency key {Key} replayed order {OrderId}", idempotencyKey, order.Id);
-        return MapToOrderResponse(order);
-    }
-
-    private static string HashRequest(CreateOrderFromCartRequest request)
-    {
-        var canonical = JsonSerializer.Serialize(new
-        {
-            request.UserEmail,
-            request.CustomerName,
-            request.DeliveryAddress,
-            request.Notes,
-            request.SaveAddress,
-            request.DiscountCode
-        }, JsonOptions);
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
-    }
-
-    public async Task<OrderResponse> GetOrderAsync(int orderId, string userId)
-    {
-        var order = await FindOrderAsync(orderId);
+        var order = await FindOrderAsync(orderId, cancellationToken);
 
         // Customers only see their own orders; admins go through GetOrderForAdminAsync
         if (order.UserId != userId)
@@ -307,8 +55,8 @@ public class OrderService : IOrderService
         return MapToOrderResponse(order);
     }
 
-    public async Task<OrderResponse> GetOrderForAdminAsync(int orderId)
-        => MapToOrderResponse(await FindOrderAsync(orderId));
+    public async Task<OrderResponse> GetOrderForAdminAsync(int orderId, CancellationToken cancellationToken = default)
+        => MapToOrderResponse(await FindOrderAsync(orderId, cancellationToken));
 
     /// <summary>
     /// The administrator ships a paid order or cancels one that is not shipped yet; paying and
@@ -316,19 +64,19 @@ public class OrderService : IOrderService
     /// the event it publishes (shipped, cancelled) takes it to the stock, the payment service and
     /// the saga - which refunds a cancelled order that had been paid.
     /// </summary>
-    public async Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId)
+    public async Task<OrderResponse> ChangeStatusAsync(int orderId, OrderStatus status, string actorId, CancellationToken cancellationToken = default)
     {
         if (!OrderStatusFlow.IsAdministratorMove(status))
         {
             throw new DomainValidationException("An order is shipped or cancelled by hand; payments move it on their own.");
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         var move = await _writer.MoveAsync(orderId, status, actorId, order =>
         {
             if (status == OrderStatus.Cancelled) order.CancellationReason = OrderCancellationReasons.ByAdministrator;
-        });
+        }, cancellationToken: cancellationToken);
         var order = move.Order;
         if (!move.Moved)
         {
@@ -340,15 +88,15 @@ public class OrderService : IOrderService
         var now = _time.GetUtcNow().UtcDateTime;
         if (status == OrderStatus.Shipped)
         {
-            await _publishEndpoint.Publish(OrderEvents.Shipped(order, now));
+            await _publishEndpoint.Publish(OrderEvents.Shipped(order, now), cancellationToken);
         }
         else
         {
-            await _publishEndpoint.Publish(OrderEvents.Cancelled(order, OrderCancellationReasons.ByAdministrator, now));
+            await _publishEndpoint.Publish(OrderEvents.Cancelled(order, OrderCancellationReasons.ByAdministrator, now), cancellationToken);
         }
 
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return MapToOrderResponse(order);
     }
 
@@ -356,24 +104,24 @@ public class OrderService : IOrderService
     private static string Describe(OrderStatus status)
         => string.Concat(status.ToString().Select((c, i) => i > 0 && char.IsUpper(c) ? " " + char.ToLowerInvariant(c) : char.ToLowerInvariant(c).ToString()));
 
-    private async Task<Order> FindOrderAsync(int orderId)
+    private async Task<Order> FindOrderAsync(int orderId, CancellationToken cancellationToken = default)
         => await _context.Orders
             .AsNoTracking()
             .Include(o => o.Lines)
             .Include(o => o.StatusHistory)
-            .FirstOrDefaultAsync(o => o.Id == orderId)
+            .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
             ?? throw new NotFoundException(nameof(Order), orderId);
 
-    public Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging)
-        => ListOrdersAsync(_context.Orders.Where(o => o.UserId == userId), paging);
+    public Task<PagedResponse<OrderResponse>> GetUserOrdersAsync(string userId, PagedQuery paging, CancellationToken cancellationToken = default)
+        => ListOrdersAsync(_context.Orders.Where(o => o.UserId == userId), paging, cancellationToken);
 
-    public Task<PagedResponse<OrderResponse>> GetAllOrdersAsync(PagedQuery paging)
-        => ListOrdersAsync(_context.Orders, paging);
+    public Task<PagedResponse<OrderResponse>> GetAllOrdersAsync(PagedQuery paging, CancellationToken cancellationToken = default)
+        => ListOrdersAsync(_context.Orders, paging, cancellationToken);
 
-    private static async Task<PagedResponse<OrderResponse>> ListOrdersAsync(IQueryable<Order> query, PagedQuery paging)
+    private static async Task<PagedResponse<OrderResponse>> ListOrdersAsync(IQueryable<Order> query, PagedQuery paging, CancellationToken cancellationToken = default)
     {
         paging = paging.Normalized();
-        var totalCount = await query.CountAsync();
+        var totalCount = await query.CountAsync(cancellationToken);
 
         var orders = await query
             .AsNoTracking()
@@ -385,65 +133,18 @@ public class OrderService : IOrderService
             .ThenByDescending(o => o.Id)
             .Skip(paging.Skip)
             .Take(paging.PageSize)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return new PagedResponse<OrderResponse>(orders.Select(MapToOrderResponse).ToList(), totalCount, paging);
     }
 
-    public Task<int> GetUserOrdersCountAsync(string userId)
-        => _context.Orders.CountAsync(o => o.UserId == userId);
+    public Task<int> GetUserOrdersCountAsync(string userId, CancellationToken cancellationToken = default)
+        => _context.Orders.CountAsync(o => o.UserId == userId, cancellationToken);
 
-    public async Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = 30)
-    {
-        var since = _time.GetUtcNow().UtcDateTime.Date.AddDays(-Math.Abs(daysWindow));
-        var window = _context.Orders.AsNoTracking().Where(o => o.CreatedAt >= since);
+    public Task<OrderStatsResponse> GetOrderStatsAsync(int daysWindow = StatisticsWindow.DefaultDays, CancellationToken cancellationToken = default)
+        => _statistics.GetOrderStatsAsync(daysWindow, cancellationToken);
 
-        // Aggregates run in SQL; only one row per day and per product comes back
-        var daily = await window
-            .GroupBy(o => o.CreatedAt.Date)
-            .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Count(), Revenue = g.Sum(o => o.Total) })
-            .OrderBy(b => b.BucketStart)
-            .ToListAsync();
-
-        var weekly = daily
-            .GroupBy(d => WeekStart(d.BucketStart))
-            .OrderBy(g => g.Key)
-            .Select(g => new TimeBucketStats { BucketStart = g.Key, Orders = g.Sum(d => d.Orders), Revenue = g.Sum(d => d.Revenue) })
-            .ToList();
-
-        var topProducts = await _context.OrderLines.AsNoTracking()
-            .Where(l => l.Order.CreatedAt >= since)
-            .GroupBy(l => new { l.ProductId, l.ProductTitle })
-            .Select(g => new TopProductStats
-            {
-                ProductId = g.Key.ProductId,
-                ProductTitle = g.Key.ProductTitle,
-                Quantity = g.Sum(l => l.Quantity),
-                Revenue = g.Sum(l => l.UnitPrice * l.Quantity)
-            })
-            .OrderByDescending(p => p.Quantity)
-            .ThenByDescending(p => p.Revenue)
-            .Take(10)
-            .ToListAsync();
-
-        return new OrderStatsResponse
-        {
-            TotalOrders = daily.Sum(d => d.Orders),
-            TotalRevenue = daily.Sum(d => d.Revenue),
-            Daily = daily,
-            Weekly = weekly,
-            TopProducts = topProducts
-        };
-    }
-
-    /// <summary>Monday of the ISO week the date falls in.</summary>
-    private static DateTime WeekStart(DateTime date)
-    {
-        var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
-        return date.AddDays(-diff).Date;
-    }
-
-    private static OrderResponse MapToOrderResponse(Order order)
+    internal static OrderResponse MapToOrderResponse(Order order)
     {
         return new OrderResponse
         {

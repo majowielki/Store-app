@@ -3,8 +3,10 @@ using Microsoft.Extensions.Options;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
 using Store.BuildingBlocks.Observability;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Audit;
 using Store.Contracts.Authorization;
+using Store.IdentityService.Data;
 using Store.IdentityService.DTOs.Requests;
 using Store.IdentityService.DTOs.Responses;
 using Store.IdentityService.Models;
@@ -14,6 +16,7 @@ namespace Store.IdentityService.Services;
 
 public class AuthService : IAuthService
 {
+    private readonly IdentityDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<IdentityRole> _roleManager;
@@ -35,8 +38,10 @@ public class AuthService : IAuthService
         ILogger<AuthService> logger,
         IAuditTrail auditTrail,
         StoreMetrics metrics,
-        TimeProvider time)
+        TimeProvider time,
+        IdentityDbContext context)
     {
+        _context = context;
         _userManager = userManager;
         _signInManager = signInManager;
         _roleManager = roleManager;
@@ -152,6 +157,7 @@ public class AuthService : IAuthService
 
     public async Task<UserResponse> UpdateAddressAsync(string userId, string simpleAddress)
     {
+        await using var transaction = await _context.BeginStoreTransactionAsync();
         var user = await FindUserAsync(userId);
         if (IsDemoAccount(user))
         {
@@ -171,6 +177,7 @@ public class AuthService : IAuthService
             oldValues: new { SimpleAddress = oldAddress is null ? null : "(set)" },
             newValues: new { SimpleAddress = user.SimpleAddress is null ? null : "(set)" });
 
+        if (transaction is not null) await transaction.CommitAsync();
         return await MapToUserResponseAsync(user);
     }
 

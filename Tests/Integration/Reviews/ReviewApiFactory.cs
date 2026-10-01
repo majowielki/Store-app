@@ -37,7 +37,7 @@ public sealed class ReviewApiFactory : StoreApiFactory<ReviewDbContext>
 
     protected override void ConfigureTestBus(IBusRegistrationConfigurator bus)
     {
-        bus.AddConsumer<ReviewSummaryProbe>();
+        AddProbe<ReviewSummaryProbe>(bus);
     }
 }
 

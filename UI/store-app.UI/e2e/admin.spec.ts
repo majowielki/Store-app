@@ -60,7 +60,7 @@ test('5. the true administrator adds a product, sees it listed, edits it (a seco
 test('6. the demo administrator may look but not change: a save is refused with 403', async ({ page }) => {
   await loginAsDemoAdmin(page);
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByText('Revenue & Orders (Daily)')).toBeVisible();
+  await expect(page.getByText('Placed value & Orders (Daily)')).toBeVisible();
 
   await page.goto('/admin/products/new');
   await fillProductForm(page, 'Demo admin table', '99');

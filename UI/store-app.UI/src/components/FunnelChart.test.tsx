@@ -37,4 +37,10 @@ describe('FunnelChart', () => {
     expect(screen.getByText('No views yet')).toBeInTheDocument();
     expect(screen.getByText('No bag additions yet')).toBeInTheDocument();
   });
+  it('caps bar geometry but preserves counts and ratios above one hundred percent', () => {
+    const { container } = render(<FunnelChart stages={[{ stage: 'productViewed', count: 1 }, { stage: 'addedToBag', count: 2 }, { stage: 'orderPlaced', count: 3 }]} />);
+    expect(screen.getByText('200% of the views')).toBeInTheDocument();
+    expect(screen.getByText('150% of the bag additions')).toBeInTheDocument();
+    for (const bar of container.querySelectorAll<HTMLElement>('[style]')) expect(bar.style.width).toBe('max(2px, 100%)');
+  });
 });

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Store.Tests.Integration.TestSupport;
@@ -20,7 +22,11 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
     where TMarker : class
 {
     private readonly PostgresFixture _postgres;
+    private bool _hostStarted;
+    private int _stopping;
     private string _connectionString = string.Empty;
+    private readonly List<Action<IBusRegistrationContext, IInMemoryBusFactoryConfigurator>> _probes = [];
+    private readonly string _busPrefix = $"test-{Guid.NewGuid():N}-";
 
     protected StoreApiFactory(PostgresFixture postgres)
     {
@@ -44,9 +50,33 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
         }
         // Forces the host to build (and the service to migrate its database) before the first test
         _ = Server;
+        _hostStarted = true;
     }
 
     Task IAsyncLifetime.DisposeAsync() => DisposeAsync().AsTask();
+
+    public override async ValueTask DisposeAsync()
+    {
+        await StopBusAsync();
+        await base.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) StopBusAsync().GetAwaiter().GetResult();
+        base.Dispose(disposing);
+    }
+
+    private async Task StopBusAsync()
+    {
+        if (!_hostStarted || Interlocked.Exchange(ref _stopping, 1) != 0) return;
+        // Drain consumers before application cancellation or provider disposal can
+        // invalidate their scoped inbox/outbox work. Cover both disposal entry points.
+        if (Services.GetService<IBusControl>() is { } bus) await bus.StopAsync();
+        Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
+
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -73,13 +103,25 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
 
         builder.ConfigureTestServices(services =>
         {
+            // Hosts coexist in one process; MassTransit's log context can outlive a
+            // host's Windows EventLog provider. Keep test diagnostics on the console.
+            services.AddLogging(logging => { logging.ClearProviders(); logging.AddConsole(); });
             // Keeps the service's consumers and outbox, replaces the transport with in-memory
             if (services.Any(d => d.ServiceType == typeof(IBus)))
             {
                 services.AddMassTransitTestHarness(bus =>
                 {
-                    bus.AddConsumer<AuditEventProbe>();
+                    // Factories share databases but not in-memory endpoint addresses.
+                    // A later host must never route to a disposed predecessor's probe.
+                    var formatter = new KebabCaseEndpointNameFormatter(_busPrefix, includeNamespace: false);
+                    bus.SetEndpointNameFormatter(formatter);
+                    AddProbe<AuditEventProbe>(bus);
                     ConfigureTestBus(bus);
+                    bus.UsingInMemory((context, cfg) =>
+                    {
+                        foreach (var configure in _probes) configure(context, cfg);
+                        cfg.ConfigureEndpoints(context, formatter);
+                    });
                 });
             }
 
@@ -93,6 +135,14 @@ public abstract class StoreApiFactory<TMarker> : WebApplicationFactory<TMarker>,
     /// </summary>
     protected virtual void ConfigureTestBus(IBusRegistrationConfigurator bus)
     {
+    }
+
+    /// <summary>Observers have no durable business state; only production consumers use the service's EF inbox.</summary>
+    protected void AddProbe<T>(IBusRegistrationConfigurator bus) where T : class, IConsumer
+    {
+        bus.AddConsumer<T>().ExcludeFromConfigureEndpoints();
+        var name = _busPrefix + KebabCaseEndpointNameFormatter.Instance.Consumer<T>();
+        _probes.Add((context, cfg) => cfg.ReceiveEndpoint(name, endpoint => endpoint.ConfigureConsumer<T>(context)));
     }
 
     /// <summary>Extra configuration values for a specific service.</summary>

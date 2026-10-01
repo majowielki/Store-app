@@ -65,7 +65,13 @@ public class CartService : ICartService
             return EmptyCart(userId);
         }
 
+        await using var transaction = await _context.BeginStoreTransactionAsync();
+        await _context.LockKeyAsync($"cart:{userId}");
+        _context.ChangeTracker.Clear();
+        cart = await FindCartAsync(userId);
+        if (cart is null) return EmptyCart(userId);
         var priceChanged = await RefreshStaleSnapshotsAsync(cart);
+        if (transaction is not null) await transaction.CommitAsync();
         return MapToCartResponse(cart, priceChanged);
     }
 
@@ -78,63 +84,53 @@ public class CartService : ICartService
         }
 
         CartItem item = null!;
-        var cart = await ChangeCartAsync(userId, cart => item = AddOrMerge(cart, product, request.Color, request.Quantity));
+        var cart = await ChangeCartAsync(userId, cart => item = AddOrMerge(cart, product, request.Color, request.Quantity),
+            cart => AuditAsync(AuditActions.CartItemAdded, nameof(CartItem), item.Id.ToString(), userId,
+                new { item.ProductId, item.Color, item.Quantity, item.UnitPrice }));
         _metrics.CartItemsAdded(request.Quantity);
 
-        await AuditAsync(AuditActions.CartItemAdded, nameof(CartItem), item.Id.ToString(), userId,
-            new { item.ProductId, item.Color, item.Quantity, item.UnitPrice });
         return await ReadBackAsync(cart);
     }
 
     public async Task<CartResponse> UpdateItemAsync(string userId, int cartItemId, UpdateCartItemRequest request)
     {
-        var (cart, item) = await FindLineAsync(userId, cartItemId);
-
-        var now = _time.GetUtcNow().UtcDateTime;
-        if (request.Quantity.HasValue)
+        CartItem item = null!;
+        var cart = await ChangeCartAsync(userId, cart =>
         {
-            item.Quantity = request.Quantity.Value;
-        }
-        if (!string.IsNullOrEmpty(request.Color))
-        {
-            item.Color = request.Color;
-        }
-        item.UpdatedAt = now;
-        cart.UpdatedAt = now;
-        await _context.SaveChangesAsync();
-
-        await AuditAsync(AuditActions.CartItemUpdated, nameof(CartItem), cartItemId.ToString(), userId,
-            new { item.ProductId, item.Color, item.Quantity });
+            item = cart.Items.FirstOrDefault(i => i.Id == cartItemId) ?? throw new NotFoundException("Cart item", cartItemId);
+            var now = _time.GetUtcNow().UtcDateTime;
+            if (request.Quantity.HasValue) item.Quantity = request.Quantity.Value;
+            if (!string.IsNullOrEmpty(request.Color)) item.Color = request.Color;
+            item.Touch(now);
+            cart.UpdatedAt = now;
+        }, cart => AuditAsync(AuditActions.CartItemUpdated, nameof(CartItem), cartItemId.ToString(), userId,
+            new { item.ProductId, item.Color, item.Quantity }));
         return await ReadBackAsync(cart);
     }
 
     public async Task<CartResponse> RemoveItemAsync(string userId, int cartItemId)
     {
-        var (cart, item) = await FindLineAsync(userId, cartItemId);
-
-        cart.Items.Remove(item);
-        _context.CartItems.Remove(item);
-        cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
-        await _context.SaveChangesAsync();
-
-        await AuditAsync(AuditActions.CartItemRemoved, nameof(CartItem), cartItemId.ToString(), userId, new { item.ProductId });
+        CartItem item = null!;
+        var cart = await ChangeCartAsync(userId, cart =>
+        {
+            item = cart.Items.FirstOrDefault(i => i.Id == cartItemId) ?? throw new NotFoundException("Cart item", cartItemId);
+            cart.Items.Remove(item);
+            _context.CartItems.Remove(item);
+            cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
+        }, cart => AuditAsync(AuditActions.CartItemRemoved, nameof(CartItem), cartItemId.ToString(), userId, new { item.ProductId }));
         return await ReadBackAsync(cart);
     }
 
     public async Task ClearCartAsync(string userId)
     {
-        var cart = await FindCartAsync(userId);
-        if (cart is null || cart.Items.Count == 0)
+        var exists = await _context.Carts.AnyAsync(c => c.UserId == userId);
+        if (!exists) return;
+        await ChangeCartAsync(userId, cart =>
         {
-            // Already empty - clearing it again changes nothing
-            return;
-        }
-
-        _context.CartItems.RemoveRange(cart.Items);
-        cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
-        await _context.SaveChangesAsync();
-
-        await AuditAsync(AuditActions.CartCleared, nameof(Cart), cart.Id.ToString(), userId, null);
+            _context.CartItems.RemoveRange(cart.Items);
+            cart.Items.Clear();
+            cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
+        }, cart => AuditAsync(AuditActions.CartCleared, nameof(Cart), cart.Id.ToString(), userId, null));
     }
 
     public Task<int> GetItemCountAsync(string userId)
@@ -187,24 +183,35 @@ public class CartService : ICartService
             ? null
             : new CartSnapshot(
                 cart.UserId,
-                cart.Items.Select(i => new CartLineSnapshot(i.ProductId, i.Title, i.Image, i.Company, i.Color, i.UnitPrice, i.Quantity)).ToList(),
+                cart.Items.Select(i => new CartLineSnapshot(i.ProductId, i.Title, i.Image, i.Company, i.Color, i.UnitPrice, i.Quantity, i.Id, i.UpdatedAt)).ToList(),
                 cart.UpdatedAt);
     }
 
-    public async Task<int> ClearAfterOrderAsync(string userId, int orderId)
+    public async Task<int> ClearAfterOrderAsync(string userId, int orderId, CartSnapshot? snapshot = null)
     {
-        var cart = await FindCartAsync(userId);
-        if (cart is null || cart.Items.Count == 0)
+        // Old events without a checkout snapshot cannot safely identify purchased lines.
+        if (snapshot is null || snapshot.UserId != userId || !await _context.Carts.AnyAsync(c => c.UserId == userId))
         {
             return 0;
         }
-
-        var removed = cart.Items.Count;
-        _context.CartItems.RemoveRange(cart.Items);
-        cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
-        await _context.SaveChangesAsync();
-
-        await AuditAsync(AuditActions.CartCleared, nameof(Cart), cart.Id.ToString(), userId, new { OrderId = orderId, Lines = removed });
+        var removed = 0;
+        await ChangeCartAsync(userId, cart =>
+        {
+            var purchased = snapshot.Lines.ToDictionary(l => l.ItemId);
+            var lines = cart.Items.Where(i => purchased.TryGetValue(i.Id, out var line)
+                && line.UpdatedAt == i.UpdatedAt && line.Quantity == i.Quantity && line.Color == i.Color).ToList();
+            removed = lines.Count;
+            foreach (var item in lines)
+            {
+                cart.Items.Remove(item);
+                _context.CartItems.Remove(item);
+            }
+            if (removed > 0) cart.UpdatedAt = _time.GetUtcNow().UtcDateTime;
+        }, async cart =>
+        {
+            if (removed > 0)
+                await AuditAsync(AuditActions.CartCleared, nameof(Cart), cart.Id.ToString(), userId, new { OrderId = orderId, Lines = removed });
+        });
         return removed;
     }
 
@@ -217,21 +224,20 @@ public class CartService : ICartService
     /// goes in) take turns, and the second one sees the first one's lines instead of inserting the
     /// same line again or overwriting its quantity.
     /// </summary>
-    private async Task<Cart> ChangeCartAsync(string userId, Action<Cart> change)
+    private async Task<Cart> ChangeCartAsync(string userId, Action<Cart> change, Func<Cart, Task>? audit = null)
     {
         var cartId = await EnsureCartAsync(userId);
 
-        // The unit tests' in-memory store has neither transactions nor row locks, nor two requests at once
-        await using var transaction = _context.Database.IsRelational() ? await _context.Database.BeginTransactionAsync() : null;
-        if (transaction is not null)
-        {
-            await _context.LockForUpdateAsync<Cart, int>(c => c.Id, cartId);
-        }
+        await using var transaction = await _context.BeginStoreTransactionAsync();
+        await _context.LockKeyAsync($"cart:{userId}");
 
+        foreach (var entry in _context.ChangeTracker.Entries<CartItem>().ToList()) entry.State = EntityState.Detached;
+        foreach (var entry in _context.ChangeTracker.Entries<Cart>().ToList()) entry.State = EntityState.Detached;
         // Read after the lock, so the lines are the ones the request before this one saved
         var cart = await _context.Carts.Include(c => c.Items).SingleAsync(c => c.Id == cartId);
         change(cart);
         await _context.SaveChangesAsync();
+        if (audit is not null) await audit(cart);
         if (transaction is not null)
         {
             await transaction.CommitAsync();
@@ -270,19 +276,8 @@ public class CartService : ICartService
         }
     }
 
-    /// <summary>A line of the user's own cart; lines of other carts are as unknown as missing ones.</summary>
-    private async Task<(Cart Cart, CartItem Item)> FindLineAsync(string userId, int cartItemId)
-    {
-        var cart = await FindCartAsync(userId);
-        var item = cart?.Items.FirstOrDefault(ci => ci.Id == cartItemId);
-        return item is null
-            ? throw new NotFoundException("Cart item", cartItemId)
-            : (cart!, item);
-    }
-
     /// <summary>The cart after a change, with the same price refresh a plain read gets.</summary>
-    private async Task<CartResponse> ReadBackAsync(Cart cart)
-        => MapToCartResponse(cart, await RefreshStaleSnapshotsAsync(cart));
+    private Task<CartResponse> ReadBackAsync(Cart cart) => GetCartAsync(cart.UserId);
 
     /// <summary>
     /// Adds a line for the product and colour, or raises the quantity of the line that already
@@ -300,7 +295,8 @@ public class CartService : ICartService
                 ProductId = product.Id,
                 Color = color,
                 Quantity = quantity,
-                CreatedAt = now
+                CreatedAt = now,
+                UpdatedAt = now
             };
             cart.Items.Add(item);
         }

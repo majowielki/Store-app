@@ -14,7 +14,7 @@ public sealed class CatalogApiFactory : StoreApiFactory<ProductDbContext>
     protected override string? DatabaseName => "store_product_test";
 
     protected override void ConfigureTestBus(IBusRegistrationConfigurator bus)
-        => bus.AddConsumer<StockEventProbe>();
+        => AddProbe<StockEventProbe>(bus);
 }
 
 /// <summary>Receives what the stock publishes from its consumers, so tests can see it as consumed.</summary>
