@@ -10,7 +10,6 @@ using Store.NotificationService.Consumers;
 using Store.NotificationService.Mail;
 using Store.NotificationService.Mail.Templates;
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace Store.Tests.Unit.NotificationService;
@@ -164,9 +163,9 @@ public class MailTemplatesTests
     /// <summary>Compares a rendered e-mail with its file in Snapshots/; UPDATE_SNAPSHOTS=1 writes the file instead.</summary>
     private static class Snapshot
     {
-        public static void Match(string name, string actual, [CallerFilePath] string testFile = "")
+        public static void Match(string name, string actual)
         {
-            var path = Path.Combine(Path.GetDirectoryName(testFile)!, "Snapshots", name);
+            var path = Path.Combine(SnapshotsDirectory(), name);
             var normalized = actual.Replace("\r\n", "\n");
             if (Environment.GetEnvironmentVariable("UPDATE_SNAPSHOTS") == "1" || !File.Exists(path))
             {
@@ -176,6 +175,22 @@ public class MailTemplatesTests
             }
 
             Assert.Equal(File.ReadAllText(path).Replace("\r\n", "\n"), normalized);
+        }
+
+        // [CallerFilePath] is rewritten to "/_/" by the deterministic CI build, so the folder is found from the output directory.
+        private static string SnapshotsDirectory()
+        {
+            var relative = Path.Combine("Tests", "Unit", "NotificationService", "Snapshots");
+            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+            {
+                var candidate = Path.Combine(dir.FullName, relative);
+                if (Directory.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            throw new DirectoryNotFoundException($"{relative} was not found above {AppContext.BaseDirectory}");
         }
     }
 }
