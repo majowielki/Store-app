@@ -1,0 +1,4 @@
+# openssl DTLS information disclosure. The fix (3.0.13-0ubuntu3.16) is in Ubuntu, but Microsoft's
+# aspnet:10.0-noble-chiseled image (built 2026-09-04) still ships .15, and a chiseled image has no apt
+# to upgrade it. The services speak no DTLS. Drop this line once the base image is rebuilt; it expires on its own.
+CVE-2026-84782 exp:2026-10-15
