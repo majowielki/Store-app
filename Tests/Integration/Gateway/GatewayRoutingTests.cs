@@ -1,4 +1,5 @@
 using Store.Contracts.Authorization;
+using Store.GatewayService.Security;
 using Store.Tests.Integration.TestSupport;
 using System.Net;
 using System.Net.Http.Json;
@@ -212,6 +213,32 @@ public sealed class GatewayRoutingTests : IClassFixture<GatewayApiFactory>
         stranger.Headers.Add("Access-Control-Request-Method", "GET");
         var refused = await client.SendAsync(stranger);
         Assert.False(refused.Headers.Contains("Access-Control-Allow-Origin"));
+    }
+
+    // A browser's WebSocket carries no Authorization header, so the admin panel's live feed of orders
+    // sends the token in the query; no other route takes it from there
+    [Fact]
+    public async Task The_live_orders_feed_takes_the_token_from_the_query_and_no_other_route_does()
+    {
+        using var client = ClientFrom("10.0.12.1");
+        string Live(string token) => $"/api/v1/admin/orders/live?{AccessTokenInQuery.QueryParameter}={token}";
+
+        Assert.Equal(PassedTheGateway, (await client.GetAsync(Live(TestTokens.DemoAdmin("live-demo-admin")))).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(Live(TestTokens.User("live-user")))).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/admin/orders/live")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await client.GetAsync($"/api/v1/admin/orders?{AccessTokenInQuery.QueryParameter}={TestTokens.TrueAdmin("live-true-admin")}")).StatusCode);
+    }
+
+    // Visitors count their steps for the purchase funnel without signing in; nothing else of the audit service is open
+    [Fact]
+    public async Task Only_posting_a_shop_event_reaches_the_audit_service_anonymously()
+    {
+        using var client = ClientFrom("10.0.13.1");
+
+        Assert.Equal(PassedTheGateway, (await client.PostAsJsonAsync("/api/v1/shop-events", new { kind = "productViewed", productId = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, (await client.GetAsync("/api/v1/shop-events")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/auditlog/funnel")).StatusCode);
     }
 
     [Fact]

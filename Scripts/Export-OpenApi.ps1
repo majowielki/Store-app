@@ -94,7 +94,9 @@ try {
         $stale = @()
         foreach ($name in $services.Keys) {
             $committed = Join-Path $output "$name.json"
-            if (-not (Test-Path $committed) -or ((Get-FileHash $committed).Hash -ne (Get-FileHash (Join-Path $target "$name.json")).Hash)) {
+            # Git uses native line endings on checkout; compare content, not CRLF versus LF.
+            $expected = [IO.File]::ReadAllText((Join-Path $target "$name.json"))
+            if (-not (Test-Path $committed) -or (([IO.File]::ReadAllText($committed) -replace "`r`n", "`n") -cne $expected)) {
                 $stale += $name
             }
         }

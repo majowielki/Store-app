@@ -1,5 +1,4 @@
 import type { ContentEntry, ContentKind, ContentPayload } from '@/api/content';
-import type { Article, Collection, Lookbook, Maker } from '@/api/types';
 
 interface KindConfig {
   /** The admin menu and the list title. */
@@ -41,19 +40,23 @@ export const emptyPayload = (kind: ContentKind): ContentPayload<ContentKind> => 
 export const toPayload = (kind: ContentKind, entry: ContentEntry<ContentKind>): ContentPayload<ContentKind> => {
   switch (kind) {
     case 'makers': {
-      const m = entry as Maker;
+      if (!('name' in entry)) throw new Error("Unexpected content shape");
+      const m = entry;
       return { slug: m.slug, name: m.name, company: m.company, tagline: m.tagline, story: m.story, location: m.location, foundedYear: m.foundedYear ?? null, coverImage: m.coverImage, isPublished: m.isPublished };
     }
     case 'collections': {
-      const c = entry as Collection;
+      if (!('summary' in entry && 'body' in entry)) throw new Error("Unexpected content shape");
+      const c = entry;
       return { slug: c.slug, title: c.title, summary: c.summary, body: c.body, coverImage: c.coverImage, productSlugs: c.productSlugs, sortOrder: c.sortOrder, isPublished: c.isPublished };
     }
     case 'articles': {
-      const a = entry as Article;
+      if (!('excerpt' in entry)) throw new Error("Unexpected content shape");
+      const a = entry;
       return { slug: a.slug, title: a.title, excerpt: a.excerpt, body: a.body, coverImage: a.coverImage, author: a.author, publishedAt: a.publishedAt, productSlugs: a.productSlugs, isPublished: a.isPublished };
     }
     case 'lookbooks': {
-      const l = entry as Lookbook;
+      if (!('hotspots' in entry)) throw new Error("Unexpected content shape");
+      const l = entry;
       return { slug: l.slug, title: l.title, summary: l.summary, image: l.image, hotspots: l.hotspots, sortOrder: l.sortOrder, isPublished: l.isPublished };
     }
   }

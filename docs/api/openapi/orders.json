@@ -1441,6 +1441,7 @@
         "properties": {
           "totalRevenue": {
             "type": "number",
+            "description": "Value of placed orders, including unpaid, cancelled and refunded orders; not cash revenue.",
             "format": "double"
           },
           "totalOrders": {
@@ -1743,6 +1744,7 @@
           },
           "revenue": {
             "type": "number",
+            "description": "Gross ordered line value before order discounts, including all statuses.",
             "format": "double"
           }
         },

@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Store.AuditLogService.Data;
+using Store.AuditLogService.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
 
 namespace Store.AuditLogService.Services;
 
@@ -61,34 +63,37 @@ public sealed class AuditRetentionService : BackgroundService
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
-    /// <summary>Deletes expired entries batch by batch; returns how many rows went.</summary>
+    /// <summary>Deletes expired entries and shop events batch by batch; returns how many rows went.</summary>
     public async Task<int> PurgeAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AuditLogDbContext>();
-        var cutoff = _time.GetUtcNow().UtcDateTime.AddDays(-_options.RetentionDays);
+        var cutoff = _time.GetUtcNow().UtcDateTime.Date.AddDays(-_options.RetentionDays);
 
+        var entries = await DeleteInBatchesAsync(context.AuditLogs, a => a.Timestamp < cutoff, cancellationToken);
+        var shopEvents = await DeleteInBatchesAsync(context.ShopEvents, e => e.OccurredAt < cutoff, cancellationToken);
+
+        if (entries + shopEvents > 0)
+        {
+            _logger.LogInformation("Audit retention: deleted {Entries} entries and {ShopEvents} shop events older than {Cutoff:u}", entries, shopEvents, cutoff);
+        }
+
+        return entries + shopEvents;
+    }
+
+    /// <summary>DELETE ... WHERE Id IN (SELECT Id ... ORDER BY Id LIMIT batch), until nothing is left.</summary>
+    private async Task<int> DeleteInBatchesAsync<T>(DbSet<T> rows, Expression<Func<T, bool>> expired, CancellationToken cancellationToken)
+        where T : class, IHasLongId
+    {
         var total = 0;
         int deleted;
         do
         {
-            // DELETE ... WHERE Id IN (SELECT Id ... ORDER BY Id LIMIT batch)
-            var batch = context.AuditLogs
-                .Where(x => x.Timestamp < cutoff)
-                .OrderBy(x => x.Id)
-                .Select(x => x.Id)
-                .Take(_options.BatchSize);
-            deleted = await context.AuditLogs
-                .Where(a => batch.Contains(a.Id))
-                .ExecuteDeleteAsync(cancellationToken);
+            var batch = rows.Where(expired).OrderBy(x => x.Id).Select(x => x.Id).Take(_options.BatchSize);
+            deleted = await rows.Where(x => batch.Contains(x.Id)).ExecuteDeleteAsync(cancellationToken);
             total += deleted;
         }
         while (deleted > 0 && !cancellationToken.IsCancellationRequested);
-
-        if (total > 0)
-        {
-            _logger.LogInformation("Audit retention: deleted {Count} entries older than {Cutoff:u}", total, cutoff);
-        }
 
         return total;
     }

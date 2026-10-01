@@ -26,18 +26,12 @@ public class OrderServiceTests
             .UseInMemoryDatabase(databaseName: $"OrderServiceTests-{Guid.NewGuid():N}") // one database per test class instance - xUnit creates one per test
             .Options;
         _dbContext = new OrderDbContext(options);
+        var checkout = new OrderCheckout(_dbContext, Mock.Of<ICartClient>(), Mock.Of<ICatalogClient>(),
+            Mock.Of<IPublishEndpoint>(), Options.Create(new PricingOptions()), new StoreMetrics(), TimeProvider.System,
+            new DeliveryEstimator(Options.Create(new DeliveryOptions()), TimeProvider.System), Mock.Of<ILogger<OrderCheckout>>());
         _orderService = new Store.OrderService.Services.OrderService(
-            _dbContext,
-            Mock.Of<ICartClient>(),
-            Mock.Of<ICatalogClient>(),
-            Mock.Of<IPublishEndpoint>(),
-            Options.Create(new PricingOptions()),
-            new StoreMetrics(),
-            TimeProvider.System,
-            new DeliveryEstimator(Options.Create(new DeliveryOptions()), TimeProvider.System),
-            null!, // status changes need PostgreSQL; the integration tests cover them
-            _loggerMock.Object
-        );
+            _dbContext, checkout, new OrderStatistics(_dbContext, TimeProvider.System), Mock.Of<IPublishEndpoint>(),
+            TimeProvider.System, null!, _loggerMock.Object); // status changes are covered against PostgreSQL
     }
 
     [Fact]

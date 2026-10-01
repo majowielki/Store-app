@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Audit;
 using Store.Contracts.Catalog;
 using Store.ProductService.Data;
@@ -53,6 +54,7 @@ public class ProductService : IProductService
 
     public async Task<ProductDetailResponse> CreateProductAsync(CreateProductRequest request, string? actorId = null)
     {
+        await using var transaction = await _context.BeginStoreTransactionAsync();
         var product = new Product
         {
             Title = request.Title,
@@ -84,11 +86,13 @@ public class ProductService : IProductService
 
         _logger.LogInformation("Product created successfully with ID: {ProductId}", product.Id);
         await _auditTrail.RecordAsync(AuditActions.ProductCreated, nameof(Product), product.Id.ToString(), actorId, newValues: product);
+        if (transaction is not null) await transaction.CommitAsync();
         return _mapper.ToDetail(product, forAdmin: true);
     }
 
     public async Task<ProductDetailResponse> UpdateProductAsync(int id, UpdateProductRequest request, string? actorId = null)
     {
+        await using var transaction = await _context.BeginStoreTransactionAsync();
         var product = await _context.Products.Include(p => p.Images).FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException(nameof(Product), id);
 
@@ -127,11 +131,13 @@ public class ProductService : IProductService
 
         _logger.LogInformation("Product updated successfully with ID: {ProductId}", product.Id);
         await _auditTrail.RecordAsync(AuditActions.ProductUpdated, nameof(Product), product.Id.ToString(), actorId, oldValues: oldValues, newValues: product);
+        if (transaction is not null) await transaction.CommitAsync();
         return _mapper.ToDetail(product, forAdmin: true);
     }
 
     public async Task DeleteProductAsync(int id, string? actorId = null)
     {
+        await using var transaction = await _context.BeginStoreTransactionAsync();
         var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id)
             ?? throw new NotFoundException(nameof(Product), id);
 
@@ -144,6 +150,7 @@ public class ProductService : IProductService
 
         _logger.LogInformation("Product deactivated with ID: {ProductId}", id);
         await _auditTrail.RecordAsync(AuditActions.ProductDeleted, nameof(Product), id.ToString(), actorId, oldValues: oldValues);
+        if (transaction is not null) await transaction.CommitAsync();
     }
 
     public async Task<PagedResponse<ProductResponse>> GetProductsAsync(ProductQueryParams queryParams)

@@ -29,17 +29,17 @@ public class AdminOrdersController : ControllerBase
     /// <summary>All orders, newest first.</summary>
     [HttpGet]
     public async Task<PagedResponse<OrderResponse>> GetOrders([FromQuery] PagedQuery paging)
-        => (await _orderService.GetAllOrdersAsync(paging)).ForViewer(User);
+        => (await _orderService.GetAllOrdersAsync(paging, cancellationToken: HttpContext.RequestAborted)).ForViewer(User);
 
     /// <summary>Orders of one customer, newest first; an empty page when they have none.</summary>
     [HttpGet("by-user/{userId}")]
     public async Task<PagedResponse<OrderResponse>> GetOrdersByUser(string userId, [FromQuery] PagedQuery paging)
-        => (await _orderService.GetUserOrdersAsync(userId, paging)).ForViewer(User);
+        => (await _orderService.GetUserOrdersAsync(userId, paging, cancellationToken: HttpContext.RequestAborted)).ForViewer(User);
 
     /// <summary>One order; 404 when the id is unknown.</summary>
     [HttpGet("{id:int}")]
     public async Task<OrderResponse> GetOrder(int id)
-        => (await _orderService.GetOrderForAdminAsync(id)).ForViewer(User);
+        => (await _orderService.GetOrderForAdminAsync(id, cancellationToken: HttpContext.RequestAborted)).ForViewer(User);
 
     /// <summary>
     /// Ships a paid order or cancels one not shipped yet; a paid order that is cancelled is refunded
@@ -49,10 +49,10 @@ public class AdminOrdersController : ControllerBase
     [HttpPatch("{id:int}/status")]
     [Authorize(Policy = Policies.AdminWrite)]
     public Task<OrderResponse> ChangeStatus(int id, [FromBody] UpdateOrderStatusRequest request)
-        => _orderService.ChangeStatusAsync(id, Enum.Parse<OrderStatus>(request.Status), User.GetRequiredUserId());
+        => _orderService.ChangeStatusAsync(id, Enum.Parse<OrderStatus>(request.Status), User.GetRequiredUserId(), cancellationToken: HttpContext.RequestAborted);
 
     /// <summary>Orders and revenue per day, per week and per product over the last <paramref name="days"/> days.</summary>
     [HttpGet("stats")]
     public Task<OrderStatsResponse> GetStats([FromQuery] int days = 30)
-        => _orderService.GetOrderStatsAsync(days <= 0 ? 30 : days);
+        => _orderService.GetOrderStatsAsync(days, cancellationToken: HttpContext.RequestAborted);
 }

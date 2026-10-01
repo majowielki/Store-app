@@ -91,6 +91,9 @@ x-review-env: &review-env
   ConnectionStrings__DefaultConnection: "Host=postgres;Database=store_review_db;Username=${POSTGRES_USER:-store_user};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - set it in .env, see .env.example};Port=5432"
   InternalApi__ApiKey: ${INTERNAL_API_KEY:?INTERNAL_API_KEY is required - set it in .env, see .env.example}
   Services__ProductService: http://productservice:8080
+  # The model that reads new reviews first (ADR 019); off without a key
+  ReviewModel__Enabled: ${REVIEW_MODEL_ENABLED:-false}
+  ReviewModel__ApiKey: ${REVIEW_MODEL_API_KEY:-}
 
 x-notification-env: &notification-env
   <<: *service-env
@@ -446,6 +449,9 @@ services:
       API_BASE_URL: /api/v1
       # robots.txt, the sitemaps and the pictures shared on social sites need absolute addresses
       SHOP_URL: *shop-url
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-15000}
+      RENEW_BEFORE_EXPIRY_MS: ${RENEW_BEFORE_EXPIRY_MS:-30000}
+      DASHBOARD_DAYS: ${DASHBOARD_DAYS:-30}
       # The pictures come from the blob emulator (Azurite) on this machine
       CSP_IMG_SRC_EXTRA: http://localhost:${AZURITE_BLOB_PORT:-10000}
     ports:

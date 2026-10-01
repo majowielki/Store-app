@@ -27,17 +27,17 @@ public class WishlistController : ControllerBase
 
     /// <summary>The product ids on the list, the one added last first.</summary>
     [HttpGet]
-    public Task<WishlistResponse> GetWishlist() => _wishlist.GetAsync(UserId);
+    public Task<WishlistResponse> GetWishlist() => _wishlist.GetAsync(UserId, cancellationToken: HttpContext.RequestAborted);
 
     /// <summary>Adds a product; one already on the list stays as it is. 422 for a product that is not for sale.</summary>
     [HttpPost("items")]
-    public Task<WishlistResponse> AddItem([FromBody] AddWishlistItemRequest request) => _wishlist.AddAsync(UserId, request.ProductId);
+    public Task<WishlistResponse> AddItem([FromBody] AddWishlistItemRequest request) => _wishlist.AddAsync(UserId, request.ProductId, cancellationToken: HttpContext.RequestAborted);
 
     /// <summary>Removes a product; one that is not on the list changes nothing.</summary>
     [HttpDelete("items/{productId:int}")]
-    public Task<WishlistResponse> RemoveItem(int productId) => _wishlist.RemoveAsync(UserId, productId);
+    public Task<WishlistResponse> RemoveItem(int productId) => _wishlist.RemoveAsync(UserId, productId, cancellationToken: HttpContext.RequestAborted);
 
     /// <summary>Merges the list a visitor kept in the browser, in one request.</summary>
     [HttpPost("sync")]
-    public Task<WishlistResponse> Sync([FromBody] SyncWishlistRequest request) => _wishlist.SyncAsync(UserId, request.ProductIds);
+    public Task<WishlistResponse> Sync([FromBody] SyncWishlistRequest request) => _wishlist.SyncAsync(UserId, request.ProductIds, cancellationToken: HttpContext.RequestAborted);
 }

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Store.BuildingBlocks.Api;
+using Store.BuildingBlocks.Persistence;
 using Store.CartService.Clients;
 using Store.CartService.Data;
 using Store.CartService.DTOs.Responses;
@@ -25,62 +25,52 @@ public sealed class WishlistService
         _time = time;
     }
 
-    public async Task<WishlistResponse> GetAsync(string userId)
+    public async Task<WishlistResponse> GetAsync(string userId, CancellationToken cancellationToken = default)
     {
         var items = await _context.WishlistItems.AsNoTracking()
             .Where(w => w.UserId == userId)
             .OrderByDescending(w => w.AddedAt)
             .ThenByDescending(w => w.Id)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         return new WishlistResponse
         {
             Items = items.Select(w => new WishlistItemResponse { ProductId = w.ProductId, AddedAt = w.AddedAt }).ToList()
         };
     }
 
-    public async Task<WishlistResponse> AddAsync(string userId, int productId)
+    public async Task<WishlistResponse> AddAsync(string userId, int productId, CancellationToken cancellationToken = default)
     {
-        await AddMissingAsync(userId, [productId], refuseUnavailable: true);
-        return await GetAsync(userId);
+        await AddMissingAsync(userId, [productId], refuseUnavailable: true, cancellationToken);
+        return await GetAsync(userId, cancellationToken);
     }
 
-    public async Task<WishlistResponse> RemoveAsync(string userId, int productId)
+    public async Task<WishlistResponse> RemoveAsync(string userId, int productId, CancellationToken cancellationToken = default)
     {
-        await _context.WishlistItems.Where(w => w.UserId == userId && w.ProductId == productId).ExecuteDeleteAsync();
-        return await GetAsync(userId);
+        await _context.WishlistItems.Where(w => w.UserId == userId && w.ProductId == productId).ExecuteDeleteAsync(cancellationToken);
+        return await GetAsync(userId, cancellationToken);
     }
 
     /// <summary>
     /// Merges the list a visitor kept in the browser: products already on the list and products
     /// the catalogue no longer sells are skipped, and the list stops at its limit.
     /// </summary>
-    public async Task<WishlistResponse> SyncAsync(string userId, IReadOnlyCollection<int> productIds)
+    public async Task<WishlistResponse> SyncAsync(string userId, IReadOnlyCollection<int> productIds, CancellationToken cancellationToken = default)
     {
-        await AddMissingAsync(userId, productIds, refuseUnavailable: false);
-        return await GetAsync(userId);
+        await AddMissingAsync(userId, productIds, refuseUnavailable: false, cancellationToken);
+        return await GetAsync(userId, cancellationToken);
     }
 
-    private async Task AddMissingAsync(string userId, IReadOnlyCollection<int> productIds, bool refuseUnavailable)
+    private async Task AddMissingAsync(string userId, IReadOnlyCollection<int> productIds, bool refuseUnavailable, CancellationToken cancellationToken = default)
     {
-        // A second try when the same product was added at the same moment from another tab: the
-        // first try's rows are dropped with the one that clashed, the second adds what is still missing
-        for (var attempt = 1; ; attempt++)
-        {
-            try
-            {
-                await TryAddMissingAsync(userId, productIds, refuseUnavailable);
-                return;
-            }
-            catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } && attempt < 2)
-            {
-                _context.ChangeTracker.Clear();
-            }
-        }
+        await using var transaction = await _context.BeginStoreTransactionAsync(cancellationToken);
+        await _context.LockKeyAsync($"wishlist:{userId}", cancellationToken);
+        await TryAddMissingAsync(userId, productIds, refuseUnavailable, cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
     }
 
-    private async Task TryAddMissingAsync(string userId, IReadOnlyCollection<int> productIds, bool refuseUnavailable)
+    private async Task TryAddMissingAsync(string userId, IReadOnlyCollection<int> productIds, bool refuseUnavailable, CancellationToken cancellationToken = default)
     {
-        var known = (await _context.WishlistItems.Where(w => w.UserId == userId).Select(w => w.ProductId).ToListAsync()).ToHashSet();
+        var known = (await _context.WishlistItems.Where(w => w.UserId == userId).Select(w => w.ProductId).ToListAsync(cancellationToken)).ToHashSet();
         var missing = productIds.Distinct().Where(id => !known.Contains(id)).ToList();
         if (missing.Count == 0)
         {
@@ -95,7 +85,7 @@ public sealed class WishlistService
 
         // The catalogue is asked about every product at once, not one after another
         var candidates = missing.Take(Math.Max(room, 0)).ToList();
-        var products = await Task.WhenAll(candidates.Select(id => _catalog.GetSnapshotAsync(id)));
+        var products = await Task.WhenAll(candidates.Select(id => _catalog.GetSnapshotAsync(id, cancellationToken)));
 
         var now = _time.GetUtcNow().UtcDateTime;
         for (var i = 0; i < candidates.Count; i++)
@@ -112,6 +102,6 @@ public sealed class WishlistService
             _context.WishlistItems.Add(new WishlistItem { UserId = userId, ProductId = candidates[i], AddedAt = now });
         }
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }

@@ -104,6 +104,58 @@
         ]
       }
     },
+    "/api/v1/auditlog/funnel": {
+      "get": {
+        "tags": [
+          "AuditLog"
+        ],
+        "summary": "The purchase funnel over a number of days from midnight UTC (30 unless given), the window of the\ndashboard's order statistics: products viewed, put in the bag, and orders placed.",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token"
+          },
+          "403": {
+            "description": "The signed-in user may not do this"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
     "/api/v1/auditlog/{id}": {
       "get": {
         "tags": [
@@ -154,6 +206,38 @@
             "Bearer": [ ]
           }
         ]
+      }
+    },
+    "/api/v1/shop-events": {
+      "post": {
+        "tags": [
+          "ShopEvents"
+        ],
+        "summary": "Counts a product viewed or put in the bag; 202, as nothing is sent back.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordShopEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "default": {
+            "description": "Error, as an RFC 9457 problem (application/problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreProblemDetails"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -265,6 +349,88 @@
         "additionalProperties": false,
         "description": "One page of a listing, the same shape for every resource."
       },
+      "FunnelResponse": {
+        "required": [
+          "days",
+          "since",
+          "stages"
+        ],
+        "type": "object",
+        "properties": {
+          "since": {
+            "type": "string",
+            "description": "The start of the window: midnight (UTC) the given number of days ago, where the dashboard's order statistics start too.",
+            "format": "date-time"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FunnelStageCount"
+            },
+            "description": "Every stage, in order."
+          }
+        },
+        "additionalProperties": false,
+        "description": "How many times each stage was reached since the start of the window."
+      },
+      "FunnelStage": {
+        "enum": [
+          "productViewed",
+          "addedToBag",
+          "orderPlaced"
+        ],
+        "type": "string",
+        "description": "The stages of the purchase funnel, in the order a visitor goes through them."
+      },
+      "FunnelStageCount": {
+        "required": [
+          "count",
+          "stage"
+        ],
+        "type": "object",
+        "properties": {
+          "stage": {
+            "$ref": "#/components/schemas/FunnelStage"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecordShopEventRequest": {
+        "required": [
+          "kind",
+          "productId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ShopEventKind"
+          },
+          "productId": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Body of POST /api/v1/shop-events."
+      },
+      "ShopEventKind": {
+        "enum": [
+          "productViewed",
+          "addedToBag"
+        ],
+        "type": "string",
+        "description": "Stored by name."
+      },
       "StoreProblemDetails": {
         "type": "object",
         "properties": {
@@ -323,6 +489,10 @@
     {
       "name": "AuditLog",
       "description": "Read API of the audit trail for administrators. Entries are written by the event\nconsumers only; there is no HTTP endpoint that accepts them."
+    },
+    {
+      "name": "ShopEvents",
+      "description": "Where the shop's pages count the steps towards buying for the purchase funnel (ADR 020). Anyone\nmay send them - visitors are not signed in - and the gateway limits how often; the audit trail\nitself still takes entries only from events."
     }
   ]
 }

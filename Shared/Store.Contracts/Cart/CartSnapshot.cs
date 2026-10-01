@@ -18,6 +18,8 @@ public sealed record CartSnapshot(string UserId, IReadOnlyList<CartLineSnapshot>
 /// <param name="Color">Colour variant chosen by the customer</param>
 /// <param name="UnitPrice">Price per unit the cart last saw</param>
 /// <param name="Quantity">Units</param>
+/// <param name="ItemId">Identity of the purchased cart line; zero for legacy callers.</param>
+/// <param name="UpdatedAt">Revision timestamp of the purchased line.</param>
 public sealed record CartLineSnapshot(
     int ProductId,
     string Title,
@@ -25,4 +27,6 @@ public sealed record CartLineSnapshot(
     string Company,
     string Color,
     decimal UnitPrice,
-    int Quantity);
+    int Quantity,
+    int ItemId = 0,
+    DateTime UpdatedAt = default);

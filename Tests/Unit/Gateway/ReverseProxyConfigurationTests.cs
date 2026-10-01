@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Store.Contracts.Authorization;
+using Store.GatewayService.Security;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
 
@@ -20,7 +21,7 @@ public class ReverseProxyConfigurationTests
     private static readonly string[] ExpectedRoutes =
     {
         "identity-route", "products-route", "cart-route", "wishlist-route", "pricing-rules-route", "order-stats-route", "discount-check-route", "orders-route", "content-admin-route", "content-route",
-        "payments-route", "reviews-admin-route", "reviews-route", "audit-route", "admin-orders-route", "admin-discount-codes-route", "admin-route"
+        "payments-route", "reviews-admin-route", "reviews-route", "shop-events-route", "audit-route", "admin-orders-live-route", "admin-orders-route", "admin-discount-codes-route", "admin-route"
     };
 
     public static TheoryData<string> Environments => new() { "Development", "Production" };
@@ -89,11 +90,11 @@ public class ReverseProxyConfigurationTests
 
         Assert.Equal("auth", routes["identity-route"].RateLimiterPolicy);
         // Every proxied route is rate limited: the shop ones per user, the admin ones stricter
-        foreach (var route in new[] { "products-route", "cart-route", "wishlist-route", "orders-route", "pricing-rules-route", "order-stats-route", "discount-check-route" })
+        foreach (var route in new[] { "products-route", "cart-route", "wishlist-route", "orders-route", "pricing-rules-route", "order-stats-route", "discount-check-route", "shop-events-route" })
         {
             Assert.Equal("api", routes[route].RateLimiterPolicy);
         }
-        foreach (var route in new[] { "audit-route", "admin-orders-route", "admin-discount-codes-route", "admin-route" })
+        foreach (var route in new[] { "audit-route", "admin-orders-live-route", "admin-orders-route", "admin-discount-codes-route", "admin-route" })
         {
             Assert.Equal("admin", routes[route].RateLimiterPolicy);
         }
@@ -116,6 +117,14 @@ public class ReverseProxyConfigurationTests
         Assert.Equal("orders-cluster", routes["admin-discount-codes-route"].ClusterId);
         Assert.Equal(Policies.Admin, routes["admin-discount-codes-route"].AuthorizationPolicy);
         Assert.True(routes["admin-discount-codes-route"].Order < routes["admin-route"].Order);
+        // The live feed of orders is for administrators, and the only route that takes a token from the query
+        Assert.Equal("orders-cluster", routes["admin-orders-live-route"].ClusterId);
+        Assert.Equal(Policies.Admin, routes["admin-orders-live-route"].AuthorizationPolicy);
+        Assert.Equal("admin", routes["admin-orders-live-route"].RateLimiterPolicy);
+        Assert.True(routes["admin-orders-live-route"].Order < routes["admin-orders-route"].Order);
+        Assert.Equal(["admin-orders-live-route"], routes.Values
+            .Where(r => r.Metadata?.ContainsKey(AccessTokenInQuery.MetadataKey) == true)
+            .Select(r => r.RouteId));
         // The cart checks a discount code before anyone signs in
         Assert.Null(routes["discount-check-route"].AuthorizationPolicy);
         Assert.True(routes["discount-check-route"].Order < routes["orders-route"].Order);
@@ -125,6 +134,10 @@ public class ReverseProxyConfigurationTests
         Assert.Equal(Policies.Admin, routes["reviews-admin-route"].AuthorizationPolicy);
         Assert.Equal("admin", routes["reviews-admin-route"].RateLimiterPolicy);
         Assert.True(routes["reviews-admin-route"].Order < routes["reviews-route"].Order);
+        // Visitors count their steps for the purchase funnel without signing in; only that one POST is open
+        Assert.Null(routes["shop-events-route"].AuthorizationPolicy);
+        Assert.Equal("audit-cluster", routes["shop-events-route"].ClusterId);
+        Assert.Equal(["POST"], routes["shop-events-route"].Match.Methods!);
     }
 
     [Theory]

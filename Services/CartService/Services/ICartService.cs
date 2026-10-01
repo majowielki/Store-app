@@ -27,6 +27,6 @@ public interface ICartService
     // What the order service reads at checkout
     Task<CartSnapshot?> GetSnapshotAsync(string userId);
 
-    /// <summary>Removes every line after an order was placed from the cart; returns how many. Throws on failure so the event is retried.</summary>
-    Task<int> ClearAfterOrderAsync(string userId, int orderId);
+    /// <summary>Removes unchanged lines identified by the checkout snapshot; returns how many. Events without a snapshot leave the cart intact.</summary>
+    Task<int> ClearAfterOrderAsync(string userId, int orderId, CartSnapshot? snapshot = null);
 }

@@ -23,15 +23,18 @@ builder.AddStoreObservability("gateway");
 // Errors the gateway produces itself (401, 403, 404, 429) are problem responses like the services'
 builder.Services.AddStoreProblemDetails();
 
-// JWT Authentication - key, issuer, audience and the validation rules come from the shared setup
-builder.Services.AddJwtAuthentication(builder.Configuration);
+// JWT Authentication - key, issuer, audience and the validation rules come from the shared setup;
+// the routes whose metadata allow it also take the token from the query (a browser's WebSocket)
+builder.Services.AddJwtAuthentication(builder.Configuration, options => options.Events.OnMessageReceived = AccessTokenInQuery.ReadFromQuery);
 
 // Authorization - shared policies User / Admin / AdminWrite, referenced by YARP routes
 builder.Services.AddStoreAuthorization();
 
-// YARP forwards the Authorization header and the client address (X-Forwarded-*) on its own
+// YARP forwards the Authorization header, the client address (X-Forwarded-*) and WebSocket
+// upgrades on its own; a token that came in the query leaves it for the header
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddTransforms(AccessTokenInQuery.Apply);
 
 // Health checks: the gateway has no database and no broker of its own
 builder.Services.AddStoreHealthChecks();

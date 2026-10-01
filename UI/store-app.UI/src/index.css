@@ -43,6 +43,9 @@
 
   --color-success: hsl(var(--success));
 
+  /* The first series of a chart (the admin dashboard's funnel) */
+  --color-chart-1: hsl(var(--chart-1));
+
   --color-sidebar: hsl(var(--sidebar-background));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-primary: hsl(var(--sidebar-primary));
@@ -252,7 +255,7 @@
     --brand: 18 80% 60%;
     --brand-foreground: 24 10% 8%;
     --success: 150 35% 60%;
-    --chart-1: 18 80% 60%;
+    --chart-1: 17 71% 54%;
     --chart-2: 150 30% 55%;
     --chart-3: 35 50% 62%;
     --chart-4: 210 30% 62%;

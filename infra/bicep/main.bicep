@@ -53,6 +53,10 @@ param internalApiKey string
 param paymentWebhookSecret string
 
 @secure()
+@description('Anthropic API key of the model that reads new reviews before the administrator (ADR 019); empty leaves every review to the administrator')
+param reviewModelApiKey string = ''
+
+@secure()
 param trueAdminPassword string
 
 param trueAdminEmail string = 'trueadmin@store.com'
@@ -189,6 +193,14 @@ resource paymentWebhookSecretEntry 'Microsoft.KeyVault/vaults/secrets@2023-07-01
   name: 'payment-webhook-secret'
   properties: {
     value: paymentWebhookSecret
+  }
+}
+
+resource reviewModelApiKeyEntry 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (reviewModelOn) {
+  parent: keyVault
+  name: 'review-model-api-key'
+  properties: {
+    value: reviewModelApiKey
   }
 }
 
@@ -412,6 +424,16 @@ var commonSecrets = [
 var internalApiSecretRef = { name: 'internal-api-key', keyVaultUrl: '${vaultUri}secrets/internal-api-key' }
 var paymentWebhookSecretRef = { name: 'payment-webhook-secret', keyVaultUrl: '${vaultUri}secrets/payment-webhook-secret' }
 
+// The review model reads new reviews only when it has a key; without one the service is told nothing
+var reviewModelOn = !empty(reviewModelApiKey)
+var reviewModelEnv = reviewModelOn
+  ? [
+      { name: 'ReviewModel__Enabled', value: 'true' }
+      { name: 'ReviewModel__ApiKey', secretRef: 'review-model-api-key' }
+    ]
+  : []
+var reviewModelSecretRefs = reviewModelOn ? [{ name: 'review-model-api-key', keyVaultUrl: '${vaultUri}secrets/review-model-api-key' }] : []
+
 // Every service: which database, which extra variables and secrets, which image. The
 // addresses of the neighbours are added in the loop, since the environment's domain is only
 // known once it exists.
@@ -505,10 +527,8 @@ var services = [
     db: 'review'
     callsCatalog: true
     callsCart: false
-    env: [
-      { name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }
-    ]
-    secrets: [internalApiSecretRef]
+    env: concat([{ name: 'InternalApi__ApiKey', secretRef: 'internal-api-key' }], reviewModelEnv)
+    secrets: concat([internalApiSecretRef], reviewModelSecretRefs)
   }
 ]
 

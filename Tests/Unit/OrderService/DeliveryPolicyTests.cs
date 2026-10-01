@@ -123,4 +123,13 @@ public class OrderStatusFlowTests
     {
         Assert.Equal(moves, OrderStatusFlow.AdministratorMovesFrom(from));
     }
+
+    [Fact]
+    public void An_inverted_transit_window_is_invalid_configuration()
+    {
+        var options = new DeliveryOptions { TransitDaysMin = 5, TransitDaysMax = 2 };
+        var failures = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+        Assert.False(System.ComponentModel.DataAnnotations.Validator.TryValidateObject(options, new(options), failures, validateAllProperties: true));
+        Assert.Contains(failures, f => f.MemberNames.Contains(nameof(DeliveryOptions.TransitDaysMin)));
+    }
 }

@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Eye, ShoppingBag, X } from 'lucide-react';
 import { useAddToBag } from '@/features/cart/useAddToBag';
+import { useCountProductView } from '@/features/funnel/useShopEvents';
 import { keepFocusOnNewPage } from '@/lib/focus';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/utils';
@@ -21,6 +22,7 @@ const QuickViewContent = ({ product, trigger, onAdding }: { product: Product; tr
   const [amount, setAmount] = useState(1);
   const [adding, setAdding] = useState(false);
   const addToBag = useAddToBag();
+  useCountProductView(product.id);
 
   const add = async () => {
     setAdding(true);

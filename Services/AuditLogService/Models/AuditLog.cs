@@ -7,7 +7,7 @@ namespace Store.AuditLogService.Models;
 /// Deliberately narrow: identifiers, the acting user's id, the service and the business
 /// fields that changed. Nothing about the HTTP request and no personal data.
 /// </summary>
-public class AuditLog
+public class AuditLog : IHasLongId
 {
     public long Id { get; set; }
 
@@ -33,6 +33,12 @@ public class AuditLog
     public string? OldValues { get; set; }
 
     public string? NewValues { get; set; }
+}
+
+/// <summary>A row the retention job deletes by its id, in batches.</summary>
+public interface IHasLongId
+{
+    long Id { get; }
 }
 
 /// <summary>Column lengths, applied by the model and by the consumer that trims oversized values.</summary>

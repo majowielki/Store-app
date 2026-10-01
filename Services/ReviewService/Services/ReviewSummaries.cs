@@ -1,5 +1,6 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Reviews.V1;
 using Store.ReviewService.Data;
 using Store.ReviewService.DTOs;
@@ -79,16 +80,29 @@ public sealed class ReviewSummaries
     /// </summary>
     public async Task PublishAsync(IEnumerable<int> productIds, CancellationToken cancellationToken = default)
     {
-        var ids = productIds.Distinct().ToArray();
+        var ids = productIds.Distinct().Order().ToArray();
         if (ids.Length == 0)
         {
             return;
         }
 
-        var now = _time.GetUtcNow().UtcDateTime;
+        // Locks precede the aggregate query: after waiting, READ COMMITTED sees the
+        // preceding writer's commit as well as this transaction's own changes.
+        foreach (var id in ids) await _context.LockKeyAsync($"review-summary:{id}", cancellationToken);
         foreach (var summary in await ForAsync(ids, cancellationToken))
         {
-            await _publish.Publish(new ReviewSummaryChanged(summary.ProductId, summary.AverageRating, summary.ReviewCount, now), cancellationToken);
+            var clock = await _context.ReviewSummaryClocks.FindAsync([summary.ProductId], cancellationToken);
+            if (clock is null)
+            {
+                clock = new ReviewSummaryClock { ProductId = summary.ProductId };
+                _context.ReviewSummaryClocks.Add(clock);
+            }
+            var now = _time.GetUtcNow().UtcDateTime;
+            // PostgreSQL timestamps have microsecond precision; advance even with a
+            // frozen/backwards clock so out-of-order delivery remains deterministic.
+            now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
+            clock.ChangedAt = now > clock.ChangedAt ? now : clock.ChangedAt.AddTicks(10);
+            await _publish.Publish(new ReviewSummaryChanged(summary.ProductId, summary.AverageRating, summary.ReviewCount, clock.ChangedAt), cancellationToken);
         }
     }
 }

@@ -76,6 +76,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auditlog/funnel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The purchase funnel over a number of days from midnight UTC (30 unless given), the window of the
+         *     dashboard's order statistics: products viewed, put in the bag, and orders placed.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FunnelResponse"];
+                    };
+                };
+                /** @description No valid access token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The signed-in user may not do this */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auditlog/{id}": {
         parameters: {
             query?: never;
@@ -137,6 +201,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shop-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Counts a product viewed or put in the bag; 202, as nothing is sent back. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RecordShopEventRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error, as an RFC 9457 problem (application/problem+json) */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["StoreProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -183,6 +294,39 @@ export interface components {
             readonly hasNextPage: boolean;
             readonly hasPreviousPage: boolean;
         };
+        /** @description How many times each stage was reached since the start of the window. */
+        FunnelResponse: {
+            /**
+             * Format: date-time
+             * @description The start of the window: midnight (UTC) the given number of days ago, where the dashboard's order statistics start too.
+             */
+            since: string;
+            /** Format: int32 */
+            days: number;
+            /** @description Every stage, in order. */
+            stages: components["schemas"]["FunnelStageCount"][];
+        };
+        /**
+         * @description The stages of the purchase funnel, in the order a visitor goes through them.
+         * @enum {string}
+         */
+        FunnelStage: "productViewed" | "addedToBag" | "orderPlaced";
+        FunnelStageCount: {
+            stage: components["schemas"]["FunnelStage"];
+            /** Format: int32 */
+            count: number;
+        };
+        /** @description Body of POST /api/v1/shop-events. */
+        RecordShopEventRequest: {
+            kind: components["schemas"]["ShopEventKind"];
+            /** Format: int32 */
+            productId: number;
+        };
+        /**
+         * @description Stored by name.
+         * @enum {string}
+         */
+        ShopEventKind: "productViewed" | "addedToBag";
         /**
          * @description The error response as this store fills it, for the document only: the RFC 9457 members
          *     plus the trace id every problem carries and the field messages of a validation problem.

@@ -1,6 +1,9 @@
 /** Values the container injects at startup through /config.js (see docker/40-app-config.sh). */
 interface AppRuntimeConfig {
   apiBaseUrl?: string;
+  requestTimeoutMs?: number;
+  dashboardDays?: number;
+  renewBeforeExpiryMs?: number;
   /** The shop's public address (SHOP_URL), for canonical links; empty when the container was not told. */
   shopUrl?: string;
 }
@@ -28,3 +31,13 @@ export const apiBaseUrl: string = runtime.apiBaseUrl || import.meta.env.VITE_API
 export const shopUrl: string = (runtime.shopUrl || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '');
 
 export {};
+
+const boundedSetting = (value: number | undefined, fallback: number, min: number, max: number) =>
+  value !== undefined && Number.isInteger(value) && value >= min && value <= max ? value : fallback;
+
+export const httpOptions = {
+  requestTimeoutMs: boundedSetting(runtime.requestTimeoutMs, 15_000, 1_000, 120_000),
+  renewBeforeExpiryMs: boundedSetting(runtime.renewBeforeExpiryMs, 30_000, 0, 300_000),
+};
+
+export const dashboardDays = boundedSetting(runtime.dashboardDays, 30, 1, 3650);

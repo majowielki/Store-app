@@ -90,4 +90,18 @@ public sealed class WishlistTests : IClassFixture<CartApiFactory>
         Assert.Empty(await ProductIds(await ben.GetAsync("/api/v1/wishlist")));
         Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/v1/wishlist")).StatusCode);
     }
+
+    [Fact]
+    public async Task Parallel_additions_cannot_exceed_the_owner_limit()
+    {
+        var limit = Store.CartService.Models.WishlistItem.MaxItems;
+        var products = Enumerable.Range(80000, limit + 1).ToArray();
+        foreach (var id in products) _factory.Catalog.Add(id, 10m);
+        using var client = _factory.CreateClient().AsUser("wishlist-parallel-limit");
+        await client.PostAsJsonAsync("/api/v1/wishlist/sync", new { productIds = products.Take(limit - 1) });
+        var responses = await Task.WhenAll(products.Skip(limit - 1).Select(id => client.PostAsJsonAsync("/api/v1/wishlist/items", new { productId = id })));
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.OK);
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.UnprocessableEntity);
+        Assert.Equal(limit, (await ProductIds(await client.GetAsync("/api/v1/wishlist"))).Count);
+    }
 }

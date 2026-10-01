@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type ComponentType, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useGetProductsMetaQuery } from '@/api/catalog';
 import {
@@ -28,16 +28,27 @@ const EntryLoader = ({ kind, id }: { kind: ContentKind; id: number | null }) => 
   const { data: entry, isLoading } = useGetContentEntryAdminQuery({ kind, id: id ?? 0 }, { skip: id === null });
   if (id !== null && isLoading) return <p className="p-6">Loading…</p>;
   if (id !== null && !entry) return <p className="p-6">This entry does not exist.</p>;
-  return <EntryForm kind={kind} id={id} initial={entry ? toPayload(kind, entry) : emptyPayload(kind)} />;
+  const initial = entry ? toPayload(kind, entry) : emptyPayload(kind);
+  if (kind === 'makers' && 'name' in initial)
+    return <EntryForm kind={kind} id={id} initial={initial} Fields={MakerFields} titleChange={(name) => ({ name })} />;
+  if (kind === 'articles' && 'excerpt' in initial)
+    return <EntryForm kind={kind} id={id} initial={initial} Fields={ArticleFields} titleChange={(title) => ({ title })} />;
+  if (kind === 'lookbooks' && 'hotspots' in initial)
+    return <EntryForm kind={kind} id={id} initial={initial} Fields={LookbookFields} titleChange={(title) => ({ title })} />;
+  if (kind === 'collections' && 'body' in initial && 'summary' in initial)
+    return <EntryForm kind={kind} id={id} initial={initial} Fields={CollectionFields} titleChange={(title) => ({ title })} />;
+  return <p className="p-6">The entry has an unexpected shape.</p>;
 };
 
-interface EntryFormProps {
+interface EntryFormProps<T extends ContentPayload<ContentKind>> {
   kind: ContentKind;
   id: number | null;
-  initial: ContentPayload<ContentKind>;
+  initial: T;
+  Fields: ComponentType<FieldsProps<T>>;
+  titleChange: (value: string) => Partial<T>;
 }
 
-const EntryForm = ({ kind, id, initial }: EntryFormProps) => {
+const EntryForm = <T extends ContentPayload<ContentKind>,>({ kind, id, initial, Fields, titleChange }: EntryFormProps<T>) => {
   const config = contentKinds[kind];
   const navigate = useNavigate();
   const [draft, setDraft] = useState(initial);
@@ -46,8 +57,8 @@ const EntryForm = ({ kind, id, initial }: EntryFormProps) => {
   const [createContent, { isLoading: creating }] = useCreateContentMutation();
   const [updateContent, { isLoading: updating }] = useUpdateContentMutation();
 
-  const set = (change: Partial<ContentPayload<ContentKind>>) => setDraft((current) => ({ ...current, ...change }) as ContentPayload<ContentKind>);
-  const setTitle = (key: 'title' | 'name', value: string) => set({ [key]: value, ...(slugTouched ? {} : { slug: slugify(value) }) });
+  const set = (change: Partial<T>) => setDraft((current) => ({ ...current, ...change }));
+  const setTitle = (value: string) => setDraft((current) => ({ ...current, ...titleChange(value), ...(slugTouched ? {} : { slug: slugify(value) }) }));
 
   const pointsWithoutProduct = 'hotspots' in draft ? draft.hotspots.filter((h) => !h.productSlug).length : 0;
 
@@ -77,7 +88,7 @@ const EntryForm = ({ kind, id, initial }: EntryFormProps) => {
       value={draft.slug}
       onChange={(value) => {
         setSlugTouched(true);
-        set({ slug: value });
+        setDraft((current) => ({ ...current, slug: value }));
       }}
       required
       maxLength={120}
@@ -96,11 +107,8 @@ const EntryForm = ({ kind, id, initial }: EntryFormProps) => {
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="grid gap-6">
-          {kind === 'makers' && <MakerFields draft={draft as MakerPayload} set={set} setTitle={setTitle} slugField={slugField} />}
-          {kind === 'collections' && <CollectionFields draft={draft as CollectionPayload} set={set} setTitle={setTitle} slugField={slugField} />}
-          {kind === 'articles' && <ArticleFields draft={draft as ArticlePayload} set={set} setTitle={setTitle} slugField={slugField} />}
-          {kind === 'lookbooks' && <LookbookFields draft={draft as LookbookPayload} set={set} setTitle={setTitle} slugField={slugField} />}
-          <PublishedField value={draft.isPublished} onChange={(isPublished) => set({ isPublished })} />
+          <Fields draft={draft} set={set} setTitle={setTitle} slugField={slugField} />
+          <PublishedField value={draft.isPublished} onChange={(isPublished) => setDraft((current) => ({ ...current, isPublished }))} />
           <div className="flex gap-3">
             <Button type="submit" disabled={creating || updating}>
               {creating || updating ? 'Saving…' : 'Save'}
@@ -117,8 +125,8 @@ const EntryForm = ({ kind, id, initial }: EntryFormProps) => {
 
 interface FieldsProps<T> {
   draft: T;
-  set: (change: Partial<ContentPayload<ContentKind>>) => void;
-  setTitle: (key: 'title' | 'name', value: string) => void;
+  set: (change: Partial<T>) => void;
+  setTitle: (value: string) => void;
   slugField: React.ReactNode;
 }
 
@@ -128,7 +136,7 @@ const MakerFields = ({ draft, set, setTitle, slugField }: FieldsProps<MakerPaylo
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2">
-        <TextField label="Name" value={draft.name} onChange={(value) => setTitle('name', value)} required maxLength={160} />
+        <TextField label="Name" value={draft.name} onChange={(value) => setTitle(value)} required maxLength={160} />
         {slugField}
         <Field label="Company in the catalogue" hint="The maker's page lists this company's products.">
           <select
@@ -161,7 +169,7 @@ const MakerFields = ({ draft, set, setTitle, slugField }: FieldsProps<MakerPaylo
 const CollectionFields = ({ draft, set, setTitle, slugField }: FieldsProps<CollectionPayload>) => (
   <>
     <div className="grid gap-6 md:grid-cols-2">
-      <TextField label="Title" value={draft.title} onChange={(value) => setTitle('title', value)} required maxLength={160} />
+      <TextField label="Title" value={draft.title} onChange={(value) => setTitle(value)} required maxLength={160} />
       {slugField}
       <TextField label="Summary" value={draft.summary} onChange={(summary) => set({ summary })} multiline maxLength={500} className="md:col-span-2" />
       <TextField label="Order in lists" type="number" value={String(draft.sortOrder)} onChange={(value) => set({ sortOrder: Number(value) || 0 })} />
@@ -175,7 +183,7 @@ const CollectionFields = ({ draft, set, setTitle, slugField }: FieldsProps<Colle
 const ArticleFields = ({ draft, set, setTitle, slugField }: FieldsProps<ArticlePayload>) => (
   <>
     <div className="grid gap-6 md:grid-cols-2">
-      <TextField label="Title" value={draft.title} onChange={(value) => setTitle('title', value)} required maxLength={160} />
+      <TextField label="Title" value={draft.title} onChange={(value) => setTitle(value)} required maxLength={160} />
       {slugField}
       <TextField label="Excerpt" value={draft.excerpt} onChange={(excerpt) => set({ excerpt })} multiline maxLength={500} className="md:col-span-2" />
       <TextField label="Author" value={draft.author} onChange={(author) => set({ author })} maxLength={200} />
@@ -195,7 +203,7 @@ const ArticleFields = ({ draft, set, setTitle, slugField }: FieldsProps<ArticleP
 const LookbookFields = ({ draft, set, setTitle, slugField }: FieldsProps<LookbookPayload>) => (
   <>
     <div className="grid gap-6 md:grid-cols-2">
-      <TextField label="Title" value={draft.title} onChange={(value) => setTitle('title', value)} required maxLength={160} />
+      <TextField label="Title" value={draft.title} onChange={(value) => setTitle(value)} required maxLength={160} />
       {slugField}
       <TextField label="Summary" value={draft.summary} onChange={(summary) => set({ summary })} multiline maxLength={500} className="md:col-span-2" />
       <TextField label="Order in lists" type="number" value={String(draft.sortOrder)} onChange={(value) => set({ sortOrder: Number(value) || 0 })} />

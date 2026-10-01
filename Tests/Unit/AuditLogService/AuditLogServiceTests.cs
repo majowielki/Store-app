@@ -64,4 +64,16 @@ public class AuditLogServiceTests
         Assert.Equal(5, result.TotalCount);
         Assert.Equal(2, result.TotalPages);
     }
+
+    [Fact]
+    public async Task Pagination_breaks_equal_timestamp_ties_by_descending_id()
+    {
+        var at = DateTime.UtcNow;
+        var rows = Enumerable.Range(0, 6).Select(_ => new AuditLog { Action = "TIE", EntityName = "Entity", Timestamp = at }).ToArray();
+        _dbContext.AuditLogs.AddRange(rows);
+        await _dbContext.SaveChangesAsync();
+        var first = await _auditLogService.GetAuditLogsAsync(new AuditLogQuery(), new PagedQuery { Page = 1, PageSize = 3 });
+        var second = await _auditLogService.GetAuditLogsAsync(new AuditLogQuery(), new PagedQuery { Page = 2, PageSize = 3 });
+        Assert.Equal(rows.Select(r => r.Id).OrderDescending(), first.Items.Concat(second.Items).Select(r => r.Id));
+    }
 }

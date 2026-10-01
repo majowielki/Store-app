@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Store.BuildingBlocks.Persistence;
 using Store.ReviewService.Data;
 using Store.ReviewService.Models;
 
@@ -49,6 +50,8 @@ public sealed class DemoSandboxCleanup : BackgroundService
         var now = _time.GetUtcNow().UtcDateTime;
 
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var expiredIds = await context.Reviews.Where(r => r.ExpiresAt != null && r.ExpiresAt <= now).Select(r => r.Id).ToListAsync(cancellationToken);
+        await context.LockAllForUpdateAsync<Review, Guid>(r => r.Id, expiredIds, cancellationToken);
         var expired = await context.Reviews.AsNoTracking()
             .Where(r => r.ExpiresAt != null && r.ExpiresAt <= now)
             .Select(r => new { r.Id, r.ProductId, Public = r.Status == ReviewStatus.Published && !r.Reported })
@@ -58,6 +61,7 @@ public sealed class DemoSandboxCleanup : BackgroundService
         // Their reports go with them (cascade)
         var reviews = ids.Length == 0 ? 0 : await context.Reviews.Where(r => ids.Contains(r.Id)).ExecuteDeleteAsync(cancellationToken);
         var reports = await context.ReviewReports.Where(r => r.ExpiresAt != null && r.ExpiresAt <= now).ExecuteDeleteAsync(cancellationToken);
+        await context.ReviewSubmissions.Where(s => s.SubmittedAt < now - ReviewConstraints.DailyLimitWindow).ExecuteDeleteAsync(cancellationToken);
 
         var ratings = expired.Where(r => r.Public && r.ProductId != null).Select(r => r.ProductId!.Value).ToList();
         await scope.ServiceProvider.GetRequiredService<ReviewSummaries>().PublishAsync(ratings, cancellationToken);

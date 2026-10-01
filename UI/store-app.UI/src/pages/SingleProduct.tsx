@@ -21,6 +21,7 @@ import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
 import { usePerks } from '@/content/perks';
 import { useAddToBag } from '@/features/cart/useAddToBag';
+import { useCountProductView } from '@/features/funnel/useShopEvents';
 import { useTrackProductView } from '@/features/recent/useRecentlyViewed';
 import type { ProductDetail } from '@/api/types';
 import { breadcrumbData, JsonLd, PageMeta, productData, type Crumb } from '@/seo';
@@ -87,6 +88,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
   const soldOut = product.availability === 'outOfStock';
   const addToBag = useAddToBag();
   useTrackProductView(product.id);
+  useCountProductView(product.id);
   const perks = usePerks().filter((perk) => perk.key !== 'welcome');
   const { data: meta } = useGetProductsMetaQuery();
   const group = meta?.groupCategoryMap.find((g) => g.key === groups[0]);

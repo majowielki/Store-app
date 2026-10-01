@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Check, Flag, X } from 'lucide-react';
+import { Bot, Check, Flag, X } from 'lucide-react';
 import { useGetAdminReviewsQuery, useModerateReviewsMutation } from '@/api/reviews';
 import type { AdminReview, ReviewQueueFilter } from '@/api/types';
 import { Roles } from '@/features/session/roles';
@@ -37,6 +37,12 @@ const statusBadge: Record<AdminReview['status'], { label: string; variant: 'defa
   pending: { label: 'Pending', variant: 'secondary' },
   published: { label: 'Published', variant: 'default' },
   rejected: { label: 'Rejected', variant: 'destructive' },
+};
+
+/** What the model that reads new reviews first made of one (ADR 019): published by itself, or held for a person. */
+const modelVerdictLabel: Record<NonNullable<AdminReview['modelVerdict']>, string> = {
+  clean: 'Model: clean',
+  doubtful: 'Model: doubtful',
 };
 
 /** Asks why the reviews are rejected; the reason is sent to their authors. */
@@ -209,17 +215,24 @@ const Reviews = () => {
                       )}
                       {review.source === 'seed' && <Badge variant="outline">Seeded</Badge>}
                       {review.demo && <Badge variant="outline">Demo session</Badge>}
+                      {review.modelVerdict && (
+                        <Badge variant="outline" className={cn('gap-1', review.modelVerdict === 'doubtful' && 'border-destructive text-destructive')}>
+                          <Bot className="h-3 w-3" />
+                          {modelVerdictLabel[review.modelVerdict]}
+                        </Badge>
+                      )}
                     </div>
                     {review.title && <p className="font-medium">{review.title}</p>}
                     <p className="text-sm text-muted-foreground">{review.body}</p>
                     {review.reportReasons.length > 0 && (
                       <p className="text-xs text-muted-foreground">Reports: {review.reportReasons.join(' · ')}</p>
                     )}
+                    {review.modelReason && <p className="text-xs text-muted-foreground">Model: {review.modelReason}</p>}
                     {review.rejectionReason && <p className="text-xs text-destructive">Rejected: {review.rejectionReason}</p>}
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="text-xs text-muted-foreground">
                         {review.authorName} · sent {formatDateTime(review.submittedAt)}
-                        {review.moderatedAt && ` · decided ${formatDateTime(review.moderatedAt)}`}
+                        {review.moderatedAt && ` · ${review.moderatedBy || review.modelVerdict !== 'clean' ? 'decided' : 'published by the model'} ${formatDateTime(review.moderatedAt)}`}
                       </p>
                       <div className="flex gap-2">
                         {(review.status !== 'published' || review.reported) && (

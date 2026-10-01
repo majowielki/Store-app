@@ -140,6 +140,9 @@ Nothing a visitor writes is public before a person has read it (ADR 012).
 2. Before it is stored, the review passes the automatic checks: 20 to 1000 characters, no links,
    e-mail addresses or phone numbers, no word from the English and Polish profanity list, at most
    three reviews a day. It then waits; its author sees it marked as awaiting moderation.
+   When the review model is switched on (ADR 019), a message through the outbox has Claude Haiku
+   read it first: a clean review is published at once, a doubtful one keeps waiting with the
+   model's reason for the administrator, and without a verdict it simply waits.
 3. The true administrator approves or rejects it (with a reason its author sees), one at a time
    or in bulk; every decision is audited. The demo administrator sees the queue without the texts
    nobody has approved and without anyone's account, and changes nothing.
@@ -154,6 +157,22 @@ visitors of the account, a demo report hides a review from that session only, an
 deleted after 24 hours. The reviews that come with the catalogue are seeded by slug when the
 service migrates; a background job asks the catalogue for their ids and publishes the ratings
 once it answers.
+
+## The admin panel's live feed
+
+The order service maps a SignalR hub for administrators (ADR 018). A consumer of `OrderPlaced`
+and `OrderStatusChanged`, on a temporary queue of each instance's own, tells the panels connected
+to that instance which order changed and to what; the panel then reads the order through the API,
+with the demo administrator's masking. The WebSocket goes through nginx and the gateway, which takes
+the token from the query string on that one route and forwards it as the Authorization header.
+
+## The purchase funnel
+
+The admin dashboard shows how many products were viewed, how many went into the bag and how many
+orders were placed over its 30 days (ADR 020). The pages send the first two to the audit service
+(`POST /api/v1/shop-events`, anonymous, rate limited; the product and the step, nothing about the
+visitor); the orders are the `OrderPlaced` events it already records, counted from the same
+midnight as the order statistics, so the funnel ends at the dashboard's order count.
 
 ## The e-mails
 

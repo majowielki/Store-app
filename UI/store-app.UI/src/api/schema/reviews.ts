@@ -599,7 +599,11 @@ export interface components {
             submittedAt: string;
             /** Format: date-time */
             moderatedAt?: string | null;
+            /** @description The administrator who approved or rejected it; null when the model published it. */
             moderatedBy?: string | null;
+            modelVerdict?: components["schemas"]["ModelVerdict"];
+            /** @description The model's reason; hidden from the demo administrator with the text it is about. */
+            modelReason?: string | null;
         };
         /** @description One page of a listing, the same shape for every resource. */
         AdminReviewResponsePagedResponse: {
@@ -632,6 +636,11 @@ export interface components {
             /** @description 20 to 1000 characters. */
             body: string;
         };
+        /**
+         * @description Stored by name. The model's reading of a new review (ADR 019).
+         * @enum {string}
+         */
+        ModelVerdict: "clean" | "doubtful";
         /** @description Body of POST /api/v1/reviews/admin/moderate: one decision for one or many reviews. */
         ModerateReviewsRequest: {
             /** @description 1 to 100 reviews. */

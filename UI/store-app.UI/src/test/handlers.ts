@@ -35,6 +35,8 @@ export const handlers = [
   http.post(api('/auth/login'), () => json(session())),
   http.post(api('/auth/demo-login'), () => json(session())),
   http.post(api('/auth/logout'), () => new HttpResponse(null, { status: 204 })),
+  // The purchase funnel's counts of views and bag additions, which every product page and bag sends
+  http.post(api('/shop-events'), () => new HttpResponse(null, { status: 202 })),
 
   http.get(api('/products'), () => json(page([product()]))),
   http.get(api('/products/meta'), () => json(meta)),

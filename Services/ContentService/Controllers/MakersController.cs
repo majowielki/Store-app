@@ -30,7 +30,7 @@ public class MakersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<ActionResult<List<MakerResponse>>> List()
     {
-        var entries = await _store.PublishedAsync(q => q.OrderBy(e => e.Name));
+        var entries = await _store.PublishedAsync(q => q.OrderBy(e => e.Name), cancellationToken: HttpContext.RequestAborted);
         return this.OkUnlessUnchanged(entries.Select(e => e.ToResponse()).ToList(), entries);
     }
 
@@ -39,7 +39,7 @@ public class MakersController : ControllerBase
     [ProducesResponseType(StatusCodes.Status304NotModified)]
     public async Task<ActionResult<MakerResponse>> Get(string slug)
     {
-        var entry = await _store.PublishedAsync(slug);
+        var entry = await _store.PublishedAsync(slug, cancellationToken: HttpContext.RequestAborted);
         return this.OkUnlessUnchanged(entry.ToResponse(), [entry]);
     }
 
@@ -47,12 +47,12 @@ public class MakersController : ControllerBase
     [HttpGet("admin/makers")]
     [Authorize(Policy = Policies.Admin)]
     public async Task<List<MakerResponse>> ListForAdmin()
-        => (await _store.AllAsync(q => q.OrderBy(e => e.Name))).Select(e => e.ToResponse()).ToList();
+        => (await _store.AllAsync(q => q.OrderBy(e => e.Name), cancellationToken: HttpContext.RequestAborted)).Select(e => e.ToResponse()).ToList();
 
     [HttpGet("admin/makers/{id:int}")]
     [Authorize(Policy = Policies.Admin)]
     public async Task<MakerResponse> GetForAdmin(int id)
-        => (await _store.FindAsync(id)).ToResponse();
+        => (await _store.FindAsync(id, cancellationToken: HttpContext.RequestAborted)).ToResponse();
 
     /// <summary>Creates an entry; 409 when the slug is taken.</summary>
     [HttpPost("admin/makers")]
@@ -62,7 +62,7 @@ public class MakersController : ControllerBase
     {
         var entry = new Maker();
         request.ApplyTo(entry);
-        await _store.CreateAsync(entry, ActorId);
+        await _store.CreateAsync(entry, ActorId, cancellationToken: HttpContext.RequestAborted);
         return CreatedAtAction(nameof(GetForAdmin), new { id = entry.Id }, entry.ToResponse());
     }
 
@@ -70,14 +70,14 @@ public class MakersController : ControllerBase
     [HttpPut("admin/makers/{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
     public async Task<MakerResponse> Update(int id, [FromBody] MakerRequest request)
-        => (await _store.UpdateAsync(id, entry => request.ApplyTo(entry), ActorId)).ToResponse();
+        => (await _store.UpdateAsync(id, entry => request.ApplyTo(entry), ActorId, cancellationToken: HttpContext.RequestAborted)).ToResponse();
 
     [HttpDelete("admin/makers/{id:int}")]
     [Authorize(Policy = Policies.AdminWrite)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Delete(int id)
     {
-        await _store.DeleteAsync(id, ActorId);
+        await _store.DeleteAsync(id, ActorId, cancellationToken: HttpContext.RequestAborted);
         return NoContent();
     }
 }

@@ -48,6 +48,8 @@ export default defineConfig({
       "/api": {
         target: process.env.GATEWAY_URL ?? "http://localhost:5000",
         changeOrigin: false,
+        // The admin panel's live feed of orders is a WebSocket
+        ws: true,
       },
     },
   },

@@ -15,6 +15,8 @@ public class ReviewDbContext : DbContext
     public DbSet<Purchase> Purchases => Set<Purchase>();
     public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
     public DbSet<ReviewSeed> ReviewSeeds => Set<ReviewSeed>();
+    public DbSet<ReviewSubmission> ReviewSubmissions => Set<ReviewSubmission>();
+    public DbSet<ReviewSummaryClock> ReviewSummaryClocks => Set<ReviewSummaryClock>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +34,8 @@ public class ReviewDbContext : DbContext
             entity.Property(r => r.Source).HasConversion<string>().HasMaxLength(20);
             entity.Property(r => r.RejectionReason).HasMaxLength(ReviewConstraints.ReasonMaxLength);
             entity.Property(r => r.ModeratedBy).HasMaxLength(UserIds.MaxLength);
+            entity.Property(r => r.ModelVerdict).HasConversion<string>().HasMaxLength(20);
+            entity.Property(r => r.ModelReason).HasMaxLength(ReviewConstraints.ModelReasonMaxLength);
             entity.ToTable(table => table.HasCheckConstraint("CK_Reviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
 
             // A product's page and its summary read the published reviews of one product
@@ -81,6 +85,14 @@ public class ReviewDbContext : DbContext
         });
 
         // Outbox and inbox of the message bus: purchases arrive, summaries and audit entries leave
+        modelBuilder.Entity<ReviewSubmission>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.UserId).HasMaxLength(UserIds.MaxLength);
+            entity.HasIndex(s => new { s.UserId, s.DemoSessionId, s.SubmittedAt });
+        });
+        modelBuilder.Entity<ReviewSummaryClock>().HasKey(s => s.ProductId);
+        modelBuilder.Entity<ReviewSummaryClock>().Property(s => s.ProductId).ValueGeneratedNever();
         modelBuilder.AddStoreMessagingTables();
     }
 }

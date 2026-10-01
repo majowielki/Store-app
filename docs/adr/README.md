@@ -23,3 +23,6 @@ what it costs.
 | [015](015-search-engines.md) | Search engines read the SPA, and each service lists its own pages |
 | [016](016-picture-sizes.md) | Every picture has smaller copies next to it, found by name |
 | [017](017-accessibility.md) | The shop keeps to WCAG 2.2 AA, checked by axe in the end-to-end tests |
+| [018](018-live-admin-orders.md) | The admin panel hears of orders through a SignalR hub, fed by the order events |
+| [019](019-model-review-moderation.md) | A model reads new reviews before the administrator, when it is switched on |
+| [020](020-purchase-funnel.md) | The purchase funnel counts steps the pages send and the orders the events bring |

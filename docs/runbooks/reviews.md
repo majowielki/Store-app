@@ -20,6 +20,22 @@ masked and can change nothing.
   again: approving it clears the report, rejecting it removes it from the page for good.
 - A report from a demo account hides the review for that sign-in session only, for a day.
 
+## The model that reads first
+
+With `ReviewModel:Enabled=true` and an Anthropic API key in `ReviewModel:ApiKey` ([ADR 019](../adr/019-model-review-moderation.md);
+`REVIEW_MODEL_ENABLED` and `REVIEW_MODEL_API_KEY` in `.env`, the `REVIEW_MODEL_API_KEY` secret for the CD
+pipeline, which then enables it in Azure), Claude Haiku 4.5 reads every new review before the
+administrator: a clean one is published at once, a doubtful one stays in the queue marked "Model:
+doubtful" with the model's reason. The audit log shows `REVIEW_PUBLISHED_BY_MODEL` and
+`REVIEW_HELD_BY_MODEL`.
+
+- Reviews stay pending with no verdict: the model was not reached. The service logs "The review
+  model answered with an error" or "could not be reached" with the error type; a 401 means a wrong
+  or revoked key. Those reviews wait for the administrator; nothing retries them later.
+- "The review model is enabled but has no API key" at start: the flag is on, the key is missing.
+- To switch it off, set `ReviewModel:Enabled=false` (or remove the key) and restart; reviews sent
+  meanwhile are simply left for the administrator.
+
 ## The ratings on the product cards
 
 Every change of what is published sends `ReviewSummaryChanged` with the product's average and

@@ -722,10 +722,12 @@
           "color",
           "company",
           "image",
+          "itemId",
           "productId",
           "quantity",
           "title",
-          "unitPrice"
+          "unitPrice",
+          "updatedAt"
         ],
         "type": "object",
         "properties": {
@@ -759,6 +761,16 @@
             "type": "integer",
             "description": "Units",
             "format": "int32"
+          },
+          "itemId": {
+            "type": "integer",
+            "description": "Identity of the purchased cart line; zero for legacy callers.",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Revision timestamp of the purchased line.",
+            "format": "date-time"
           }
         },
         "additionalProperties": false,

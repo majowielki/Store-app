@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Store.BuildingBlocks.Api;
 using Store.BuildingBlocks.Messaging;
+using Store.BuildingBlocks.Persistence;
 using Store.Contracts.Audit;
 using Store.ReviewService.Data;
 using Store.ReviewService.DTOs;
 using Store.ReviewService.Models;
+using Store.ReviewService.Moderation;
 
 namespace Store.ReviewService.Services;
 
@@ -24,14 +26,16 @@ public sealed class ReviewBoard
 
     private readonly ReviewDbContext _context;
     private readonly ReviewSummaries _summaries;
+    private readonly ReviewModelDispatcher _modelDispatcher;
     private readonly IAuditTrail _auditTrail;
     private readonly TimeProvider _time;
     private readonly ILogger<ReviewBoard> _logger;
 
-    public ReviewBoard(ReviewDbContext context, ReviewSummaries summaries, IAuditTrail auditTrail, TimeProvider time, ILogger<ReviewBoard> logger)
+    public ReviewBoard(ReviewDbContext context, ReviewSummaries summaries, ReviewModelDispatcher modelDispatcher, IAuditTrail auditTrail, TimeProvider time, ILogger<ReviewBoard> logger)
     {
         _context = context;
         _summaries = summaries;
+        _modelDispatcher = modelDispatcher;
         _auditTrail = auditTrail;
         _time = time;
         _logger = logger;
@@ -125,6 +129,10 @@ public sealed class ReviewBoard
             throw new ForbiddenException("You can review the products you have bought - this one is not in any of your paid orders.");
         }
 
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.LockKeyAsync($"review-author:{viewer.UserId}:{viewer.DemoSessionId}", cancellationToken);
+        var existingId = await Own(viewer).Where(r => r.ProductId == request.ProductId).Select(r => (Guid?)r.Id).FirstOrDefaultAsync(cancellationToken);
+        if (existingId is { } id) await _context.LockForUpdateAsync<Review, Guid>(r => r.Id, id, cancellationToken);
         var existing = await Own(viewer).FirstOrDefaultAsync(r => r.ProductId == request.ProductId, cancellationToken);
         if (existing is { Status: not ReviewStatus.Rejected })
         {
@@ -137,6 +145,8 @@ public sealed class ReviewBoard
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
+        now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
+        if (existing is not null && existing.SubmittedAt >= now) now = existing.SubmittedAt.AddTicks(10);
         var review = existing ?? new Review
         {
             Id = Guid.NewGuid(),
@@ -157,12 +167,24 @@ public sealed class ReviewBoard
         review.RejectionReason = null;
         review.ModeratedAt = null;
         review.ModeratedBy = null;
+        review.ModelVerdict = null;
+        review.ModelReason = null;
         review.SubmittedAt = now;
         review.UpdatedAt = now;
         if (existing is null)
         {
             _context.Reviews.Add(review);
         }
+
+        // The model, when there is one, reads it first; the request goes out with this save
+        _context.ReviewSubmissions.Add(new ReviewSubmission
+        {
+            Id = Guid.NewGuid(),
+            UserId = viewer.UserId!,
+            DemoSessionId = viewer.DemoSessionId,
+            SubmittedAt = now
+        });
+        await _modelDispatcher.SendAsync(review, cancellationToken);
 
         try
         {
@@ -178,6 +200,7 @@ public sealed class ReviewBoard
         await _auditTrail.RecordAsync(AuditActions.ReviewSubmitted, nameof(Review), review.Id.ToString(), viewer.UserId,
             details: new { review.ProductId, review.Rating, rewritten = existing is not null, demo = viewer.IsDemoAccount },
             cancellationToken: cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return ReviewResponse.From(review, forAuthor: true);
     }
 
@@ -193,6 +216,8 @@ public sealed class ReviewBoard
             throw new ForbiddenException("Sign in again to report a review.");
         }
 
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.LockForUpdateAsync<Review, Guid>(r => r.Id, reviewId, cancellationToken);
         var review = await ReviewSummaries.Public(_context.Reviews).FirstOrDefaultAsync(r => r.Id == reviewId, cancellationToken)
             ?? throw new NotFoundException(nameof(Review), reviewId);
 
@@ -220,7 +245,6 @@ public sealed class ReviewBoard
             CreatedAt = now
         });
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         if (!viewer.IsDemoAccount)
         {
             review.Reported = true;
@@ -274,6 +298,7 @@ public sealed class ReviewBoard
     private Task<int> SubmittedTodayAsync(ReviewViewer viewer, CancellationToken cancellationToken)
     {
         var since = _time.GetUtcNow().UtcDateTime - ReviewConstraints.DailyLimitWindow;
-        return Own(viewer).CountAsync(r => r.SubmittedAt > since, cancellationToken);
+        return _context.ReviewSubmissions.CountAsync(r => r.UserId == viewer.UserId
+            && r.DemoSessionId == viewer.DemoSessionId && r.SubmittedAt > since, cancellationToken);
     }
 }

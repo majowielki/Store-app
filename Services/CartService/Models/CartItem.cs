@@ -40,6 +40,13 @@ public class CartItem
 
     public decimal LineTotal => UnitPrice * Quantity;
 
+    /// <summary>Advances the line revision even with a frozen clock, at PostgreSQL timestamp precision.</summary>
+    public void Touch(DateTime now)
+    {
+        now = new DateTime(now.Ticks - now.Ticks % 10, DateTimeKind.Utc);
+        UpdatedAt = now > UpdatedAt ? now : UpdatedAt.AddTicks(10);
+    }
+
     public void ApplySnapshot(ProductSnapshot product, DateTime now)
     {
         Title = product.Title;
@@ -47,6 +54,6 @@ public class CartItem
         Company = product.Company;
         UnitPrice = product.EffectivePrice;
         SnapshotAt = now;
-        UpdatedAt = now;
+        Touch(now);
     }
 }

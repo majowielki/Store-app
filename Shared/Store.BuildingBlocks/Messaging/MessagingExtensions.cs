@@ -66,8 +66,9 @@ public static class MessagingExtensions
                 // fail with a serialization error and burn retries; read committed makes the
                 // second one wait for the lock and then see what the first one committed.
                 outbox.IsolationLevel = System.Data.IsolationLevel.ReadCommitted;
-                outbox.QueryDelay = TimeSpan.FromSeconds(1);
-                outbox.DuplicateDetectionWindow = TimeSpan.FromMinutes(30);
+                var options = configuration.GetSection(RabbitMqOptions.SectionName).Get<RabbitMqOptions>() ?? new RabbitMqOptions();
+                outbox.QueryDelay = TimeSpan.FromSeconds(options.OutboxQueryDelaySeconds);
+                outbox.DuplicateDetectionWindow = TimeSpan.FromMinutes(options.DuplicateDetectionMinutes);
             });
 
             // Every receive endpoint gets the inbox, so consumers can be retried safely
@@ -136,8 +137,8 @@ public static class MessagingExtensions
 
             // Three more attempts with growing delays; after that the message lands in the
             // endpoint's _error queue instead of looping back forever
-            cfg.UseMessageRetry(retry => retry.Exponential(3, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(2)));
-            cfg.PrefetchCount = 16;
+            cfg.UseMessageRetry(retry => retry.Exponential(options.RetryCount, TimeSpan.FromSeconds(options.RetryMinSeconds), TimeSpan.FromSeconds(options.RetryMaxSeconds), TimeSpan.FromSeconds(options.RetryDeltaSeconds)));
+            cfg.PrefetchCount = options.PrefetchCount;
 
             cfg.ConfigureEndpoints(context);
         });
