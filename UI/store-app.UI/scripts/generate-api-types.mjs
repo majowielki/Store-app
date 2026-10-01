@@ -10,6 +10,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const documents = resolve(here, '../../../docs/api/openapi');
 const output = resolve(here, '../src/api/schema');
 const check = process.argv.includes('--check');
+// Git may check TypeScript files out with CRLF on Windows; line endings are not API drift.
+const normalize = (text) => text.replace(/\r\n/g, '\n');
 const names = ['identity', 'catalog', 'cart', 'orders', 'audit', 'content', 'payments', 'reviews'];
 
 mkdirSync(output, { recursive: true });
@@ -19,7 +21,7 @@ for (const name of names) {
   const target = resolve(output, `${name}.ts`);
   const generated = execFileSync('npx', ['openapi-typescript', source], { cwd: resolve(here, '..'), encoding: 'utf8', shell: true });
   if (check) {
-    if (!existsSync(target) || readFileSync(target, 'utf8') !== generated) stale.push(name);
+    if (!existsSync(target) || normalize(readFileSync(target, 'utf8')) !== normalize(generated)) stale.push(name);
   } else {
     writeFileSync(target, generated);
     console.log(`generated ${name} -> ${target}`);

@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 namespace Store.ReviewService.Moderation;
 
 /// <summary>
-/// What the model is told and how its answer is read (ADR 019). The review goes in as JSON, so
-/// nothing a customer writes can pass for the instructions around it; the answer comes back in a
+/// What the model is told and how its answer is read (ADR 019). JSON separates customer data
+/// from instructions but does not guarantee resistance to prompt injection. The answer uses a
 /// fixed JSON shape (structured output), and anything else is read as "a person should look".
 /// </summary>
 public static class ReviewModelPrompt
@@ -16,6 +16,8 @@ public static class ReviewModelPrompt
     private static readonly JsonSerializerOptions Json = new()
     {
         PropertyNamingPolicy = Naming,
+        RespectRequiredConstructorParameters = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         Converters = { new JsonStringEnumConverter(Naming, allowIntegerValues: false) }
     };
 
