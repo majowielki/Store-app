@@ -4,6 +4,10 @@ Gałąź `feat/cinematic` (od `main`). Saldo na starcie 1088, próg 400, **budż
 rezerwa na poprawki ~20% (≈140), więc plan celuje w ≤ 550. Inspiracje: [inspiration.md](inspiration.md),
 log każdej generacji: [media-log.md](media-log.md).
 
+> **Stan (25.10.2026):** zrobione 1–5. W trakcie, na prośbę właściciela, doszły przebudowa hero
+> i paska ogłoszeń oraz przegląd i poprawki mobile na emulatorze Androida. Szczegóły, koszty i wyniki
+> kontroli są w [REPORT.md](REPORT.md).
+
 ## Zasada przewodnia
 
 Wideo z Higgsfield jest warstwą pod spodem, a tekst i ruch są w kodzie na wierzchu (jak u Jacka Robertsa).
