@@ -5,6 +5,7 @@ import { useGetProductsQuery } from '@/api/catalog';
 import { cn } from '@/lib/utils';
 import { categories, categoryHref, priceTag, type Category } from '@/utils';
 import Reveal from './Reveal';
+import SplitText from './cinematic/SplitText';
 
 // Where each room sits in the four-column mosaic (two columns on phones)
 const layout: Record<string, string> = {
@@ -84,9 +85,9 @@ const RoomsGrid = () => {
       <Reveal as="header" className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="eyebrow">Shop by room</p>
-          <h2 id="rooms" className="display mt-3 text-4xl md:text-6xl">
+          <SplitText as="h2" id="rooms" className="display mt-3 text-4xl md:text-6xl">
             Start with the room, <em>not the catalogue.</em>
-          </h2>
+          </SplitText>
         </div>
         <Link to="/products" className="group inline-flex items-center gap-2 text-sm font-medium">
           <span className="link-underline">Everything we make</span>

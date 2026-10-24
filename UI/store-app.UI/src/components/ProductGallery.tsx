@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react';
 import type { ProductDetail } from '@/api/types';
 import LookbookPicture from '@/components/content/LookbookPicture';
+import { REDUCED_MOTION_QUERY } from '@/lib/motion';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 import { cn } from '@/lib/utils';
@@ -12,7 +13,7 @@ interface Picture {
   alt: string;
 }
 
-const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+const prefersReducedMotion = () => window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false;
 
 const roundButton =
   'grid h-10 w-10 place-items-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur-sm transition-opacity hover:bg-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring';

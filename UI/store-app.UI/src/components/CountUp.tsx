@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useInView } from '@/hooks/use-in-view';
+import { REDUCED_MOTION_QUERY } from '@/lib/motion';
 
 /** A number counting up from zero the first time it scrolls into view. */
 const CountUp = ({ value, duration = 1400 }: { value: number; duration?: number }) => {
@@ -9,7 +10,7 @@ const CountUp = ({ value, duration = 1400 }: { value: number; duration?: number 
 
   useEffect(() => {
     if (!inView) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (window.matchMedia(REDUCED_MOTION_QUERY).matches) {
       setShown(value);
       return;
     }

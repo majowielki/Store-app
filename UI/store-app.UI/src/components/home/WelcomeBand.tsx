@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { useGetPricingRulesQuery } from '@/api/orders';
 import Reveal from '@/components/Reveal';
+import SplitText from '@/components/cinematic/SplitText';
 import { Button } from '@/components/ui/button';
 import { usePerks } from '@/content/perks';
 import { useAppSelector } from '@/hooks';
@@ -23,7 +24,7 @@ const WelcomeBand = () => {
         <span aria-hidden className="absolute -bottom-40 left-1/3 h-80 w-80 rounded-full bg-brand-foreground opacity-[0.07] blur-2xl" />
         <div className="relative">
           <p className="eyebrow text-current">{user ? 'With every order' : 'New here?'}</p>
-          <h2 id="welcome" className="display mt-4 text-5xl leading-[0.95] md:text-6xl">
+          <SplitText as="h2" id="welcome" className="display mt-4 text-5xl leading-[0.95] md:text-6xl">
             {user ? (
               <>
                 Delivered with <em>care.</em>
@@ -33,7 +34,7 @@ const WelcomeBand = () => {
                 {rules ? `${rules.firstOrderDiscountPercent}% off` : 'A welcome discount on'} <em>your first order.</em>
               </>
             )}
-          </h2>
+          </SplitText>
           {!user && (
             <>
               <p className="mt-6 max-w-md">

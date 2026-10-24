@@ -35,7 +35,9 @@ const AuthShell = ({ eyebrow, title, lead, image, film, children }: AuthShellPro
         <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-black/30" />
         <Logo className="absolute left-10 top-8 text-white" />
         <figure className="absolute inset-x-10 bottom-10 max-w-lg text-white">
-          <SplitText as="blockquote" text={QUOTE} shown={settled} delay={300} className="display text-4xl leading-[1.1]" />
+          <SplitText as="blockquote" shown={settled} delay={300} className="display text-4xl leading-[1.1]">
+            {QUOTE}
+          </SplitText>
           <figcaption data-shown={settled} className="mt-4 text-xs uppercase tracking-[0.2em] text-white/70 opacity-0 transition-opacity delay-700 duration-1000 data-[shown=true]:opacity-100">
             The Store team
           </figcaption>

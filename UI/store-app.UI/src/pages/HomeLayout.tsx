@@ -7,6 +7,7 @@ import CompareBar from '@/components/CompareBar';
 import Footer from '@/components/Footer';
 import SkipLink from '@/components/SkipLink';
 import { useFocusOnNavigate } from '@/hooks/use-focus-on-navigate';
+import { useSmoothScroll } from '@/hooks/use-smooth-scroll';
 import { MAIN_CONTENT_ID } from '@/lib/focus';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +19,7 @@ const HomeLayout = () => {
   const fullBleed = pathname === '/';
   const main = useRef<HTMLElement>(null);
   useFocusOnNavigate(main);
+  useSmoothScroll();
 
   return (
     <div className="flex min-h-screen flex-col">

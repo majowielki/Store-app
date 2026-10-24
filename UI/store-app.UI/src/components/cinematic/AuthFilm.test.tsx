@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WIDE_SCREEN_QUERY } from '@/lib/motion';
+import { REDUCED_MOTION_QUERY, WIDE_SCREEN_QUERY } from '@/lib/motion';
 import AuthFilm, { type Film } from './AuthFilm';
 
 const film: Film = { video: '/entrance.mp4', poster: '/entrance.webp', focus: '50% 50%' };
@@ -42,7 +42,7 @@ describe('the film of the sign-in and registration pages', () => {
   });
 
   it('shows only the picture on a small screen or to visitors who asked for less motion', () => {
-    for (const queries of [[], [WIDE_SCREEN_QUERY, '(prefers-reduced-motion: reduce)']]) {
+    for (const queries of [[], [WIDE_SCREEN_QUERY, REDUCED_MOTION_QUERY]]) {
       screenWith(...queries);
       const settled = vi.fn();
       const { container, unmount } = render(<AuthFilm image="/detail.webp" film={film} onSettled={settled} />);

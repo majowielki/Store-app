@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { useGetLookbooksQuery } from '@/api/content';
 import LookbookPicture, { AddLookButton } from '@/components/content/LookbookPicture';
 import Reveal from '@/components/Reveal';
+import SplitText from '@/components/cinematic/SplitText';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 
 /** The first lookbook, with its points: a whole room to shop from the home page. */
@@ -18,9 +19,9 @@ const LookbookFeature = () => {
       <div className="align-element grid gap-10 lg:grid-cols-12 lg:items-end">
         <Reveal as="header" className="lg:col-span-4">
           <p className="eyebrow">Shop the look</p>
-          <h2 id="shop-the-look" className="display mt-3 text-4xl md:text-6xl">
+          <SplitText as="h2" id="shop-the-look" className="display mt-3 text-4xl md:text-6xl">
             {look.title}
-          </h2>
+          </SplitText>
           <p className="mt-5 text-lg leading-relaxed text-muted-foreground">{look.summary}</p>
           <p className="mt-3 text-sm text-muted-foreground">Select a point on the picture to see the piece.</p>
           <div className="mt-8 flex flex-wrap items-center gap-4">

@@ -16,6 +16,12 @@ export const motionFlags = {
 
 export type MotionFlag = keyof typeof motionFlags;
 
+/** The media query of visitors who asked their system for less motion. */
+export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+/** A mouse or trackpad: touch screens keep their own native scrolling. */
+export const FINE_POINTER_QUERY = '(pointer: fine)';
+
 /** The width from which the sign-in and registration pages show their picture half (Tailwind's lg). */
 export const WIDE_SCREEN_QUERY = '(min-width: 1024px)';
 
@@ -23,12 +29,12 @@ const matches = (query: string) => typeof window !== 'undefined' && typeof windo
 
 /** Whether the visitor asked for less motion; true where it cannot be told (tests), so nothing moves there. */
 export const prefersReducedMotion = () =>
-  typeof window === 'undefined' || typeof window.matchMedia !== 'function' || matches('(prefers-reduced-motion: reduce)');
+  typeof window === 'undefined' || typeof window.matchMedia !== 'function' || matches(REDUCED_MOTION_QUERY);
 
 /** Whether an effect may run for this visitor: its switch is on and no reduced motion was asked for. */
 export const motionAllowed = (flag: MotionFlag) => motionFlags[flag] && !prefersReducedMotion();
 
-/** Whether the screen is at least `query` wide, for effects that only exist on large screens. */
+/** Whether a media query matches (false where it cannot be told), e.g. for effects only large screens have. */
 export const screenMatches = matches;
 
 /**

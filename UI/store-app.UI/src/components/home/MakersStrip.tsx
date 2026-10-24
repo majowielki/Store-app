@@ -3,6 +3,7 @@ import ResponsiveImage from '@/components/ResponsiveImage';
 import { ArrowUpRight } from 'lucide-react';
 import { useGetMakersQuery } from '@/api/content';
 import Reveal from '@/components/Reveal';
+import SplitText from '@/components/cinematic/SplitText';
 
 /** The workshops behind the catalogue, one portrait card each. */
 const MakersStrip = () => {
@@ -14,9 +15,9 @@ const MakersStrip = () => {
       <Reveal as="header" className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="eyebrow">Who makes it</p>
-          <h2 id="makers" className="display mt-3 text-4xl md:text-6xl">
+          <SplitText as="h2" id="makers" className="display mt-3 text-4xl md:text-6xl">
             Five workshops, <em>one standard.</em>
-          </h2>
+          </SplitText>
         </div>
         <Link to="/makers" className="group inline-flex items-center gap-2 text-sm font-medium">
           <span className="link-underline">Meet the makers</span>

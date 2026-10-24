@@ -4,6 +4,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { useGetProductsQuery } from '@/api/catalog';
 import ProductCard, { ProductPrice } from '@/components/ProductCard';
 import Reveal from '@/components/Reveal';
+import SplitText from '@/components/cinematic/SplitText';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Product } from '@/utils';
 
@@ -37,9 +38,9 @@ const NewArrivals = () => {
       <Reveal as="header" className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="eyebrow">Just in</p>
-          <h2 id="new-arrivals" className="display mt-3 text-4xl md:text-6xl">
+          <SplitText as="h2" id="new-arrivals" className="display mt-3 text-4xl md:text-6xl">
             New arrivals, <em className="text-brand">fresh from the workshop.</em>
-          </h2>
+          </SplitText>
         </div>
         <Link to="/products?newArrival=on" className="group inline-flex items-center gap-2 text-sm font-medium">
           <span className="link-underline">All {data?.totalCount ?? ''} new pieces</span>

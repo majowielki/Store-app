@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 /* Enter and exit animations of dialogs, sheets and menus (animate-in, fade-in-0, zoom-in-95...) */
 @import 'tw-animate-css';
+/* Smooth scrolling (src/hooks/use-smooth-scroll.ts): the page's height and its stopped state */
+@import 'lenis/dist/lenis.css';
 
 /* The theme toggle puts .dark on <html> */
 @custom-variant dark (&:is(.dark *));

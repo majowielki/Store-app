@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { REDUCED_MOTION_QUERY } from '@/lib/motion';
 
 /**
  * Moves the element slightly against the scroll while it is on screen, by `strength` pixels
@@ -10,7 +11,7 @@ export const useParallax = <T extends HTMLElement>(strength = 40) => {
 
   useEffect(() => {
     const element = ref.current;
-    if (!element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!element || window.matchMedia(REDUCED_MOTION_QUERY).matches) return;
     let frame = 0;
     const update = () => {
       frame = 0;

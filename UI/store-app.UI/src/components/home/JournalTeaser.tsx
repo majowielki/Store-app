@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { useGetArticlesQuery } from '@/api/content';
 import ContentCard from '@/components/content/ContentCard';
 import Reveal from '@/components/Reveal';
+import SplitText from '@/components/cinematic/SplitText';
 import { formatDate } from '@/utils';
 
 /** The three newest journal articles. */
@@ -15,9 +16,9 @@ const JournalTeaser = () => {
       <Reveal as="header" className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="eyebrow">Journal</p>
-          <h2 id="journal" className="display mt-3 text-4xl md:text-6xl">
+          <SplitText as="h2" id="journal" className="display mt-3 text-4xl md:text-6xl">
             Ideas for <em>living well.</em>
-          </h2>
+          </SplitText>
         </div>
         <Link to="/journal" className="group inline-flex items-center gap-2 text-sm font-medium">
           <span className="link-underline">Read the journal</span>
