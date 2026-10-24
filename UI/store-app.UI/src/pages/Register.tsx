@@ -3,12 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { SubmitBtn, FormInput } from '@/components';
 import AuthShell from '@/components/AuthShell';
 import picture from '@/assets/register.webp';
+import dawn from '@/assets/cinematic/register-dawn.mp4';
+import dawnPoster from '@/assets/cinematic/register-dawn-poster.webp';
+import type { Film } from '@/components/cinematic/AuthFilm';
 import { useGetPricingRulesQuery } from '@/api/orders';
 import { signIn } from '@/features/session/sessionThunks';
 import { useAppDispatch } from '@/hooks';
 import { toast } from '@/hooks/use-toast';
 import { usePageMeta } from '@/seo';
 import { validateRegister } from '@/utils/validation';
+
+// The room before sunrise filling with morning light, around the throw the picture is a detail of
+const film: Film = { video: dawn, poster: dawnPoster, focus: '36% 66%' };
 
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p className="-mt-2 animate-fade-up text-xs text-destructive">{message}</p> : null;
@@ -54,6 +60,7 @@ const Register = () => {
       title={<>Make yourself <em>at home.</em></>}
       lead={rules ? `Register and ${rules.firstOrderDiscountPercent}% comes off your first order — no code needed.` : 'Register to track your orders and check out faster.'}
       image={picture}
+      film={film}
     >
       <form method="post" className="grid gap-5" onSubmit={handleSubmit} noValidate>
         <div className="grid gap-5 sm:grid-cols-2">

@@ -44,3 +44,6 @@ lighthouse-report
 storybook-static
 test-results-visual
 playwright-report-visual
+
+# Raw generated media and screenshots of the cinematic work (docs/cinematic); only the encoded files go to src/assets
+/media-work

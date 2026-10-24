@@ -4,12 +4,18 @@ import { Button } from '@/components/ui/button';
 import { SubmitBtn, FormInput } from '@/components';
 import AuthShell from '@/components/AuthShell';
 import picture from '@/assets/sign-in.webp';
+import entrance from '@/assets/cinematic/sign-in-entrance.mp4';
+import entrancePoster from '@/assets/cinematic/sign-in-entrance-poster.webp';
+import type { Film } from '@/components/cinematic/AuthFilm';
 import { isAdmin } from '@/features/session/roles';
 import { signIn, type SignInRequest } from '@/features/session/sessionThunks';
 import { useAppDispatch } from '@/hooks';
 import { toast } from '@/hooks/use-toast';
 import { usePageMeta } from '@/seo';
 import { validateLogin } from '@/utils/validation';
+
+// Through the front door and into the bedroom, to the lamp the picture is a detail of
+const film: Film = { video: entrance, poster: entrancePoster, focus: '50% 45%' };
 
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p className="-mt-2 animate-fade-up text-xs text-destructive">{message}</p> : null;
@@ -47,7 +53,7 @@ const Login = () => {
   };
 
   return (
-    <AuthShell eyebrow="Sign in" title={<>Welcome <em>back.</em></>} lead="Sign in to see your orders and check out faster." image={picture}>
+    <AuthShell eyebrow="Sign in" title={<>Welcome <em>back.</em></>} lead="Sign in to see your orders and check out faster." image={picture} film={film}>
       <form method="post" className="grid gap-5" onSubmit={handleSubmit} noValidate>
         <FormInput type="email" name="email" value={form.email} onChange={handleChange} autoComplete="email" />
         <FieldError message={errors.email} />

@@ -1,8 +1,10 @@
-import { useRef, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { useFocusOnNavigate } from '@/hooks/use-focus-on-navigate';
 import { MAIN_CONTENT_ID } from '@/lib/focus';
 import { closeAuthPage } from '@/utils/closeAuthPage';
+import AuthFilm, { type Film } from './cinematic/AuthFilm';
+import SplitText from './cinematic/SplitText';
 import Logo from './Logo';
 
 interface AuthShellProps {
@@ -10,24 +12,33 @@ interface AuthShellProps {
   title: ReactNode;
   lead: string;
   image: string;
+  /** A short clip played once before the picture, on large screens (see AuthFilm). */
+  film?: Film;
   children: ReactNode;
 }
 
-/** The sign-in and registration pages: a photograph on one half, the form on the other. */
-const AuthShell = ({ eyebrow, title, lead, image, children }: AuthShellProps) => {
+const QUOTE = 'Good rooms are made slowly — one well-chosen piece at a time.';
+
+/** The sign-in and registration pages: a photograph (or a short film ending on it) on one half, the form on the other. */
+const AuthShell = ({ eyebrow, title, lead, image, film, children }: AuthShellProps) => {
   const main = useRef<HTMLElement>(null);
   // From sign-in to registration and back: the focus goes on from the top of the new form
   useFocusOnNavigate(main);
+  // The quote waits for the picture: it rises once the film has reached the room
+  const [settled, setSettled] = useState(false);
+  const settle = useCallback(() => setSettled(true), []);
 
   return (
     <main id={MAIN_CONTENT_ID} ref={main} tabIndex={-1} className="grid min-h-screen focus:outline-none lg:grid-cols-2">
       <div className="relative hidden overflow-hidden bg-muted lg:block">
-        <img src={image} alt="" className="absolute inset-0 h-full w-full animate-zoom-out object-cover" />
+        <AuthFilm key={image} image={image} film={film} onSettled={settle} />
         <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-black/30" />
         <Logo className="absolute left-10 top-8 text-white" />
-        <figure className="absolute inset-x-10 bottom-10 max-w-lg animate-fade-up text-white [animation-delay:300ms]">
-          <blockquote className="display text-4xl leading-[1.1]">Good rooms are made slowly — one well-chosen piece at a time.</blockquote>
-          <figcaption className="mt-4 text-xs uppercase tracking-[0.2em] text-white/70">The Store team</figcaption>
+        <figure className="absolute inset-x-10 bottom-10 max-w-lg text-white">
+          <SplitText as="blockquote" text={QUOTE} shown={settled} delay={300} className="display text-4xl leading-[1.1]" />
+          <figcaption data-shown={settled} className="mt-4 text-xs uppercase tracking-[0.2em] text-white/70 opacity-0 transition-opacity delay-700 duration-1000 data-[shown=true]:opacity-100">
+            The Store team
+          </figcaption>
         </figure>
       </div>
 
