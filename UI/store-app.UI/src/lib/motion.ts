@@ -12,6 +12,8 @@ export const motionFlags = {
   smoothScroll: true,
   /** The morning light moving across the home page's hero picture. */
   heroLight: true,
+  /** The walk into the featured lookbook's room on the home page, following the scroll (ScrollFilm). */
+  lookbookEntrance: true,
 } as const;
 
 export type MotionFlag = keyof typeof motionFlags;

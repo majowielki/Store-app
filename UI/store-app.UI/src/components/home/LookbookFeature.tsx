@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { useGetLookbooksQuery } from '@/api/content';
+import ScrollFilm from '@/components/cinematic/ScrollFilm';
 import LookbookPicture, { AddLookButton } from '@/components/content/LookbookPicture';
 import Reveal from '@/components/Reveal';
 import SplitText from '@/components/cinematic/SplitText';
+import { lookFilms } from '@/content/lookFilms';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 
-/** The first lookbook, with its points: a whole room to shop from the home page. */
+/** The first lookbook, with its points: a whole room to shop from the home page, walked into as it scrolls up. */
 const LookbookFeature = () => {
   const { data: looks } = useGetLookbooksQuery();
   const look = looks?.[0];
@@ -33,7 +35,9 @@ const LookbookFeature = () => {
           </div>
         </Reveal>
         <Reveal delay={120} className="lg:col-span-8">
-          <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} size="half" />
+          <ScrollFilm film={lookFilms[look.slug]}>
+            <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} size="half" />
+          </ScrollFilm>
         </Reveal>
       </div>
     </section>
