@@ -6,7 +6,7 @@ import Reveal from './Reveal';
 const FIRST_ROW = 3;
 
 const ProductsGrid = ({ products }: { products: Product[] }) => (
-  <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+  <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 sm:gap-y-12 xl:grid-cols-3">
     {products.map((product, index) => (
       <Reveal key={product.id} delay={(index % 3) * 90}>
         <ProductCard product={product} priority={index < FIRST_ROW} />

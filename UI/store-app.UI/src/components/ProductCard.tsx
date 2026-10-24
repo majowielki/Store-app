@@ -72,7 +72,8 @@ const ProductCard = ({ product, transition = true, priority = false, className }
             decoding="async"
             className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-[1.06]"
           />
-          <div className="absolute left-3 top-3 flex gap-1.5">
+          {/* Clear of the wishlist heart on the right, wrapping on a narrow card */}
+          <div className="absolute left-3 right-14 top-3 flex flex-wrap gap-1.5">
             {hasSale && <SaleBadge percent={percent} />}
             {newArrival && (
               <span className="inline-flex items-center rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold leading-none tracking-wide backdrop-blur-sm">
@@ -88,25 +89,27 @@ const ProductCard = ({ product, transition = true, priority = false, className }
             <ArrowUpRight className="h-5 w-5 transition-transform duration-500 ease-smooth group-hover:rotate-45" />
           </span>
         </div>
-        <div className="mt-4 flex items-start justify-between gap-4">
+        {/* A narrow card (two to a phone's row) puts the price under the name, so the name keeps its width */}
+        <div className="mt-4 flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
             <p className="eyebrow">{company}</p>
             <h3 className="mt-1.5 font-medium leading-snug">{title}</h3>
             <RatingLine average={product.ratingAverage} count={product.ratingCount} className="mt-1.5" />
           </div>
-          <p className="shrink-0 text-right">
-            <ProductPrice product={product} stacked />
+          <p className="shrink-0 sm:text-right">
+            <ProductPrice product={product} stacked="from-sm" />
           </p>
         </div>
         <ColorDots colors={colors} className="mt-3" />
       </Link>
       <CompareToggle product={product} className="-ml-2.5 mt-2" />
-      {/* Over the picture but outside the link: a button may not sit inside a link */}
+      {/* Over the picture but outside the link: a button may not sit inside a link. A phone's narrow card has
+          no room for the quick view over its picture; a tap opens the product page there */}
       <div className="pointer-events-none absolute inset-x-0 top-0 aspect-5/4">
         <WishlistButton product={product} className="pointer-events-auto absolute right-3 top-3" />
         <QuickView
           product={product}
-          className="pointer-events-auto absolute bottom-3 left-3 translate-y-2 opacity-0 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
+          className="pointer-events-auto absolute bottom-3 left-3 translate-y-2 opacity-0 group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:translate-y-0 group-hover:opacity-100 max-sm:hidden [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
         />
       </div>
     </div>

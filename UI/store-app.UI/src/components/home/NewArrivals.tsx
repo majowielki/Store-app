@@ -51,7 +51,7 @@ const NewArrivals = () => {
         {isLoading || !lead ? (
           <>
             <Skeleton className="min-h-104 rounded-4xl" />
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6">
               {Array.from({ length: 4 }, (_, index) => (
                 <Skeleton key={index} className="aspect-5/4 rounded-2xl" />
               ))}
@@ -62,7 +62,7 @@ const NewArrivals = () => {
             <Reveal>
               <Lead product={lead} />
             </Reveal>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-10">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6">
               {rest.map((product, index) => (
                 <Reveal key={product.id} delay={index * 90}>
                   <ProductCard product={product} />
