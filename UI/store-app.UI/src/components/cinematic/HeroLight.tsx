@@ -1,0 +1,60 @@
+import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { motionAllowed, savesData, screenMatches, WIDE_SCREEN_QUERY } from '@/lib/motion';
+
+// The first sign of a visitor (not a crawler or Lighthouse, which never scroll nor move a pointer)
+const INTERACTIONS = ['scroll', 'pointermove', 'touchstart', 'keydown'] as const;
+/** The loop runs slower than it was filmed: the light drifts, it never flickers past. */
+const LIGHT_PLAYBACK_RATE = 0.7;
+
+interface HeroLightProps {
+  image: string;
+  alt: string;
+  width: number;
+  height: number;
+  /** A seamless loop starting and ending on the picture: only the light moves in it. */
+  video: string;
+  className?: string;
+}
+
+/**
+ * The home page's hero picture with the morning light moving across it. The picture is the
+ * page's largest paint and stays one; the loop is fetched only after the visitor's first scroll,
+ * pointer move, touch or key, on a large screen, with motion and data not saved, and fades in
+ * over the picture once it plays. Its frames are cropped like the picture's, so nothing jumps.
+ */
+const HeroLight = ({ image, alt, width, height, video, className }: HeroLightProps) => {
+  const [wanted, setWanted] = useState(false);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!motionAllowed('heroLight') || savesData() || !screenMatches(WIDE_SCREEN_QUERY)) return;
+    const start = () => setWanted(true);
+    INTERACTIONS.forEach((type) => window.addEventListener(type, start, { once: true, passive: true }));
+    return () => INTERACTIONS.forEach((type) => window.removeEventListener(type, start));
+  }, []);
+
+  return (
+    <div className={cn('relative overflow-hidden bg-muted', className)}>
+      <img src={image} width={width} height={height} alt={alt} fetchPriority="high" className="absolute inset-0 h-full w-full animate-zoom-out object-cover" />
+      {wanted && (
+        <video
+          src={video}
+          muted
+          loop
+          autoPlay
+          playsInline
+          preload="auto"
+          aria-hidden
+          tabIndex={-1}
+          onLoadedMetadata={(event) => (event.currentTarget.playbackRate = LIGHT_PLAYBACK_RATE)}
+          onPlaying={() => setPlaying(true)}
+          onError={() => setWanted(false)}
+          className={cn('absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-1000', playing && 'opacity-100')}
+        />
+      )}
+    </div>
+  );
+};
+
+export default HeroLight;

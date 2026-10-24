@@ -13,5 +13,7 @@ Surowe pliki: `UI/store-app.UI/media-work/` (poza gitem). Koszty z `higgsfield g
 | 6 | Rejestracja: klatka startowa (niebieska godzina) | `gpt_image_2_5` | high, 2k, 4:3, zmiana światła na `Blobs/StonewashedLinenThrow-1.webp` | 2,75 | **użyty** (`media-work/dawn-final.png`) |
 | 7 | Rejestracja: wideo świtu, szkic | `seedance_2_5` | draft, 5 s, 4:3, start #6, koniec `StonewashedLinenThrow-1.webp`, kamera nieruchoma | 15 | zaakceptowany: zmienia się tylko światło |
 | 8 | Rejestracja: wideo świtu, finał | `seedance_2_5` | 1080p, 5 s, `draft_job_id` z #7, bez audio | 80 | **użyty** → `src/assets/cinematic/register-dawn.mp4` (1440 px, CRF 24, 0,76 MB) |
+| 9 | Strona główna: pętla światła w hero, szkic | `seedance_2_5` | draft, 6 s, 3:4, start = koniec = `hero1.webp` przycięte do 3:4, kamera nieruchoma | 18 | zaakceptowany: słoneczna plama z cieniem liści przechodzi po ścianie i wraca, meble stoją |
+| 10 | Strona główna: pętla światła w hero, finał | `seedance_2_5` | `draft_job_id` z #9, zamówione 720p, **wyszło 1248×1664** | 96 | **użyty** → `src/assets/cinematic/hero-light.mp4` (960 px, CRF 24); lekcja: finał ze szkicu renderuje się w pełnej rozdzielczości, a `generate cost` trzeba pytać z `--draft_job_id` (bez niego podał 42) |
 
-Po #8: saldo **858,25** (wydane 229,75).
+Po #8: saldo **858,25** (wydane 229,75). Po #10: saldo **744,25** (wydane 343,75).

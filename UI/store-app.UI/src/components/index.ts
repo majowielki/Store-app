@@ -35,4 +35,3 @@ export { default as MobileBottomBar } from './MobileBottomBar';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as PageNumbers } from './PageNumbers';
 export { default as Reveal } from './Reveal';
-export { default as Marquee } from './Marquee';

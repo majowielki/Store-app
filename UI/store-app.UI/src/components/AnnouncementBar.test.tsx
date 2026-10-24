@@ -1,25 +1,33 @@
-import { screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { act, fireEvent, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithStore } from '@/test/render';
 import AnnouncementBar from './AnnouncementBar';
 
+const shownPerk = () => screen.getAllByRole('listitem').find((item) => item.dataset.shown === 'true')?.textContent;
+
 describe('the announcement bar', () => {
-  it('is a landmark of its own and its ticker can be paused and played again', async () => {
-    const user = userEvent.setup();
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('is a landmark of its own listing every perk, and its turning can be paused and played again', () => {
     renderWithStore(<AnnouncementBar />);
 
     expect(screen.getByRole('complementary', { name: 'What every order gets' })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    const first = shownPerk();
+    act(() => vi.advanceTimersByTime(5000));
+    const second = shownPerk();
+    expect(second).not.toBe(first);
+
     const pause = screen.getByRole('button', { name: 'Pause the offers' });
-    const ticker = screen.getAllByText('30-day returns, no questions asked')[0].closest('.animate-marquee');
-    expect(ticker).not.toHaveClass('paused');
-
-    await user.click(pause);
+    fireEvent.click(pause);
     expect(pause).toHaveAttribute('aria-pressed', 'true');
-    expect(ticker).toHaveClass('paused');
+    act(() => vi.advanceTimersByTime(15000));
+    expect(shownPerk()).toBe(second);
 
-    await user.click(pause);
+    fireEvent.click(pause);
     expect(pause).toHaveAttribute('aria-pressed', 'false');
-    expect(ticker).not.toHaveClass('paused');
+    act(() => vi.advanceTimersByTime(5000));
+    expect(shownPerk()).not.toBe(second);
   });
 });

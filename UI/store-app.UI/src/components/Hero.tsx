@@ -3,16 +3,17 @@ import { ArrowUpRight } from 'lucide-react';
 import { useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
 import { useGetPricingRulesQuery } from '@/api/orders';
 import hero1 from '@/assets/hero1.webp';
-import hero2 from '@/assets/hero2.webp';
+import heroLight from '@/assets/cinematic/hero-light.mp4';
 import { useAppSelector } from '@/hooks';
+import HeroLight from './cinematic/HeroLight';
 import CountUp from './CountUp';
 import { Button } from './ui/button';
 
 /**
- * The spinning round badge on the hero picture: the welcome discount for visitors (leading to
+ * The round badge on the hero picture: the welcome discount for visitors (leading to
  * the registration), the sale for customers who already have an account.
  */
-const RotatingBadge = () => {
+const WelcomeBadge = () => {
   const user = useAppSelector((s) => s.session.user);
   const { data: rules } = useGetPricingRulesQuery();
   const welcome = user ? undefined : rules;
@@ -20,9 +21,9 @@ const RotatingBadge = () => {
   return (
     <Link
       to={welcome ? '/register' : '/products?sale=on'}
-      className="group absolute -right-3 -top-8 grid h-32 w-32 place-items-center rounded-full bg-brand text-brand-foreground shadow-xl transition-transform duration-500 ease-smooth hover:scale-105 md:-right-8 md:h-36 md:w-36"
+      className="group absolute bottom-4 left-4 grid h-24 w-24 place-items-center rounded-full bg-brand text-brand-foreground shadow-xl transition-transform duration-500 ease-smooth hover:scale-105 md:h-32 md:w-32 lg:bottom-12 lg:left-12"
     >
-      <svg viewBox="0 0 120 120" className="absolute inset-0 h-full w-full animate-spin-slow" aria-hidden>
+      <svg viewBox="0 0 120 120" className="absolute inset-0 h-full w-full" aria-hidden>
         <defs>
           <path id="hero-badge-circle" d="M60,60 m-45,0 a45,45 0 1,1 90,0 a45,45 0 1,1 -90,0" />
         </defs>
@@ -60,14 +61,18 @@ const Stats = () => {
   );
 };
 
+/**
+ * The first screen: the promise on the left, in the page's column, and the living room on the
+ * right half, out to the edge of the screen, with the morning light moving across its wall.
+ */
 const Hero = () => (
-  <section className="align-element grid items-center gap-16 overflow-x-clip pb-20 pt-10 lg:grid-cols-12 lg:gap-8 lg:pb-28 lg:pt-14">
-    <div className="lg:col-span-7">
+  <section className="grid gap-10 pb-20 pt-4 sm:pt-6 lg:min-h-[min(54rem,calc(100svh-6.5rem))] lg:grid-cols-2 lg:gap-0 lg:pb-0 lg:pt-0">
+    <div className="flex flex-col justify-center px-4 sm:px-6 lg:py-16 lg:pl-[max(2rem,calc((100vw-80rem)/2+2rem))] lg:pr-16">
       <p className="eyebrow flex animate-fade-up items-center gap-3">
         <span className="h-px w-8 bg-foreground/40" />
         Furniture &amp; objects for every room
       </p>
-      <h1 className="display mt-6 text-[clamp(3.25rem,8.2vw,7.75rem)] leading-[0.9]">
+      <h1 className="display mt-6 text-[clamp(3.25rem,6.6vw,7rem)] leading-[0.9]">
         <span className="line-mask">
           <span>Make every</span>
         </span>
@@ -100,23 +105,17 @@ const Hero = () => (
       <Stats />
     </div>
 
-    <div className="relative mx-auto w-full max-w-md lg:col-span-5 lg:max-w-none">
-      <div className="relative aspect-4/5 overflow-hidden rounded-4xl bg-muted">
-        <img
-          src={hero1}
-          width={1200}
-          height={1800}
-          alt="A light linen sofa with a woven pouf and brass side tables"
-          fetchPriority="high"
-          className="h-full w-full animate-zoom-out object-cover"
-        />
-      </div>
-      <div className="absolute -bottom-8 -left-6 w-36 animate-fade-up [animation-delay:700ms] md:-left-12 md:w-44">
-        <div className="animate-float overflow-hidden rounded-2xl border-[6px] border-background shadow-2xl">
-          <img src={hero2} alt="" width={480} height={600} loading="lazy" className="aspect-4/5 w-full object-cover" />
-        </div>
-      </div>
-      <RotatingBadge />
+    {/* On a phone the room comes first, so the first screen shows what the shop sells */}
+    <div className="relative order-first mx-4 sm:mx-6 lg:order-none lg:mx-0">
+      <HeroLight
+        image={hero1}
+        width={1200}
+        height={1800}
+        alt="A light linen sofa with a woven pouf and brass side tables"
+        video={heroLight}
+        className="aspect-5/4 rounded-3xl sm:aspect-4/3 lg:aspect-auto lg:h-full lg:rounded-none lg:rounded-bl-[3rem]"
+      />
+      <WelcomeBadge />
     </div>
   </section>
 );
