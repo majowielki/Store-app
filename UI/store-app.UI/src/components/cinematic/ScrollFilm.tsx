@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { markSeen, wasSeen } from '@/lib/filmSeen';
 import { cn } from '@/lib/utils';
 import { motionAllowed, savesData, screenMatches, WIDE_SCREEN_QUERY } from '@/lib/motion';
 
@@ -26,9 +27,15 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
  * again. The picture underneath is the real one, with everything it does (lookbook points): once
  * arrived, the clip fades away and leaves it. Keyboard focus inside shows the picture at once.
  * Large screens only, with motion and data not saved; elsewhere the picture alone.
+ *
+ * A picture at the top of its page (`trigger="arrival"`) is already on screen, where a scroll would
+ * start the walk halfway: there the clip plays once by itself on arrival, then leaves the picture -
+ * once per browser tab, like the sign-in film.
  */
-const ScrollFilm = ({ film, className, children }: { film?: ScrollFilmSource; className?: string; children: ReactNode }) => {
-  const [enabled] = useState(() => !!film && motionAllowed('lookbookEntrance') && screenMatches(WIDE_SCREEN_QUERY) && !savesData());
+const ScrollFilm = ({ film, trigger = 'scroll', className, children }: { film?: ScrollFilmSource; trigger?: 'scroll' | 'arrival'; className?: string; children: ReactNode }) => {
+  const [enabled] = useState(
+    () => !!film && motionAllowed('lookbookEntrance') && screenMatches(WIDE_SCREEN_QUERY) && !savesData() && !(trigger === 'arrival' && wasSeen(film.video)),
+  );
   const [near, setNear] = useState(false);
   const [arrived, setArrived] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -45,10 +52,16 @@ const ScrollFilm = ({ film, className, children }: { film?: ScrollFilmSource; cl
     return () => observer.disconnect();
   }, [enabled]);
 
+  // On arrival the clip plays by itself; if the browser refuses to (battery saver), the picture at once
+  useEffect(() => {
+    if (!enabled || !near || trigger !== 'arrival') return;
+    video.current?.play().catch(() => setArrived(true));
+  }, [enabled, near, trigger]);
+
   // The clip's time follows the scroll; a seek waits for the previous one, so a fast flick never queues up
   useEffect(() => {
     const element = box.current;
-    if (!enabled || !element) return;
+    if (!enabled || !element || trigger !== 'scroll') return;
     let frame = 0;
     let wanted: number | null = null;
     const seek = () => {
@@ -85,7 +98,7 @@ const ScrollFilm = ({ film, className, children }: { film?: ScrollFilmSource; cl
       clip?.removeEventListener('loadedmetadata', update);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [enabled, near]);
+  }, [enabled, near, trigger]);
 
   const covering = enabled && !failed && !arrived && !focused;
 
@@ -108,7 +121,13 @@ const ScrollFilm = ({ film, className, children }: { film?: ScrollFilmSource; cl
               muted
               playsInline
               preload="auto"
+              autoPlay={trigger === 'arrival'}
               tabIndex={-1}
+              onEnded={() => {
+                if (trigger !== 'arrival' || !film) return;
+                markSeen(film.video);
+                setArrived(true);
+              }}
               onError={() => setFailed(true)}
               className="absolute inset-0 h-full w-full object-cover"
             />

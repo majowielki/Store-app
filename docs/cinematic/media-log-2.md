@@ -22,3 +22,11 @@ pierwszym użyciu w tej rundzie).
 Poprawka jakości: ffmpeg ignoruje `-quality` w `libwebp`, przez co plakaty i kadry z obu rund miały
 3–10 kB i były rozmyte. Wszystkie są przekodowane z surowych plików przez `-q:v 80 -compression_level 6`
 (20–60 kB).
+| 9 | Lookbook sypialnia: z korytarza | `gpt_image_2_5` | high, 2k, 16:9, edycja `Lookbook-Bedroom.webp` | 2,75 | 2427,5 | **użyty** |
+| 10 | Lookbook sypialnia: wejście | `kling_o3_flf` | pro, 10 s, start #9, koniec `Lookbook-Bedroom.webp` | 12,5 | 2427,5 | **użyty** → `look-bedroom.mp4` (1280 px, 0,91 MB); ostatnia klatka praktycznie równa zdjęciu, więc Kling zastąpił planowany Seedance (~117) |
+| 11 | Lookbook kuchnia: z korytarza | `gpt_image_2_5` | high, 2k, 16:9, edycja `Lookbook-Kitchen.webp` | 2,75 | 2427,5 | **użyty** (drzwi trochę z boku: kamera dochodzi łukiem) |
+| 12 | Lookbook pokój dziecka: z korytarza | `gpt_image_2_5` | high, 2k, 16:9, edycja `Lookbook-KidsRoom.webp` | 2,75 | 2427,5 | **użyty** |
+| 13 | Lookbook ogród: z domu przez szklane drzwi | `gpt_image_2_5` | high, 2k, 16:9, edycja `Lookbook-Garden.webp` | 2,75 | 2427,5 | **użyty** |
+| 14 | Lookbook kuchnia: wejście | `kling_o3_flf` | pro, 10 s, start #11 | 12,5 | 2427,5 | **użyty** → `look-kitchen.mp4` (0,9 MB) |
+| 15 | Lookbook pokój dziecka: wejście | `kling_o3_flf` | pro, 10 s, start #12 | 12,5 | 2427,5 | **użyty** → `look-kids-room.mp4` (0,81 MB) |
+| 16 | Lookbook ogród: wyjście na taras | `kling_o3_flf` | pro, 10 s, start #13 | 12,5 | 2427,5 | **użyty** → `look-garden.mp4` (CRF 29, 2,27 MB: liście ważą) |

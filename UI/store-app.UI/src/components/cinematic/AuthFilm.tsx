@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { markSeen, wasSeen } from '@/lib/filmSeen';
 import { cn } from '@/lib/utils';
 import { motionAllowed, savesData, screenMatches, WIDE_SCREEN_QUERY } from '@/lib/motion';
 
@@ -14,26 +15,9 @@ export interface Film {
 /** film: the clip plays; detail: it ended and the picture comes in over it; still: only the picture. */
 type Phase = 'film' | 'detail' | 'still';
 
-// Remembered for the browser tab: once seen, the next visit opens on the picture
-const seenKey = (film: Film) => `film-seen:${film.video}`;
-const wasSeen = (film: Film) => {
-  try {
-    return sessionStorage.getItem(seenKey(film)) !== null;
-  } catch {
-    return false;
-  }
-};
-const markSeen = (film: Film) => {
-  try {
-    sessionStorage.setItem(seenKey(film), '1');
-  } catch {
-    // private mode or blocked storage: the film just plays again next time
-  }
-};
-
 /** Whether the film plays on this visit: wide screen, motion allowed, data not saved, not seen yet. */
 const filmPlays = (film?: Film) =>
-  !!film && motionAllowed('authFilm') && screenMatches(WIDE_SCREEN_QUERY) && !savesData() && !wasSeen(film);
+  !!film && motionAllowed('authFilm') && screenMatches(WIDE_SCREEN_QUERY) && !savesData() && !wasSeen(film.video);
 
 interface AuthFilmProps {
   image: string;
@@ -58,7 +42,7 @@ const AuthFilm = ({ image, film, onSettled }: AuthFilmProps) => {
       video.current?.play().catch(() => setPhase('still'));
       return;
     }
-    if (film && phase === 'detail') markSeen(film);
+    if (film && phase === 'detail') markSeen(film.video);
     onSettled();
   }, [phase, film, onSettled]);
 

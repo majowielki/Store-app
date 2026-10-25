@@ -2,10 +2,12 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useGetLookbookQuery } from '@/api/content';
 import ContentUnavailable from '@/components/content/ContentUnavailable';
+import ScrollFilm from '@/components/cinematic/ScrollFilm';
 import LookbookPicture, { AddLookButton } from '@/components/content/LookbookPicture';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
 import { breadcrumbData, JsonLd, PageMeta } from '@/seo';
+import { lookFilms } from '@/content/lookFilms';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 import { VT } from '@/lib/viewTransition';
 
@@ -34,7 +36,9 @@ const LookPage = () => {
         </div>
         <AddLookButton products={products} />
       </header>
-      <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} className="mt-10" priority viewTransition={VT.contentCover} />
+      <ScrollFilm film={lookFilms[look.slug]} trigger="arrival" className="mt-10">
+        <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} priority viewTransition={VT.contentCover} />
+      </ScrollFilm>
       <p className="mt-4 text-sm text-muted-foreground">Select a point on the picture to see the piece.</p>
       {products.length > 0 && (
         <section className="mt-20" aria-label="The pieces of this look">

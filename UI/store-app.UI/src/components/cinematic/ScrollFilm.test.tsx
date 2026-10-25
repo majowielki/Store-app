@@ -5,6 +5,15 @@ import ScrollFilm from './ScrollFilm';
 
 const film = { video: '/walk.mp4', poster: '/walk.webp' };
 const realMatchMedia = window.matchMedia;
+const realObserver = window.IntersectionObserver;
+/** An IntersectionObserver that reports every observed element on screen at once. */
+class OnScreen {
+  constructor(private readonly callback: IntersectionObserverCallback) {}
+  observe(element: Element) {
+    this.callback([{ isIntersecting: true, target: element } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+  }
+  disconnect() {}
+}
 const screenWith = (...queries: string[]) => {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({ matches: queries.includes(query), media: query })) as typeof window.matchMedia;
 };
@@ -18,6 +27,8 @@ const picture = () =>
 describe('a picture walked into by scrolling', () => {
   afterEach(() => {
     window.matchMedia = realMatchMedia;
+    window.IntersectionObserver = realObserver;
+    vi.restoreAllMocks();
   });
 
   it('covers the picture with the walk until it is reached, and uncovers it for the keyboard at once', () => {
@@ -29,6 +40,26 @@ describe('a picture walked into by scrolling', () => {
 
     fireEvent.focus(screen.getByRole('button', { name: 'Sofa, $1,499.99' }));
     expect(cover).toHaveClass('opacity-0');
+  });
+
+  it('at the top of a page plays once by itself, then leaves the picture for the rest of the tab', () => {
+    screenWith(WIDE_SCREEN_QUERY);
+    sessionStorage.clear();
+    window.IntersectionObserver = OnScreen as unknown as typeof IntersectionObserver;
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    const arrival = () =>
+      render(
+        <ScrollFilm film={film} trigger="arrival">
+          <button type="button">Sofa, $1,499.99</button>
+        </ScrollFilm>,
+      );
+    const { container, unmount } = arrival();
+    const cover = container.querySelector('[aria-hidden]')!;
+    expect(cover).toHaveClass('opacity-100');
+    fireEvent.ended(cover.querySelector('video')!);
+    expect(cover).toHaveClass('opacity-0');
+    unmount();
+    expect(arrival().container.querySelector('[aria-hidden]')).toBeNull();
   });
 
   it('shows the picture alone on a small screen or to visitors who asked for less motion', () => {
