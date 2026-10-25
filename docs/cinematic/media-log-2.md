@@ -16,3 +16,9 @@ pierwszym użyciu w tej rundzie).
 | 4 | Pusty koszyk | `gpt_image_2_5` | high, 1k, 3:2, ref #2 | 1,5 | 2427,5 | **użyty** → `empty-cart.webp` |
 | 5 | Pusta lista ulubionych | `gpt_image_2_5` | high, 1k, 3:2, łukowa wnęka, ref #2 | 1,5 | 2427,5 | **użyty** → `empty-wish.webp` |
 | 6 | Puste porównanie | `gpt_image_2_5` | high, 1k, 3:2, dwie wnęki, ref #2 | 1,5 | 2427,5 | **użyty** → `empty-compare.webp` |
+| 7 | Hero wieczorem (ciemny motyw) | `gpt_image_2_5` | high, 2k, 1:1, zmiana światła na `hero1` (przycięte do 3:4) na zachód słońca + poszerzenie do kwadratu | 2,75 | 2427,5 | **użyty** → `hero-evening.webp` (1200 px); meble zgodne z `hero1` |
+| 8 | Hero wieczorem: pętla | `kling_o3_flf` | pro, 10 s, 1:1, start = koniec = #7 | 12,5 | 2427,5 | **użyty** → `hero-evening.mp4` (960 px, CRF 24, 0,59 MB) |
+
+Poprawka jakości: ffmpeg ignoruje `-quality` w `libwebp`, przez co plakaty i kadry z obu rund miały
+3–10 kB i były rozmyte. Wszystkie są przekodowane z surowych plików przez `-q:v 80 -compression_level 6`
+(20–60 kB).

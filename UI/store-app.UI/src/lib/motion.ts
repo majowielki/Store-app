@@ -16,6 +16,8 @@ export const motionFlags = {
   lookbookEntrance: true,
   /** The empty room with the curtain moving in the light, behind the 404 page. */
   emptyRoom: true,
+  /** The home page hero at sunset (its own picture and loop) when the shop is shown in the dark theme. */
+  eveningHero: true,
 } as const;
 
 export type MotionFlag = keyof typeof motionFlags;

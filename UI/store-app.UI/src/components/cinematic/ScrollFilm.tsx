@@ -100,7 +100,7 @@ const ScrollFilm = ({ film, className, children }: { film?: ScrollFilmSource; cl
             covering ? 'pointer-events-auto opacity-100' : 'opacity-0',
           )}
         >
-          <img src={film.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={film.poster} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
           {near && (
             <video
               ref={video}

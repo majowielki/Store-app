@@ -4,8 +4,10 @@ import { useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
 import { useGetPricingRulesQuery } from '@/api/orders';
 import hero1 from '@/assets/hero1.webp';
 import heroLight from '@/assets/cinematic/hero-light.mp4';
+import heroEvening from '@/assets/cinematic/hero-evening.mp4';
+import heroEveningPicture from '@/assets/cinematic/hero-evening.webp';
 import { useAppSelector } from '@/hooks';
-import HeroLight from './cinematic/HeroLight';
+import HeroLight, { type HeroScene } from './cinematic/HeroLight';
 import CountUp from './CountUp';
 import { Button } from './ui/button';
 
@@ -61,6 +63,10 @@ const Stats = () => {
   );
 };
 
+// The living room in the morning (light theme) and the same room at sunset (dark theme)
+const morning: HeroScene = { image: hero1, video: heroLight, width: 1200, height: 1800 };
+const evening: HeroScene = { image: heroEveningPicture, video: heroEvening, width: 1200, height: 1200 };
+
 /**
  * The first screen: the promise on the left, in the page's column, and the living room on the
  * right half, out to the edge of the screen, with the morning light moving across its wall.
@@ -108,11 +114,9 @@ const Hero = () => (
     {/* On a phone the room comes first, so the first screen shows what the shop sells */}
     <div className="relative order-first mx-4 sm:mx-6 lg:order-none lg:mx-0">
       <HeroLight
-        image={hero1}
-        width={1200}
-        height={1800}
+        morning={morning}
+        evening={evening}
         alt="A light linen sofa with a woven pouf and brass side tables"
-        video={heroLight}
         className="aspect-5/4 rounded-3xl sm:aspect-4/3 lg:aspect-auto lg:h-full lg:rounded-none lg:rounded-bl-[3rem]"
       />
       <WelcomeBadge />
