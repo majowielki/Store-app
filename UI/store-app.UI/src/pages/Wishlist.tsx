@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import ResponsiveImage from '@/components/ResponsiveImage';
+import EmptyState from '@/components/EmptyState';
+import emptyWishlist from '@/assets/cinematic/empty-wish.webp';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Heart, ShoppingBag, X } from 'lucide-react';
+import { ShoppingBag, X } from 'lucide-react';
 import Loading from '@/components/Loading';
 import ProductPrice from '@/components/ProductPrice';
 import { Button } from '@/components/ui/button';
@@ -72,19 +74,12 @@ const Wishlist = () => {
 
   if (products.length === 0) {
     return (
-      <div className="grid place-items-center py-16 text-center md:py-24">
-        <span className="grid h-20 w-20 place-items-center rounded-full bg-secondary">
-          <Heart className="h-8 w-8" />
-        </span>
-        <h1 className="display mt-8 text-5xl md:text-6xl">Your wishlist is empty</h1>
-        <p className="mt-4 max-w-sm text-muted-foreground">Tap the heart on any piece to keep it here for later.</p>
-        <Button asChild size="lg" className="group mt-10">
-          <Link to="/products">
-            Browse the shop
-            <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-        </Button>
-      </div>
+      <EmptyState
+        image={emptyWishlist}
+        title="Your wishlist is empty"
+        text="Tap the heart on any piece to keep it here for later."
+        action={{ to: '/products', label: 'Browse the shop' }}
+      />
     );
   }
 

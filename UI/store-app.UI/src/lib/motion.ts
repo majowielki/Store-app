@@ -14,6 +14,8 @@ export const motionFlags = {
   heroLight: true,
   /** The walk into the featured lookbook's room on the home page, following the scroll (ScrollFilm). */
   lookbookEntrance: true,
+  /** The empty room with the curtain moving in the light, behind the 404 page. */
+  emptyRoom: true,
 } as const;
 
 export type MotionFlag = keyof typeof motionFlags;

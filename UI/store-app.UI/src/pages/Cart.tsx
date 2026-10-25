@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Lock, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Lock } from 'lucide-react';
 import { CartItemsList, Loading, CartTotals } from '@/components';
 import DiscountCodeField from '@/components/DiscountCodeField';
+import EmptyState from '@/components/EmptyState';
+import emptyCart from '@/assets/cinematic/empty-cart.webp';
 import FreeDeliveryProgress from '@/components/FreeDeliveryProgress';
 import RecentlyViewed from '@/components/RecentlyViewed';
 import { Button } from '@/components/ui/button';
@@ -17,22 +19,14 @@ const Cart = () => {
   if (isLoading) return <Loading />;
   if (lines.length === 0) {
     return (
-      <div className="grid place-items-center py-16 text-center md:py-24">
-        <span className="grid h-20 w-20 animate-fade-up place-items-center rounded-full bg-secondary">
-          <ShoppingBag className="h-8 w-8" />
-        </span>
-        <h1 className="display mt-8 animate-fade-up text-5xl [animation-delay:80ms] md:text-6xl">Your cart is empty</h1>
-        <p className="mt-4 max-w-sm animate-fade-up text-muted-foreground [animation-delay:160ms]">
-          Nothing here yet — the shop is full of things that would fit right in.
-        </p>
-        <Button asChild size="lg" className="group mt-10 animate-fade-up [animation-delay:240ms]">
-          <Link to="/products">
-            Start shopping
-            <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-        </Button>
+      <EmptyState
+        image={emptyCart}
+        title="Your cart is empty"
+        text="Nothing here yet — the shop is full of things that would fit right in."
+        action={{ to: '/products', label: 'Start shopping' }}
+      >
         <RecentlyViewed title="Still thinking about these?" className="mt-20 max-w-4xl text-left" />
-      </div>
+      </EmptyState>
     );
   }
 
