@@ -20,6 +20,8 @@ export const motionFlags = {
   eveningHero: true,
   /** The light moving in the covers of the collections and the makers' workshops. */
   coverLoops: true,
+  /** The close looks at the materials on /materials, with the light moving across them. */
+  materialLoops: true,
 } as const;
 
 export type MotionFlag = keyof typeof motionFlags;

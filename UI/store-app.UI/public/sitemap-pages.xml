@@ -8,6 +8,7 @@
   <url><loc>%SHOP_URL%/collections</loc></url>
   <url><loc>%SHOP_URL%/journal</loc></url>
   <url><loc>%SHOP_URL%/looks</loc></url>
+  <url><loc>%SHOP_URL%/materials</loc></url>
   <url><loc>%SHOP_URL%/about</loc></url>
   <url><loc>%SHOP_URL%/contact</loc></url>
   <url><loc>%SHOP_URL%/help</loc></url>

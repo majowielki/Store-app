@@ -45,3 +45,5 @@ Poprawka jakości: ffmpeg ignoruje `-quality` w `libwebp`, przez co plakaty i ka
 „Concurrent Boost”**. Z nich szły zadania #1–#23 (183,5 kr), dlatego saldo główne stało na 2427,5. Po ich
 wyczerpaniu serwis odrzucił zadanie (`not_enough_boost_credits`), a od #24 zadania schodzą z głównego salda
 zgodnie z cennikiem.
+| 26–31 | Materiały: orzech, len, bouclé, trawertyn, rattan, kamionka (makro) | `gpt_image_2_5` | high, 2k, 16:9, „sam materiał, bez przedmiotu” | 6 × 2,75 | 2395,75 | **użyte** (z #24: 7 kadrów) |
+| 32–38 | Materiały: 7 pętli światła | `kling_o3_flf` | pro, **5 s**, start = koniec = kadr makro | 7 × 6,25 | 2352 | **użyte** → `material-*.mp4` (1280 px, 0,43–0,64 MB) i `material-*.webp` |

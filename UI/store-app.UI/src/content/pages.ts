@@ -13,4 +13,5 @@ export const inspirationPages = [
   { to: '/looks', label: 'Shop the look' },
   { to: '/journal', label: 'Journal' },
   { to: '/makers', label: 'Our makers' },
+  { to: '/materials', label: 'Materials' },
 ];

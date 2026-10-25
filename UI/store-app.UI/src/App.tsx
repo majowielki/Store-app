@@ -36,6 +36,7 @@ const router = createBrowserRouter([
       { path: 'journal', lazy: page(() => import('./pages/content/Journal')), errorElement: <ErrorElement /> },
       { path: 'journal/:slug', lazy: page(() => import('./pages/content/ArticlePage')), errorElement: <ErrorElement /> },
       { path: 'looks', lazy: page(() => import('./pages/content/Looks')), errorElement: <ErrorElement /> },
+      { path: 'materials', lazy: page(() => import('./pages/content/Materials')), errorElement: <ErrorElement /> },
       { path: 'looks/:slug', lazy: page(() => import('./pages/content/LookPage')), errorElement: <ErrorElement /> },
       // Help and legal pages: static text in the UI, they change with the code
       { path: 'help', lazy: page(() => import('./pages/info/Help')), errorElement: <ErrorElement /> },

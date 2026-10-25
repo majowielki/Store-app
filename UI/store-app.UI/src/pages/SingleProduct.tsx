@@ -20,6 +20,7 @@ import StickyBuyBar from '@/components/StickyBuyBar';
 import WishlistButton from '@/components/WishlistButton';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
+import { materialsIn } from '@/content/materials';
 import { usePerks } from '@/content/perks';
 import { useAddToBag } from '@/features/cart/useAddToBag';
 import { useCountProductView } from '@/features/funnel/useShopEvents';
@@ -81,6 +82,8 @@ const RelatedProducts = ({ product }: { product: Product }) => {
 const ProductDetails = ({ product }: { product: ProductDetail }) => {
   const { title, description, colors, company, widthCm, heightCm, depthCm, weightKg, materials, groups } = product;
   const materialsText = (materials ?? []).filter(Boolean).join(', ');
+  // The materials the guide on /materials explains, linked from the specification
+  const guide = materialsIn(materials ?? []);
   const { price, effectivePrice, hasSale, percent } = priceTag(product);
   const [productColor, setProductColor] = useState(colors[0]);
   const [amount, setAmount] = useState(1);
@@ -247,6 +250,20 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
                   <div className="col-span-2 border-b py-4">
                     <dt className="eyebrow">Materials</dt>
                     <dd className="mt-1 capitalize">{materialsText}</dd>
+                    {guide.length > 0 && (
+                      <dd className="mt-3 flex flex-wrap gap-2">
+                        {guide.map((material) => (
+                          <Link
+                            key={material.key}
+                            to={`/materials#${material.key}`}
+                            className="group inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-xs transition-colors hover:border-foreground"
+                          >
+                            <img src={material.poster} alt="" loading="lazy" className="h-6 w-6 rounded-full object-cover" />
+                            <span>How to look after {material.name.toLowerCase()}</span>
+                          </Link>
+                        ))}
+                      </dd>
+                    )}
                   </div>
                 )}
               </dl>
