@@ -17,20 +17,25 @@ interface AmbientLoopProps {
   phones?: boolean;
   /** The picture is the page's largest paint: load it first. */
   priority?: boolean;
+  /** Plays once and stays on its last frame instead of looping. */
+  once?: boolean;
 }
 
 /**
  * A decorative still picture that comes alive: once it nears the screen, a seamless loop of the
  * same frame (only the light moves) is fetched and fades in over it, and it pauses whenever it is
  * scrolled away. With the flag off, reduced motion, Data Saver or (unless `phones`) a small screen,
- * the picture alone. Fills its box (object-cover): size and round the box from outside.
+ * the picture alone. With `once`, a short clip instead: played to its end, it stays on its last frame.
+ * Fills its box (object-cover): size and round the box from outside.
  */
-const AmbientLoop = ({ poster, video, flag, className, phones = false, priority = false }: AmbientLoopProps) => {
+const AmbientLoop = ({ poster, video, flag, className, phones = false, priority = false, once = false }: AmbientLoopProps) => {
   const [enabled] = useState(() => motionAllowed(flag) && !savesData() && (phones || screenMatches(WIDE_SCREEN_QUERY)));
   const [near, setNear] = useState(false);
   const [playing, setPlaying] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const clip = useRef<HTMLVideoElement>(null);
+  // A clip played once is not started again when it comes back on screen
+  const finished = useRef(false);
 
   useEffect(() => {
     const element = box.current;
@@ -40,7 +45,7 @@ const AmbientLoop = ({ poster, video, flag, className, phones = false, priority 
         if (entry.isIntersecting) setNear(true);
         const current = clip.current;
         if (!current) return;
-        if (entry.isIntersecting) void current.play().catch(() => undefined);
+        if (entry.isIntersecting && !finished.current) void current.play().catch(() => undefined);
         else current.pause();
       },
       { rootMargin: NEAR_SCREEN },
@@ -57,13 +62,14 @@ const AmbientLoop = ({ poster, video, flag, className, phones = false, priority 
           ref={clip}
           src={video}
           muted
-          loop
+          loop={!once}
           autoPlay
           playsInline
           preload="auto"
           aria-hidden
           tabIndex={-1}
           onPlaying={() => setPlaying(true)}
+          onEnded={() => (finished.current = true)}
           className={cn('absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-1000', playing && 'opacity-100')}
         />
       )}

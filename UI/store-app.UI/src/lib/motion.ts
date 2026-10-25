@@ -22,6 +22,8 @@ export const motionFlags = {
   coverLoops: true,
   /** The close looks at the materials on /materials, with the light moving across them. */
   materialLoops: true,
+  /** The morning light reaching the linen-wrapped parcel when an order is paid. */
+  orderParcel: true,
 } as const;
 
 export type MotionFlag = keyof typeof motionFlags;

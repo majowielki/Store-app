@@ -11,6 +11,9 @@ import CardForm from '@/components/payment/CardForm';
 import { describeCard } from '@/components/payment/cards';
 import PaymentCountdown from '@/components/payment/PaymentCountdown';
 import FinishLabel from '@/components/swatch/FinishLabel';
+import AmbientLoop from '@/components/cinematic/AmbientLoop';
+import parcel from '@/assets/cinematic/order-parcel.mp4';
+import parcelPoster from '@/assets/cinematic/order-parcel.webp';
 import { usePageMeta } from '@/seo';
 import { Button } from '@/components/ui/button';
 import { formatAsDollars, formatDayRange } from '@/utils';
@@ -60,25 +63,29 @@ const Waiting = ({ order, title, text, slow }: { order: Order; title: string; te
 const Paid = ({ order }: { order: Order }) => (
   <>
     <Heading step={4} eyebrow={`Order #${order.id}`} title="Thank you" />
-    <div role="status" className="mt-10 grid gap-6 rounded-3xl border bg-card p-6 md:p-10">
-      <p className="flex items-center gap-3 text-lg">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-foreground text-background">
-          <Check className="h-4 w-4" aria-hidden />
-        </span>
-        Payment received
-      </p>
-      <p className="text-muted-foreground">
-        {formatAsDollars(order.total)} paid with {describeCard(order.cardBrand, order.cardLast4)}. We will write to {order.userEmail} when your pieces
-        are on their way
-        {order.deliveryFrom && order.deliveryTo ? `; they should arrive ${formatDayRange(order.deliveryFrom, order.deliveryTo)}.` : '.'}
-      </p>
-      <div className="flex flex-wrap gap-3">
-        <Button asChild>
-          <Link to={`/orders/${order.id}`}>See your order</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/products">Continue shopping</Link>
-        </Button>
+    <div className="mt-10 grid overflow-hidden rounded-3xl border bg-card lg:grid-cols-2">
+      {/* The parcel waits on the table while the morning light reaches it: the purchase, wrapped up */}
+      <AmbientLoop poster={parcelPoster} video={parcel} flag="orderParcel" phones once className="aspect-16/9 lg:order-last lg:aspect-auto lg:min-h-80" />
+      <div role="status" className="grid content-center gap-6 p-6 md:p-10">
+        <p className="flex items-center gap-3 text-lg">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-foreground text-background">
+            <Check className="h-4 w-4" aria-hidden />
+          </span>
+          Payment received
+        </p>
+        <p className="text-muted-foreground">
+          {formatAsDollars(order.total)} paid with {describeCard(order.cardBrand, order.cardLast4)}. We will write to {order.userEmail} when your pieces
+          are on their way
+          {order.deliveryFrom && order.deliveryTo ? `; they should arrive ${formatDayRange(order.deliveryFrom, order.deliveryTo)}.` : '.'}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild>
+            <Link to={`/orders/${order.id}`}>See your order</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/products">Continue shopping</Link>
+          </Button>
+        </div>
       </div>
     </div>
   </>

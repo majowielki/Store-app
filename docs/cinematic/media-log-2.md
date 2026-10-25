@@ -47,3 +47,6 @@ wyczerpaniu serwis odrzucił zadanie (`not_enough_boost_credits`), a od #24 zada
 zgodnie z cennikiem.
 | 26–31 | Materiały: orzech, len, bouclé, trawertyn, rattan, kamionka (makro) | `gpt_image_2_5` | high, 2k, 16:9, „sam materiał, bez przedmiotu” | 6 × 2,75 | 2395,75 | **użyte** (z #24: 7 kadrów) |
 | 32–38 | Materiały: 7 pętli światła | `kling_o3_flf` | pro, **5 s**, start = koniec = kadr makro | 7 × 6,25 | 2352 | **użyte** → `material-*.mp4` (1280 px, 0,43–0,64 MB) i `material-*.webp` |
+| 39 | Pilot 3D: komoda 8-szufladowa | `tripo_h3_1_image_to_3d` | detailed geometry + texture, PBR, z `Blobs/8DrawerDresser-3.webp` | 18 | 2334 | **niepublikowany**: bryła wierna (8 szuflad, mosiężne uchwyty, cokół), boki i tył dorysowane; GLB 68 MB; publikacja wymaga kompresji, `<model-viewer>` (~250 kB) i `blob:` w CSP nginx, czego brief nie pozwala ruszać; zrzuty: `shots-2/H-3d-pilot-dresser.jpg` |
+| 40 | Potwierdzenie zamówienia: paczka w lnie | `gpt_image_2_5` | high, 2k, 16:9, „pusta zawieszka, bez napisów” | 2,75 | 2331,25 | **użyty** |
+| 41 | Potwierdzenie: poranne światło na paczce | `kling_o3_flf` | pro, 5 s, tylko klatka startowa #40 | 6,25 | 2325 | **użyty** → `order-parcel.mp4` (0,34 MB), gra raz i zostaje na ostatniej klatce |
