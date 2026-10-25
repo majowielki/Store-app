@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import AmbientLoop from '@/components/cinematic/AmbientLoop';
+import type { CoverFilm } from '@/content/coverFilms';
 import { VT } from '@/lib/viewTransition';
 
 interface ContentHeroProps {
@@ -12,10 +14,12 @@ interface ContentHeroProps {
   back: { to: string; label: string };
   /** Small facts under the lead (a date, a place). */
   meta?: ReactNode;
+  /** The cover with its light moving (switch: coverLoops), in place of the still cover. */
+  film?: CoverFilm;
 }
 
-/** The top of an editorial page: the way back, the title over a wide cover picture. */
-const ContentHero = ({ eyebrow, title, lead, image, back, meta }: ContentHeroProps) => (
+/** The top of an editorial page: the way back, the title over a wide cover picture (or its loop). */
+const ContentHero = ({ eyebrow, title, lead, image, back, meta, film }: ContentHeroProps) => (
   <header>
     <Link to={back.to} className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
       <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
@@ -34,7 +38,11 @@ const ContentHero = ({ eyebrow, title, lead, image, back, meta }: ContentHeroPro
       )}
     </div>
     <div data-vt={VT.contentCover} className="mt-10 aspect-3/2 animate-fade-up overflow-hidden rounded-4xl bg-muted [animation-delay:220ms] md:aspect-21/9">
-      <ResponsiveImage size="full" placeholder src={image} alt="" fetchPriority="high" className="h-full w-full object-cover" />
+      {film ? (
+        <AmbientLoop poster={film.poster} video={film.video} flag="coverLoops" priority className="h-full w-full" />
+      ) : (
+        <ResponsiveImage size="full" placeholder src={image} alt="" fetchPriority="high" className="h-full w-full object-cover" />
+      )}
     </div>
   </header>
 );

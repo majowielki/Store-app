@@ -7,6 +7,7 @@ import ContentUnavailable from '@/components/content/ContentUnavailable';
 import Markdown from '@/components/content/Markdown';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
+import { makerFilms } from '@/content/coverFilms';
 import { breadcrumbData, JsonLd, PageMeta } from '@/seo';
 
 /** A maker's story and the products the catalogue has from them. */
@@ -28,6 +29,7 @@ const MakerPage = () => {
         lead={maker.tagline}
         image={maker.coverImage}
         back={{ to: '/products', label: 'Shop' }}
+        film={makerFilms[maker.slug]}
         meta={
           <span>
             {maker.location}

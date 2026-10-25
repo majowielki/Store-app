@@ -6,6 +6,7 @@ import Markdown from '@/components/content/Markdown';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
 import { breadcrumbData, JsonLd, PageMeta } from '@/seo';
+import { collectionFilms } from '@/content/coverFilms';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 
 /** A collection: its idea in a few paragraphs, then its products in the order it lists them. */
@@ -27,6 +28,7 @@ const CollectionPage = () => {
         lead={collection.summary}
         image={collection.coverImage}
         back={{ to: '/collections', label: 'All collections' }}
+        film={collectionFilms[collection.slug]}
       />
       {collection.body && (
         <div className="mx-auto mt-16 max-w-2xl">

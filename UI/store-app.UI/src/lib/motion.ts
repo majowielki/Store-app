@@ -18,6 +18,8 @@ export const motionFlags = {
   emptyRoom: true,
   /** The home page hero at sunset (its own picture and loop) when the shop is shown in the dark theme. */
   eveningHero: true,
+  /** The light moving in the covers of the collections and the makers' workshops. */
+  coverLoops: true,
 } as const;
 
 export type MotionFlag = keyof typeof motionFlags;
