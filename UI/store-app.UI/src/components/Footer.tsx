@@ -1,6 +1,8 @@
+import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUp } from 'lucide-react';
+import { ArrowRight, ArrowUp, Plus } from 'lucide-react';
 import { infoPages, inspirationPages } from '@/content/pages';
+import { cn } from '@/lib/utils';
 import { categories, categoryHref } from '@/utils/categories';
 import { Button } from './ui/button';
 
@@ -27,10 +29,47 @@ const columns = [
   { title: 'Help', links: infoPages },
 ];
 
+type Column = (typeof columns)[number];
+
+/**
+ * A column of the site map. On a phone the columns fold (the footer would otherwise be taller than
+ * the screen and outweigh a short page): the title is a button that opens its links. From sm up
+ * every column stands open and the title is a plain heading again.
+ */
+const FooterColumn = ({ column }: { column: Column }) => {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  const titleClass = 'eyebrow text-primary-foreground/50 dark:text-muted-foreground';
+  return (
+    <div className="border-b border-primary-foreground/15 dark:border-border sm:border-0">
+      <h2 className={cn(titleClass, 'hidden sm:block')}>{column.title}</h2>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(titleClass, 'flex w-full items-center justify-between py-4 sm:hidden')}
+      >
+        {column.title}
+        <Plus className={cn('h-4 w-4 transition-transform duration-300', open && 'rotate-45')} aria-hidden />
+      </button>
+      <ul id={listId} className={cn('space-y-3 pb-5 text-sm sm:mt-5 sm:block sm:pb-0', !open && 'hidden')}>
+        {column.links.map((link) => (
+          <li key={link.label}>
+            <Link to={link.to} className="link-underline">
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 /** An inverted footer: a last call to shop, the site map, the address and an oversized wordmark. */
 const Footer = () => (
   <footer className="mt-24 bg-primary pb-28 text-primary-foreground dark:border-t dark:bg-card dark:text-card-foreground md:pb-0">
-    <div className="align-element grid gap-14 pt-20 lg:grid-cols-12">
+    <div className="align-element grid gap-10 pt-14 sm:gap-14 sm:pt-20 lg:grid-cols-12">
       <div className="lg:col-span-5">
         <p className="display text-4xl leading-[1.05] md:text-6xl">
           Make yourself <em className="text-brand">at home.</em>
@@ -46,22 +85,11 @@ const Footer = () => (
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:col-span-7">
+      <div className="grid sm:grid-cols-3 sm:gap-10 lg:col-span-7">
         {columns.map((column) => (
-          <div key={column.title}>
-            <h2 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">{column.title}</h2>
-            <ul className="mt-5 space-y-3 text-sm">
-              {column.links.map((link) => (
-                <li key={link.label}>
-                  <Link to={link.to} className="link-underline">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <FooterColumn key={column.title} column={column} />
         ))}
-        <div>
+        <div className="mt-8 sm:mt-0">
           <h2 className="eyebrow text-primary-foreground/50 dark:text-muted-foreground">Visit</h2>
           <address className="mt-5 space-y-3 text-sm not-italic text-primary-foreground/60 dark:text-muted-foreground">
             <p>

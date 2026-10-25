@@ -23,7 +23,7 @@ const Error = () => {
         </h1>
         <p className="mx-auto mt-6 max-w-md animate-fade-up text-lg text-muted-foreground [animation-delay:160ms]">
           {notFound
-            ? "Sorry, we could not find the page you are looking for."
+            ? "This page has moved out, or never lived here. The rooms are where you left them."
             : "The page could not be shown. Try again in a moment, or start over from the home page."}
         </p>
         <div className="mt-10 animate-fade-up [animation-delay:240ms]">

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useGetProductQuery, useGetProductsMetaQuery, useGetProductsQuery } from '@/api/catalog';
@@ -16,6 +16,7 @@ import { formatRating } from '@/components/reviews/rating';
 import SaleBadge from '@/components/SaleBadge';
 import NotifyWhenBack from '@/components/NotifyWhenBack';
 import { StockNote } from '@/components/StockBadge';
+import StickyBuyBar from '@/components/StickyBuyBar';
 import WishlistButton from '@/components/WishlistButton';
 import { Mode } from '@/components/SelectProductAmount';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,7 @@ const RelatedProducts = ({ product }: { product: Product }) => {
         <p className="eyebrow">Keep browsing</p>
         <h2 className="display mt-3 text-4xl md:text-5xl">You may also like</h2>
       </Reveal>
-      <div className="mt-10 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-10 sm:gap-x-6 sm:gap-y-12 lg:grid-cols-4">
         {related.map((p, index) => (
           <Reveal key={p.id} delay={index * 80}>
             <ProductCard product={p} transition={false} />
@@ -85,6 +86,8 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
   const [amount, setAmount] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  // The page's own add-to-bag row: once it scrolls away, the pinned bar takes over
+  const buyRow = useRef<HTMLDivElement>(null);
   const soldOut = product.availability === 'outOfStock';
   const addToBag = useAddToBag();
   useTrackProductView(product.id);
@@ -199,7 +202,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
                   <WishlistButton product={product} className="h-12 w-12 shrink-0 border bg-transparent shadow-none" />
                 </div>
               ) : (
-                <div className="mt-3 flex gap-3">
+                <div ref={buyRow} className="mt-3 flex gap-3">
                   <SelectProductAmount mode={Mode.SingleProduct} label="Quantity" amount={amount} setAmount={setAmount} max={product.availableQuantity} />
                   <Button size="lg" className="group h-12 flex-1" onClick={addToCart} disabled={adding}>
                     <span className="relative h-4 w-4">
@@ -255,6 +258,7 @@ const ProductDetails = ({ product }: { product: ProductDetail }) => {
       <ProductReviews productId={product.id} productTitle={product.title} />
       <RelatedProducts product={product} />
       <RecentlyViewed excludeId={product.id} className="mt-20 border-t pt-10" />
+      {!soldOut && <StickyBuyBar product={product} color={productColor} anchor={buyRow} onAdd={addToCart} adding={adding} added={added} />}
     </>
   );
 };

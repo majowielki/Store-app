@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { VT } from '@/lib/viewTransition';
 
 interface ContentHeroProps {
   eyebrow: string;
@@ -32,7 +33,7 @@ const ContentHero = ({ eyebrow, title, lead, image, back, meta }: ContentHeroPro
         </div>
       )}
     </div>
-    <div className="mt-10 aspect-3/2 animate-fade-up overflow-hidden rounded-4xl bg-muted [animation-delay:220ms] md:aspect-21/9">
+    <div data-vt={VT.contentCover} className="mt-10 aspect-3/2 animate-fade-up overflow-hidden rounded-4xl bg-muted [animation-delay:220ms] md:aspect-21/9">
       <ResponsiveImage size="full" placeholder src={image} alt="" fetchPriority="high" className="h-full w-full object-cover" />
     </div>
   </header>

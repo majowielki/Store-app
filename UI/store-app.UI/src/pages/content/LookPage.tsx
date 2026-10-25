@@ -7,6 +7,7 @@ import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
 import { breadcrumbData, JsonLd, PageMeta } from '@/seo';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
+import { VT } from '@/lib/viewTransition';
 
 /** A lookbook: the room with a point on every piece, the pieces below and the whole look in one go. */
 const LookPage = () => {
@@ -33,7 +34,7 @@ const LookPage = () => {
         </div>
         <AddLookButton products={products} />
       </header>
-      <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} className="mt-10" priority />
+      <LookbookPicture image={look.image} alt={look.title} hotspots={look.hotspots} products={bySlug} className="mt-10" priority viewTransition={VT.contentCover} />
       <p className="mt-4 text-sm text-muted-foreground">Select a point on the picture to see the piece.</p>
       {products.length > 0 && (
         <section className="mt-20" aria-label="The pieces of this look">

@@ -1,5 +1,6 @@
 import { catalogApi } from '@/api/catalog';
 import type { Product } from '@/api/types';
+import { nameForTransition, VT } from '@/lib/viewTransition';
 import { useAppDispatch } from './redux';
 
 /**
@@ -12,8 +13,6 @@ export const useOpenProduct = () => {
   const dispatch = useAppDispatch();
   return (product: Product, image?: HTMLElement | null) => {
     void dispatch(catalogApi.util.upsertQueryData('getProduct', product.id, { ...product, images: [], hotspots: [] }));
-    // One element per name: another tile may still carry it from an earlier click
-    document.querySelectorAll('[data-vt="product-image"]').forEach((element) => element.removeAttribute('data-vt'));
-    image?.setAttribute('data-vt', 'product-image');
+    nameForTransition(image, VT.productImage);
   };
 };

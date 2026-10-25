@@ -1,8 +1,10 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { ArrowUpRight } from 'lucide-react';
 import { headingTag, type HeadingLevel } from '@/lib/headings';
 import { cn } from '@/lib/utils';
+import { nameForTransition, VT } from '@/lib/viewTransition';
 
 interface ContentCardProps {
   to: string;
@@ -17,12 +19,13 @@ interface ContentCardProps {
   headingLevel?: HeadingLevel;
 }
 
-/** A picture, a title and a line of text leading to an editorial page. */
+/** A picture, a title and a line of text leading to an editorial page, whose cover the picture becomes. */
 const ContentCard = ({ to, image, title, eyebrow, text, className, wide = false, headingLevel = 3 }: ContentCardProps) => {
   const Heading = headingTag(headingLevel);
+  const cover = useRef<HTMLDivElement>(null);
   return (
-    <Link to={to} className={cn('group block rounded-3xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4', className)}>
-      <div className={cn('overflow-hidden rounded-3xl bg-muted', wide ? 'aspect-video' : 'aspect-4/3')}>
+    <Link to={to} viewTransition onClick={() => nameForTransition(cover.current, VT.contentCover)} className={cn('group block rounded-3xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4', className)}>
+      <div ref={cover} className={cn('overflow-hidden rounded-3xl bg-muted', wide ? 'aspect-video' : 'aspect-4/3')}>
         <ResponsiveImage size="third" placeholder src={image} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-smooth group-hover:scale-105" />
       </div>
       <div className="mt-5 flex items-start justify-between gap-4">

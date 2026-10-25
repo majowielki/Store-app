@@ -1,19 +1,26 @@
+import { useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGetArticleQuery } from '@/api/content';
 import ContentHero from '@/components/content/ContentHero';
 import ContentUnavailable from '@/components/content/ContentUnavailable';
 import Markdown from '@/components/content/Markdown';
+import NextArticle from '@/components/content/NextArticle';
+import ReadingProgress from '@/components/content/ReadingProgress';
 import Loading from '@/components/Loading';
 import ProductsGrid from '@/components/ProductsGrid';
 import { articleData, breadcrumbData, JsonLd, PageMeta } from '@/seo';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 import { formatDate } from '@/utils';
 
-/** A journal article and, under it, the products it talks about. */
+/**
+ * A journal article set like a page of a book - a narrow column, a drop cap, a hairline that fills
+ * as it is read - then the products it talks about and the next article to turn to.
+ */
 const ArticlePage = () => {
   const { slug = '' } = useParams<{ slug: string }>();
   const { data: article, isLoading, error } = useGetArticleQuery(slug);
   const { products } = useProductsBySlug(article?.productSlugs);
+  const body = useRef<HTMLDivElement>(null);
 
   if (isLoading) return <Loading />;
   if (!article) return <ContentUnavailable error={error} what="Article" back={{ to: '/journal', label: 'The journal' }} />;
@@ -36,8 +43,9 @@ const ArticlePage = () => {
           </span>
         }
       />
-      <div className="mx-auto mt-16 max-w-2xl">
-        <Markdown>{article.body}</Markdown>
+      <ReadingProgress target={body} />
+      <div ref={body} className="mx-auto mt-16 max-w-2xl">
+        <Markdown className="drop-cap text-lg leading-8">{article.body}</Markdown>
       </div>
       {products.length > 0 && (
         <section className="mt-24" aria-label="Products in this article">
@@ -47,6 +55,7 @@ const ArticlePage = () => {
           </div>
         </section>
       )}
+      <NextArticle currentSlug={article.slug} />
     </article>
   );
 };

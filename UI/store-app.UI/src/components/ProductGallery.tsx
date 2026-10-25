@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react';
 import type { ProductDetail } from '@/api/types';
 import LookbookPicture from '@/components/content/LookbookPicture';
 import { REDUCED_MOTION_QUERY } from '@/lib/motion';
+import { VT } from '@/lib/viewTransition';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { useProductsBySlug } from '@/hooks/use-products-by-slug';
 import { cn } from '@/lib/utils';
@@ -131,7 +132,7 @@ const ProductGallery = ({ product }: { product: ProductDetail }) => {
                   hotspots={product.hotspots}
                   products={bySlug}
                   priority
-                  viewTransition="product-image"
+                  viewTransition={VT.productImage}
                   size="half"
                   className="h-full rounded-none bg-transparent"
                   imageClassName="h-full object-cover"

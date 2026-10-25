@@ -193,6 +193,18 @@
   }
 }
 
+@utility drop-cap {
+  /* The first letter of an article, set large in the display serif over two to three lines */
+  & > p:first-of-type::first-letter {
+    float: left;
+    margin: 0.06em 0.1em 0 0;
+    font-family: var(--font-display);
+    font-size: 4.1em;
+    line-height: 0.82;
+    color: var(--color-brand);
+  }
+}
+
 @utility link-underline {
   /* A link whose underline draws in from the left */
   background-image: linear-gradient(currentColor, currentColor);
@@ -354,13 +366,24 @@ body::after {
 [data-vt='product-image'] {
   view-transition-name: product-image;
 }
+/* ...and an editorial card's cover (collection, look, maker) to the cover of its page (src/lib/viewTransition.ts) */
+[data-vt='content-cover'] {
+  view-transition-name: content-cover;
+}
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 0.35s;
 }
-::view-transition-group(product-image) {
+::view-transition-group(product-image),
+::view-transition-group(content-cover) {
   animation-duration: 0.55s;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* A cover changes its proportions on the way (4:3 card, 21:9 page): both pictures fill the box */
+::view-transition-old(content-cover),
+::view-transition-new(content-cover) {
+  height: 100%;
+  object-fit: cover;
 }
 
 @media (prefers-reduced-motion: reduce) {

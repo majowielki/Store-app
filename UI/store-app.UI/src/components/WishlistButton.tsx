@@ -32,7 +32,17 @@ const WishlistButton = ({ product, className }: { product: Pick<Product, 'id' | 
         className,
       )}
     >
-      <Heart className={cn('h-[1.1rem] w-[1.1rem] transition-colors', saved ? 'fill-brand text-brand' : 'text-foreground')} />
+      {/* Saving fills the heart from the bottom up, like water in a glass; the outline stays on top */}
+      <span className="relative h-[1.1rem] w-[1.1rem]">
+        <Heart
+          aria-hidden
+          className={cn(
+            'absolute inset-0 h-full w-full fill-brand text-brand transition-[clip-path] duration-500 ease-smooth',
+            saved ? '[clip-path:inset(0_0_0_0)]' : '[clip-path:inset(100%_0_0_0)]',
+          )}
+        />
+        <Heart aria-hidden className={cn('absolute inset-0 h-full w-full transition-colors', saved ? 'text-brand' : 'text-foreground')} />
+      </span>
     </button>
   );
 };
