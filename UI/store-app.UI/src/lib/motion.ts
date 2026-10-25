@@ -24,6 +24,8 @@ export const motionFlags = {
   materialLoops: true,
   /** The morning light reaching the linen-wrapped parcel when an order is paid. */
   orderParcel: true,
+  /** The walk from the oak forest through the workshop into a room on the About page, following the scroll. */
+  aboutJourney: true,
 } as const;
 
 export type MotionFlag = keyof typeof motionFlags;

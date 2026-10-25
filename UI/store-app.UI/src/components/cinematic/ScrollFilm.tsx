@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { markSeen, wasSeen } from '@/lib/filmSeen';
 import { cn } from '@/lib/utils';
-import { motionAllowed, savesData, screenMatches, WIDE_SCREEN_QUERY } from '@/lib/motion';
+import { motionAllowed, savesData, screenMatches, WIDE_SCREEN_QUERY, type MotionFlag } from '@/lib/motion';
 
 export interface ScrollFilmSource {
   /** The clip: its last frame is the picture it covers, cropped the same. */
@@ -30,17 +30,34 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
  *
  * A picture at the top of its page (`trigger="arrival"`) is already on screen, where a scroll would
  * start the walk halfway: there the clip plays once by itself on arrival, then leaves the picture -
- * once per browser tab, like the sign-in film.
+ * once per browser tab, like the sign-in film. A long film can be pinned (`pin`): the picture stays in
+ * the middle of the screen while the walk plays out over several screens of scroll.
  */
-const ScrollFilm = ({ film, trigger = 'scroll', className, children }: { film?: ScrollFilmSource; trigger?: 'scroll' | 'arrival'; className?: string; children: ReactNode }) => {
+interface ScrollFilmProps {
+  film?: ScrollFilmSource;
+  trigger?: 'scroll' | 'arrival';
+  /** The switch in src/lib/motion.ts that turns this film off (the lookbooks' by default). */
+  flag?: MotionFlag;
+  /**
+   * A long film: the picture is pinned in the middle of the screen while the page scrolls on for this
+   * many screen heights, and the whole walk spreads over that scroll.
+   */
+  pin?: number;
+  className?: string;
+  children: ReactNode;
+}
+
+const ScrollFilm = ({ film, trigger = 'scroll', flag = 'lookbookEntrance', pin, className, children }: ScrollFilmProps) => {
   const [enabled] = useState(
-    () => !!film && motionAllowed('lookbookEntrance') && screenMatches(WIDE_SCREEN_QUERY) && !savesData() && !(trigger === 'arrival' && wasSeen(film.video)),
+    () => !!film && motionAllowed(flag) && screenMatches(WIDE_SCREEN_QUERY) && !savesData() && !(trigger === 'arrival' && wasSeen(film.video)),
   );
   const [near, setNear] = useState(false);
   const [arrived, setArrived] = useState(false);
   const [focused, setFocused] = useState(false);
   const [failed, setFailed] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  // The track the pinned picture travels through (pinned films only)
+  const track = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
 
   // Fetch the clip only when the picture is about to come into view
@@ -72,12 +89,19 @@ const ScrollFilm = ({ film, trigger = 'scroll', className, children }: { film?: 
     };
     const update = () => {
       frame = 0;
-      const rect = element.getBoundingClientRect();
       const viewport = window.innerHeight;
-      // From the picture's top at START_AT of the screen to its middle at the screen's middle
-      const start = viewport * START_AT;
-      const end = viewport / 2 - rect.height / 2;
-      const progress = clamp01((start - rect.top) / Math.max(1, start - end));
+      let progress: number;
+      if (track.current) {
+        // Pinned: from the track's top at the screen's top to its end, where the picture is let go
+        const rect = track.current.getBoundingClientRect();
+        progress = clamp01(-rect.top / Math.max(1, rect.height - viewport));
+      } else {
+        // From the picture's top at START_AT of the screen to its middle at the screen's middle
+        const rect = element.getBoundingClientRect();
+        const start = viewport * START_AT;
+        const end = viewport / 2 - rect.height / 2;
+        progress = clamp01((start - rect.top) / Math.max(1, start - end));
+      }
       setArrived(progress >= ARRIVED);
       wanted = progress;
       seek();
@@ -101,9 +125,10 @@ const ScrollFilm = ({ film, trigger = 'scroll', className, children }: { film?: 
   }, [enabled, near, trigger]);
 
   const covering = enabled && !failed && !arrived && !focused;
+  const pinned = enabled && !!pin && trigger === 'scroll';
 
-  return (
-    <div ref={box} className={cn('relative', className)} onFocus={() => setFocused(true)}>
+  const picture = (
+    <div ref={box} className={cn('relative', pinned ? 'w-full' : className)} onFocus={() => setFocused(true)}>
       {children}
       {enabled && film && !failed && (
         <div
@@ -134,6 +159,13 @@ const ScrollFilm = ({ film, trigger = 'scroll', className, children }: { film?: 
           )}
         </div>
       )}
+    </div>
+  );
+
+  if (!pinned) return picture;
+  return (
+    <div ref={track} className={cn('relative', className)} style={{ height: `${100 + (pin ?? 0) * 100}vh` }}>
+      <div className="sticky top-0 flex h-screen items-center">{picture}</div>
     </div>
   );
 };

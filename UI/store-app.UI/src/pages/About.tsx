@@ -5,6 +5,11 @@ import { useGetPricingRulesQuery, useGetShopOrderStatsQuery } from '@/api/orders
 import { useGetShopReviewStatsQuery } from '@/api/reviews';
 import joinery from '@/assets/about-joinery.webp';
 import linen from '@/assets/about-linen.webp';
+import journeyVideo from '@/assets/cinematic/about-forest-to-room.mp4';
+import journeyPoster from '@/assets/cinematic/about-forest-to-room-poster.webp';
+import journeyEnd from '@/assets/cinematic/about-room.webp';
+import ScrollFilm, { type ScrollFilmSource } from '@/components/cinematic/ScrollFilm';
+import SplitText from '@/components/cinematic/SplitText';
 import CountUp from '@/components/CountUp';
 import Reveal from '@/components/Reveal';
 import { formatRating, RATING_MAX } from '@/components/reviews/rating';
@@ -12,6 +17,14 @@ import { Button } from '@/components/ui/button';
 import { useParallax } from '@/hooks/use-parallax';
 import { usePageMeta } from '@/seo';
 import { daysFromToday } from '@/utils';
+
+// The walk under "From the forest to your room": its last frame is the room shown under it
+const journey: ScrollFilmSource = { video: journeyVideo, poster: journeyPoster };
+const journeySteps = [
+  { title: 'The forest', text: 'Oak grows slowly; we choose wood from forests that are replanted.' },
+  { title: 'The workshop', text: 'Our makers cut, join and finish it in their own workshops.' },
+  { title: 'Your room', text: 'Delivered to your door, made to be lived with for years.' },
+];
 
 const values = [
   { icon: Leaf, title: 'Sustainable materials', text: 'We choose environmentally friendly resources, and wood from forests that are replanted.' },
@@ -120,6 +133,32 @@ const About = () => {
             ))}
           </div>
         </Reveal>
+      </section>
+
+      <section aria-labelledby="forest-to-room" className="mt-32">
+        <div className="grid gap-6 lg:grid-cols-12 lg:items-end">
+          <div className="lg:col-span-7">
+            <p className="eyebrow">Where a piece begins</p>
+            <SplitText as="h2" id="forest-to-room" className="display mt-3 text-4xl leading-[1.05] md:text-6xl">
+              From the forest to your room
+            </SplitText>
+          </div>
+          <p className="max-w-md text-lg leading-relaxed text-muted-foreground lg:col-span-5">
+            Scroll on and walk the way our oak does: out of the trees, across the workbench, into a room that is ready to be lived in.
+          </p>
+        </div>
+        <ScrollFilm film={journey} flag="aboutJourney" pin={2} className="mt-12">
+          <img src={journeyEnd} alt="A calm room with a low cream sofa and a paper floor lamp" loading="lazy" width={1280} height={720} className="aspect-video w-full rounded-4xl object-cover" />
+        </ScrollFilm>
+        <ol className="mt-10 grid gap-8 sm:grid-cols-3">
+          {journeySteps.map((step, index) => (
+            <li key={step.title} className="border-t pt-5">
+              <p className="eyebrow">0{index + 1}</p>
+              <p className="display mt-2 text-2xl">{step.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.text}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <Reveal className="mt-28 flex flex-col items-center text-center">
