@@ -65,7 +65,7 @@ jobs:
       - name: OpenAPI documents match the code
         run: pwsh Scripts/Export-OpenApi.ps1 -Configuration Release -NoBuild -Check
       - name: Upload OpenAPI documents
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: openapi
           path: docs/api/openapi/*.json
@@ -85,7 +85,7 @@ jobs:
       - name: Coverage summary
         # Also after a failed test run, but not when an earlier step stopped the job before any test ran
         if: (success() || failure()) && hashFiles('TestResults/**/coverage.cobertura.xml') != ''
-        uses: danielpalme/ReportGenerator-GitHub-Action@d3ebf1f760f7d8ab92cc44d9bcfee7ad73722a31 # 5.5.11
+        uses: danielpalme/ReportGenerator-GitHub-Action@861674232075b2c6bd1405a04c4bb9b150653e81 # 5.5.12
         with:
           reports: TestResults/**/coverage.cobertura.xml
           targetdir: coveragereport
@@ -95,7 +95,7 @@ jobs:
         run: cat coveragereport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload test results
         if: (success() || failure()) && hashFiles('TestResults/**/*.trx') != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results
           path: TestResults/**/*.trx
@@ -120,7 +120,7 @@ jobs:
         working-directory: UI/store-app.UI
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: UI/store-app.UI/.nvmrc
           cache: npm
@@ -141,14 +141,14 @@ jobs:
         run: npm run test:visual:docker
       - name: Upload the visual differences
         if: failure() && hashFiles('UI/store-app.UI/test-results-visual/**') != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: visual-differences
           path: UI/store-app.UI/test-results-visual
           retention-days: 14
       - name: Upload UI coverage
         if: (success() || failure()) && hashFiles('UI/store-app.UI/coverage/cobertura-coverage.xml') != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ui-coverage
           path: UI/store-app.UI/coverage/cobertura-coverage.xml
