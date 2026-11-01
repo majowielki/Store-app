@@ -107,7 +107,7 @@ services:
       - "${NOTIFICATION_SERVICE_PORT:-5010}:8080"
 
   mailpit:
-    image: axllent/mailpit:v1.31.3
+    image: axllent/mailpit:v1.32.0
     restart: unless-stopped
     ports:
       - "${MAILPIT_PORT:-8025}:8025"
